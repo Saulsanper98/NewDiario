@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import toast from "react-hot-toast";
-import { Bell, ChevronDown, Check, X } from "lucide-react";
+import { Bell, ChevronDown, Check, X, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { Avatar } from "@/components/ui/Avatar";
 import { CommandPalette } from "@/components/layout/CommandPalette";
@@ -43,11 +43,13 @@ export function Header({ user, breadcrumb }: HeaderProps) {
     items: NotifItem[];
     unread: number;
   } | null>(null);
+  const [notifLoading, setNotifLoading] = useState(false);
 
   const deptRef = useRef<HTMLDivElement>(null);
   const notifRef = useRef<HTMLDivElement>(null);
 
   const refreshNotifications = useCallback(async () => {
+    setNotifLoading(true);
     try {
       const res = await fetch("/api/notifications");
       if (res.ok) {
@@ -55,6 +57,8 @@ export function Header({ user, breadcrumb }: HeaderProps) {
       }
     } catch {
       // network error — ignore silently
+    } finally {
+      setNotifLoading(false);
     }
   }, []);
 
@@ -211,7 +215,15 @@ export function Header({ user, breadcrumb }: HeaderProps) {
         >
           <Bell className="w-4 h-4" />
           {(notifData?.unread ?? 0) > 0 && (
-            <span className="absolute top-1.5 right-1.5 min-w-[6px] h-[6px] rounded-full bg-[#ffeb66] pulse-dot" />
+            notifData!.unread > 9 ? (
+              <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-[#ffeb66] text-[#0a0f1e] text-[9px] font-bold flex items-center justify-center pulse-dot">
+                9+
+              </span>
+            ) : (
+              <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-[#ffeb66] text-[#0a0f1e] text-[9px] font-bold flex items-center justify-center pulse-dot">
+                {notifData!.unread}
+              </span>
+            )
           )}
         </button>
 
@@ -254,9 +266,15 @@ export function Header({ user, breadcrumb }: HeaderProps) {
               </div>
             </div>
             <div className="max-h-80 overflow-y-auto">
-              {!notifData?.items.length ? (
-                <div className="px-4 py-8 text-center text-sm text-white/30">
-                  Sin notificaciones
+              {notifLoading && !notifData ? (
+                <div className="px-4 py-8 flex flex-col items-center gap-2 text-white/30">
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <p className="text-xs">Cargando...</p>
+                </div>
+              ) : !notifData?.items.length ? (
+                <div className="px-4 py-8 flex flex-col items-center gap-2 text-white/30">
+                  <Bell className="w-8 h-8 opacity-20" />
+                  <p className="text-sm">Sin notificaciones</p>
                 </div>
               ) : (
                 notifData.items.map((n) => (

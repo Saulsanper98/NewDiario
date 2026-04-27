@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { X, ClipboardList } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import type { ConfigPageActivityLog } from "@/lib/types/config";
 
@@ -18,15 +19,34 @@ export function ActivityLogsTab({ logs }: ActivityLogsTabProps) {
       l.action.toLowerCase().includes(search.toLowerCase())
   );
 
+  const shown = filtered.slice(0, 50);
+
   return (
     <div className="space-y-4">
-      <input
-        type="text"
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        placeholder="Buscar en logs..."
-        className="w-full max-w-sm bg-white/5 border border-white/8 rounded-lg px-3 py-2 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-[#ffeb66]/40"
-      />
+      <div className="flex items-center gap-3">
+        <div className="relative max-w-sm flex-1">
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Buscar en logs..."
+            className="w-full bg-white/5 border border-white/8 rounded-lg px-3 pr-8 py-2 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-[#ffeb66]/40"
+          />
+          {search && (
+            <button
+              type="button"
+              onClick={() => setSearch("")}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 transition-colors"
+              aria-label="Limpiar búsqueda"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+        <span className="text-xs text-white/30 shrink-0">
+          {search ? `${filtered.length} resultado${filtered.length !== 1 ? "s" : ""}` : `${logs.length} registro${logs.length !== 1 ? "s" : ""}`}
+        </span>
+      </div>
 
       <div className="glass rounded-xl overflow-hidden">
         <table className="w-full">
@@ -47,7 +67,7 @@ export function ActivityLogsTab({ logs }: ActivityLogsTabProps) {
             </tr>
           </thead>
           <tbody>
-            {filtered.slice(0, 50).map((log) => (
+            {shown.map((log) => (
               <tr
                 key={log.id}
                 className="border-b border-white/4 hover:bg-white/2 transition-colors"
@@ -71,8 +91,16 @@ export function ActivityLogsTab({ logs }: ActivityLogsTabProps) {
           </tbody>
         </table>
         {filtered.length === 0 && (
-          <div className="py-8 text-center text-sm text-white/30">
-            No hay logs
+          <div className="py-10 flex flex-col items-center gap-2 text-white/30">
+            <ClipboardList className="w-8 h-8 opacity-30" />
+            <p className="text-sm">
+              {search ? `Sin resultados para "${search}"` : "No hay logs de actividad"}
+            </p>
+          </div>
+        )}
+        {filtered.length > 50 && (
+          <div className="px-4 py-3 border-t border-white/6 text-xs text-white/30 text-center">
+            Mostrando 50 de {filtered.length} registros. Afina la búsqueda para ver más.
           </div>
         )}
       </div>

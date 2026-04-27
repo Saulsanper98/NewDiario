@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import { Sun, Moon } from "lucide-react";
+import { Sun, Sunset, Moon, Loader2 } from "lucide-react";
 import toast from "react-hot-toast";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
@@ -86,7 +86,10 @@ export function AppSettingsTab() {
 
   if (loading) {
     return (
-      <div className="text-sm text-white/40 py-8">Cargando configuración…</div>
+      <div className="flex items-center gap-2 text-sm text-white/40 py-8">
+        <Loader2 className="w-4 h-4 animate-spin" />
+        Cargando configuración…
+      </div>
     );
   }
 
@@ -134,7 +137,7 @@ export function AppSettingsTab() {
             {
               key: "afternoon" as const,
               label: "Tarde",
-              icon: Sun,
+              icon: Sunset,
               state: shifts.afternoon,
             },
             {

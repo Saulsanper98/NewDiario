@@ -31,3 +31,36 @@ export async function POST(
 
   return NextResponse.json(comment, { status: 201 });
 }
+
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const session = await auth();
+  if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const user = session.user as SessionUser;
+  const { id } = await params;
+  const { commentId } = await req.json() as { commentId?: string };
+
+  if (!commentId) return NextResponse.json({ error: "commentId required" }, { status: 400 });
+
+  const comment = await prisma.logComment.findUnique({
+    where: { id: commentId, logEntryId: id, deletedAt: null },
+  });
+
+  if (!comment) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  const isOwner = comment.authorId === user.id;
+  const isAdmin = user.role === "ADMIN" || user.role === "SUPERADMIN";
+  if (!isOwner && !isAdmin) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  await prisma.logComment.update({
+    where: { id: commentId },
+    data: { deletedAt: new Date() },
+  });
+
+  return NextResponse.json({ success: true });
+}

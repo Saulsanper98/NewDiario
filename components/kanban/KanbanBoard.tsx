@@ -52,6 +52,16 @@ export function KanbanBoard({ project, allUsers }: KanbanBoardProps) {
         const [removed] = newCols.splice(source.index, 1);
         newCols.splice(destination.index, 0, removed);
         setColumns(newCols);
+        fetch(`/api/projects/${project.id}/columns`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            columns: newCols.map((c, idx) => ({ id: c.id, order: idx })),
+          }),
+        }).catch(() => {
+          toast.error("No se pudo guardar el orden de columnas");
+          setColumns(columns);
+        });
         return;
       }
 
@@ -87,9 +97,9 @@ export function KanbanBoard({ project, allUsers }: KanbanBoardProps) {
         return;
       }
 
-        const srcTasks: ProjectKanbanTask[] = Array.from(sourceCol.tasks);
-        const [moved] = srcTasks.splice(source.index, 1);
-        const dstTasks: ProjectKanbanTask[] = Array.from(destCol.tasks);
+      const srcTasks: ProjectKanbanTask[] = Array.from(sourceCol.tasks);
+      const [moved] = srcTasks.splice(source.index, 1);
+      const dstTasks: ProjectKanbanTask[] = Array.from(destCol.tasks);
       dstTasks.splice(destination.index, 0, {
         ...moved,
         columnId: destCol.id,
@@ -171,6 +181,7 @@ export function KanbanBoard({ project, allUsers }: KanbanBoardProps) {
         <select
           value={priorityFilter}
           onChange={(e) => setPriorityFilter(e.target.value)}
+          aria-label="Filtrar por prioridad"
           className="bg-white/5 border border-white/8 rounded-lg px-2.5 py-1 text-xs text-white/60 focus:outline-none focus:border-[#ffeb66]/40"
         >
           <option value="">Prioridad</option>
@@ -181,6 +192,7 @@ export function KanbanBoard({ project, allUsers }: KanbanBoardProps) {
         <select
           value={assigneeFilter}
           onChange={(e) => setAssigneeFilter(e.target.value)}
+          aria-label="Filtrar por responsable"
           className="bg-white/5 border border-white/8 rounded-lg px-2.5 py-1 text-xs text-white/60 focus:outline-none focus:border-[#ffeb66]/40"
         >
           <option value="">Asignado</option>
@@ -230,17 +242,22 @@ export function KanbanBoard({ project, allUsers }: KanbanBoardProps) {
                         className="flex flex-col w-72 shrink-0"
                       >
                         {/* Column header */}
-                        <div className="flex items-center gap-2 mb-2 px-1">
+                        <div className="flex items-center gap-2 mb-2 px-1 group/col">
                           <div
                             {...colDraggable.dragHandleProps}
-                            className="text-white/20 hover:text-white/50 cursor-grab transition-colors"
+                            className="text-white/15 hover:text-white/50 cursor-grab transition-colors opacity-0 group-hover/col:opacity-100"
                           >
                             <GripVertical className="w-3.5 h-3.5" />
                           </div>
-                          <h3 className="text-sm font-semibold text-white/70 flex-1">
+                          <h3 className="text-xs font-bold text-white/60 flex-1 uppercase tracking-wider">
                             {col.name}
                           </h3>
-                          <span className="text-xs text-white/30 bg-white/6 px-1.5 py-0.5 rounded-md">
+                          <span className={cn(
+                            "text-xs font-semibold px-2 py-0.5 rounded-full",
+                            col.tasks.length === 0
+                              ? "text-white/20 bg-white/4"
+                              : "text-white/60 bg-white/8"
+                          )}>
                             {col.tasks.length}
                           </span>
                         </div>
@@ -259,9 +276,10 @@ export function KanbanBoard({ project, allUsers }: KanbanBoardProps) {
                               )}
                             >
                               {col.tasks.length === 0 && !snapshot.isDraggingOver && addingColumnId !== col.id && (
-                                <p className="text-[11px] text-white/20 text-center py-3 select-none">
-                                  Sin tareas
-                                </p>
+                                <div className="flex flex-col items-center gap-1 py-6 select-none">
+                                  <p className="text-[11px] text-white/20 text-center">Sin tareas</p>
+                                  <p className="text-[10px] text-white/12 text-center">Arrastra aquí o usa + Añadir</p>
+                                </div>
                               )}
                               {col.tasks.map(
                                 (task: ProjectKanbanTask, taskIndex: number) => (

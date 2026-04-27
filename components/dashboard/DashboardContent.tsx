@@ -3,6 +3,7 @@
 import {
   BookOpen, CheckSquare, AlertTriangle, Zap,
   FolderKanban, Plus, ArrowRight, CalendarCheck,
+  Sun, Sunset, Moon, ExternalLink,
 } from "lucide-react";
 import Link from "next/link";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
@@ -29,6 +30,7 @@ import type {
 } from "@/lib/types/dashboard";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import { CalendarDays } from "lucide-react";
 
 type ProjectBoardColumn = DashboardProjectCard["kanbanColumns"][number];
 
@@ -66,8 +68,8 @@ export function DashboardContent({
       ? "Buenas tardes"
       : "Buenas noches";
 
-  /* Shift icon */
-  const shiftIcon = currentShift === "MORNING" ? "☀️" : currentShift === "AFTERNOON" ? "🌆" : "🌙";
+  const ShiftIcon = currentShift === "MORNING" ? Sun : currentShift === "AFTERNOON" ? Sunset : Moon;
+  const shiftIconColor = currentShift === "MORNING" ? "text-amber-300" : currentShift === "AFTERNOON" ? "text-orange-300" : "text-indigo-300";
 
   return (
     <div className="p-6 space-y-6 max-w-7xl mx-auto">
@@ -78,8 +80,8 @@ export function DashboardContent({
             {greeting},{" "}
             <span className="text-[#ffeb66]">{user.name.split(" ")[0]}</span>
           </h1>
-          <p className="text-white/40 text-sm mt-0.5">
-            <span>{shiftIcon}</span>{" "}
+          <p className="text-white/40 text-sm mt-0.5 flex items-center gap-1.5">
+            <ShiftIcon className={cn("w-3.5 h-3.5", shiftIconColor)} />
             {format(now, "EEEE d 'de' MMMM, yyyy", { locale: es })} — Turno de{" "}
             <span className="text-[#ffeb66]/70">{SHIFT_LABELS[currentShift]}</span>
           </p>
@@ -102,7 +104,7 @@ export function DashboardContent({
           icon={<BookOpen className="w-4 h-4" />}
           color="text-[#ffeb66]"
           bg="bg-[#ffeb66]/8"
-          href="/bitacora"
+          href={`/bitacora/dia?date=${format(now, "yyyy-MM-dd")}`}
         />
         <StatCard
           label="Seguimientos pendientes"
@@ -259,24 +261,27 @@ export function DashboardContent({
             ) : (
               <div className="space-y-1">
                 {myTasks.slice(0, 6).map((task) => (
-                  <div key={task.id} className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-white/4 transition-all duration-200">
-                    <div className={cn(
-                      "w-1.5 h-1.5 rounded-full shrink-0",
-                      task.priority === "HIGH" ? "bg-red-400" : task.priority === "MEDIUM" ? "bg-amber-400" : "bg-emerald-400"
-                    )} />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm text-white/80 truncate">{task.title}</p>
-                      <p className="text-xs text-white/30 truncate">{task.project.name} · {task.column.name}</p>
+                  <Link key={task.id} href={`/proyectos/${task.project.id}`}>
+                    <div className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-white/4 transition-all duration-200 group">
+                      <div className={cn(
+                        "w-1.5 h-1.5 rounded-full shrink-0",
+                        task.priority === "HIGH" ? "bg-red-400" : task.priority === "MEDIUM" ? "bg-amber-400" : "bg-emerald-400"
+                      )} />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-white/80 truncate group-hover:text-white transition-colors">{task.title}</p>
+                        <p className="text-xs text-white/30 truncate">{task.project.name} · {task.column.name}</p>
+                      </div>
+                      {task.dueDate && (
+                        <span className={cn(
+                          "text-xs shrink-0",
+                          new Date(task.dueDate) < new Date() ? "text-red-400 font-medium" : "text-white/30"
+                        )}>
+                          {format(new Date(task.dueDate), "d MMM", { locale: es })}
+                        </span>
+                      )}
+                      <ExternalLink className="w-3 h-3 text-white/15 group-hover:text-white/40 transition-colors shrink-0" />
                     </div>
-                    {task.dueDate && (
-                      <span className={cn(
-                        "text-xs shrink-0",
-                        new Date(task.dueDate) < new Date() ? "text-red-400 font-medium" : "text-white/30"
-                      )}>
-                        {format(new Date(task.dueDate), "d MMM", { locale: es })}
-                      </span>
-                    )}
-                  </div>
+                  </Link>
                 ))}
                 {myTasks.length > 6 && (
                   <p className="text-xs text-white/25 text-center pt-1">

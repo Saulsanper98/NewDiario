@@ -66,6 +66,7 @@ export function NewLogEntryForm({
 
   const {
     register,
+    watch,
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm<FormData>({
@@ -87,6 +88,7 @@ export function NewLogEntryForm({
   });
 
   const deptForEntry = editingEntry?.departmentId ?? departmentId;
+  const titleValue = watch("title") ?? "";
 
   function addTag(e: React.KeyboardEvent) {
     if (e.key === "Enter" && tagInput.trim()) {
@@ -114,7 +116,8 @@ export function NewLogEntryForm({
   }
 
   async function onSubmit(data: FormData) {
-    if (!content || content === "<p></p>") {
+    const strippedContent = content.replace(/<[^>]+>/g, "").trim();
+    if (!content || !strippedContent) {
       toast.error("El contenido no puede estar vacío");
       return;
     }
@@ -168,12 +171,22 @@ export function NewLogEntryForm({
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
         {/* Title */}
-        <Input
-          label="Título"
-          placeholder="Resumen breve de la entrada..."
-          error={errors.title?.message}
-          {...register("title")}
-        />
+        <div>
+          <div className="flex items-center justify-between mb-1.5">
+            <label className="text-xs font-medium text-white/60 uppercase tracking-wide">
+              Título
+            </label>
+            <span className={`text-[10px] tabular-nums ${titleValue.length > 120 ? "text-amber-400" : "text-white/25"}`}>
+              {titleValue.length}/150
+            </span>
+          </div>
+          <Input
+            placeholder="Resumen breve de la entrada..."
+            error={errors.title?.message}
+            maxLength={150}
+            {...register("title")}
+          />
+        </div>
 
         {/* Type & Shift */}
         <div className="grid grid-cols-2 gap-4">

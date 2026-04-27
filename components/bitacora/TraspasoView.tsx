@@ -90,10 +90,12 @@ export function TraspasoView({
           {(["MORNING", "AFTERNOON", "NIGHT"] as const).map((shift) => {
             const Icon = SHIFT_ICONS[shift];
             const count = shiftCountMap[shift] ?? 0;
+            const shiftColor = shift === "MORNING" ? "text-amber-300" : shift === "AFTERNOON" ? "text-orange-300" : "text-indigo-300";
+            const shiftBg = shift === "MORNING" ? "bg-amber-400/8 border-amber-400/15" : shift === "AFTERNOON" ? "bg-orange-400/8 border-orange-400/15" : "bg-indigo-400/8 border-indigo-400/15";
             return (
-              <Card key={shift} className="text-center py-5">
-                <Icon className="w-6 h-6 mx-auto mb-2 text-[#ffeb66]/70" />
-                <p className="text-2xl font-bold text-white">{count}</p>
+              <Card key={shift} className={`text-center py-5 ${shiftBg}`}>
+                <Icon className={`w-6 h-6 mx-auto mb-2 ${shiftColor}`} />
+                <p className={`text-2xl font-bold ${shiftColor}`}>{count}</p>
                 <p className="text-xs text-white/40 mt-1">
                   Entradas {SHIFT_LABELS[shift].toLowerCase()}
                 </p>

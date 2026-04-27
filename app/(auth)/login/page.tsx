@@ -47,19 +47,19 @@ function RoqueNublo({ night }: { night: boolean }) {
         fill={fill}
         opacity="0.9"
       />
-      {/* Roque Nublo — main column */}
+      {/* Roque Nublo — thin vertical shaft */}
       <path
-        d="M427,260 L422,138 L424,128 L428,121 L432,120 L436,121 L440,128 L442,138 L437,260 Z"
+        d="M425,262 L423,134 L434,134 L432,262 Z"
         fill={fill}
       />
-      {/* Roque Nublo — top cap (wider irregular rock top) */}
+      {/* Roque Nublo — wide characteristic cap (table stone, tilted left) */}
       <path
-        d="M424,138 L420,120 L423,112 L428,107 L432,105 L436,107 L441,112 L444,120 L440,138 Z"
+        d="M399,138 L400,126 L404,115 L411,107 L421,101 L431,99 L441,102 L449,109 L454,119 L456,130 L457,138 Z"
         fill={fill}
       />
-      {/* Roque del Fraile — smaller column to the right */}
+      {/* Roque del Fraile — shorter, blockier companion rock */}
       <path
-        d="M465,264 L462,192 L464,184 L467,180 L470,179 L473,180 L476,184 L478,192 L475,264 Z"
+        d="M469,267 L467,210 L465,202 L466,195 L471,191 L477,193 L480,200 L479,210 L477,267 Z"
         fill={fill}
         opacity="0.95"
       />
@@ -194,6 +194,7 @@ export default function LoginPage() {
       email,
       password,
       redirect: false,
+      remember,
     });
 
     setLoading(false);

@@ -15,6 +15,7 @@ import {
   Clock,
   AlertTriangle,
   Loader2,
+  X,
 } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
@@ -135,14 +136,26 @@ export function ProjectList({
             <Loader2 className="w-5 h-5 text-[#ffeb66] animate-spin" />
           </div>
         )}
-        <input
-          type="text"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Buscar proyectos..."
-          aria-label="Buscar proyectos"
-          className="flex-1 min-w-40 bg-white/5 border border-white/8 rounded-lg px-3 py-1.5 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-[#ffeb66]/40"
-        />
+        <div className="flex-1 min-w-40 relative">
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Buscar proyectos..."
+            aria-label="Buscar proyectos"
+            className="w-full bg-white/5 border border-white/8 rounded-lg px-3 py-1.5 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-[#ffeb66]/40 pr-8"
+          />
+          {search && (
+            <button
+              type="button"
+              onClick={() => setSearch("")}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-white/30 hover:text-white transition-colors"
+              aria-label="Limpiar búsqueda"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
         <div className="flex gap-1">
           {STATUS_OPTIONS.map((s) => (
             <button

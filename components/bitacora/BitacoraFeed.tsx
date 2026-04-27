@@ -19,6 +19,7 @@ import {
   Zap,
   SortAsc,
   SortDesc,
+  X,
 } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { Avatar } from "@/components/ui/Avatar";
@@ -144,9 +145,10 @@ export function BitacoraFeed({
         limit: String(pageSize),
         departmentId,
       });
-      if (typeFilter)    sp.set("type", typeFilter);
-      if (shiftFilter)   sp.set("shift", shiftFilter);
+      if (typeFilter)     sp.set("type", typeFilter);
+      if (shiftFilter)    sp.set("shift", shiftFilter);
       if (followupFilter) sp.set("followup", "1");
+      if (search.trim())  sp.set("search", search.trim());
       const res = await fetch(`/api/log-entries?${sp.toString()}`);
       if (!res.ok) throw new Error();
       const data = await res.json();
@@ -260,6 +262,23 @@ export function BitacoraFeed({
         >
           {sortDesc ? <SortDesc className="w-3.5 h-3.5" /> : <SortAsc className="w-3.5 h-3.5" />}
         </button>
+
+        {(typeFilter || shiftFilter || followupFilter || search.trim()) && (
+          <button
+            type="button"
+            onClick={() => {
+              setSearch("");
+              setTypeFilter("");
+              setShiftFilter("");
+              setFollowupFilter(false);
+            }}
+            className="flex items-center gap-1 px-2 py-1 rounded-md text-xs text-white/50 hover:text-white hover:bg-white/6 transition-all duration-150 border border-white/10"
+            aria-label="Limpiar todos los filtros"
+          >
+            <X className="w-3 h-3" />
+            Limpiar
+          </button>
+        )}
 
         <span className="ml-auto text-xs text-white/30">
           {filtered.length} entrada{filtered.length !== 1 ? "s" : ""}

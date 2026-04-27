@@ -10,7 +10,8 @@
       "Bash(grep -E \"^C:\\\\\\\\\")",
       "Bash(grep -v \"^Effects\\\\|^$\\\\|^\\\\*\\\\|^Calling\\\\|^$\\\\|^Update\\\\|^Subscribe\\\\|^C:.*cc-ops$\")",
       "Bash(python3 -c ' *)",
-      "Bash(python3 *)"
+      "Bash(python3 *)",
+      "Bash(grep -v \"//.*<button\")"
     ]
   }
 }

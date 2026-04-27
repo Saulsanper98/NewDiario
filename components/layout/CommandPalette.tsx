@@ -9,6 +9,10 @@ import {
   CheckSquare,
   Loader2,
   Search,
+  LayoutDashboard,
+  ArrowLeftRight,
+  Plus,
+  CalendarDays,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -159,6 +163,35 @@ export function CommandPalette({
               )}
             </div>
             <Command.List className="max-h-[min(50vh,420px)] overflow-y-auto p-2">
+              {query.trim().length === 0 && (
+                <Command.Group
+                  heading="Ir a"
+                  className="text-[11px] font-medium text-white/35 uppercase tracking-wide px-2 pt-2 pb-1"
+                >
+                  {[
+                    { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+                    { label: "Bitácora", href: "/bitacora", icon: BookOpen },
+                    { label: "Bitácora — hoy", href: `/bitacora/dia?date=${new Date().toISOString().slice(0, 10)}`, icon: CalendarDays },
+                    { label: "Nueva entrada", href: "/bitacora/nueva", icon: Plus },
+                    { label: "Proyectos", href: "/proyectos", icon: FolderKanban },
+                    { label: "Traspaso", href: "/traspaso", icon: ArrowLeftRight },
+                  ].map((item) => {
+                    const Icon = item.icon;
+                    return (
+                      <Command.Item
+                        key={item.href}
+                        value={item.label}
+                        onSelect={() => go(item.href)}
+                        className="flex items-center gap-2 px-2 py-2 rounded-lg cursor-pointer text-sm text-white/80 data-[selected=true]:bg-white/10 data-[selected=true]:border-l-2 data-[selected=true]:border-[#ffeb66] data-[selected=true]:pl-[6px]"
+                      >
+                        <Icon className="w-4 h-4 text-white/40 shrink-0" />
+                        <span className="truncate">{item.label}</span>
+                      </Command.Item>
+                    );
+                  })}
+                </Command.Group>
+              )}
+
               {query.trim().length > 0 && query.trim().length < 2 && (
                 <p className="px-2 py-6 text-center text-sm text-white/35">
                   Escribe al menos 2 caracteres
@@ -167,7 +200,7 @@ export function CommandPalette({
 
               {empty && (
                 <Command.Empty className="py-8 text-center text-sm text-white/35">
-                  Sin resultados
+                  Sin resultados para &quot;{query}&quot;
                 </Command.Empty>
               )}
 

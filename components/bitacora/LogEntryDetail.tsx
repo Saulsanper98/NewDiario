@@ -12,6 +12,8 @@ import {
   CheckCircle,
   AlertTriangle,
   Paperclip,
+  Link2,
+  Trash2,
 } from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
 import { Badge } from "@/components/ui/Badge";
@@ -44,6 +46,15 @@ export function LogEntryDetail({ entry, currentUser }: LogEntryDetailProps) {
   const [comment, setComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [comments, setComments] = useState(entry.comments);
+  const [linkCopied, setLinkCopied] = useState(false);
+
+  function copyLink() {
+    const url = `${window.location.origin}/bitacora/${entry.id}`;
+    navigator.clipboard.writeText(url).then(() => {
+      setLinkCopied(true);
+      setTimeout(() => setLinkCopied(false), 2000);
+    }).catch(() => toast.error("No se pudo copiar el enlace"));
+  }
 
   const canEdit =
     currentUser.role === "SUPERADMIN" ||
@@ -74,6 +85,21 @@ export function LogEntryDetail({ entry, currentUser }: LogEntryDetailProps) {
       // Comment text is preserved so user can retry
     }
     setSubmitting(false);
+  }
+
+  async function deleteComment(commentId: string) {
+    try {
+      const res = await fetch(`/api/log-entries/${entry.id}/comments`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ commentId }),
+      });
+      if (!res.ok) throw new Error();
+      setComments((prev) => prev.filter((c) => c.id !== commentId));
+      toast.success("Comentario eliminado");
+    } catch {
+      toast.error("No se pudo eliminar el comentario");
+    }
   }
 
   async function markFollowupDone() {
@@ -124,16 +150,27 @@ export function LogEntryDetail({ entry, currentUser }: LogEntryDetailProps) {
             </div>
             <h1 className="text-xl font-bold text-white">{entry.title}</h1>
           </div>
-          {canEdit && (
+          <div className="flex items-center gap-2">
             <Button
               variant="secondary"
               size="sm"
-              onClick={() => router.push(`/bitacora/${entry.id}/editar`)}
+              onClick={copyLink}
+              title="Copiar enlace"
             >
-              <Edit className="w-3.5 h-3.5" />
-              Editar
+              <Link2 className="w-3.5 h-3.5" />
+              {linkCopied ? "¡Copiado!" : "Enlace"}
             </Button>
-          )}
+            {canEdit && (
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => router.push(`/bitacora/${entry.id}/editar`)}
+              >
+                <Edit className="w-3.5 h-3.5" />
+                Editar
+              </Button>
+            )}
+          </div>
         </div>
 
         {/* Author info */}
@@ -281,7 +318,7 @@ export function LogEntryDetail({ entry, currentUser }: LogEntryDetailProps) {
         {comments.length > 0 && (
           <div className="space-y-4 mb-4">
             {comments.map((c: LogCommentRow) => (
-              <div key={c.id} className="flex gap-3">
+              <div key={c.id} className="flex gap-3 group/comment">
                 <Avatar name={c.author.name} image={c.author.image} size="sm" />
                 <div className="flex-1 bg-white/4 rounded-lg p-3">
                   <div className="flex items-center gap-2 mb-1">
@@ -291,6 +328,16 @@ export function LogEntryDetail({ entry, currentUser }: LogEntryDetailProps) {
                     <span className="text-xs text-white/30">
                       {formatRelative(c.createdAt)}
                     </span>
+                    {(currentUser.id === c.author.id || canEdit) && (
+                      <button
+                        type="button"
+                        onClick={() => deleteComment(c.id)}
+                        className="ml-auto opacity-0 group-hover/comment:opacity-100 p-1 rounded text-white/25 hover:text-red-400 transition-all duration-150"
+                        aria-label="Eliminar comentario"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    )}
                   </div>
                   <p className="text-sm text-white/60">{c.content}</p>
                 </div>
