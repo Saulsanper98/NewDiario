@@ -1,0 +1,38 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: ccops_postgres
+    environment:
+      POSTGRES_USER: ccops
+      POSTGRES_PASSWORD: ccops_password
+      POSTGRES_DB: ccops_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - ccops_pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ccops -d ccops_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ccops_app
+    environment:
+      DATABASE_URL: postgresql://ccops:ccops_password@postgres:5432/ccops_db
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-change-this-in-production-min-32-chars-please}
+      NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3000}
+      NODE_ENV: production
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  ccops_pgdata:

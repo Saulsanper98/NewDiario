@@ -1,0 +1,591 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── Enums ────────────────────────────────────────────────────────────────────
+
+enum Role {
+  SUPERADMIN
+  ADMIN
+  OPERATOR
+}
+
+enum SharePermission {
+  READ
+  READ_COMMENT
+}
+
+enum LogEntryType {
+  INCIDENCIA
+  INFORMATIVO
+  URGENTE
+  MANTENIMIENTO
+  SIN_NOVEDADES
+}
+
+enum LogEntryStatus {
+  DRAFT
+  PUBLISHED
+}
+
+enum Shift {
+  MORNING
+  AFTERNOON
+  NIGHT
+}
+
+enum Priority {
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum ProjectStatus {
+  ACTIVE
+  PAUSED
+  COMPLETED
+  ARCHIVED
+}
+
+enum TaskActivityType {
+  CREATED
+  STATUS_CHANGED
+  ASSIGNED
+  COMMENTED
+  ATTACHMENT_ADDED
+  SUBTASK_COMPLETED
+}
+
+enum NotificationType {
+  TASK_ASSIGNED
+  TASK_OVERDUE
+  TASK_COMMENTED
+  LOG_SHARED
+  PROJECT_SHARED
+  MENTION
+}
+
+// ─── Users & Departments ─────────────────────────────────────────────────────
+
+model User {
+  id        String    @id @default(cuid())
+  name      String
+  email     String    @unique
+  password  String?
+  image     String?
+  role      Role      @default(OPERATOR)
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  departments          UserDepartment[]
+  logEntries           LogEntry[]
+  logComments          LogComment[]
+  logEditHistory       LogEditHistory[]
+  taskComments         TaskComment[]
+  projectComments      ProjectComment[]
+  assignedTasks        Task[]           @relation("TaskAssignee")
+  coResponsibleTasks   Task[]           @relation("TaskCoResponsible")
+  projectMemberships   ProjectMember[]
+  notifications        Notification[]
+  activityLogs         ActivityLog[]
+  accounts             Account[]
+  sessions             Session[]
+
+  @@index([email])
+  @@index([role])
+  @@index([isActive])
+}
+
+model Department {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  slug        String   @unique
+  accentColor String   @default("#FFEB66")
+  isArchived  Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  members       UserDepartment[]
+  logEntries    LogEntry[]
+  logShares     LogShare[]     @relation("SharedWithDepartment")
+  projects      Project[]
+  projectShares ProjectShare[] @relation("ProjectSharedWith")
+
+  @@index([slug])
+}
+
+model UserDepartment {
+  id           String   @id @default(cuid())
+  userId       String
+  departmentId String
+  role         Role     @default(OPERATOR)
+  isDefault    Boolean  @default(false)
+  createdAt    DateTime @default(now())
+
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  department Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, departmentId])
+  @@index([userId])
+  @@index([departmentId])
+}
+
+// ─── NextAuth ─────────────────────────────────────────────────────────────────
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ─── Log / Bitácora ───────────────────────────────────────────────────────────
+
+model LogEntry {
+  id               String         @id @default(cuid())
+  title            String
+  content          String         @db.Text
+  type             LogEntryType   @default(INFORMATIVO)
+  status           LogEntryStatus @default(DRAFT)
+  shift            Shift
+  requiresFollowup Boolean        @default(false)
+  followupDone     Boolean        @default(false)
+  authorId         String
+  departmentId     String
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  deletedAt        DateTime?
+
+  author      User             @relation(fields: [authorId], references: [id])
+  department  Department       @relation(fields: [departmentId], references: [id])
+  comments    LogComment[]
+  attachments LogAttachment[]
+  tags        LogTag[]
+  shares      LogShare[]
+  tasks       Task[]           @relation("TaskLinkedLog")
+  editHistory LogEditHistory[]
+
+  @@index([authorId])
+  @@index([departmentId])
+  @@index([status])
+  @@index([type])
+  @@index([shift])
+  @@index([createdAt])
+  @@index([requiresFollowup])
+  @@index([deletedAt])
+  @@index([title])
+}
+
+model LogEditHistory {
+  id         String   @id @default(cuid())
+  logEntryId String
+  editedById String
+  changes    String   @db.Text
+  createdAt  DateTime @default(now())
+
+  logEntry LogEntry @relation(fields: [logEntryId], references: [id], onDelete: Cascade)
+  editedBy User     @relation(fields: [editedById], references: [id])
+
+  @@index([logEntryId])
+}
+
+model LogComment {
+  id         String    @id @default(cuid())
+  content    String    @db.Text
+  logEntryId String
+  authorId   String
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  deletedAt  DateTime?
+
+  logEntry LogEntry @relation(fields: [logEntryId], references: [id], onDelete: Cascade)
+  author   User     @relation(fields: [authorId], references: [id])
+
+  @@index([logEntryId])
+  @@index([authorId])
+}
+
+model LogAttachment {
+  id         String   @id @default(cuid())
+  filename   String
+  url        String
+  mimeType   String
+  size       Int
+  logEntryId String
+  createdAt  DateTime @default(now())
+
+  logEntry LogEntry @relation(fields: [logEntryId], references: [id], onDelete: Cascade)
+
+  @@index([logEntryId])
+}
+
+model LogTag {
+  id         String @id @default(cuid())
+  name       String
+  logEntryId String
+
+  logEntry LogEntry @relation(fields: [logEntryId], references: [id], onDelete: Cascade)
+
+  @@index([logEntryId])
+  @@index([name])
+}
+
+model LogShare {
+  id           String          @id @default(cuid())
+  logEntryId   String
+  departmentId String
+  permission   SharePermission @default(READ)
+  createdAt    DateTime        @default(now())
+
+  logEntry   LogEntry   @relation(fields: [logEntryId], references: [id], onDelete: Cascade)
+  department Department @relation("SharedWithDepartment", fields: [departmentId], references: [id])
+
+  @@unique([logEntryId, departmentId])
+  @@index([logEntryId])
+  @@index([departmentId])
+}
+
+// ─── Projects & Tasks ─────────────────────────────────────────────────────────
+
+model Project {
+  id           String        @id @default(cuid())
+  name         String
+  description  String?       @db.Text
+  status       ProjectStatus @default(ACTIVE)
+  priority     Priority      @default(MEDIUM)
+  startDate    DateTime?
+  endDate      DateTime?
+  departmentId String
+  parentId     String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  deletedAt    DateTime?
+
+  department    Department         @relation(fields: [departmentId], references: [id])
+  parent        Project?           @relation("ProjectSubprojects", fields: [parentId], references: [id])
+  subprojects   Project[]          @relation("ProjectSubprojects")
+  members       ProjectMember[]
+  shares        ProjectShare[]
+  tasks         Task[]
+  kanbanColumns KanbanColumn[]
+  attachments   ProjectAttachment[]
+  links         ProjectLink[]
+  tags          ProjectTag[]
+  comments      ProjectComment[]
+  activityFeed  ProjectActivity[]
+
+  @@index([departmentId])
+  @@index([status])
+  @@index([parentId])
+  @@index([deletedAt])
+  @@index([name])
+}
+
+model ProjectMember {
+  id        String   @id @default(cuid())
+  projectId String
+  userId    String
+  isOwner   Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id])
+
+  @@unique([projectId, userId])
+  @@index([projectId])
+  @@index([userId])
+}
+
+model ProjectShare {
+  id           String          @id @default(cuid())
+  projectId    String
+  departmentId String
+  permission   SharePermission @default(READ)
+  createdAt    DateTime        @default(now())
+
+  project    Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  department Department @relation("ProjectSharedWith", fields: [departmentId], references: [id])
+
+  @@unique([projectId, departmentId])
+  @@index([projectId])
+  @@index([departmentId])
+}
+
+model ProjectAttachment {
+  id        String   @id @default(cuid())
+  filename  String
+  url       String
+  mimeType  String
+  size      Int
+  projectId String
+  createdAt DateTime @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+}
+
+model ProjectLink {
+  id        String   @id @default(cuid())
+  title     String
+  url       String
+  projectId String
+  createdAt DateTime @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+}
+
+model ProjectTag {
+  id        String @id @default(cuid())
+  name      String
+  projectId String
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+}
+
+model ProjectComment {
+  id        String    @id @default(cuid())
+  content   String    @db.Text
+  projectId String
+  authorId  String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  author  User    @relation(fields: [authorId], references: [id])
+
+  @@index([projectId])
+  @@index([authorId])
+}
+
+model ProjectActivity {
+  id          String   @id @default(cuid())
+  projectId   String
+  userId      String?
+  description String
+  createdAt   DateTime @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@index([createdAt])
+}
+
+model KanbanColumn {
+  id        String   @id @default(cuid())
+  name      String
+  order     Int
+  color     String?
+  projectId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  tasks   Task[]
+
+  @@index([projectId])
+  @@index([order])
+}
+
+model Task {
+  id             String    @id @default(cuid())
+  title          String
+  description    String?   @db.Text
+  priority       Priority  @default(MEDIUM)
+  dueDate        DateTime?
+  startDate      DateTime?
+  estimatedHours Float?
+  isShiftTask    Boolean   @default(false)
+  columnId       String
+  projectId      String
+  assigneeId     String?
+  order          Int       @default(0)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  deletedAt      DateTime?
+
+  linkedLogEntryId String?
+
+  column         KanbanColumn   @relation(fields: [columnId], references: [id])
+  project        Project        @relation(fields: [projectId], references: [id])
+  assignee       User?          @relation("TaskAssignee", fields: [assigneeId], references: [id])
+  coResponsibles User[]         @relation("TaskCoResponsible")
+  linkedLogEntry LogEntry?      @relation("TaskLinkedLog", fields: [linkedLogEntryId], references: [id])
+  subtasks       Subtask[]
+  comments       TaskComment[]
+  attachments    TaskAttachment[]
+  activities     TaskActivity[]
+  tags           TaskTag[]
+
+  @@index([columnId])
+  @@index([projectId])
+  @@index([assigneeId])
+  @@index([priority])
+  @@index([dueDate])
+  @@index([isShiftTask])
+  @@index([deletedAt])
+  @@index([order])
+}
+
+model Subtask {
+  id         String    @id @default(cuid())
+  title      String
+  completed  Boolean   @default(false)
+  taskId     String
+  assigneeId String?
+  dueDate    DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@index([taskId])
+}
+
+model TaskComment {
+  id        String    @id @default(cuid())
+  content   String    @db.Text
+  taskId    String
+  authorId  String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  task   Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  author User @relation(fields: [authorId], references: [id])
+
+  @@index([taskId])
+  @@index([authorId])
+}
+
+model TaskAttachment {
+  id        String   @id @default(cuid())
+  filename  String
+  url       String
+  mimeType  String
+  size      Int
+  taskId    String
+  createdAt DateTime @default(now())
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@index([taskId])
+}
+
+model TaskActivity {
+  id          String           @id @default(cuid())
+  taskId      String
+  userId      String?
+  type        TaskActivityType
+  description String
+  metadata    String?          @db.Text
+  createdAt   DateTime         @default(now())
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@index([taskId])
+  @@index([createdAt])
+}
+
+model TaskTag {
+  id     String @id @default(cuid())
+  name   String
+  taskId String
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@index([taskId])
+  @@index([name])
+}
+
+// ─── Notifications ────────────────────────────────────────────────────────────
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  type      NotificationType
+  title     String
+  message   String
+  link      String?
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isRead])
+  @@index([createdAt])
+}
+
+// ─── System ───────────────────────────────────────────────────────────────────
+
+model ActivityLog {
+  id          String   @id @default(cuid())
+  userId      String?
+  action      String
+  entityType  String?
+  entityId    String?
+  description String
+  metadata    String?  @db.Text
+  ipAddress   String?
+  createdAt   DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+}
+
+model AppSettings {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String   @db.Text
+  updatedAt DateTime @updatedAt
+
+  @@index([key])
+}

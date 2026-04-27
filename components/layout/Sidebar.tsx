@@ -1,0 +1,189 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useState, useEffect, startTransition } from "react";
+import {
+  LayoutDashboard,
+  BookOpen,
+  FolderKanban,
+  ArrowLeftRight,
+  Settings,
+  ChevronLeft,
+  ChevronRight,
+  LogOut,
+} from "lucide-react";
+import { signOut } from "next-auth/react";
+import { cn } from "@/lib/utils";
+import { Logo } from "@/components/ui/Logo";
+import { Avatar } from "@/components/ui/Avatar";
+import type { SessionUser } from "@/lib/auth/types";
+
+interface NavItem {
+  label: string;
+  href: string;
+  icon: React.ElementType;
+  exact?: boolean;
+}
+
+const navItems: NavItem[] = [
+  { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, exact: true },
+  { label: "Bitácora", href: "/bitacora", icon: BookOpen },
+  { label: "Proyectos", href: "/proyectos", icon: FolderKanban },
+  { label: "Traspaso", href: "/traspaso", icon: ArrowLeftRight, exact: true },
+];
+
+const STORAGE_KEY = "cc-ops-sidebar-collapsed";
+
+interface SidebarProps {
+  user: SessionUser;
+  isAdmin: boolean;
+}
+
+export function Sidebar({ user, isAdmin }: SidebarProps) {
+  const pathname = usePathname();
+  const [collapsed, setCollapsed] = useState(false);
+  const [hydrated, setHydrated] = useState(false);
+
+  useEffect(() => {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    startTransition(() => {
+      if (stored === "true") setCollapsed(true);
+      setHydrated(true);
+    });
+  }, []);
+
+  useEffect(() => {
+    function handleStorage(e: StorageEvent) {
+      if (e.key !== STORAGE_KEY) return;
+      startTransition(() => setCollapsed(e.newValue === "true"));
+    }
+    window.addEventListener("storage", handleStorage);
+    return () => window.removeEventListener("storage", handleStorage);
+  }, []);
+
+  function toggle() {
+    setCollapsed((prev) => {
+      const next = !prev;
+      localStorage.setItem(STORAGE_KEY, String(next));
+      return next;
+    });
+  }
+
+  const isActive = (item: NavItem) => {
+    if (item.exact) return pathname === item.href;
+    return pathname.startsWith(item.href);
+  };
+
+  return (
+    <aside
+      className={cn(
+        "relative flex flex-col shrink-0 h-full z-10",
+        "glass border-r border-white/8",
+        hydrated ? "transition-all duration-300" : "",
+        collapsed ? "w-16" : "w-60"
+      )}
+    >
+      {/* Logo */}
+      <div
+        className={cn(
+          "flex items-center h-16 border-b border-white/8 shrink-0 overflow-hidden",
+          collapsed ? "justify-center px-0" : "px-4"
+        )}
+      >
+        {collapsed ? (
+          <div className="w-8 h-8 flex items-center justify-center overflow-hidden shrink-0">
+            <Logo size="sm" showText={false} className="scale-90" />
+          </div>
+        ) : (
+          <Logo size="sm" showText={true} />
+        )}
+      </div>
+
+      {/* Navigation */}
+      <nav className="flex-1 p-2 space-y-0.5 overflow-y-auto">
+        {navItems.map((item) => {
+          const Icon = item.icon;
+          const active = isActive(item);
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              aria-label={collapsed ? item.label : undefined}
+              title={collapsed ? item.label : undefined}
+              className={cn(
+                "flex items-center gap-3 rounded-lg text-sm font-medium transition-all duration-200",
+                active
+                  ? "bg-[#ffeb66]/12 text-[#ffeb66] border border-[#ffeb66]/20"
+                  : "text-white/55 hover:text-white hover:bg-white/6 border border-transparent",
+                collapsed ? "justify-center px-2 py-2.5" : "px-3 py-2.5",
+                collapsed && active ? "border-l-2 border-[#ffeb66]" : ""
+              )}
+            >
+              <Icon className="w-4 h-4 shrink-0" />
+              {!collapsed && <span>{item.label}</span>}
+            </Link>
+          );
+        })}
+
+        {isAdmin && (
+          <Link
+            href="/configuracion"
+            aria-label={collapsed ? "Configuración" : undefined}
+            title={collapsed ? "Configuración" : undefined}
+            className={cn(
+              "flex items-center gap-3 rounded-lg text-sm font-medium transition-all duration-200",
+              pathname.startsWith("/configuracion")
+                ? "bg-[#ffeb66]/12 text-[#ffeb66] border border-[#ffeb66]/20"
+                : "text-white/55 hover:text-white hover:bg-white/6 border border-transparent",
+              collapsed ? "justify-center px-2 py-2.5" : "px-3 py-2.5"
+            )}
+          >
+            <Settings className="w-4 h-4 shrink-0" />
+            {!collapsed && <span>Configuración</span>}
+          </Link>
+        )}
+      </nav>
+
+      {/* User section */}
+      <div className="p-3 border-t border-white/8 shrink-0">
+        {!collapsed && (
+          <div className="flex items-center gap-2.5 mb-2 px-1">
+            <Avatar name={user.name} image={user.image} size="sm" />
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-semibold text-white truncate">
+                {user.name}
+              </p>
+              <p className="text-[10px] text-white/40 truncate">{user.email}</p>
+            </div>
+          </div>
+        )}
+        <button
+          onClick={() => signOut({ callbackUrl: "/login" })}
+          aria-label={collapsed ? "Cerrar sesión" : undefined}
+          title={collapsed ? "Cerrar sesión" : undefined}
+          className={cn(
+            "flex items-center gap-2 w-full rounded-lg text-xs text-red-400/70 hover:text-red-400 hover:bg-red-400/8 transition-all duration-200",
+            collapsed ? "justify-center px-2 py-2" : "px-3 py-2"
+          )}
+        >
+          <LogOut className="w-3.5 h-3.5 shrink-0" />
+          {!collapsed && <span>Cerrar sesión</span>}
+        </button>
+      </div>
+
+      {/* Collapse toggle */}
+      <button
+        onClick={toggle}
+        aria-label={collapsed ? "Expandir menú" : "Colapsar menú"}
+        className="absolute -right-3 top-20 w-6 h-6 z-50 rounded-full glass border border-white/15 flex items-center justify-center text-white/50 hover:text-white transition-all duration-200 hover:border-white/25 hover:bg-white/10"
+      >
+        {collapsed ? (
+          <ChevronRight className="w-3 h-3" />
+        ) : (
+          <ChevronLeft className="w-3 h-3" />
+        )}
+      </button>
+    </aside>
+  );
+}

@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install *)",
+      "Bash(npx prisma *)",
+      "Bash(npx tsc *)",
+      "Bash(npx next *)",
+      "Bash(npx eslint *)",
+      "Bash(grep -v \"^$\")",
+      "Bash(grep -E \"^C:\\\\\\\\\")",
+      "Bash(grep -v \"^Effects\\\\|^$\\\\|^\\\\*\\\\|^Calling\\\\|^$\\\\|^Update\\\\|^Subscribe\\\\|^C:.*cc-ops$\")",
+      "Bash(python3 -c ' *)",
+      "Bash(python3 *)"
+    ]
+  }
+}
