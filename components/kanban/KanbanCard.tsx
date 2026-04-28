@@ -13,10 +13,10 @@ interface KanbanCardProps {
   onClick: () => void;
 }
 
-const PRIORITY_DOT: Record<string, string> = {
-  HIGH: "bg-red-400",
-  MEDIUM: "bg-yellow-400",
-  LOW: "bg-green-400",
+const PRIORITY_BORDER: Record<string, string> = {
+  HIGH:   "border-t-red-400/70",
+  MEDIUM: "border-t-yellow-400/60",
+  LOW:    "border-t-green-400/50",
 };
 
 export function KanbanCard({ task, onClick }: KanbanCardProps) {
@@ -29,24 +29,29 @@ export function KanbanCard({ task, onClick }: KanbanCardProps) {
     <div
       role="button"
       tabIndex={0}
+      aria-label={task.title}
       onClick={onClick}
-      onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && onClick()}
-      className="glass-hover glass rounded-xl p-3 cursor-pointer group border border-white/6 hover:border-white/12 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ffeb66]/50"
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onClick();
+        }
+      }}
+      className={cn(
+        "card-3d glass-hover glass rounded-xl p-3 cursor-pointer group",
+        "border border-white/6 hover:border-white/12 border-t-2",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ffeb66]/50",
+        PRIORITY_BORDER[task.priority] ?? "border-t-white/10"
+      )}
     >
-      {/* Priority dot + shift badge */}
-      <div className="flex items-center gap-1.5 mb-2">
-        <div
-          className={cn(
-            "w-1.5 h-1.5 rounded-full shrink-0",
-            PRIORITY_DOT[task.priority] ?? "bg-gray-400"
-          )}
-        />
-        {task.isShiftTask && (
+      {/* Shift badge */}
+      {task.isShiftTask && (
+        <div className="flex items-center mb-2">
           <Badge variant="warning" size="sm">
             Turno
           </Badge>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Title */}
       <p className="text-sm font-medium text-white/85 group-hover:text-white transition-colors leading-snug mb-2">

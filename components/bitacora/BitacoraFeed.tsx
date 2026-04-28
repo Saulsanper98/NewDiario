@@ -20,11 +20,13 @@ import {
   SortAsc,
   SortDesc,
   X,
+  Sun,
+  Sunset,
+  Moon,
 } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { Avatar } from "@/components/ui/Avatar";
 import { Card } from "@/components/ui/Card";
-import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import {
   formatRelative,
@@ -59,10 +61,10 @@ const SHIFT_BG: Record<string, string> = {
 };
 
 /* Icono + color del indicador de turno en el header de grupo */
-const SHIFT_META: Record<string, { icon: string; color: string; label: string }> = {
-  MORNING:   { icon: "☀️", color: "text-amber-400",  label: SHIFT_LABELS.MORNING },
-  AFTERNOON: { icon: "🌆", color: "text-orange-400", label: SHIFT_LABELS.AFTERNOON },
-  NIGHT:     { icon: "🌙", color: "text-indigo-400", label: SHIFT_LABELS.NIGHT },
+const SHIFT_META: Record<string, { icon: React.ElementType; color: string; label: string }> = {
+  MORNING:   { icon: Sun,    color: "text-amber-400",  label: SHIFT_LABELS.MORNING },
+  AFTERNOON: { icon: Sunset, color: "text-orange-400", label: SHIFT_LABELS.AFTERNOON },
+  NIGHT:     { icon: Moon,   color: "text-indigo-400", label: SHIFT_LABELS.NIGHT },
 };
 
 function formatGroupDate(date: Date): string {
@@ -101,7 +103,8 @@ export function BitacoraFeed({
   const [more, setMore] = useState(hasMore);
   const [nextPage, setNextPage] = useState(2);
   const [loadingMore, setLoadingMore] = useState(false);
-  const loadingRef = useRef(false);
+  const loadingRef   = useRef(false);
+  const sentinelRef  = useRef<HTMLDivElement>(null);
 
   /* Sync server logs when they change (filter navigation) */
   useEffect(() => {
@@ -161,7 +164,19 @@ export function BitacoraFeed({
       loadingRef.current = false;
       setLoadingMore(false);
     }
-  }, [more, nextPage, pageSize, departmentId, typeFilter, shiftFilter, followupFilter]);
+  }, [more, nextPage, pageSize, departmentId, typeFilter, shiftFilter, followupFilter, search]);
+
+  /* IntersectionObserver — auto load more when sentinel is visible */
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el || !more) return;
+    const observer = new IntersectionObserver(
+      (entries) => { if (entries[0].isIntersecting) void loadMore(); },
+      { rootMargin: "200px" }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [more, loadMore]);
 
   /* Client-side filter + sort */
   const filtered = useMemo(() => {
@@ -196,7 +211,7 @@ export function BitacoraFeed({
   const showGlobalEmpty = list.length === 0 && !search.trim();
 
   return (
-    <div className="p-6 max-w-4xl mx-auto space-y-4">
+    <div className="p-6 max-w-4xl mx-auto space-y-5">
       {/* Filter bar */}
       <div className="glass rounded-xl p-3 flex items-center gap-3 flex-wrap relative">
         {isPending && (
@@ -308,7 +323,7 @@ export function BitacoraFeed({
           }}
         />
       ) : (
-        <div className="space-y-6">
+        <div className="space-y-10">
           {groups.map(({ key, logs: groupLogs }) => (
             <ShiftGroup
               key={`${key.date}::${key.shift}`}
@@ -318,18 +333,15 @@ export function BitacoraFeed({
             />
           ))}
 
-          {/* Load more / end of list */}
-          <div className="flex justify-center pt-2">
-            {more ? (
-              <Button
-                type="button"
-                variant="secondary"
-                loading={loadingMore}
-                onClick={() => void loadMore()}
-              >
-                Cargar más entradas
-              </Button>
-            ) : (
+          {/* Sentinel for infinite scroll */}
+          <div ref={sentinelRef} className="flex justify-center pt-2 pb-4">
+            {loadingMore && (
+              <div className="flex items-center gap-2 text-xs text-white/30">
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                Cargando más…
+              </div>
+            )}
+            {!more && (
               <p className="text-xs text-white/25 py-2">
                 — No hay más entradas —
               </p>
@@ -353,8 +365,9 @@ function ShiftGroup({
   departmentId: string;
 }) {
   const [collapsed, setCollapsed] = useState(false);
-  const meta = SHIFT_META[groupKey.shift] ?? { icon: "📋", color: "text-white/40", label: groupKey.shift };
+  const meta = SHIFT_META[groupKey.shift] ?? { icon: BookOpen, color: "text-white/40", label: groupKey.shift };
   const dateLabel = formatGroupDate(new Date(groupKey.date));
+  const MetaIcon = meta.icon;
 
   return (
     <div>
@@ -362,9 +375,9 @@ function ShiftGroup({
       <button
         type="button"
         onClick={() => setCollapsed((v) => !v)}
-        className="flex items-center gap-3 w-full mb-3 group"
+        className="flex items-center gap-3 w-full mb-4 group"
       >
-        <span className={`text-base leading-none ${meta.color}`}>{meta.icon}</span>
+        <MetaIcon className={`w-4 h-4 shrink-0 ${meta.color}`} />
         <div className="flex-1 flex items-center gap-2">
           <span className={`text-xs font-semibold uppercase tracking-wider ${meta.color}`}>
             Turno de {meta.label}
@@ -383,7 +396,7 @@ function ShiftGroup({
 
       {/* Cards */}
       {!collapsed && (
-        <div className="space-y-2.5">
+        <div className="flex flex-col gap-5">
           {logs.map((log) => (
             <LogCard key={log.id} log={log} departmentId={departmentId} />
           ))}
@@ -409,10 +422,11 @@ function LogCard({
   const shiftHoverBg = SHIFT_BG[log.shift] ?? "";
 
   return (
-    <Link href={`/bitacora/${log.id}`}>
+    <Link href={`/bitacora/${log.id}`} className="block w-full min-w-0">
       <Card
         hover
         className={`
+          p-5 sm:p-6
           border-l-2 ${shiftBorder} ${shiftHoverBg}
           transition-all duration-200 hover:border-r-white/14
           ${isUrgent ? "ring-1 ring-red-500/30 shadow-lg shadow-red-500/10" : ""}

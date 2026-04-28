@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import {
   DragDropContext,
   Droppable,
@@ -19,15 +20,96 @@ import type {
 
 type KanbanColumnState = ProjectDetail["kanbanColumns"][number];
 
+/** Firma estable de la tarea para detectar cambios del servidor (prioridad, título, etc.). */
+function taskBoardSig(t: ProjectKanbanTask): string {
+  const due =
+    t.dueDate == null
+      ? ""
+      : typeof t.dueDate === "string"
+        ? t.dueDate
+        : new Date(t.dueDate as Date).toISOString();
+  const sub = (t.subtasks ?? [])
+    .map((s) => `${s.id}:${s.completed ? "1" : "0"}`)
+    .sort()
+    .join(",");
+  const tags = (t.tags ?? [])
+    .map((g) => g.id)
+    .sort()
+    .join(",");
+  const comments = t._count?.comments ?? 0;
+  return JSON.stringify({
+    id: t.id,
+    col: t.columnId,
+    ord: t.order,
+    pri: t.priority,
+    asg: t.assigneeId,
+    tit: t.title,
+    due,
+    shift: t.isShiftTask,
+    cc: comments,
+    sub,
+    tags,
+  });
+}
+
+function taskMatchesFilters(
+  task: ProjectKanbanTask,
+  priorityFilter: string,
+  assigneeFilter: string
+) {
+  if (priorityFilter && task.priority !== priorityFilter) return false;
+  if (assigneeFilter && task.assigneeId !== assigneeFilter) return false;
+  return true;
+}
+
+/** Índice de inserción en `full` equivalente al índice del DnD sobre la lista filtrada. */
+function dndIndexToFullInsertIndex<T extends { id: string }>(
+  full: T[],
+  filtered: T[],
+  dndIndex: number
+): number {
+  if (filtered.length === 0) return full.length;
+  if (dndIndex <= 0) {
+    const i = full.findIndex((t) => t.id === filtered[0]!.id);
+    return i === -1 ? 0 : i;
+  }
+  if (dndIndex >= filtered.length) {
+    const last = filtered[filtered.length - 1]!;
+    const i = full.findIndex((t) => t.id === last.id);
+    return i === -1 ? full.length : i + 1;
+  }
+  const before = filtered[dndIndex]!;
+  const i = full.findIndex((t) => t.id === before.id);
+  return i === -1 ? full.length : i;
+}
+
 interface KanbanBoardProps {
   project: ProjectDetail;
   allUsers: { id: string; name: string; image: string | null; email: string }[];
 }
 
 export function KanbanBoard({ project, allUsers }: KanbanBoardProps) {
+  const router = useRouter();
+
   const [columns, setColumns] = useState<KanbanColumnState[]>(
     project.kanbanColumns ?? []
   );
+
+  /** Huella del tablero en servidor: al cambiar (p. ej. tras router.refresh), alineamos estado local. */
+  const serverBoardFingerprint = useMemo(
+    () =>
+      (project.kanbanColumns ?? [])
+        .map((c) =>
+          [c.id, c.tasks.map((t) => taskBoardSig(t)).join(";")].join(":")
+        )
+        .join("|"),
+    [project.kanbanColumns]
+  );
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- sincronizar solo cuando cambia la huella del servidor (p. ej. tras `router.refresh`)
+  useEffect(() => {
+    setColumns(project.kanbanColumns ?? []);
+  }, [serverBoardFingerprint]);
   const [selectedTask, setSelectedTask] = useState<ProjectKanbanTask | null>(
     null
   );
@@ -36,6 +118,64 @@ export function KanbanBoard({ project, allUsers }: KanbanBoardProps) {
   const [addingColumnId, setAddingColumnId] = useState<string | null>(null);
   const [draftTitle, setDraftTitle] = useState("");
   const [creatingTask, setCreatingTask] = useState(false);
+  const lastFocusRef = useRef<HTMLElement | null>(null);
+  const taskDetailRootRef = useRef<HTMLDivElement>(null);
+  const [taskPanelLayout, setTaskPanelLayout] = useState<"docked" | "overlay">(
+    "docked"
+  );
+
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 768px)");
+    const apply = () => setTaskPanelLayout(mq.matches ? "docked" : "overlay");
+    apply();
+    mq.addEventListener("change", apply);
+    return () => mq.removeEventListener("change", apply);
+  }, []);
+
+  const closeTaskPanel = useCallback(() => {
+    setSelectedTask(null);
+    queueMicrotask(() => {
+      lastFocusRef.current?.focus?.();
+      lastFocusRef.current = null;
+    });
+  }, []);
+
+  /* Cerrar panel al clic fuera — solo en modo overlay (docked se cierra con X o Escape). */
+  useEffect(() => {
+    if (!selectedTask) return;
+    if (taskPanelLayout === "docked") return;
+    function onPointerDownCapture(e: PointerEvent) {
+      const t = e.target;
+      if (!(t instanceof Element)) return;
+      if (t.closest("[data-app-confirm-modal]")) return;
+      /* Solo ignorar drag de tarjetas: el contenedor de columna también es Draggable (`col-…`). */
+      const taskDrag = t.closest("[data-rfd-draggable-id]");
+      if (taskDrag) {
+        const dragId = taskDrag.getAttribute("data-rfd-draggable-id") ?? "";
+        if (!dragId.startsWith("col-")) return;
+      }
+      if (taskDetailRootRef.current?.contains(t)) return;
+      closeTaskPanel();
+    }
+    document.addEventListener("pointerdown", onPointerDownCapture, true);
+    return () =>
+      document.removeEventListener("pointerdown", onPointerDownCapture, true);
+  }, [selectedTask, closeTaskPanel, taskPanelLayout]);
+
+  /* Mantener el panel de detalle alineado con `columns` tras refresh (prioridad, título, etc.). */
+  useEffect(() => {
+    if (!selectedTask) return;
+    const found = columns
+      .flatMap((c) => c.tasks)
+      .find((t) => t.id === selectedTask.id);
+    if (!found) {
+      setSelectedTask(null);
+      return;
+    }
+    if (taskBoardSig(found) !== taskBoardSig(selectedTask)) {
+      setSelectedTask(found);
+    }
+  }, [columns, selectedTask]);
 
   const onDragEnd = useCallback(
     async (result: DropResult) => {
@@ -48,48 +188,66 @@ export function KanbanBoard({ project, allUsers }: KanbanBoardProps) {
         return;
 
       if (type === "COLUMN") {
+        const beforeCols = JSON.parse(JSON.stringify(columns)) as typeof columns;
         const newCols = Array.from(columns);
         const [removed] = newCols.splice(source.index, 1);
         newCols.splice(destination.index, 0, removed);
         setColumns(newCols);
-        fetch(`/api/projects/${project.id}/columns`, {
+        void fetch(`/api/projects/${project.id}/columns`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             columns: newCols.map((c, idx) => ({ id: c.id, order: idx })),
           }),
-        }).catch(() => {
-          toast.error("No se pudo guardar el orden de columnas");
-          setColumns(columns);
-        });
+        })
+          .then((res) => {
+            if (res.ok) router.refresh();
+            else throw new Error();
+          })
+          .catch(() => {
+            toast.error("No se pudo guardar el orden de columnas");
+            setColumns(beforeCols);
+          });
         return;
       }
 
-      const sourceCol = columns.find((c) => c.id === source.droppableId);
+      const taskId = draggableId;
+      const sourceCol = columns.find((c) => c.tasks.some((t) => t.id === taskId));
       const destCol = columns.find((c) => c.id === destination.droppableId);
       if (!sourceCol || !destCol) return;
+      const sourceIndex = sourceCol.tasks.findIndex((t) => t.id === taskId);
+      if (sourceIndex === -1) return;
 
       const snapshot = JSON.parse(JSON.stringify(columns)) as typeof columns;
 
       if (sourceCol.id === destCol.id) {
         const newTasks = Array.from(sourceCol.tasks);
-        const [moved] = newTasks.splice(source.index, 1);
-        newTasks.splice(destination.index, 0, moved);
+        const [moved] = newTasks.splice(sourceIndex, 1);
+        const filteredRest = newTasks.filter((t) =>
+          taskMatchesFilters(t, priorityFilter, assigneeFilter)
+        );
+        const insertFull = dndIndexToFullInsertIndex(
+          newTasks,
+          filteredRest,
+          destination.index
+        );
+        newTasks.splice(insertFull, 0, moved);
         setColumns(
           columns.map((c) =>
             c.id === sourceCol.id ? { ...c, tasks: newTasks } : c
           )
         );
         try {
-          const res = await fetch(`/api/tasks/${draggableId}`, {
+          const res = await fetch(`/api/tasks/${taskId}`, {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               columnId: sourceCol.id,
-              order: destination.index,
+              order: insertFull,
             }),
           });
           if (!res.ok) throw new Error();
+          router.refresh();
         } catch {
           setColumns(snapshot);
           toast.error("No se pudo reordenar la tarea");
@@ -98,9 +256,17 @@ export function KanbanBoard({ project, allUsers }: KanbanBoardProps) {
       }
 
       const srcTasks: ProjectKanbanTask[] = Array.from(sourceCol.tasks);
-      const [moved] = srcTasks.splice(source.index, 1);
+      const [moved] = srcTasks.splice(sourceIndex, 1);
       const dstTasks: ProjectKanbanTask[] = Array.from(destCol.tasks);
-      dstTasks.splice(destination.index, 0, {
+      const destFiltered = destCol.tasks.filter((t) =>
+        taskMatchesFilters(t, priorityFilter, assigneeFilter)
+      );
+      const insertFull = dndIndexToFullInsertIndex(
+        destCol.tasks,
+        destFiltered,
+        destination.index
+      );
+      dstTasks.splice(insertFull, 0, {
         ...moved,
         columnId: destCol.id,
       });
@@ -114,22 +280,28 @@ export function KanbanBoard({ project, allUsers }: KanbanBoardProps) {
       );
 
       try {
-        const res = await fetch(`/api/tasks/${draggableId}`, {
+        const res = await fetch(`/api/tasks/${taskId}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             columnId: destCol.id,
-            order: destination.index,
+            order: insertFull,
           }),
         });
         if (!res.ok) throw new Error();
+        router.refresh();
       } catch {
         setColumns(snapshot);
         toast.error("No se pudo mover la tarea");
       }
     },
-    [columns]
+    [columns, project.id, priorityFilter, assigneeFilter, router]
   );
+
+  function openTask(task: ProjectKanbanTask) {
+    lastFocusRef.current = document.activeElement as HTMLElement | null;
+    setSelectedTask(task);
+  }
 
   async function createTask(columnId: string) {
     const title = draftTitle.trim();
@@ -158,6 +330,7 @@ export function KanbanBoard({ project, allUsers }: KanbanBoardProps) {
       setAddingColumnId(null);
       setDraftTitle("");
       toast.success("Tarea creada");
+      router.refresh();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Error al crear la tarea");
     } finally {
@@ -165,14 +338,18 @@ export function KanbanBoard({ project, allUsers }: KanbanBoardProps) {
     }
   }
 
-  const filteredColumns = columns.map((col) => ({
-    ...col,
-    tasks: col.tasks.filter((task: ProjectKanbanTask) => {
-      if (priorityFilter && task.priority !== priorityFilter) return false;
-      if (assigneeFilter && task.assigneeId !== assigneeFilter) return false;
-      return true;
-    }),
-  }));
+  const filteredColumns = useMemo(
+    () =>
+      columns.map((col) => ({
+        ...col,
+        tasks: col.tasks.filter((task: ProjectKanbanTask) => {
+          if (priorityFilter && task.priority !== priorityFilter) return false;
+          if (assigneeFilter && task.assigneeId !== assigneeFilter) return false;
+          return true;
+        }),
+      })),
+    [columns, priorityFilter, assigneeFilter]
+  );
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
@@ -215,8 +392,9 @@ export function KanbanBoard({ project, allUsers }: KanbanBoardProps) {
         )}
       </div>
 
-      {/* Board */}
-      <div className="flex-1 overflow-x-auto overflow-y-hidden">
+      {/* Board + panel lateral de tarea (flujo flex, no fixed sobre todo el viewport) */}
+      <div className="flex flex-1 min-h-0 overflow-hidden">
+      <div className="flex-1 min-w-0 overflow-x-auto overflow-y-hidden">
         <DragDropContext onDragEnd={onDragEnd}>
           <Droppable
             droppableId="board"
@@ -269,7 +447,7 @@ export function KanbanBoard({ project, allUsers }: KanbanBoardProps) {
                               ref={taskDrop.innerRef}
                               {...taskDrop.droppableProps}
                               className={cn(
-                                "flex-1 flex flex-col gap-2 p-2 rounded-xl min-h-20 transition-all duration-200",
+                                "flex-1 flex flex-col gap-2 p-2 rounded-xl min-h-20 overflow-y-auto transition-all duration-200",
                                 snapshot.isDraggingOver
                                   ? "bg-[#ffeb66]/5 border border-[#ffeb66]/15"
                                   : "bg-white/3 border border-white/5"
@@ -300,7 +478,7 @@ export function KanbanBoard({ project, allUsers }: KanbanBoardProps) {
                                     >
                                       <KanbanCard
                                         task={task}
-                                        onClick={() => setSelectedTask(task)}
+                                        onClick={() => openTask(task)}
                                       />
                                     </div>
                                   )}
@@ -374,13 +552,16 @@ export function KanbanBoard({ project, allUsers }: KanbanBoardProps) {
         </DragDropContext>
       </div>
 
-      {/* Task detail panel */}
       {selectedTask && (
         <TaskDetailPanel
+          ref={taskDetailRootRef}
           task={selectedTask}
-          onClose={() => setSelectedTask(null)}
+          allUsers={allUsers}
+          onClose={closeTaskPanel}
+          layout={taskPanelLayout}
         />
       )}
+      </div>
     </div>
   );
 }

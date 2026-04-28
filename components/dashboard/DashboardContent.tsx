@@ -3,7 +3,7 @@
 import {
   BookOpen, CheckSquare, AlertTriangle, Zap,
   FolderKanban, Plus, ArrowRight, CalendarCheck,
-  Sun, Sunset, Moon, ExternalLink,
+  Sun, Sunset, Moon, ExternalLink, CheckCircle2,
 } from "lucide-react";
 import Link from "next/link";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
@@ -30,7 +30,6 @@ import type {
 } from "@/lib/types/dashboard";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { CalendarDays } from "lucide-react";
 
 type ProjectBoardColumn = DashboardProjectCard["kanbanColumns"][number];
 
@@ -309,28 +308,30 @@ export function DashboardContent({
           <CardContent>
             {overdueTasks.length === 0 ? (
               <div className="py-6 text-center space-y-1">
-                <div className="text-2xl">✅</div>
+                <CheckCircle2 className="w-8 h-8 text-emerald-400/50 mx-auto" />
                 <p className="text-sm text-emerald-400/70 font-medium">¡Todo al día!</p>
                 <p className="text-xs text-white/25">No hay tareas vencidas</p>
               </div>
             ) : (
               <div className="space-y-1">
                 {overdueTasks.slice(0, 6).map((task) => (
-                  <div key={task.id} className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-red-400/4 transition-all duration-200">
-                    <div className="w-1.5 h-1.5 rounded-full bg-red-400 shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm text-white/80 truncate">{task.title}</p>
-                      <p className="text-xs text-white/30 truncate">{task.project.name}</p>
+                  <Link key={task.id} href={`/proyectos/${task.project.id}`}>
+                    <div className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-red-400/4 transition-all duration-200 group">
+                      <div className="w-1.5 h-1.5 rounded-full bg-red-400 shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-white/80 truncate group-hover:text-white transition-colors">{task.title}</p>
+                        <p className="text-xs text-white/30 truncate">{task.project.name}</p>
+                      </div>
+                      {task.assignee && (
+                        <Avatar name={task.assignee.name} image={task.assignee.image} size="xs" />
+                      )}
+                      {task.dueDate && (
+                        <span className="text-xs text-red-400 shrink-0 font-medium">
+                          {format(new Date(task.dueDate), "d MMM", { locale: es })}
+                        </span>
+                      )}
                     </div>
-                    {task.assignee && (
-                      <Avatar name={task.assignee.name} image={task.assignee.image} size="xs" />
-                    )}
-                    {task.dueDate && (
-                      <span className="text-xs text-red-400 shrink-0 font-medium">
-                        {format(new Date(task.dueDate), "d MMM", { locale: es })}
-                      </span>
-                    )}
-                  </div>
+                  </Link>
                 ))}
               </div>
             )}
@@ -382,7 +383,7 @@ export function DashboardContent({
                       <div className="flex items-center gap-2 mb-1.5">
                         <div className="flex-1 h-1.5 bg-white/6 rounded-full overflow-hidden">
                           <div
-                            className={cn("h-full rounded-full transition-all duration-500", progress === 100 ? "bg-emerald-400" : "bg-[#ffeb66]")}
+                            className={cn("h-full rounded-full progress-bar", progress === 100 ? "bg-emerald-400" : "bg-[#ffeb66]")}
                             style={{ width: `${progress}%` }}
                           />
                         </div>

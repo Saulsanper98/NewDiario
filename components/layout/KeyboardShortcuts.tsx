@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
+import { Keyboard, X } from "lucide-react";
 
 export function KeyboardShortcuts() {
   const router = useRouter();
@@ -61,7 +62,7 @@ export function KeyboardShortcuts() {
         onClick={(e) => e.stopPropagation()}
       >
         <h2 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
-          <span className="text-[#ffeb66]">⌨️</span> Atajos de teclado
+          <Keyboard className="w-4 h-4 text-[#ffeb66]" /> Atajos de teclado
         </h2>
         <div className="space-y-2">
           {[
@@ -83,7 +84,7 @@ export function KeyboardShortcuts() {
           className="absolute top-3 right-3 p-1 rounded-md text-white/30 hover:text-white/70 transition-colors"
           aria-label="Cerrar ayuda"
         >
-          ✕
+          <X className="w-3.5 h-3.5" />
         </button>
       </div>
     </div>

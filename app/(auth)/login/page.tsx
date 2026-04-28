@@ -18,80 +18,191 @@ function isNightHour() {
 
 /* ── sub-components ─────────────────────────────────────────────────────── */
 
-function RoqueNublo({ night }: { night: boolean }) {
-  const fill = night ? "rgba(4,8,28,0.82)" : "rgba(3,10,30,0.7)";
-  const fillMid = night ? "rgba(3,6,22,0.68)" : "rgba(2,8,24,0.55)";
-  const fillFar = night ? "rgba(5,12,38,0.38)" : "rgba(4,10,32,0.28)";
+/** Paisaje lejano + silueta muy suave del Teide (Tenerife) al fondo, típica en días claros. */
+function LoginMountainBackdrop({ night }: { night: boolean }) {
+  const fillFar = night ? "rgba(5,12,38,0.42)" : "rgba(4,10,32,0.3)";
+  const fillMid = night ? "rgba(3,6,22,0.72)" : "rgba(2,8,24,0.58)";
+  const fill = night ? "rgba(4,8,28,0.88)" : "rgba(3,10,30,0.74)";
+  const teideFill = night ? "rgba(36, 48, 88, 0.85)" : "rgba(40, 72, 120, 0.7)";
+  const teideOp = night ? 0.48 : 0.34;
 
   return (
     <svg
       viewBox="0 0 1440 320"
-      preserveAspectRatio="xMidYMax slice"
-      className="absolute bottom-0 left-0 w-full pointer-events-none select-none z-[1]"
+      preserveAspectRatio="xMinYMax slice"
+      className="absolute bottom-0 left-0 z-0 h-full w-full pointer-events-none select-none"
       aria-hidden="true"
-      style={{ marginBottom: "96px" }}
     >
-      {/* Far mountains — lightest */}
+      <defs>
+        <linearGradient
+          id="loginRoqueHorizonGlow"
+          x1="18%"
+          y1="100%"
+          x2="18%"
+          y2="0%"
+        >
+          <stop offset="0%" stopColor="rgba(130,155,210,0.38)" />
+          <stop offset="40%" stopColor="rgba(45,55,95,0.1)" />
+          <stop offset="100%" stopColor="rgba(0,0,0,0)" />
+        </linearGradient>
+        <filter id="loginTeideSoft" x="-20%" y="-20%" width="140%" height="140%">
+          <feGaussianBlur in="SourceGraphic" stdDeviation="0.8" />
+        </filter>
+      </defs>
+      {night && (
+        <rect
+          x="0"
+          y="200"
+          width="720"
+          height="120"
+          fill="url(#loginRoqueHorizonGlow)"
+        />
+      )}
       <path
-        d="M0,320 L0,195 C120,178 250,200 380,185 C480,172 560,192 640,178 C720,165 820,188 940,172 C1060,157 1180,178 1300,165 C1380,155 1430,168 1440,165 L1440,320 Z"
+        d="M0,320 L0,198 C140,182 300,205 460,186 C620,168 760,195 920,178 C1080,162 1240,188 1440,172 L1440,320 Z"
         fill={fillFar}
       />
-      {/* Mid mountains */}
       <path
-        d="M0,320 L0,240 C80,225 180,248 300,232 C400,218 470,240 570,228 C640,218 680,235 720,228 C780,218 840,238 960,225 C1060,212 1180,235 1320,222 C1400,215 1435,228 1440,224 L1440,320 Z"
+        d="M0,320 L0,248 C100,232 240,258 400,242 C560,226 700,252 860,236 C1020,220 1180,248 1440,228 L1440,320 Z"
         fill={fillMid}
       />
-      {/* Near plateau + Roque area */}
       <path
-        d="M0,320 L0,278 C100,268 220,282 340,274 L362,268 L380,264 L400,261 L418,260 L436,260 L452,262 L470,266 L488,272 C540,265 620,272 720,268 C860,262 1000,278 1160,268 C1300,258 1400,272 1440,266 L1440,320 Z"
+        d="M0,320 L0,284 C100,276 220,286 360,278 C420,270 520,258 680,254 C840,262 1180,262 1440,270 L1440,320 Z"
         fill={fill}
-        opacity="0.9"
+        opacity="0.92"
       />
-      {/* Roque Nublo — thin vertical shaft */}
       <path
-        d="M425,262 L423,134 L434,134 L432,262 Z"
+        d="M0,320 L0,296 C100,288 220,300 340,292 L360,284 L380,278 L400,276 L420,282 C360,292 240,302 120,308 L0,320 Z"
         fill={fill}
+        opacity="0.98"
       />
-      {/* Roque Nublo — wide characteristic cap (table stone, tilted left) */}
       <path
-        d="M399,138 L400,126 L404,115 L411,107 L421,101 L431,99 L441,102 L449,109 L454,119 L456,130 L457,138 Z"
+        d="M1440,320 L1440,298 C1280,290 1120,298 980,290 C920,286 880,282 860,280 L840,284 C900,292 1080,302 1240,308 L1440,320 Z"
         fill={fill}
+        opacity="0.98"
       />
-      {/* Roque del Fraile — shorter, blockier companion rock */}
+      {/* Teide al fondo (Tenerife), encima del relleno del horizonte */}
       <path
-        d="M469,267 L467,210 L465,202 L466,195 L471,191 L477,193 L480,200 L479,210 L477,267 Z"
-        fill={fill}
-        opacity="0.95"
-      />
-      {/* Foreground left land mass */}
-      <path
-        d="M0,320 L0,292 C80,286 180,296 300,288 L312,280 L326,276 L340,274 L340,280 L312,288 L200,300 L0,320 Z"
-        fill={fill}
-      />
-      {/* Foreground right land mass */}
-      <path
-        d="M1440,320 L1440,292 C1360,286 1260,296 1140,288 L1128,280 L1114,276 L1100,274 L1100,280 L1128,288 L1240,300 L1440,320 Z"
-        fill={fill}
+        d="M 158 200 L 186 152 L 214 200 Z"
+        fill={teideFill}
+        opacity={teideOp}
+        filter="url(#loginTeideSoft)"
       />
     </svg>
   );
 }
 
+const roqueImg = "/roque-nublo-silhouette-only.svg";
+
+/** Altura de la franja del Roque (imagen), pegada al borde inferior del viewport. */
+const loginRoqueBand = "min(56vh, 680px)";
+/** Olas: dentro de la franja del Roque (por encima del trazo), no al borde superior de la caja (= cielo). */
+const loginOceanHorizonBottom = "min(46vh, 480px)";
+
+/** Silueta: siempre anclada al borde inferior del viewport (capa fija, no al flex del formulario). */
+function LoginRoqueSilhouette({ night }: { night: boolean }) {
+  /* Degradado inferior: negro #010101 bajo el trazo (transparencias del SVG), sin tapar el macizo con un plano del mismo color. */
+  const roqueStageBg =
+    "linear-gradient(to top, #010101 0%, #010101 26%, rgba(1,1,1,0.92) 38%, rgba(1,1,1,0.35) 52%, transparent 62%)";
+
+  return (
+    <div
+      className="pointer-events-none absolute inset-x-0 bottom-0 z-[3] w-full overflow-hidden max-h-[min(82vh,800px)]"
+      style={{ height: loginRoqueBand, background: roqueStageBg }}
+      aria-hidden="true"
+    >
+      <div className="login-roque-stack relative h-full w-full">
+        {/* eslint-disable-next-line @next/next/no-img-element -- recurso en /public */}
+        <img
+          src={roqueImg}
+          alt=""
+          className={`login-roque-bloom absolute inset-0 h-full w-full min-w-full max-w-none object-cover object-left-bottom ${night ? "" : "opacity-90"}`}
+        />
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={roqueImg}
+          alt=""
+          className="login-roque-figure absolute inset-0 h-full w-full min-w-full max-w-none object-cover object-left-bottom"
+        />
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Escena completa fija al viewport: cielo, montes, mar y Roque no dependen del centrado flex
+ * del formulario (evita que el macizo “suba” visualmente al centro).
+ */
+function LoginViewportScene({ night }: { night: boolean }) {
+  return (
+    <div
+      className="login-viewport-scene fixed inset-0 z-0 overflow-hidden pointer-events-none"
+      aria-hidden="true"
+    >
+      <div className={`absolute inset-0 ${night ? "login-bg-night" : "login-bg-day"}`} />
+      {night && <div className="absolute inset-0 login-stars" />}
+      {night && <div className="absolute inset-0 login-milky-hint" />}
+      {night && <div className="login-clouds" aria-hidden="true" />}
+      <div
+        className="absolute top-[8%] left-[18%] w-[28rem] h-[28rem] rounded-full"
+        style={{
+          background: night
+            ? "radial-gradient(circle, rgba(28,55,130,0.35), transparent 70%)"
+            : "radial-gradient(circle, rgba(15,75,150,0.32), transparent 70%)",
+          filter: "blur(80px)",
+          animation: "orb-drift-1 55s ease-in-out infinite",
+        }}
+      />
+      <div
+        className="absolute bottom-[18%] right-[12%] w-72 h-72 rounded-full"
+        style={{
+          background: night
+            ? "radial-gradient(circle, rgba(55,15,110,0.3), transparent 70%)"
+            : "radial-gradient(circle, rgba(0,110,180,0.25), transparent 70%)",
+          filter: "blur(70px)",
+          animation: "orb-drift-2 68s ease-in-out infinite",
+        }}
+      />
+      <div
+        className="absolute top-[42%] right-[28%] w-56 h-56 rounded-full"
+        style={{
+          background: night
+            ? "radial-gradient(circle, rgba(255,235,102,0.06), transparent 70%)"
+            : "radial-gradient(circle, rgba(255,235,102,0.10), transparent 70%)",
+          filter: "blur(55px)",
+          animation: "orb-drift-3 46s ease-in-out infinite",
+        }}
+      />
+      <div className="absolute inset-x-0 bottom-0 z-[1] h-[min(32vh,300px)] w-full min-h-[160px] overflow-hidden">
+        <LoginMountainBackdrop night={night} />
+      </div>
+      {/* Solo una tira en el borde físico: evita un píxel de monte; el negro bajo el perfil va en el degradado del Roque */}
+      <div
+        className="login-macizo-foot pointer-events-none absolute inset-x-0 bottom-0 z-[2] h-3 w-full"
+        aria-hidden="true"
+      />
+      <LoginRoqueSilhouette night={night} />
+      <OceanWaves night={night} />
+    </div>
+  );
+}
+
 function OceanWaves({ night }: { night: boolean }) {
   const c1 = night
-    ? "rgba(8,18,58,0.62)"
-    : "rgba(6,38,90,0.55)";
+    ? "rgba(26, 40, 78, 0.48)"
+    : "rgba(24, 48, 95, 0.4)";
   const c2 = night
-    ? "rgba(10,22,68,0.52)"
-    : "rgba(8,48,105,0.45)";
+    ? "rgba(20, 32, 64, 0.4)"
+    : "rgba(20, 40, 85, 0.34)";
   const c3 = night
-    ? "rgba(5,14,48,0.42)"
-    : "rgba(4,30,80,0.36)";
+    ? "rgba(16, 26, 52, 0.34)"
+    : "rgba(16, 34, 72, 0.28)";
 
   /* Each inner div is 200% wide so translateX(-50%) = one full viewport → seamless loop */
   return (
     <div
-      className="absolute bottom-0 left-0 right-0 h-28 pointer-events-none select-none overflow-hidden z-[2]"
+      className="login-ocean-horizon absolute left-0 right-0 pointer-events-none select-none overflow-hidden"
+      style={{ bottom: loginOceanHorizonBottom }}
       aria-hidden="true"
     >
       {/* Wave 3 — back, slowest */}
@@ -220,63 +331,38 @@ export default function LoginPage() {
 
   return (
     <div
+      data-login-page
       className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden p-4"
       style={{ backgroundColor: night ? "#060b18" : "#0a1628" }}
     >
-      {/* Atmospheric gradients */}
-      <div className={`absolute inset-0 pointer-events-none ${night ? "login-bg-night" : "login-bg-day"}`} />
+      <LoginViewportScene night={night} />
 
-      {/* Stars (night mode only) */}
-      {night && (
-        <div className="absolute inset-0 pointer-events-none login-stars" aria-hidden="true" />
-      )}
+      <div className="login-vignette fixed inset-0" aria-hidden="true" />
 
-      {/* Floating light orbs */}
-      <div
-        className="absolute top-[8%] left-[18%] w-[28rem] h-[28rem] rounded-full pointer-events-none"
-        style={{
-          background: night
-            ? "radial-gradient(circle, rgba(28,55,130,0.35), transparent 70%)"
-            : "radial-gradient(circle, rgba(15,75,150,0.32), transparent 70%)",
-          filter: "blur(80px)",
-          animation: "orb-drift-1 55s ease-in-out infinite",
-        }}
-      />
-      <div
-        className="absolute bottom-[18%] right-[12%] w-72 h-72 rounded-full pointer-events-none"
-        style={{
-          background: night
-            ? "radial-gradient(circle, rgba(55,15,110,0.3), transparent 70%)"
-            : "radial-gradient(circle, rgba(0,110,180,0.25), transparent 70%)",
-          filter: "blur(70px)",
-          animation: "orb-drift-2 68s ease-in-out infinite",
-        }}
-      />
-      <div
-        className="absolute top-[42%] right-[28%] w-56 h-56 rounded-full pointer-events-none"
-        style={{
-          background: night
-            ? "radial-gradient(circle, rgba(255,235,102,0.06), transparent 70%)"
-            : "radial-gradient(circle, rgba(255,235,102,0.10), transparent 70%)",
-          filter: "blur(55px)",
-          animation: "orb-drift-3 46s ease-in-out infinite",
-        }}
-      />
-
-      {/* Roque Nublo silhouette */}
-      <RoqueNublo night={night} />
-
-      {/* Login card */}
-      <div className="glass w-full max-w-sm rounded-2xl p-8 z-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
-        {/* Logo with shimmer */}
-        <div className="flex flex-col items-center mb-8">
-          <div className="relative">
-            <Logo size="lg" showText={true} />
-            <div className="login-shimmer absolute inset-0" aria-hidden="true" />
+      {/* Login card — capa z-[1] por encima de .glass::after (textura z-0), que tapaba logo y campos */}
+      <div className="glass login-card-premium w-full max-w-[22rem] rounded-[1.35rem] px-8 pb-9 pt-14 sm:pt-16 z-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div className="relative z-[1]">
+        {/* Logo + shimmer solo en la franja del logo (no cubre toda la tarjeta) */}
+        <div className="relative flex flex-col items-center mb-9 w-full min-h-[10rem] pt-2">
+          <div
+            className="login-shimmer pointer-events-none absolute inset-x-3 top-4 h-[11rem] sm:h-[11.75rem] rounded-xl"
+            aria-hidden="true"
+          />
+          <div className="relative z-10 w-full px-1 pt-1">
+            <Logo
+              size="lg"
+              layout="stacked"
+              showText
+              showTagline={false}
+              className="gap-5 sm:gap-6"
+            />
           </div>
-          <p className="text-white/40 text-sm mt-3 text-center">
-            {APP_TAGLINE} · {APP_ORG}
-          </p>
+          <div className="relative z-10 mt-6 text-center space-y-1 max-w-[17rem] mx-auto px-1">
+            <p className="text-sm text-white/55 leading-snug">{APP_TAGLINE}</p>
+            <p className="text-[11px] text-white/35 font-medium uppercase tracking-wider">
+              {APP_ORG}
+            </p>
+          </div>
         </div>
 
         {/* Error */}
@@ -296,31 +382,25 @@ export default function LoginPage() {
             onChange={(e) => setEmail(e.target.value)}
             placeholder="usuario@ccgrancanaria.es"
             icon={<Mail className="w-4 h-4" />}
+            className="login-field"
             required
             autoComplete="email"
           />
 
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-medium text-white/60 uppercase tracking-wide">
-              Contraseña
-            </label>
-            <div className="relative">
-              <div className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40">
-                <Lock className="w-4 h-4" />
-              </div>
-              <input
-                type={showPassword ? "text" : "password"}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                className="w-full bg-white/5 border border-white/10 rounded-lg text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-[#ffeb66]/50 focus:bg-white/7 focus:ring-1 focus:ring-[#ffeb66]/40 transition-all duration-200 h-9 pl-9 pr-9"
-                required
-                autoComplete="current-password"
-              />
+          <Input
+            label="Contraseña"
+            type={showPassword ? "text" : "password"}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="••••••••"
+            icon={<Lock className="w-4 h-4" />}
+            className="login-field"
+            suffix={
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 transition-colors"
+                className="text-white/30 hover:text-white/60 transition-colors p-0.5 -m-0.5 rounded"
+                aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
               >
                 {showPassword ? (
                   <EyeOff className="w-4 h-4" />
@@ -328,18 +408,20 @@ export default function LoginPage() {
                   <Eye className="w-4 h-4" />
                 )}
               </button>
-            </div>
-          </div>
+            }
+            required
+            autoComplete="current-password"
+          />
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2.5">
             <input
               type="checkbox"
               id="remember"
               checked={remember}
               onChange={(e) => setRemember(e.target.checked)}
-              className="w-3.5 h-3.5 rounded border border-white/20 bg-white/5 accent-[#ffeb66]"
+              className="login-remember size-4 shrink-0 rounded-[5px] border border-white/[0.16] bg-[rgba(5,8,18,0.55)] accent-[#ffeb66] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ffeb66]/45 focus-visible:ring-offset-2 focus-visible:ring-offset-[#070b14]"
             />
-            <label htmlFor="remember" className="text-sm text-white/70">
+            <label htmlFor="remember" className="text-sm text-white/[0.68] tracking-wide">
               Recordar sesión
             </label>
           </div>
@@ -349,7 +431,7 @@ export default function LoginPage() {
             variant="primary"
             size="lg"
             loading={loading}
-            className="w-full mt-2"
+            className="w-full mt-2 h-11 rounded-[11px] font-semibold shadow-[0_10px_36px_rgba(0,0,0,0.42)] ring-1 ring-[#ffeb66]/[0.22]"
           >
             Iniciar sesión
           </Button>
@@ -382,12 +464,10 @@ export default function LoginPage() {
             </>
           )}
         </form>
+        </div>
       </div>
 
-      {/* Ocean waves */}
-      <OceanWaves night={night} />
-
-      <p className="text-white/20 text-xs mt-6 z-10">
+      <p className="text-white/35 text-[13px] leading-relaxed mt-7 z-10 text-center max-w-md px-4">
         CC Gran Canaria · Sistema de Gestión Operativa
       </p>
 

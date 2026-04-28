@@ -1,9 +1,27 @@
+import { config as loadEnv } from "dotenv";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { PrismaClient, type LogEntry } from "../app/generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import type { Priority, ProjectStatus } from "../app/generated/prisma/enums";
 import bcrypt from "bcryptjs";
 
-const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! });
+// prisma db seed ejecuta este archivo en un subproceso; cargar .env aquí (no solo prisma.config.ts).
+// override: true para que el .env del repo gane sobre DATABASE_URL heredada incorrecta del shell/sistema.
+loadEnv({
+  path: resolve(dirname(fileURLToPath(import.meta.url)), "..", ".env"),
+  override: true,
+  quiet: true,
+});
+
+const databaseUrl = process.env.DATABASE_URL?.trim();
+if (!databaseUrl) {
+  throw new Error(
+    "DATABASE_URL no está definida. Copia .env.example a .env (Docker del repo: puerto host 5433, ver docker-compose.yml)."
+  );
+}
+
+const adapter = new PrismaPg({ connectionString: databaseUrl });
 const prisma = new PrismaClient({ adapter });
 
 async function main() {

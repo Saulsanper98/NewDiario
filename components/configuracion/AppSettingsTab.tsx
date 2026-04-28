@@ -155,7 +155,7 @@ export function AppSettingsTab() {
                 <Icon className="w-3 h-3" />
                 {label}
               </p>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 min-w-0">
                 <input
                   type="time"
                   value={state.from}
@@ -165,9 +165,9 @@ export function AppSettingsTab() {
                       [key]: { ...prev[key], from: e.target.value },
                     }))
                   }
-                  className="bg-white/5 border border-white/8 rounded px-2 py-1 text-xs text-white focus:outline-none w-full"
+                  className="bg-white/5 border border-white/8 rounded px-2 py-1 text-xs text-white focus:outline-none flex-1 min-w-0"
                 />
-                <span className="text-white/20 text-xs">→</span>
+                <span className="text-white/20 text-xs shrink-0">→</span>
                 <input
                   type="time"
                   value={state.to}
@@ -177,7 +177,7 @@ export function AppSettingsTab() {
                       [key]: { ...prev[key], to: e.target.value },
                     }))
                   }
-                  className="bg-white/5 border border-white/8 rounded px-2 py-1 text-xs text-white focus:outline-none w-full"
+                  className="bg-white/5 border border-white/8 rounded px-2 py-1 text-xs text-white focus:outline-none flex-1 min-w-0"
                 />
               </div>
             </div>

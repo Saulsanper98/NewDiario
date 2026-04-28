@@ -47,6 +47,11 @@ export function Header({ user, breadcrumb }: HeaderProps) {
 
   const deptRef = useRef<HTMLDivElement>(null);
   const notifRef = useRef<HTMLDivElement>(null);
+  const notifOpenRef = useRef(false);
+
+  useEffect(() => {
+    notifOpenRef.current = notifOpen;
+  }, [notifOpen]);
 
   const refreshNotifications = useCallback(async () => {
     setNotifLoading(true);
@@ -54,9 +59,13 @@ export function Header({ user, breadcrumb }: HeaderProps) {
       const res = await fetch("/api/notifications");
       if (res.ok) {
         setNotifData(await res.json());
+      } else if (notifOpenRef.current) {
+        toast.error("No se pudieron cargar las notificaciones");
       }
     } catch {
-      // network error — ignore silently
+      if (notifOpenRef.current) {
+        toast.error("Sin conexión: no se pudieron cargar las notificaciones");
+      }
     } finally {
       setNotifLoading(false);
     }
@@ -129,7 +138,7 @@ export function Header({ user, breadcrumb }: HeaderProps) {
   }
 
   return (
-    <header className="h-16 glass glass-2 border-b border-white/8 flex items-center gap-4 px-6 shrink-0">
+    <header className="h-16 app-top-header flex items-center gap-4 px-6 shrink-0">
       {/* Breadcrumb */}
       <div className="flex-1 flex items-center gap-2 min-w-0">
         {breadcrumb?.map((item, i) => (
@@ -177,7 +186,7 @@ export function Header({ user, breadcrumb }: HeaderProps) {
           </button>
 
           {deptOpen && (
-            <div className="absolute top-full mt-2 right-0 glass-3 rounded-xl p-1.5 min-w-[180px] z-50 animate-in fade-in slide-in-from-top-2 duration-200 border border-white/12">
+            <div className="top-full mt-2 right-0 glass-3 rounded-xl p-1.5 min-w-[180px] z-50 animate-in fade-in slide-in-from-top-2 duration-200 border border-white/12" style={{ position: "absolute" }}>
               <p className="px-3 py-1 text-[10px] text-white/30 uppercase tracking-wider font-medium">
                 Departamentos
               </p>
@@ -215,20 +224,14 @@ export function Header({ user, breadcrumb }: HeaderProps) {
         >
           <Bell className="w-4 h-4" />
           {(notifData?.unread ?? 0) > 0 && (
-            notifData!.unread > 9 ? (
-              <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-[#ffeb66] text-[#0a0f1e] text-[9px] font-bold flex items-center justify-center pulse-dot">
-                9+
-              </span>
-            ) : (
-              <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-[#ffeb66] text-[#0a0f1e] text-[9px] font-bold flex items-center justify-center pulse-dot">
-                {notifData!.unread}
-              </span>
-            )
+            <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-[#ffeb66] text-[#0a0f1e] text-[9px] font-bold flex items-center justify-center pulse-dot">
+              {notifData!.unread > 9 ? "9+" : notifData!.unread}
+            </span>
           )}
         </button>
 
         {notifOpen && (
-          <div className="absolute top-full mt-2 right-0 glass-3 rounded-xl w-80 z-50 animate-in fade-in slide-in-from-top-2 duration-200 overflow-hidden border border-white/12">
+          <div className="top-full mt-2 right-0 glass-3 rounded-xl w-80 z-50 animate-in fade-in slide-in-from-top-2 duration-200 overflow-hidden border border-white/12" style={{ position: "absolute" }}>
             <div className="px-4 py-3 border-b border-white/8 flex items-center justify-between gap-2">
               <span className="text-sm font-semibold text-white">
                 Notificaciones

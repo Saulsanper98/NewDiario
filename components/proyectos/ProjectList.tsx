@@ -156,20 +156,28 @@ export function ProjectList({
             </button>
           )}
         </div>
-        <div className="flex gap-1">
-          {STATUS_OPTIONS.map((s) => (
-            <button
-              key={s}
-              onClick={() => setStatusFilter(s)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${
-                statusFilter === s
-                  ? "bg-[#ffeb66]/12 text-[#ffeb66] border border-[#ffeb66]/20"
-                  : "text-white/50 hover:text-white hover:bg-white/6 border border-transparent"
-              }`}
-            >
-              {s === "" ? "Todos" : STATUS_LABELS[s as keyof typeof STATUS_LABELS]}
-            </button>
-          ))}
+        <div className="flex gap-1 flex-wrap">
+          {STATUS_OPTIONS.map((s) => {
+            const count = s === ""
+              ? projects.filter((p) => !p.parentId).length
+              : projects.filter((p) => !p.parentId && p.status === s).length;
+            return (
+              <button
+                key={s}
+                onClick={() => setStatusFilter(s)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${
+                  statusFilter === s
+                    ? "bg-[#ffeb66]/12 text-[#ffeb66] border border-[#ffeb66]/20"
+                    : "text-white/50 hover:text-white hover:bg-white/6 border border-transparent"
+                }`}
+              >
+                {s === "" ? "Todos" : STATUS_LABELS[s as keyof typeof STATUS_LABELS]}
+                <span className={`text-[10px] tabular-nums ${statusFilter === s ? "text-[#ffeb66]/70" : "text-white/30"}`}>
+                  {count}
+                </span>
+              </button>
+            );
+          })}
         </div>
 
         {/* View toggle */}
@@ -312,7 +320,7 @@ function ProjectCard({ project, departmentId }: { project: ProjectListRow; depar
           <div className="h-1.5 bg-white/6 rounded-full overflow-hidden">
             <div
               className={cn(
-                "h-full rounded-full transition-all duration-500",
+                "h-full rounded-full progress-bar",
                 progress === 100 ? "bg-emerald-400" : "bg-[#ffeb66]"
               )}
               style={{ width: `${progress}%` }}
@@ -375,7 +383,7 @@ function ProjectRow({ project, departmentId }: { project: ProjectListRow; depart
         <div className="w-24 shrink-0">
           <div className="h-1 bg-white/6 rounded-full overflow-hidden">
             <div
-              className={cn("h-full rounded-full", progress === 100 ? "bg-emerald-400" : "bg-[#ffeb66]")}
+              className={cn("h-full rounded-full progress-bar", progress === 100 ? "bg-emerald-400" : "bg-[#ffeb66]")}
               style={{ width: `${progress}%` }}
             />
           </div>

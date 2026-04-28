@@ -2,6 +2,8 @@ import type { NextAuthConfig } from "next-auth";
 import type { SessionUser } from "@/lib/auth/types";
 
 export const edgeAuthConfig: NextAuthConfig = {
+  // Auth.js v5 exige secret en Edge (middleware). Acepta AUTH_SECRET o NEXTAUTH_SECRET (Docker/README).
+  secret: process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET,
   pages: {
     signIn: "/login",
     error: "/login",

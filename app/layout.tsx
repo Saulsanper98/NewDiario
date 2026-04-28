@@ -14,6 +14,7 @@ const sora = Sora({
 export const metadata: Metadata = {
   title: defaultMetadata.title,
   description: defaultMetadata.description,
+  icons: { icon: "/logo.svg", shortcut: "/logo.svg" },
 };
 
 export default function RootLayout({

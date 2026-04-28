@@ -120,6 +120,9 @@ export async function PATCH(
   }
 
   const b = parsed.data;
+  const hasKanbanReorder =
+    b.columnId !== undefined || b.order !== undefined;
+
   const data: Record<string, unknown> = {};
 
   if (b.title !== undefined) data.title = b.title.trim();
@@ -149,33 +152,114 @@ export async function PATCH(
     data.startDate = d ?? null;
   }
 
-  if (b.columnId !== undefined) {
-    const col = await prisma.kanbanColumn.findFirst({
-      where: { id: b.columnId, projectId: task.projectId },
-    });
-    if (!col) {
-      return NextResponse.json({ error: "Columna no válida" }, { status: 400 });
+  if (!hasKanbanReorder) {
+    if (b.columnId !== undefined) {
+      const col = await prisma.kanbanColumn.findFirst({
+        where: { id: b.columnId, projectId: task.projectId },
+      });
+      if (!col) {
+        return NextResponse.json({ error: "Columna no válida" }, { status: 400 });
+      }
+      data.columnId = b.columnId;
     }
-    data.columnId = b.columnId;
-  }
-  if (b.order !== undefined) data.order = b.order;
+    if (b.order !== undefined) data.order = b.order;
 
-  if (Object.keys(data).length === 0) {
-    return NextResponse.json(
-      { error: "No hay campos válidos para actualizar" },
-      { status: 400 }
+    if (Object.keys(data).length === 0) {
+      return NextResponse.json(
+        { error: "No hay campos válidos para actualizar" },
+        { status: 400 }
+      );
+    }
+
+    const updated = await prisma.task.update({
+      where: { id },
+      data: data as Prisma.TaskUpdateInput,
+    });
+    return NextResponse.json(updated);
+  }
+
+  const targetColumnId = b.columnId ?? task.columnId;
+  const col = await prisma.kanbanColumn.findFirst({
+    where: { id: targetColumnId, projectId: task.projectId },
+  });
+  if (!col) {
+    return NextResponse.json({ error: "Columna no válida" }, { status: 400 });
+  }
+
+  const insertIndex =
+    b.order ??
+    (await prisma.task.count({
+      where: { columnId: targetColumnId, deletedAt: null, NOT: { id } },
+    }));
+
+  const prevColumnId = task.columnId;
+  const movedBetweenColumns = targetColumnId !== prevColumnId;
+
+  const updated = await prisma.$transaction(async (tx) => {
+    if (Object.keys(data).length > 0) {
+      await tx.task.update({
+        where: { id },
+        data: data as Prisma.TaskUpdateInput,
+      });
+    }
+
+    const destOthers = await tx.task.findMany({
+      where: {
+        columnId: targetColumnId,
+        deletedAt: null,
+        NOT: { id },
+      },
+      orderBy: [{ order: "asc" }, { id: "asc" }],
+      select: { id: true },
+    });
+    const ordered = destOthers.map((t) => t.id);
+    const idx = Math.max(
+      0,
+      Math.min(Math.floor(insertIndex), ordered.length)
     );
-  }
+    ordered.splice(idx, 0, id);
 
-  const updated = await prisma.task.update({
-    where: { id },
-    data: data as Prisma.TaskUpdateInput,
+    await tx.task.update({
+      where: { id },
+      data: { columnId: targetColumnId },
+    });
+
+    for (let i = 0; i < ordered.length; i++) {
+      await tx.task.update({
+        where: { id: ordered[i] },
+        data: { order: i },
+      });
+    }
+
+    if (movedBetweenColumns) {
+      const srcOthers = await tx.task.findMany({
+        where: {
+          columnId: prevColumnId,
+          deletedAt: null,
+          NOT: { id },
+        },
+        orderBy: [{ order: "asc" }, { id: "asc" }],
+        select: { id: true },
+      });
+      for (let i = 0; i < srcOthers.length; i++) {
+        await tx.task.update({
+          where: { id: srcOthers[i].id },
+          data: { order: i },
+        });
+      }
+    }
+
+    return tx.task.findUnique({ where: { id } });
   });
 
-  if (b.columnId && b.columnId !== task.columnId) {
+  if (!updated) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
+  if (movedBetweenColumns) {
     const [oldCol, newCol] = await Promise.all([
-      prisma.kanbanColumn.findUnique({ where: { id: task.columnId } }),
-      prisma.kanbanColumn.findUnique({ where: { id: b.columnId } }),
+      prisma.kanbanColumn.findUnique({ where: { id: prevColumnId } }),
+      prisma.kanbanColumn.findUnique({ where: { id: targetColumnId } }),
     ]);
     await prisma.taskActivity.create({
       data: {

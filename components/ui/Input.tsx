@@ -6,10 +6,11 @@ interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string;
   error?: string;
   icon?: React.ReactNode;
+  suffix?: React.ReactNode;
 }
 
 const Input = forwardRef<HTMLInputElement, InputProps>(
-  ({ className, label, error, icon, id, ...props }, ref) => {
+  ({ className, label, error, icon, suffix, id, ...props }, ref) => {
     const inputId = id || label?.toLowerCase().replace(/\s+/g, "-");
     const errorId = error && inputId ? `${inputId}-error` : undefined;
 
@@ -39,11 +40,17 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
               "focus:outline-none focus:border-[#ffeb66]/50 focus:bg-white/7 focus:ring-1 focus:ring-[#ffeb66]/40",
               "transition-all duration-200 h-9 px-3",
               icon && "pl-9",
+              suffix && "pr-9",
               error && "border-red-500/50 focus:border-red-500/70",
               className
             )}
             {...props}
           />
+          {suffix && (
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center text-white/40">
+              {suffix}
+            </div>
+          )}
           <span className="input-focus-bar" aria-hidden="true" />
         </div>
         {error && <p id={errorId} role="alert" className="text-xs text-red-400">{error}</p>}

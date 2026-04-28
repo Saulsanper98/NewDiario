@@ -21,6 +21,14 @@
   --glass-edge: inset 0 1px 0 rgba(255, 255, 255, 0.14);
 }
 
+/* Tokens shell (sidebar / header / lienzo) — fuera de @theme para usar en CSS arbitrario */
+:root {
+  --shell-chrome-a: 12, 17, 34;
+  --shell-chrome-b: 8, 12, 24;
+  --shell-canvas-top: #060912;
+  --shell-canvas-bottom: #04070f;
+}
+
 /* ── Background animated orbs ─────────────────────────────────────────────── */
 @keyframes orb-drift-1 {
   0%,100% { transform: translate(0%,  0%)   scale(1);    }
@@ -47,21 +55,21 @@
 .bg-orb-1 {
   width: 70vw; height: 70vw;
   max-width: 900px; max-height: 900px;
-  background: radial-gradient(circle at center, rgba(74,158,255,0.10) 0%, transparent 65%);
+  background: radial-gradient(circle at center, rgba(74,158,255,0.06) 0%, transparent 65%);
   top: -25%; left: 15%;
   animation: orb-drift-1 50s ease-in-out infinite;
 }
 .bg-orb-2 {
   width: 55vw; height: 55vw;
   max-width: 750px; max-height: 750px;
-  background: radial-gradient(circle at center, rgba(139,92,246,0.08) 0%, transparent 65%);
+  background: radial-gradient(circle at center, rgba(139,92,246,0.05) 0%, transparent 65%);
   bottom: -15%; right: -10%;
   animation: orb-drift-2 62s ease-in-out infinite;
 }
 .bg-orb-3 {
   width: 45vw; height: 45vw;
   max-width: 620px; max-height: 620px;
-  background: radial-gradient(circle at center, rgba(255,235,102,0.06) 0%, transparent 65%);
+  background: radial-gradient(circle at center, rgba(255,235,102,0.04) 0%, transparent 65%);
   bottom: 15%; left: -8%;
   animation: orb-drift-3 43s ease-in-out infinite;
 }
@@ -78,17 +86,22 @@ html {
 body {
   background-color: #060a14;
   background-image:
-    radial-gradient(ellipse 120% 80% at 50% -20%, rgba(74, 158, 255, 0.12), transparent 55%),
-    radial-gradient(ellipse 80% 50% at 100% 50%, rgba(255, 235, 102, 0.06), transparent 45%),
+    radial-gradient(ellipse 120% 80% at 50% -20%, rgba(74, 158, 255, 0.07), transparent 55%),
+    radial-gradient(ellipse 80% 50% at 100% 50%, rgba(255, 235, 102, 0.05), transparent 45%),
     linear-gradient(180deg, #0a0f1e 0%, #060a14 100%);
   color: #f0f4ff;
   font-family: "Sora", system-ui, sans-serif;
   min-height: 100vh;
 }
 
-/* ── Glassmorphism — capas de elevación (1 = base … 4 = modales) ─────────── */
+/* ── Glassmorphism — capas de elevación (1 = base … 4 = modales) ───────────
+   Todas las variantes usan position: relative (stacking + ::after textura).
+   No combines solo `glass` + utilidades Tailwind `fixed`/`absolute`/`sticky` en
+   el mismo nodo: en cascada este relative gana salvo `!fixed` / style inline. */
 .glass,
 .glass-1 {
+  isolation: isolate;
+  position: relative;
   background: linear-gradient(
     145deg,
     rgba(255, 255, 255, 0.09) 0%,
@@ -103,7 +116,15 @@ body {
     0 4px 24px rgba(0, 0, 0, 0.35);
 }
 
+/* Toolbar proyecto: sin borde superior (evita doble línea con .app-top-header). */
+.glass.project-view-toolbar {
+  border-top-width: 0;
+  border-top-color: transparent;
+}
+
 .glass-2 {
+  isolation: isolate;
+  position: relative;
   background: linear-gradient(
     145deg,
     rgba(255, 255, 255, 0.11) 0%,
@@ -118,8 +139,59 @@ body {
     0 8px 40px rgba(0, 0, 0, 0.45);
 }
 
+/*
+ * Chrome shell (sidebar + header): MISMO fondo opaco en ambos.
+ * Antes el sidebar hacía blur sobre `body` y el header sobre `main` oscuro → dos grises distintos.
+ */
+.app-sidebar-shell,
+.app-top-header {
+  isolation: isolate;
+  position: relative;
+  background:
+    linear-gradient(
+      145deg,
+      rgba(255, 255, 255, 0.055) 0%,
+      rgba(255, 255, 255, 0.03) 50%,
+      rgba(255, 255, 255, 0.016) 100%
+    ),
+    linear-gradient(
+      180deg,
+      rgb(var(--shell-chrome-a)) 0%,
+      rgb(var(--shell-chrome-b)) 100%
+    );
+}
+
+.app-top-header {
+  border: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.45);
+}
+
+.app-sidebar-shell {
+  border-right: 1px solid rgba(255, 255, 255, 0.07);
+}
+.app-sidebar-shell::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+  opacity: 0.006;
+  z-index: -1;
+}
+
+/* Lienzo único detrás de sidebar + main (el chrome va encima opaco; sin “tres mundos”) */
+.app-dashboard-root {
+  background: linear-gradient(
+    180deg,
+    var(--shell-canvas-top) 0%,
+    var(--shell-canvas-bottom) 100%
+  );
+}
+
 /* glass-3: reducir opacidad de 0.92→0.55 para que el blur sea visible */
 .glass-3 {
+  position: relative;
   background: linear-gradient(
     155deg,
     rgba(14, 20, 40, 0.55) 0%,
@@ -136,6 +208,7 @@ body {
 }
 
 .glass-4 {
+  position: relative;
   background: linear-gradient(
     160deg,
     rgba(10, 15, 30, 0.88) 0%,
@@ -401,6 +474,14 @@ select option {
   margin: 1rem 0;
 }
 
+/* ── Progress bar (animated entry) ──────────────────────────────────────── */
+@keyframes progress-fill {
+  from { width: 0%; }
+}
+.progress-bar {
+  animation: progress-fill 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
 /* Badge dot pulse */
 @keyframes pulse-dot {
   0%, 100% { opacity: 1; transform: scale(1); }
@@ -439,15 +520,16 @@ select option {
 /* ── Noise texture on glass (GL-1) ──────────────────────────────────────── */
 .glass::after,
 .glass-1::after,
-.glass-2::after {
+.glass-2::after,
+.app-top-header::after {
   content: "";
   position: absolute;
   inset: 0;
   border-radius: inherit;
   pointer-events: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
-  opacity: 0.022;
-  z-index: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+  opacity: 0.006;
+  z-index: -1;
 }
 
 /* ── Ripple button (MI-5) ────────────────────────────────────────────────── */
@@ -518,12 +600,171 @@ textarea:focus ~ .input-focus-bar {
     radial-gradient(ellipse 30% 20% at 10% 50%, rgba(80,10,100,0.15) 0%, transparent 50%);
 }
 
-/* Stars: two pseudo-elements with offset twinkle */
+/* Franja diagonal suave (referencia cielo con Vía Láctea detrás del Roque) */
+.login-milky-hint {
+  z-index: 0;
+  opacity: 0.2;
+  mix-blend-mode: screen;
+  background: linear-gradient(
+    124deg,
+    transparent 6%,
+    rgba(65, 52, 115, 0.5) 24%,
+    rgba(200, 190, 255, 0.14) 40%,
+    rgba(255, 255, 255, 0.07) 48%,
+    transparent 54%,
+    rgba(45, 38, 95, 0.42) 70%,
+    transparent 94%
+  );
+  filter: blur(18px);
+  transform: translate3d(0, 0, 0);
+}
+
+/* Nubes muy suaves (solo noche).
+   Capa más ancha que el viewport + máscara inferior ∩ máscara horizontal:
+   el blur sigue recortándose con overflow:hidden, pero ya en zona casi transparente. */
+.login-clouds {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -14%;
+  width: 128%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.52;
+  mix-blend-mode: soft-light;
+  -webkit-mask-image:
+    linear-gradient(to bottom, #000 0%, #000 36%, transparent 58%),
+    linear-gradient(
+      to right,
+      transparent 0%,
+      rgba(0, 0, 0, 0.2) 7%,
+      rgba(0, 0, 0, 0.92) 16%,
+      #000 22%,
+      #000 78%,
+      rgba(0, 0, 0, 0.92) 84%,
+      rgba(0, 0, 0, 0.2) 93%,
+      transparent 100%
+    );
+  -webkit-mask-composite: source-in;
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-size: 100% 100%;
+  mask-image:
+    linear-gradient(to bottom, #000 0%, #000 36%, transparent 58%),
+    linear-gradient(
+      to right,
+      transparent 0%,
+      rgba(0, 0, 0, 0.2) 7%,
+      rgba(0, 0, 0, 0.92) 16%,
+      #000 22%,
+      #000 78%,
+      rgba(0, 0, 0, 0.92) 84%,
+      rgba(0, 0, 0, 0.2) 93%,
+      transparent 100%
+    );
+  mask-composite: intersect;
+  mask-repeat: no-repeat;
+  mask-size: 100% 100%;
+  background:
+    radial-gradient(ellipse 34% 11% at 16% 20%, rgba(175, 188, 235, 0.42) 0%, transparent 72%),
+    radial-gradient(ellipse 28% 9% at 58% 14%, rgba(155, 172, 225, 0.32) 0%, transparent 70%),
+    radial-gradient(ellipse 42% 12% at 86% 26%, rgba(145, 162, 218, 0.26) 0%, transparent 68%),
+    radial-gradient(ellipse 30% 10% at 42% 9%, rgba(168, 182, 232, 0.24) 0%, transparent 66%);
+  filter: blur(16px);
+  transform: translate3d(0, 0, 0);
+  will-change: transform;
+  /* Capa “alta”: deriva amplia + arco suave (ida y vuelta como viento variable) */
+  animation: login-cloud-drift-a 168s cubic-bezier(0.42, 0, 0.58, 1) infinite alternate;
+}
+.login-clouds::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: 0.75;
+  mix-blend-mode: screen;
+  -webkit-mask-image:
+    linear-gradient(to bottom, #000 0%, #000 30%, transparent 54%),
+    linear-gradient(
+      to right,
+      transparent 0%,
+      rgba(0, 0, 0, 0.18) 8%,
+      rgba(0, 0, 0, 0.88) 17%,
+      #000 23%,
+      #000 77%,
+      rgba(0, 0, 0, 0.88) 83%,
+      rgba(0, 0, 0, 0.18) 92%,
+      transparent 100%
+    );
+  -webkit-mask-composite: source-in;
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-size: 100% 100%;
+  mask-image:
+    linear-gradient(to bottom, #000 0%, #000 30%, transparent 54%),
+    linear-gradient(
+      to right,
+      transparent 0%,
+      rgba(0, 0, 0, 0.18) 8%,
+      rgba(0, 0, 0, 0.88) 17%,
+      #000 23%,
+      #000 77%,
+      rgba(0, 0, 0, 0.88) 83%,
+      rgba(0, 0, 0, 0.18) 92%,
+      transparent 100%
+    );
+  mask-composite: intersect;
+  mask-repeat: no-repeat;
+  mask-size: 100% 100%;
+  background:
+    radial-gradient(ellipse 32% 10% at 74% 11%, rgba(205, 214, 250, 0.2) 0%, transparent 70%),
+    radial-gradient(ellipse 38% 11% at 26% 16%, rgba(185, 198, 240, 0.18) 0%, transparent 72%),
+    radial-gradient(ellipse 22% 8% at 50% 22%, rgba(165, 178, 228, 0.14) 0%, transparent 65%);
+  filter: blur(22px);
+  will-change: transform;
+  /* Capa “baja”: más lenta y desfasada = parallax respecto a la base */
+  animation: login-cloud-drift-b 228s cubic-bezier(0.38, 0.02, 0.62, 0.98) infinite alternate;
+}
+
+@keyframes login-cloud-drift-a {
+  0% {
+    transform: translate3d(-12%, 0, 0) scale(1);
+    opacity: 0.46;
+  }
+  35% {
+    transform: translate3d(-2%, 0.55%, 0) scale(1.02);
+    opacity: 0.54;
+  }
+  70% {
+    transform: translate3d(7%, 0.15%, 0) scale(1.015);
+    opacity: 0.5;
+  }
+  100% {
+    transform: translate3d(13%, -0.4%, 0) scale(1.03);
+    opacity: 0.56;
+  }
+}
+
+@keyframes login-cloud-drift-b {
+  0% {
+    transform: translate3d(11%, 0.1%, 0) scale(1.02);
+  }
+  40% {
+    transform: translate3d(2%, 0.5%, 0) scale(1);
+  }
+  75% {
+    transform: translate3d(-6%, 0.25%, 0) scale(1.025);
+  }
+  100% {
+    transform: translate3d(-12%, -0.2%, 0) scale(1.01);
+  }
+}
+
+/* Stars: dos capas con parpadeos desincronizados (picos cortos + fundidos lentos) */
 .login-stars::before,
 .login-stars::after {
   content: "";
   position: absolute;
   inset: 0;
+  will-change: opacity;
 }
 .login-stars::before {
   background-image:
@@ -545,8 +786,19 @@ textarea:focus ~ .input-focus-bar {
     radial-gradient(1.5px 1.5px at 47% 2%, rgba(255,255,255,0.95) 0%, transparent 100%),
     radial-gradient(1px 1px at 72% 16%, rgba(255,255,255,0.5) 0%, transparent 100%),
     radial-gradient(1px 1px at 17% 52%, rgba(255,255,255,0.3) 0%, transparent 100%),
-    radial-gradient(1px 1px at 55% 47%, rgba(255,255,255,0.35) 0%, transparent 100%);
-  animation: star-twinkle-a 4s ease-in-out infinite alternate;
+    radial-gradient(1px 1px at 55% 47%, rgba(255,255,255,0.35) 0%, transparent 100%),
+    radial-gradient(1px 1px at 31% 11%, rgba(255,255,255,0.42) 0%, transparent 100%),
+    radial-gradient(1px 1px at 56% 9%, rgba(255,255,255,0.48) 0%, transparent 100%),
+    radial-gradient(1px 1px at 12% 19%, rgba(255,255,255,0.38) 0%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 41% 5%, rgba(255,255,255,0.72) 0%, transparent 100%),
+    radial-gradient(1px 1px at 79% 8%, rgba(255,255,255,0.44) 0%, transparent 100%),
+    radial-gradient(1px 1px at 2% 31%, rgba(255,255,255,0.33) 0%, transparent 100%),
+    radial-gradient(1px 1px at 66% 24%, rgba(255,255,255,0.4) 0%, transparent 100%),
+    radial-gradient(1px 1px at 88% 21%, rgba(255,255,255,0.36) 0%, transparent 100%),
+    radial-gradient(1px 1px at 19% 36%, rgba(255,255,255,0.34) 0%, transparent 100%),
+    radial-gradient(1px 1px at 49% 33%, rgba(255,255,255,0.41) 0%, transparent 100%);
+  animation: login-star-twinkle-a 7.2s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
+  animation-delay: -2.4s;
 }
 .login-stars::after {
   background-image:
@@ -561,13 +813,102 @@ textarea:focus ~ .input-focus-bar {
     radial-gradient(1px 1px at 96% 26%, rgba(255,255,255,0.32) 0%, transparent 100%),
     radial-gradient(2px 2px at 53% 3%, rgba(255,255,255,0.88) 0%, transparent 100%),
     radial-gradient(1px 1px at 33% 55%, rgba(255,255,255,0.28) 0%, transparent 100%),
-    radial-gradient(1px 1px at 78% 50%, rgba(255,255,255,0.32) 0%, transparent 100%);
-  animation: star-twinkle-a 5.8s ease-in-out infinite alternate-reverse;
+    radial-gradient(1px 1px at 78% 50%, rgba(255,255,255,0.32) 0%, transparent 100%),
+    radial-gradient(1px 1px at 25% 7%, rgba(255,255,255,0.46) 0%, transparent 100%),
+    radial-gradient(1px 1px at 74% 5%, rgba(255,255,255,0.4) 0%, transparent 100%),
+    radial-gradient(1px 1px at 9% 25%, rgba(255,255,255,0.37) 0%, transparent 100%),
+    radial-gradient(1px 1px at 54% 14%, rgba(255,255,255,0.43) 0%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 92% 40%, rgba(255,255,255,0.55) 0%, transparent 100%),
+    radial-gradient(1px 1px at 40% 41%, rgba(255,255,255,0.3) 0%, transparent 100%),
+    radial-gradient(1px 1px at 15% 46%, rgba(255,255,255,0.32) 0%, transparent 100%);
+  animation: login-star-twinkle-b 9.4s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
+  animation-delay: -6.1s;
 }
 
-@keyframes star-twinkle-a {
-  0%   { opacity: 0.55; }
-  100% { opacity: 1; }
+@keyframes login-star-twinkle-a {
+  0%,
+  100% {
+    opacity: 0.4;
+  }
+  4% {
+    opacity: 0.95;
+  }
+  8% {
+    opacity: 0.48;
+  }
+  15% {
+    opacity: 0.88;
+  }
+  21% {
+    opacity: 0.52;
+  }
+  32% {
+    opacity: 0.72;
+  }
+  39% {
+    opacity: 1;
+  }
+  46% {
+    opacity: 0.55;
+  }
+  54% {
+    opacity: 0.82;
+  }
+  63% {
+    opacity: 0.38;
+  }
+  71% {
+    opacity: 0.92;
+  }
+  78% {
+    opacity: 0.5;
+  }
+  86% {
+    opacity: 0.78;
+  }
+  94% {
+    opacity: 0.44;
+  }
+}
+
+@keyframes login-star-twinkle-b {
+  0%,
+  100% {
+    opacity: 0.52;
+  }
+  6% {
+    opacity: 0.4;
+  }
+  14% {
+    opacity: 0.98;
+  }
+  22% {
+    opacity: 0.46;
+  }
+  31% {
+    opacity: 0.84;
+  }
+  38% {
+    opacity: 0.36;
+  }
+  47% {
+    opacity: 0.9;
+  }
+  55% {
+    opacity: 0.58;
+  }
+  64% {
+    opacity: 0.76;
+  }
+  73% {
+    opacity: 0.42;
+  }
+  82% {
+    opacity: 0.88;
+  }
+  91% {
+    opacity: 0.5;
+  }
 }
 
 /* Logo shimmer — sweep from left to right */
@@ -577,24 +918,46 @@ textarea:focus ~ .input-focus-bar {
   overflow: hidden;
   pointer-events: none;
 }
+/* ambient glow pulse — always present, breathes slowly */
+.login-shimmer::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse 70% 55% at 50% 45%,
+    rgba(255, 235, 102, 0.10) 0%,
+    transparent 70%
+  );
+  animation: shimmer-glow 4.8s ease-in-out infinite alternate;
+}
+/* sweep beam */
 .login-shimmer::after {
   content: "";
   position: absolute;
   top: 0;
-  left: -60%;
-  width: 40%;
+  left: -70%;
+  width: 55%;
   height: 100%;
   background: linear-gradient(
-    90deg,
+    105deg,
     transparent 0%,
-    rgba(255, 235, 102, 0.18) 50%,
+    rgba(255, 235, 102, 0.08) 30%,
+    rgba(255, 235, 102, 0.35) 50%,
+    rgba(255, 235, 102, 0.08) 70%,
     transparent 100%
   );
-  animation: shimmer-lr 3.8s ease-in-out infinite;
+  animation: shimmer-lr 5.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+@keyframes shimmer-glow {
+  from { opacity: 0.55; }
+  to   { opacity: 1; }
 }
 @keyframes shimmer-lr {
-  0%   { left: -60%; }
-  100% { left: 120%; }
+  0%   { left: -70%; opacity: 0; }
+  8%   { opacity: 1; }
+  65%  { left: 120%; opacity: 1; }
+  66%  { opacity: 0; left: 120%; }
+  100% { left: 120%; opacity: 0; }
 }
 
 /* Ocean wave scroll — percentage-based for any viewport */
@@ -619,4 +982,164 @@ textarea:focus ~ .input-focus-bar {
 }
 .login-wave-wipe {
   animation: wave-wipe-enter 0.68s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+/* Roque: halo + máscara suave en el perfil (evita corte duro con el cielo) */
+.login-roque-stack {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  pointer-events: none;
+}
+.login-roque-bloom {
+  transform: translate3d(0, 1px, 0);
+  filter: blur(22px);
+  opacity: 0.38;
+}
+/* Suelo del macizo (anotación roja): mismo #010101 que la silueta */
+.login-macizo-foot {
+  background: #010101;
+}
+
+/* Olas: franja fina, por encima del Roque; máscara fuerte arriba para no invadir el cielo */
+.login-ocean-horizon {
+  z-index: 5;
+  height: 4.25rem;
+  -webkit-mask-image: linear-gradient(
+    to top,
+    #000 0%,
+    #000 42%,
+    rgba(0, 0, 0, 0.45) 68%,
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to top,
+    #000 0%,
+    #000 42%,
+    rgba(0, 0, 0, 0.45) 68%,
+    transparent 100%
+  );
+}
+
+/* Tarjeta login — sombra más profunda y borde fino */
+.login-card-premium {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.11),
+    0 4px 28px rgba(0, 0, 0, 0.42),
+    0 28px 90px rgba(0, 0, 0, 0.48);
+  border-color: rgba(255, 255, 255, 0.13);
+}
+
+/* Más opaco que .glass genérico: la silueta detrás no compite con el formulario */
+.glass.login-card-premium {
+  background:
+    linear-gradient(
+      145deg,
+      rgba(255, 255, 255, 0.085) 0%,
+      rgba(255, 255, 255, 0.038) 48%,
+      rgba(255, 255, 255, 0.022) 100%
+    ),
+    rgba(4, 7, 14, 0.66);
+}
+
+/* Viñeta: solo cielo / bordes; el suelo (Roque + mar) queda fuera para no “flotar” el macizo */
+.login-vignette {
+  z-index: 6;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse 92% 78% at 50% 36%,
+    transparent 36%,
+    rgba(0, 0, 0, 0.18) 68%,
+    rgba(0, 0, 0, 0.42) 100%
+  );
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 54%, transparent 78%);
+  mask-image: linear-gradient(to bottom, #000 0%, #000 54%, transparent 78%);
+}
+
+/* Campos del login — cristal oscuro (Chrome autofill ya no pinta blanco) */
+[data-login-page] .login-field {
+  min-height: 2.5rem;
+  border-radius: 11px;
+  background: rgba(5, 9, 20, 0.62) !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.045);
+}
+[data-login-page] .login-field:hover {
+  border-color: rgba(255, 255, 255, 0.14) !important;
+}
+[data-login-page] .login-field:focus {
+  background: rgba(8, 12, 26, 0.78) !important;
+  border-color: rgba(255, 235, 102, 0.38) !important;
+}
+[data-login-page] .login-field::placeholder {
+  color: rgba(240, 244, 255, 0.32);
+}
+[data-login-page] input.login-field:-webkit-autofill,
+[data-login-page] input.login-field:-webkit-autofill:hover,
+[data-login-page] input.login-field:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0 1000px rgba(6, 10, 22, 0.95) inset !important;
+  -webkit-text-fill-color: #eef2ff !important;
+  caret-color: #ffeb66;
+  transition: background-color 99999s ease-out 0s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bg-orb-1,
+  .bg-orb-2,
+  .bg-orb-3 {
+    animation: none;
+  }
+  .login-shimmer::after {
+    animation: none;
+    left: 120%;
+    opacity: 0;
+  }
+  .login-stars::before,
+  .login-stars::after {
+    animation: none;
+    opacity: 0.72;
+  }
+  .login-milky-hint {
+    opacity: 0.1;
+    filter: blur(8px);
+  }
+  .login-clouds,
+  .login-clouds::after {
+    animation: none;
+    opacity: 0.38;
+  }
+  [style*="wave-flow"],
+  [style*="orb-drift"] {
+    animation: none !important;
+  }
+  .login-wave-wipe {
+    animation: none;
+    clip-path: ellipse(160% 170% at 50% 100%);
+  }
+  .login-roque-bloom {
+    opacity: 0.22;
+    filter: blur(14px);
+  }
+}
+
+/* Skip link — visible solo con foco (a11y) */
+.skip-to-main {
+  position: absolute;
+  left: -9999px;
+  top: 1rem;
+  z-index: 9999;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  background: #ffeb66;
+  color: #0a0f1e;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-decoration: none;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.35);
+}
+.skip-to-main:focus {
+  left: 1rem;
+  outline: 2px solid #fff;
+  outline-offset: 2px;
 }
