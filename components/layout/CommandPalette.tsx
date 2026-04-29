@@ -122,6 +122,7 @@ export function CommandPalette({
   return (
     <>
       <button
+        id="cmd-palette-trigger"
         type="button"
         onClick={() => {
           setOpen(true);

@@ -413,33 +413,80 @@ select option {
   color: #7ab8ff;
 }
 
-/* Task list */
-.ProseMirror ul[data-type="taskList"] {
+/* @menciones TipTap — gana a utilidades Tailwind (p. ej. .text-white/60 en el mismo span) */
+.prose.prose-invert span[data-type="mention"],
+.ProseMirror.prose span[data-type="mention"],
+.ProseMirror span[data-type="mention"],
+.prose span[data-type="mention"] {
+  color: #60a5fa !important;
+  font-weight: 500 !important;
+  cursor: default;
+}
+.prose.prose-invert span[data-type="mention"]:hover,
+.ProseMirror.prose span[data-type="mention"]:hover,
+.ProseMirror span[data-type="mention"]:hover,
+.prose span[data-type="mention"]:hover {
+  color: #93c5fd !important;
+}
+
+/* Task list — editor (.ProseMirror) y HTML renderizado (.prose en detalle nota / preview) */
+.ProseMirror ul[data-type="taskList"],
+.prose ul[data-type="taskList"] {
   list-style: none;
   padding-left: 0;
+  margin-left: 0;
 }
-.ProseMirror ul[data-type="taskList"] li {
+.ProseMirror ul[data-type="taskList"] li,
+.prose ul[data-type="taskList"] li {
   display: flex;
+  flex-direction: row;
   align-items: flex-start;
   gap: 0.5rem;
+  list-style: none;
+  padding-left: 0;
+  padding-inline-start: 0 !important;
+  margin-inline-start: 0 !important;
 }
-.ProseMirror ul[data-type="taskList"] li > label {
+/* typography / viñetas: quitar pseudo delante del checkbox */
+.prose ul[data-type="taskList"] > li::before {
+  display: none !important;
+  content: none !important;
+}
+.ProseMirror ul[data-type="taskList"] li > label,
+.prose ul[data-type="taskList"] li > label {
+  display: inline-flex;
+  align-items: center;
+  width: auto;
+  max-width: fit-content;
   margin-top: 2px;
   cursor: pointer;
   flex-shrink: 0;
 }
-.ProseMirror ul[data-type="taskList"] li > label input[type="checkbox"] {
+.ProseMirror ul[data-type="taskList"] li > label input[type="checkbox"],
+.prose ul[data-type="taskList"] li > label input[type="checkbox"] {
   accent-color: #ffeb66;
   width: 14px;
   height: 14px;
   cursor: pointer;
 }
-.ProseMirror ul[data-type="taskList"] li[data-checked="true"] > div {
+.ProseMirror ul[data-type="taskList"] li[data-checked="true"] > div,
+.prose ul[data-type="taskList"] li[data-checked="true"] > div {
   color: rgba(240, 244, 255, 0.4);
   text-decoration: line-through;
 }
-.ProseMirror ul[data-type="taskList"] li > div {
+.ProseMirror ul[data-type="taskList"] li > div,
+.prose ul[data-type="taskList"] li > div {
   flex: 1;
+  min-width: 0;
+}
+/* Anular márgenes grandes de .prose [&_p]:my-4 dentro del ítem (texto alineado con la fila) */
+.ProseMirror ul[data-type="taskList"] li > div > p:first-child,
+.prose ul[data-type="taskList"] li > div > p:first-child {
+  margin-top: 0;
+}
+.ProseMirror ul[data-type="taskList"] li > div > p:last-child,
+.prose ul[data-type="taskList"] li > div > p:last-child {
+  margin-bottom: 0;
 }
 
 /* Strikethrough */
@@ -1027,7 +1074,8 @@ textarea:focus ~ .input-focus-bar {
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.11),
     0 4px 28px rgba(0, 0, 0, 0.42),
-    0 28px 90px rgba(0, 0, 0, 0.48);
+    0 28px 90px rgba(0, 0, 0, 0.48),
+    0 0 100px rgba(255, 235, 102, 0.055);
   border-color: rgba(255, 255, 255, 0.13);
 }
 
@@ -1084,6 +1132,87 @@ textarea:focus ~ .input-focus-bar {
   transition: background-color 99999s ease-out 0s;
 }
 
+/* ── Bitácora card stagger entrance (B3) ────────────────────────────────── */
+@keyframes cardSlideIn {
+  from { opacity: 0; transform: translateY(5px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.card-slide-in {
+  animation: cardSlideIn 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* ── Bitácora URGENTE ring pulse (B2) ────────────────────────────────────── */
+@keyframes urgentCardPulse {
+  0%, 100% {
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.11),
+      0 4px 24px rgba(0,0,0,0.35),
+      0 0 0 1px rgba(239,68,68,0.25),
+      0 8px 28px rgba(239,68,68,0.08);
+  }
+  50% {
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.11),
+      0 4px 24px rgba(0,0,0,0.35),
+      0 0 0 1px rgba(239,68,68,0.52),
+      0 10px 36px rgba(239,68,68,0.18);
+  }
+}
+.urgent-card-pulse {
+  animation: urgentCardPulse 2.2s ease-in-out infinite;
+}
+
+/* ── Login logo power-on animation (L2) ─────────────────────────────────── */
+@keyframes login-logo-power {
+  0%   { opacity: 0; transform: scale(0.88); filter: brightness(0.3); }
+  55%  { opacity: 1; transform: scale(1.02); filter: brightness(1.12); }
+  100% { opacity: 1; transform: scale(1);    filter: brightness(1); }
+}
+.login-logo-power-on {
+  animation: login-logo-power 0.75s cubic-bezier(0.16, 1, 0.3, 1) 0.1s both;
+}
+
+/* ── Roque Nublo bloom pulse in night mode (L6) ──────────────────────────── */
+@keyframes roque-bloom-breathe {
+  0%, 100% { opacity: 0.38; filter: blur(22px); }
+  50%       { opacity: 0.55; filter: blur(26px); }
+}
+.login-roque-bloom-night {
+  animation: roque-bloom-breathe 4.2s ease-in-out infinite;
+}
+
+/* ── Login card shake on error (L3) ─────────────────────────────────────── */
+@keyframes login-shake {
+  0%, 100% { transform: translateX(0); }
+  15%       { transform: translateX(-8px); }
+  30%       { transform: translateX(8px); }
+  45%       { transform: translateX(-6px); }
+  60%       { transform: translateX(6px); }
+  75%       { transform: translateX(-3px); }
+  90%       { transform: translateX(3px); }
+}
+.login-shake {
+  animation: login-shake 0.45s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+/* ── Login form field stagger entrance (L1) ──────────────────────────────── */
+@keyframes loginFieldEnter {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.login-field-enter {
+  animation: loginFieldEnter 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* ── Login card ambient glow (L7) ────────────────────────────────────────── */
+.login-card-ambient {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.11),
+    0 4px 28px rgba(0, 0, 0, 0.42),
+    0 28px 90px rgba(0, 0, 0, 0.48),
+    0 0 100px rgba(255, 235, 102, 0.055);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .bg-orb-1,
   .bg-orb-2,
@@ -1120,6 +1249,33 @@ textarea:focus ~ .input-focus-bar {
   .login-roque-bloom {
     opacity: 0.22;
     filter: blur(14px);
+  }
+}
+
+/* ── LogEntryDetail — Sprint 7 ────────────────────────────────────────────── */
+
+/* B56: Fullscreen reading overlay */
+.detail-fullscreen-bg {
+  background:
+    radial-gradient(ellipse 80% 50% at 50% 0%, rgba(74,158,255,0.04) 0%, transparent 55%),
+    #060a14;
+}
+
+/* B58: Reaction button active glow */
+@keyframes reaction-pop {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.25); }
+  70%  { transform: scale(0.95); }
+  100% { transform: scale(1.1); }
+}
+.reaction-btn[aria-pressed="true"] {
+  animation: reaction-pop 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* B54: TOC active item left accent */
+@media (prefers-reduced-motion: no-preference) {
+  .detail-toc-item-active {
+    transition: background 200ms ease, color 200ms ease;
   }
 }
 

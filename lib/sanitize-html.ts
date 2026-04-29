@@ -4,7 +4,14 @@ import DOMPurify from "isomorphic-dompurify";
 export function sanitizeHtml(dirty: string): string {
   return DOMPurify.sanitize(dirty, {
     USE_PROFILES: { html: true },
-    ADD_ATTR: ["target"],
+    ADD_ATTR: [
+      "target",
+      /* TipTap @menciones */
+      "data-type",
+      "data-id",
+      "data-label",
+      "data-mention-suggestion-char",
+    ],
     FORBID_TAGS: ["script", "iframe", "object", "embed"],
   });
 }

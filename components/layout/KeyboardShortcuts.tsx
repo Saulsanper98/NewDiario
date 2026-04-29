@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { Keyboard, X } from "lucide-react";
+import { TYPE_LABELS, SHIFT_LABELS, getTypeColor } from "@/lib/utils";
 
 export function KeyboardShortcuts() {
   const router = useRouter();
@@ -58,11 +59,11 @@ export function KeyboardShortcuts() {
     >
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
       <div
-        className="relative glass-4 rounded-2xl p-6 w-full max-w-sm mx-4 border border-white/15"
+        className="relative glass-4 rounded-2xl p-6 w-full max-w-md mx-4 border border-white/15 max-h-[85vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <h2 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
-          <Keyboard className="w-4 h-4 text-[#ffeb66]" /> Atajos de teclado
+          <Keyboard className="w-4 h-4 text-[#ffeb66]" /> Atajos y leyenda
         </h2>
         <div className="space-y-2">
           {[
@@ -70,6 +71,14 @@ export function KeyboardShortcuts() {
             { key: "/", desc: "Abrir búsqueda global" },
             { key: "?", desc: "Mostrar / ocultar esta ayuda" },
             { key: "Esc", desc: "Cerrar paneles / ayuda" },
+            ...(pathname.startsWith("/bitacora/dia")
+              ? ([
+                  {
+                    key: "← →",
+                    desc: "Día anterior / siguiente (vista por día)",
+                  },
+                ] as const)
+              : []),
           ].map(({ key, desc }) => (
             <div key={key} className="flex items-center gap-3">
               <kbd className="px-2 py-0.5 rounded-md bg-white/8 border border-white/12 text-xs font-mono text-white/70 shrink-0 min-w-[2rem] text-center">
@@ -79,6 +88,40 @@ export function KeyboardShortcuts() {
             </div>
           ))}
         </div>
+
+        <div className="mt-5 pt-4 border-t border-white/10 space-y-3">
+          <p className="text-[11px] font-semibold text-white/35 uppercase tracking-wide">
+            Tipos de entrada (bitácora)
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            {(Object.keys(TYPE_LABELS) as (keyof typeof TYPE_LABELS)[]).map((t) => (
+              <span
+                key={t}
+                className={`text-[10px] px-2 py-0.5 rounded-md border font-medium ${getTypeColor(t)}`}
+              >
+                {TYPE_LABELS[t]}
+              </span>
+            ))}
+          </div>
+          <p className="text-[11px] font-semibold text-white/35 uppercase tracking-wide pt-1">
+            Turnos
+          </p>
+          <ul className="text-xs text-white/45 space-y-1">
+            <li>
+              <span className="text-amber-300/90">{SHIFT_LABELS.MORNING}</span>
+              {" — "}06:00–14:00
+            </li>
+            <li>
+              <span className="text-orange-300/90">{SHIFT_LABELS.AFTERNOON}</span>
+              {" — "}14:00–22:00
+            </li>
+            <li>
+              <span className="text-indigo-300/90">{SHIFT_LABELS.NIGHT}</span>
+              {" — "}22:00–06:00
+            </li>
+          </ul>
+        </div>
+
         <button
           onClick={() => setHelpOpen(false)}
           className="absolute top-3 right-3 p-1 rounded-md text-white/30 hover:text-white/70 transition-colors"
