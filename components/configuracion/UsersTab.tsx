@@ -13,6 +13,7 @@ import toast from "react-hot-toast";
 import type { SessionUser } from "@/lib/auth/types";
 import type { Role } from "@/app/generated/prisma/enums";
 import type { ConfigPageDepartment, ConfigPageUser } from "@/lib/types/config";
+import { useAccentForUi } from "@/lib/hooks/useAccentForUi";
 
 interface UsersTabProps {
   users: ConfigPageUser[];
@@ -27,6 +28,7 @@ export function UsersTab({
   currentUser,
   isSuperAdmin,
 }: UsersTabProps) {
+  const { accent, withAlpha } = useAccentForUi();
   const router = useRouter();
   const [search, setSearch] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
@@ -332,7 +334,7 @@ export function UsersTab({
                     />
                     <span
                       className="w-2 h-2 rounded-full shrink-0"
-                      style={{ backgroundColor: d.accentColor }}
+                      style={{ backgroundColor: accent(d.accentColor) }}
                     />
                     <span className="flex-1">{d.name}</span>
                     {checked && (
@@ -467,9 +469,9 @@ export function UsersTab({
                         key={ud.id}
                         className="text-xs px-1.5 py-0.5 rounded border"
                         style={{
-                          borderColor: ud.department.accentColor + "30",
-                          color: ud.department.accentColor,
-                          backgroundColor: ud.department.accentColor + "10",
+                          borderColor: withAlpha(ud.department.accentColor, "30"),
+                          color: accent(ud.department.accentColor),
+                          backgroundColor: withAlpha(ud.department.accentColor, "10"),
                         }}
                       >
                         {ud.department.name}

@@ -21,7 +21,8 @@ export default auth((req) => {
   /** Rutas API invocables sin sesión (login, descubrimiento de features, etc.) */
   const isPublicApi =
     nextUrl.pathname.startsWith("/api/auth") ||
-    nextUrl.pathname === "/api/features";
+    nextUrl.pathname === "/api/features" ||
+    nextUrl.pathname === "/api/branding";
 
   if (isPublicApi) return;
 

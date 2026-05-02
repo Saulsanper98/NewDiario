@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { Command } from "cmdk";
 import {
@@ -15,6 +16,8 @@ import {
   CalendarDays,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useFocusTrap } from "@/lib/hooks/useFocusTrap";
+import { paletteShortcutLabel } from "@/lib/platform-kbd";
 
 type SearchPayload = {
   logs: {
@@ -44,7 +47,22 @@ export function CommandPalette({
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<SearchPayload | null>(null);
+  const [kbdHint, setKbdHint] = useState("Ctrl+K");
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  /** Portal a body: el header usa `isolation: isolate` y encerraba el `fixed` detrás del main */
+  const [portalReady, setPortalReady] = useState(false);
+
+  useFocusTrap(open, panelRef, triggerRef);
+
+  useEffect(() => {
+    setPortalReady(true);
+  }, []);
+
+  useEffect(() => {
+    setKbdHint(paletteShortcutLabel());
+  }, []);
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -63,6 +81,24 @@ export function CommandPalette({
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, []);
+
+  const closePalette = useCallback(() => {
+    setOpen(false);
+    setQuery("");
+    setResults(null);
+  }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    function onEsc(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        closePalette();
+      }
+    }
+    document.addEventListener("keydown", onEsc);
+    return () => document.removeEventListener("keydown", onEsc);
+  }, [open, closePalette]);
 
   const fetchSearch = useCallback(
     async (q: string) => {
@@ -100,12 +136,6 @@ export function CommandPalette({
     };
   }, [query, open, fetchSearch]);
 
-  function closePalette() {
-    setOpen(false);
-    setQuery("");
-    setResults(null);
-  }
-
   function go(href: string) {
     closePalette();
     router.push(href);
@@ -122,8 +152,12 @@ export function CommandPalette({
   return (
     <>
       <button
+        ref={triggerRef}
         id="cmd-palette-trigger"
         type="button"
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        aria-controls="cmd-palette-panel"
         onClick={() => {
           setOpen(true);
         }}
@@ -132,144 +166,198 @@ export function CommandPalette({
         <Search className="w-3.5 h-3.5" />
         <span className="flex-1 text-left text-xs">Buscar...</span>
         <kbd className="text-[10px] bg-white/8 px-1.5 py-0.5 rounded border border-white/10 font-mono">
-          ⌘K
+          {kbdHint}
         </kbd>
       </button>
 
-      {open && (
-        <div className="fixed inset-0 z-[100] flex items-start justify-center pt-[15vh] px-4">
+      {open &&
+        portalReady &&
+        createPortal(
+          <div className="fixed inset-0 z-[400] flex items-start justify-center pt-[15vh] px-4">
           <button
             type="button"
             aria-label="Cerrar"
-            className="absolute inset-0 modal-backdrop"
+            className="cmd-palette-backdrop absolute inset-0 z-[400] bg-[#020308]/88"
             onClick={closePalette}
           />
-          <Command
-            shouldFilter={false}
-            className={cn(
-              "relative w-full max-w-xl rounded-xl border border-white/10 shadow-2xl",
-              "bg-[#0d1428]/95 backdrop-blur-xl overflow-hidden z-[101]"
-            )}
+          <div
+            ref={panelRef}
+            id="cmd-palette-panel"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Buscar en la aplicación"
+            className="relative z-[401] w-full max-w-xl isolate"
           >
-            <div className="flex items-center gap-2 px-3 border-b border-white/8">
-              <Search className="w-4 h-4 text-white/35 shrink-0" />
-              <Command.Input
-                value={query}
-                onValueChange={setQuery}
-                placeholder="Buscar bitácora, tareas y proyectos… (mín. 2 caracteres)"
-                className="flex-1 bg-transparent py-3 text-sm text-white placeholder:text-white/30 focus:outline-none"
-              />
-              {loading && (
-                <Loader2 className="w-4 h-4 text-[#ffeb66] animate-spin shrink-0" />
+            <Command
+              shouldFilter={false}
+              className={cn(
+                "w-full overflow-hidden rounded-xl border border-white/14 shadow-2xl",
+                /* Opaco al 100 %: sin backdrop-blur ni alpha en el fondo (evita “calado” sobre el dashboard) */
+                "bg-[#0a0f1e]"
               )}
-            </div>
-            <Command.List className="max-h-[min(50vh,420px)] overflow-y-auto p-2">
-              {query.trim().length === 0 && (
-                <Command.Group
-                  heading="Ir a"
-                  className="text-[11px] font-medium text-white/35 uppercase tracking-wide px-2 pt-2 pb-1"
+            >
+              <div className="flex items-center gap-2.5 border-b border-white/10 bg-[#0a0f1e] px-3 py-3">
+                <Search className="w-4 h-4 text-white/40 shrink-0" />
+                <div
+                  className={cn(
+                    "flex min-h-[2.75rem] flex-1 min-w-0 items-center rounded-lg border border-white/12",
+                    "bg-[#060912] px-3",
+                    "transition-[border-color]",
+                    /* Un solo anillo: solo borde al enfocar (antes borde + inset shadow = doble amarillo) */
+                    "focus-within:border-[#ffeb66]/55"
+                  )}
                 >
-                  {[
-                    { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-                    { label: "Bitácora", href: "/bitacora", icon: BookOpen },
-                    { label: "Bitácora — hoy", href: `/bitacora/dia?date=${new Date().toISOString().slice(0, 10)}`, icon: CalendarDays },
-                    { label: "Nueva entrada", href: "/bitacora/nueva", icon: Plus },
-                    { label: "Proyectos", href: "/proyectos", icon: FolderKanban },
-                    { label: "Traspaso", href: "/traspaso", icon: ArrowLeftRight },
-                  ].map((item) => {
-                    const Icon = item.icon;
-                    return (
+                  <Command.Input
+                    value={query}
+                    onValueChange={setQuery}
+                    placeholder="Buscar bitácora, tareas y proyectos… (mín. 2 caracteres)"
+                    className={cn(
+                      "w-full min-w-0 border-0 bg-transparent py-0 text-sm leading-normal text-white",
+                      "placeholder:text-white/35",
+                      "outline-none focus:outline-none focus-visible:outline-none",
+                      "focus:ring-0 focus-visible:ring-0"
+                    )}
+                  />
+                </div>
+                {loading && (
+                  <Loader2 className="w-4 h-4 shrink-0 text-[#ffeb66] animate-spin" />
+                )}
+              </div>
+              <Command.List className="max-h-[min(50vh,420px)] overflow-y-auto bg-[#0a0f1e] p-2">
+                {query.trim().length === 0 && (
+                  <Command.Group
+                    heading="Ir a"
+                    className="text-[11px] font-medium text-white/35 uppercase tracking-wide px-2 pt-2 pb-1"
+                  >
+                    {[
+                      { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+                      { label: "Bitácora", href: "/bitacora", icon: BookOpen },
+                      {
+                        label: "Bitácora — hoy",
+                        href: `/bitacora/dia?date=${new Date().toISOString().slice(0, 10)}`,
+                        icon: CalendarDays,
+                      },
+                      { label: "Nueva entrada", href: "/bitacora/nueva", icon: Plus },
+                      { label: "Proyectos", href: "/proyectos", icon: FolderKanban },
+                      { label: "Traspaso", href: "/traspaso", icon: ArrowLeftRight },
+                    ].map((item) => {
+                      const Icon = item.icon;
+                      return (
+                        <Command.Item
+                          key={item.href}
+                          value={item.label}
+                          onSelect={() => go(item.href)}
+                          className="flex items-center gap-2 px-2 py-2 rounded-lg cursor-pointer text-sm text-white/80 data-[selected=true]:bg-white/10 data-[selected=true]:border-l-2 data-[selected=true]:border-[#ffeb66] data-[selected=true]:pl-[6px]"
+                        >
+                          <Icon className="w-4 h-4 text-white/40 shrink-0" />
+                          <span className="truncate">{item.label}</span>
+                        </Command.Item>
+                      );
+                    })}
+                  </Command.Group>
+                )}
+
+                {query.trim().length > 0 && query.trim().length < 2 && (
+                  <p className="px-2 py-6 text-center text-sm text-white/35">
+                    Escribe al menos 2 caracteres
+                  </p>
+                )}
+
+                {empty && (
+                  <Command.Empty className="py-8 px-3 text-center text-sm text-white/40 space-y-2">
+                    <p>Sin resultados para «{query.trim()}».</p>
+                    <p className="text-xs text-white/25">
+                      Prueba con otras palabras, revisa acentos o cambia de departamento activo
+                      si aplica.
+                    </p>
+                  </Command.Empty>
+                )}
+
+                {results && results.logs.length > 0 && (
+                  <Command.Group
+                    heading="Bitácora"
+                    className="text-[11px] font-medium text-white/35 uppercase tracking-wide px-2 pt-2 pb-1"
+                  >
+                    {results.logs.map((log) => (
                       <Command.Item
-                        key={item.href}
-                        value={item.label}
-                        onSelect={() => go(item.href)}
+                        key={log.id}
+                        value={`log-${log.id}`}
+                        onSelect={() => go(`/bitacora/${log.id}`)}
                         className="flex items-center gap-2 px-2 py-2 rounded-lg cursor-pointer text-sm text-white/80 data-[selected=true]:bg-white/10 data-[selected=true]:border-l-2 data-[selected=true]:border-[#ffeb66] data-[selected=true]:pl-[6px]"
                       >
-                        <Icon className="w-4 h-4 text-white/40 shrink-0" />
-                        <span className="truncate">{item.label}</span>
+                        <BookOpen className="w-4 h-4 text-[#ffeb66]/70 shrink-0" />
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate">{log.title}</p>
+                          {log.department?.name && (
+                            <p className="text-[11px] text-white/30 truncate">{log.department.name}</p>
+                          )}
+                        </div>
                       </Command.Item>
-                    );
-                  })}
-                </Command.Group>
-              )}
+                    ))}
+                  </Command.Group>
+                )}
 
-              {query.trim().length > 0 && query.trim().length < 2 && (
-                <p className="px-2 py-6 text-center text-sm text-white/35">
-                  Escribe al menos 2 caracteres
-                </p>
-              )}
+                {results && results.tasks.length > 0 && (
+                  <Command.Group
+                    heading="Tareas"
+                    className="text-[11px] font-medium text-white/35 uppercase tracking-wide px-2 pt-2 pb-1"
+                  >
+                    {results.tasks.map((t) => (
+                      <Command.Item
+                        key={t.id}
+                        value={`task-${t.id}`}
+                        onSelect={() => go(`/proyectos/${t.projectId}`)}
+                        className="flex items-center gap-2 px-2 py-2 rounded-lg cursor-pointer text-sm text-white/80 data-[selected=true]:bg-white/10 data-[selected=true]:border-l-2 data-[selected=true]:border-[#ffeb66] data-[selected=true]:pl-[6px]"
+                      >
+                        <CheckSquare className="w-4 h-4 text-[#4a9eff]/80 shrink-0" />
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate">{t.title}</p>
+                          <p className="text-xs text-white/35 truncate">
+                            {t.project.name}
+                          </p>
+                        </div>
+                      </Command.Item>
+                    ))}
+                  </Command.Group>
+                )}
 
-              {empty && (
-                <Command.Empty className="py-8 text-center text-sm text-white/35">
-                  Sin resultados para &quot;{query}&quot;
-                </Command.Empty>
-              )}
-
-              {results && results.logs.length > 0 && (
-                <Command.Group
-                  heading="Bitácora"
-                  className="text-[11px] font-medium text-white/35 uppercase tracking-wide px-2 pt-2 pb-1"
-                >
-                  {results.logs.map((log) => (
-                    <Command.Item
-                      key={log.id}
-                      value={`log-${log.id}`}
-                      onSelect={() => go(`/bitacora/${log.id}`)}
-                      className="flex items-center gap-2 px-2 py-2 rounded-lg cursor-pointer text-sm text-white/80 data-[selected=true]:bg-white/10 data-[selected=true]:border-l-2 data-[selected=true]:border-[#ffeb66] data-[selected=true]:pl-[6px]"
-                    >
-                      <BookOpen className="w-4 h-4 text-[#ffeb66]/70 shrink-0" />
-                      <span className="truncate">{log.title}</span>
-                    </Command.Item>
-                  ))}
-                </Command.Group>
-              )}
-
-              {results && results.tasks.length > 0 && (
-                <Command.Group
-                  heading="Tareas"
-                  className="text-[11px] font-medium text-white/35 uppercase tracking-wide px-2 pt-2 pb-1"
-                >
-                  {results.tasks.map((t) => (
-                    <Command.Item
-                      key={t.id}
-                      value={`task-${t.id}`}
-                      onSelect={() => go(`/proyectos/${t.projectId}`)}
-                      className="flex items-center gap-2 px-2 py-2 rounded-lg cursor-pointer text-sm text-white/80 data-[selected=true]:bg-white/10 data-[selected=true]:border-l-2 data-[selected=true]:border-[#ffeb66] data-[selected=true]:pl-[6px]"
-                    >
-                      <CheckSquare className="w-4 h-4 text-[#4a9eff]/80 shrink-0" />
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate">{t.title}</p>
-                        <p className="text-xs text-white/35 truncate">
-                          {t.project.name}
-                        </p>
-                      </div>
-                    </Command.Item>
-                  ))}
-                </Command.Group>
-              )}
-
-              {results && results.projects.length > 0 && (
-                <Command.Group
-                  heading="Proyectos"
-                  className="text-[11px] font-medium text-white/35 uppercase tracking-wide px-2 pt-2 pb-1"
-                >
-                  {results.projects.map((p) => (
-                    <Command.Item
-                      key={p.id}
-                      value={`proj-${p.id}`}
-                      onSelect={() => go(`/proyectos/${p.id}`)}
-                      className="flex items-center gap-2 px-2 py-2 rounded-lg cursor-pointer text-sm text-white/80 data-[selected=true]:bg-white/10 data-[selected=true]:border-l-2 data-[selected=true]:border-[#ffeb66] data-[selected=true]:pl-[6px]"
-                    >
-                      <FolderKanban className="w-4 h-4 text-emerald-400/80 shrink-0" />
-                      <span className="truncate">{p.name}</span>
-                    </Command.Item>
-                  ))}
-                </Command.Group>
-              )}
-            </Command.List>
-          </Command>
-        </div>
-      )}
+                {results && results.projects.length > 0 && (
+                  <Command.Group
+                    heading="Proyectos"
+                    className="text-[11px] font-medium text-white/35 uppercase tracking-wide px-2 pt-2 pb-1"
+                  >
+                    {results.projects.map((p) => (
+                      <Command.Item
+                        key={p.id}
+                        value={`proj-${p.id}`}
+                        onSelect={() => go(`/proyectos/${p.id}`)}
+                        className="flex items-center gap-2 px-2 py-2 rounded-lg cursor-pointer text-sm text-white/80 data-[selected=true]:bg-white/10 data-[selected=true]:border-l-2 data-[selected=true]:border-[#ffeb66] data-[selected=true]:pl-[6px]"
+                      >
+                        <FolderKanban className="w-4 h-4 text-emerald-400/80 shrink-0" />
+                        <span className="truncate">{p.name}</span>
+                      </Command.Item>
+                    ))}
+                  </Command.Group>
+                )}
+              </Command.List>
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-white/10 bg-[#060912] px-3 py-2 text-[10px] text-white/35">
+                <span>
+                  <kbd className="rounded border border-white/12 bg-white/6 px-1 font-mono">↑</kbd>
+                  <kbd className="rounded border border-white/12 bg-white/6 px-1 font-mono">↓</kbd>{" "}
+                  seleccionar
+                </span>
+                <span>
+                  <kbd className="rounded border border-white/12 bg-white/6 px-1 font-mono">↵</kbd> abrir
+                </span>
+                <span>
+                  <kbd className="rounded border border-white/12 bg-white/6 px-1 font-mono">Esc</kbd> cerrar
+                </span>
+              </div>
+            </Command>
+          </div>
+        </div>,
+          document.body
+        )}
     </>
   );
 }

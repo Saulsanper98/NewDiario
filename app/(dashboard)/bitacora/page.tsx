@@ -49,39 +49,42 @@ export default async function BitacoraPage({
         user={user}
         breadcrumb={[{ label: "Bitácora" }]}
       />
-      <div className="flex-1 overflow-y-auto">
-        {/* View switch */}
-        <div className="px-6 pt-4 flex items-center gap-2">
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-[#ffeb66]/10 text-[#ffeb66] border border-[#ffeb66]/20">
+      <div className="flex flex-1 flex-col min-h-0 overflow-hidden">
+        {/* View switch — fija con el chrome; solo la lista hace scroll */}
+        <div className="shrink-0 px-6 pt-4 flex items-center gap-1 border-b border-white/8 print:hidden">
+          <div className="flex items-center gap-1.5 px-3 py-2 rounded-t-lg text-xs font-medium bg-[#ffeb66]/10 text-[#ffeb66] border border-b-0 border-[#ffeb66]/25 relative top-[1px]">
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
             Feed
           </div>
           <Link
             href="/bitacora/dia"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-white/50 hover:text-white hover:bg-white/6 border border-transparent transition-all duration-200"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-t-lg text-xs font-medium text-white/50 hover:text-white hover:bg-white/5 border border-transparent border-b-0 transition-all duration-200 mb-[-1px]"
           >
             <CalendarDays className="w-3.5 h-3.5" />
             Por día
           </Link>
         </div>
-        <BitacoraFeed
-          key={[
-            params.type ?? "",
-            params.shift ?? "",
-            params.followup ?? "",
-            params.authorId ?? "",
-            deptId,
-          ].join("|")}
-          logs={logs}
-          departmentId={deptId}
-          initialFilters={params}
-          hasMore={hasMore}
-          pageSize={PAGE_SIZE}
-        />
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+          <BitacoraFeed
+            key={[
+              params.type ?? "",
+              params.shift ?? "",
+              params.followup ?? "",
+              params.authorId ?? "",
+              deptId,
+            ].join("|")}
+            logs={logs}
+            departmentId={deptId}
+            currentUserId={user.id}
+            initialFilters={params}
+            hasMore={hasMore}
+            pageSize={PAGE_SIZE}
+          />
+        </div>
       </div>
       <Link
         href="/bitacora/nueva"
-        className="fixed bottom-6 right-6 z-30 flex items-center gap-2 bg-[#ffeb66] text-[#0a0f1e] px-4 py-3 rounded-full font-semibold text-sm shadow-lg shadow-[#ffeb66]/20 hover:bg-[#ffe033] transition-all duration-200 hover:scale-105"
+        className="fixed z-30 flex items-center gap-2 bg-[#ffeb66] text-[#0a0f1e] px-4 py-3 min-h-[48px] rounded-full font-semibold text-sm shadow-lg shadow-[#ffeb66]/20 lt-elev-fab hover:bg-[#ffe033] transition-all duration-200 hover:scale-105 safe-fab-br print:hidden"
       >
         <Plus className="w-4 h-4" />
         Nueva entrada

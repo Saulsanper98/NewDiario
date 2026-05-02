@@ -29,6 +29,11 @@ export default function DashboardError({
             No se pudo cargar el contenido. Puedes reintentar o volver al
             inicio.
           </p>
+          {error.digest && (
+            <p className="text-[10px] text-white/25 font-mono mt-2" title="Referencia para soporte">
+              Ref: {error.digest}
+            </p>
+          )}
         </div>
         <div className="flex flex-wrap gap-2 justify-center">
           <Button type="button" variant="primary" onClick={() => reset()}>
@@ -43,7 +48,27 @@ export default function DashboardError({
           >
             Ir al dashboard
           </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => {
+              window.location.href = "/bitacora";
+            }}
+          >
+            Ir a la bitácora
+          </Button>
         </div>
+        {error.digest && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="text-xs text-white/40"
+            onClick={() => void navigator.clipboard.writeText(error.digest ?? "")}
+          >
+            Copiar referencia
+          </Button>
+        )}
       </div>
     </div>
   );

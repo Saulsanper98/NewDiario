@@ -22,8 +22,8 @@ export function ProjectTimeline({ columns }: ProjectTimelineProps) {
 
   if (allTasks.length === 0) {
     return (
-      <div className="flex-1 flex items-center justify-center">
-        <p className="text-white/30 text-sm">
+      <div className="flex-1 flex items-center justify-center px-4 py-10">
+        <p className="text-center text-sm text-white/30 leading-relaxed max-w-md">
           Sin tareas con fechas asignadas para mostrar timeline
         </p>
       </div>

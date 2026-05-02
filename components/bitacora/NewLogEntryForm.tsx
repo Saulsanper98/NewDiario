@@ -15,7 +15,11 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Card } from "@/components/ui/Card";
 import { getCurrentShift, SHIFT_LABELS, TYPE_LABELS, cn } from "@/lib/utils";
+import type { ThemeMode } from "@/lib/theme";
 import { sanitizeHtml } from "@/lib/sanitize-html";
+import { useAccentForUi } from "@/lib/hooks/useAccentForUi";
+import { useTheme } from "@/components/layout/ThemeProvider";
+import { bitacoraPreviewProseClass } from "@/lib/bitacora-html-prose";
 
 /* ── schema ─────────────────────────────────────────────────────────────── */
 
@@ -49,6 +53,23 @@ const SHIFT_BTN = {
   AFTERNOON: { icon: Sunset, label: "Tarde",    range: "14:00–22:00", activeCl: "border-orange-400/40 bg-orange-400/10 text-orange-300" },
   NIGHT:     { icon: Moon,   label: "Noche",    range: "22:00–6:00",  activeCl: "border-indigo-400/40 bg-indigo-400/10 text-indigo-300" },
 };
+
+const SHIFT_BTN_LIGHT_ACTIVE: Record<string, string> = {
+  MORNING:   "border-amber-300 bg-amber-50 text-amber-950 shadow-sm",
+  AFTERNOON: "border-orange-300 bg-orange-50 text-orange-950 shadow-sm",
+  NIGHT:     "border-indigo-300 bg-indigo-50 text-indigo-950 shadow-sm",
+};
+
+const TYPE_ACTIVE_LIGHT: Record<string, string> = {
+  INCIDENCIA:    "border-orange-300 bg-orange-50 text-orange-950 shadow-sm",
+  INFORMATIVO:   "border-sky-300 bg-sky-50 text-sky-950 shadow-sm",
+  URGENTE:       "border-red-300 bg-red-50 text-red-950 shadow-sm",
+  MANTENIMIENTO: "border-violet-300 bg-violet-50 text-violet-950 shadow-sm",
+  SIN_NOVEDADES: "border-emerald-300 bg-emerald-50 text-emerald-950 shadow-sm",
+};
+
+const TYPE_SHIFT_INACTIVE_LIGHT =
+  "border-zinc-200/90 bg-white text-zinc-600 shadow-sm hover:bg-zinc-50 hover:border-zinc-300 hover:text-zinc-900";
 
 /* ── title placeholder by type (B37) ────────────────────────────────────── */
 
@@ -150,13 +171,22 @@ function ConfirmCancelDialog({
 
 /* ── title counter color (B34) ──────────────────────────────────────────── */
 
-function titleCounterColor(len: number): string {
-  if (len < 3 && len > 0) return "text-red-400";
-  if (len <= 100) return "text-white/25";
-  if (len <= 120) return "text-amber-400";
-  if (len <= 135) return "text-orange-400";
-  return "text-red-400";
+function titleCounterColor(len: number, t: ThemeMode): string {
+  if (len < 3 && len > 0) return t === "light" ? "text-red-600" : "text-red-400";
+  if (len <= 100) return t === "light" ? "text-zinc-500" : "text-white/25";
+  if (len <= 120) return t === "light" ? "text-amber-700" : "text-amber-400";
+  if (len <= 135) return t === "light" ? "text-orange-700" : "text-orange-400";
+  return t === "light" ? "text-red-600" : "text-red-400";
 }
+
+function formLabelClass(t: ThemeMode): string {
+  return t === "light"
+    ? "text-xs font-medium text-zinc-600 uppercase tracking-wide"
+    : "text-xs font-medium text-white/60 uppercase tracking-wide";
+}
+
+const lightTitleInputClass =
+  "bg-white border-zinc-200 text-zinc-900 placeholder:text-zinc-400 focus:border-[#c4ae16]/70 focus:bg-white focus:ring-[#d4bc1a]/35 shadow-sm";
 
 /* ── types ──────────────────────────────────────────────────────────────── */
 
@@ -187,6 +217,8 @@ export function NewLogEntryForm({
   allDepartments,
   editingEntry,
 }: NewLogEntryFormProps) {
+  const { accent, withAlpha } = useAccentForUi();
+  const { theme } = useTheme();
   const router = useRouter();
   const draftKey = getDraftKey(editingEntry?.id);
 
@@ -378,15 +410,31 @@ export function NewLogEntryForm({
   const otherDepts = allDepartments.filter((d) => d.id !== deptForEntry);
 
   return (
-    <div className="p-4 sm:p-6 max-w-3xl mx-auto space-y-5">
+    <div
+      data-bitacora-entry-form
+      className={cn(
+        "p-4 sm:p-6 max-w-3xl mx-auto space-y-5",
+        theme === "light" && "rounded-2xl sm:rounded-3xl border border-zinc-200/80 bg-gradient-to-b from-white to-zinc-50/95 shadow-[0_1px_0_rgba(255,255,255,0.9)_inset,0_12px_40px_rgba(15,23,42,0.06)]"
+      )}
+    >
       {/* Header row */}
       <div className="flex items-center justify-between gap-4">
-        <h1 className="text-xl font-semibold text-white">
+        <h1
+          className={cn(
+            "text-xl font-semibold tracking-tight",
+            theme === "light" ? "text-zinc-900" : "text-white"
+          )}
+        >
           {editingEntry ? "Editar entrada" : "Nueva entrada de bitácora"}
         </h1>
 
         {/* B31 — last saved / draft indicator */}
-        <div className="flex items-center gap-3 text-xs text-white/30">
+        <div
+          className={cn(
+            "flex items-center gap-3 text-xs",
+            theme === "light" ? "text-zinc-500" : "text-white/30"
+          )}
+        >
           {lastSaved && !editingEntry && (
             <span className="flex items-center gap-1">
               <Save className="w-3 h-3" />
@@ -395,7 +443,12 @@ export function NewLogEntryForm({
           )}
           {/* B39 — last edited indicator in edit mode */}
           {editingEntry?.updatedAt && (
-            <span className="flex items-center gap-1 text-white/30">
+            <span
+              className={cn(
+                "flex items-center gap-1",
+                theme === "light" ? "text-zinc-500" : "text-white/30"
+              )}
+            >
               <Clock className="w-3 h-3" />
               Editado {relativeTime(new Date(editingEntry.updatedAt))}
             </span>
@@ -405,11 +458,35 @@ export function NewLogEntryForm({
 
       {/* B31 — draft restore banner */}
       {showRestore && draftRestoreData && (
-        <div className="glass rounded-xl p-4 border border-amber-500/20 flex items-center gap-4">
-          <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
+        <div
+          className={cn(
+            "rounded-xl p-4 border flex items-center gap-4",
+            theme === "light"
+              ? "bg-amber-50/90 border-amber-200/80 shadow-sm"
+              : "glass border-amber-500/20"
+          )}
+        >
+          <AlertTriangle
+            className={cn(
+              "w-4 h-4 shrink-0",
+              theme === "light" ? "text-amber-600" : "text-amber-400"
+            )}
+          />
           <div className="flex-1 min-w-0">
-            <p className="text-sm text-white/70">Hay un borrador guardado de esta entrada</p>
-            <p className="text-xs text-white/35 mt-0.5 truncate">
+            <p
+              className={cn(
+                "text-sm",
+                theme === "light" ? "text-zinc-800" : "text-white/70"
+              )}
+            >
+              Hay un borrador guardado de esta entrada
+            </p>
+            <p
+              className={cn(
+                "text-xs mt-0.5 truncate",
+                theme === "light" ? "text-zinc-500" : "text-white/35"
+              )}
+            >
               Título: &quot;{draftRestoreData.title || "(sin título)"}&quot;
             </p>
           </div>
@@ -427,8 +504,13 @@ export function NewLogEntryForm({
         {/* Title — B34, B37, B40 */}
         <div>
           <div className="flex items-center justify-between mb-1.5">
-            <label className="text-xs font-medium text-white/60 uppercase tracking-wide">Título</label>
-            <span className={`text-[10px] tabular-nums transition-colors ${titleCounterColor(titleValue.length)}`}>
+            <label className={formLabelClass(theme)}>Título</label>
+            <span
+              className={cn(
+                "text-[10px] tabular-nums transition-colors",
+                titleCounterColor(titleValue.length, theme)
+              )}
+            >
               {titleValue.length}/150
             </span>
           </div>
@@ -436,13 +518,14 @@ export function NewLogEntryForm({
             placeholder={TYPE_PLACEHOLDER[typeValue] ?? "Resumen breve de la entrada..."}
             error={errors.title?.message}
             maxLength={150}
+            className={theme === "light" ? lightTitleInputClass : undefined}
             {...register("title")}
           />
         </div>
 
         {/* B29 — Type selector as visual cards */}
         <div>
-          <label className="text-xs font-medium text-white/60 uppercase tracking-wide mb-2 block">Tipo</label>
+          <label className={cn(formLabelClass(theme), "mb-2 block")}>Tipo</label>
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
             {Object.entries(TYPE_CARD).map(([type, cfg]) => {
               const Icon     = cfg.icon;
@@ -455,8 +538,12 @@ export function NewLogEntryForm({
                   className={cn(
                     "flex flex-col items-center gap-1.5 px-3 py-2.5 rounded-xl border transition-all duration-200 text-center",
                     isActive
-                      ? `${cfg.activeBg} ${cfg.activeBorder} ${cfg.activeText}`
-                      : "border-white/8 bg-white/3 text-white/40 hover:border-white/16 hover:text-white/70 hover:bg-white/6"
+                      ? theme === "light"
+                        ? TYPE_ACTIVE_LIGHT[type] ?? `${cfg.activeBg} ${cfg.activeBorder} ${cfg.activeText}`
+                        : `${cfg.activeBg} ${cfg.activeBorder} ${cfg.activeText}`
+                      : theme === "light"
+                        ? TYPE_SHIFT_INACTIVE_LIGHT
+                        : "border-white/8 bg-white/3 text-white/40 hover:border-white/16 hover:text-white/70 hover:bg-white/6"
                   )}
                 >
                   <Icon className="w-4 h-4" />
@@ -471,7 +558,7 @@ export function NewLogEntryForm({
 
         {/* B30 — Shift selector as 3 horizontal buttons */}
         <div>
-          <label className="text-xs font-medium text-white/60 uppercase tracking-wide mb-2 block">Turno</label>
+          <label className={cn(formLabelClass(theme), "mb-2 block")}>Turno</label>
           <div className="grid grid-cols-3 gap-2">
             {(["MORNING", "AFTERNOON", "NIGHT"] as const).map((shift) => {
               const cfg      = SHIFT_BTN[shift];
@@ -485,8 +572,12 @@ export function NewLogEntryForm({
                   className={cn(
                     "flex flex-col items-center gap-1 px-3 py-2.5 rounded-xl border transition-all duration-200",
                     isActive
-                      ? cfg.activeCl
-                      : "border-white/8 bg-white/3 text-white/40 hover:border-white/16 hover:text-white/70 hover:bg-white/6"
+                      ? theme === "light"
+                        ? SHIFT_BTN_LIGHT_ACTIVE[shift]
+                        : cfg.activeCl
+                      : theme === "light"
+                        ? TYPE_SHIFT_INACTIVE_LIGHT
+                        : "border-white/8 bg-white/3 text-white/40 hover:border-white/16 hover:text-white/70 hover:bg-white/6"
                   )}
                 >
                   <Icon className="w-4 h-4" />
@@ -501,11 +592,16 @@ export function NewLogEntryForm({
         {/* Content — B36 preview toggle */}
         <div className="flex flex-col gap-1.5">
           <div className="flex items-center justify-between mb-0.5">
-            <label className="text-xs font-medium text-white/60 uppercase tracking-wide">Contenido</label>
+            <label className={formLabelClass(theme)}>Contenido</label>
             <button
               type="button"
               onClick={() => setShowPreview((v) => !v)}
-              className="flex items-center gap-1.5 text-xs text-white/40 hover:text-white/70 transition-colors"
+              className={cn(
+                "flex items-center gap-1.5 text-xs transition-colors",
+                theme === "light"
+                  ? "text-zinc-500 hover:text-zinc-800"
+                  : "text-white/40 hover:text-white/70"
+              )}
             >
               {showPreview ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
               {showPreview ? "Editar" : "Previsualizar"}
@@ -513,14 +609,29 @@ export function NewLogEntryForm({
           </div>
 
           {showPreview ? (
-            <div className="border border-white/10 rounded-lg bg-white/3 p-4 min-h-[200px]">
+            <div
+              className={cn(
+                "border rounded-lg p-4 min-h-[200px]",
+                theme === "light"
+                  ? "border-zinc-200/90 bg-white/90"
+                  : "border-white/10 bg-white/3"
+              )}
+            >
               {content ? (
                 <div
-                  className="prose prose-invert max-w-none text-sm text-white/75 leading-relaxed"
+                  data-bitacora-html-body
+                  className={bitacoraPreviewProseClass(theme)}
                   dangerouslySetInnerHTML={{ __html: sanitizeHtml(content) }}
                 />
               ) : (
-                <p className="text-white/20 text-sm italic">Sin contenido aún.</p>
+                <p
+                  className={cn(
+                    "text-sm italic",
+                    theme === "light" ? "text-zinc-400" : "text-white/20"
+                  )}
+                >
+                  Sin contenido aún.
+                </p>
               )}
             </div>
           ) : (
@@ -535,18 +646,33 @@ export function NewLogEntryForm({
 
         {/* Tags */}
         <div className="flex flex-col gap-1.5">
-          <label className="text-xs font-medium text-white/60 uppercase tracking-wide">Etiquetas</label>
-          <div className="flex flex-wrap gap-1.5 p-2 bg-white/3 border border-white/10 rounded-lg min-h-9 focus-within:border-[#ffeb66]/35 transition-colors">
+          <label className={formLabelClass(theme)}>Etiquetas</label>
+          <div
+            className={cn(
+              "flex flex-wrap gap-1.5 p-2 rounded-lg min-h-9 transition-colors",
+              theme === "light"
+                ? "bg-white border border-zinc-200/90 shadow-sm focus-within:border-[#c4ae16]/55 focus-within:ring-2 focus-within:ring-[#d4bc1a]/20"
+                : "bg-white/3 border border-white/10 focus-within:border-[#ffeb66]/35"
+            )}
+          >
             {tags.map((tag) => (
               <span
                 key={tag}
-                className="flex items-center gap-1 text-xs px-2 py-0.5 bg-white/8 text-white/60 rounded-md border border-white/10"
+                className={cn(
+                  "flex items-center gap-1 text-xs px-2 py-0.5 rounded-md border",
+                  theme === "light"
+                    ? "bg-zinc-100 text-zinc-700 border-zinc-200"
+                    : "bg-white/8 text-white/60 border-white/10"
+                )}
               >
                 #{tag}
                 <button
                   type="button"
                   onClick={() => removeTag(tag)}
-                  className="text-white/30 hover:text-white/60 transition-colors"
+                  className={cn(
+                    "transition-colors",
+                    theme === "light" ? "text-zinc-400 hover:text-zinc-700" : "text-white/30 hover:text-white/60"
+                  )}
                 >
                   <X className="w-3 h-3" />
                 </button>
@@ -558,26 +684,58 @@ export function NewLogEntryForm({
               onChange={(e) => setTagInput(e.target.value)}
               onKeyDown={addTag}
               placeholder={tags.length === 0 ? "Añadir etiqueta (Enter)..." : ""}
-              className="bg-transparent text-sm text-white/70 placeholder:text-white/25 focus:outline-none min-w-24 flex-1"
+              className={cn(
+                "bg-transparent text-sm focus:outline-none min-w-24 flex-1",
+                theme === "light"
+                  ? "text-zinc-800 placeholder:text-zinc-400"
+                  : "text-white/70 placeholder:text-white/25"
+              )}
             />
           </div>
-          <p className="text-[11px] text-white/25">Pulsa Enter para añadir cada etiqueta</p>
+          <p
+            className={cn(
+              "text-[11px]",
+              theme === "light" ? "text-zinc-500" : "text-white/25"
+            )}
+          >
+            Pulsa Enter para añadir cada etiqueta
+          </p>
         </div>
 
         {/* Requires followup */}
-        <Card className="p-4">
+        <Card
+          className={cn(
+            "p-4",
+            theme === "light" && "border-zinc-200/90 bg-white/90 shadow-sm"
+          )}
+        >
           <label className="flex items-center gap-3 cursor-pointer group">
             <input
               type="checkbox"
               {...register("requiresFollowup")}
-              className="w-4 h-4 accent-[#ffeb66] shrink-0"
+              className="w-4 h-4 accent-[#d4bc1a] shrink-0"
             />
             <div>
-              <p className="text-sm font-medium text-white flex items-center gap-2">
-                <AlertTriangle className="w-3.5 h-3.5 text-yellow-400" />
+              <p
+                className={cn(
+                  "text-sm font-medium flex items-center gap-2",
+                  theme === "light" ? "text-zinc-900" : "text-white"
+                )}
+              >
+                <AlertTriangle
+                  className={cn(
+                    "w-3.5 h-3.5",
+                    theme === "light" ? "text-amber-600" : "text-yellow-400"
+                  )}
+                />
                 Requiere seguimiento
               </p>
-              <p className="text-xs text-white/40 mt-0.5">
+              <p
+                className={cn(
+                  "text-xs mt-0.5",
+                  theme === "light" ? "text-zinc-600" : "text-white/40"
+                )}
+              >
                 Esta entrada quedará marcada para atención posterior
               </p>
             </div>
@@ -587,13 +745,13 @@ export function NewLogEntryForm({
         {/* B38 — Share with departments (accent colors) */}
         {otherDepts.length > 0 && (
           <div className="flex flex-col gap-2">
-            <label className="text-xs font-medium text-white/60 uppercase tracking-wide">
+            <label className={formLabelClass(theme)}>
               Compartir con departamento(s)
             </label>
             <div className="flex flex-wrap gap-2">
               {otherDepts.map((dept) => {
                 const shared = sharedWith.find((s) => s.departmentId === dept.id);
-                const color  = dept.accentColor;
+                const color = accent(dept.accentColor);
                 return (
                   <button
                     key={dept.id}
@@ -601,14 +759,20 @@ export function NewLogEntryForm({
                     onClick={() => toggleShare(dept.id)}
                     style={
                       shared
-                        ? { borderColor: color + "55", backgroundColor: color + "18", color }
+                        ? {
+                            borderColor: withAlpha(dept.accentColor, "55"),
+                            backgroundColor: withAlpha(dept.accentColor, "18"),
+                            color,
+                          }
                         : undefined
                     }
                     className={cn(
                       "flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs transition-all duration-200 border",
                       shared
                         ? ""
-                        : "border-white/10 bg-white/4 text-white/50 hover:border-white/20 hover:text-white/70"
+                        : theme === "light"
+                          ? "border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300 hover:bg-zinc-50 shadow-sm"
+                          : "border-white/10 bg-white/4 text-white/50 hover:border-white/20 hover:text-white/70"
                     )}
                   >
                     <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: color }} />
@@ -645,7 +809,12 @@ export function NewLogEntryForm({
                 {editingEntry ? "Guardar cambios" : "Publicar entrada"}
               </Button>
               {!editingEntry && (
-                <span className="absolute -bottom-5 right-0 text-[10px] text-white/20 whitespace-nowrap">
+                <span
+                  className={cn(
+                    "absolute -bottom-5 right-0 text-[10px] whitespace-nowrap",
+                    theme === "light" ? "text-zinc-500" : "text-white/20"
+                  )}
+                >
                   Ctrl+Enter
                 </span>
               )}

@@ -33,6 +33,7 @@ import {
 import { format, isPast, differenceInDays } from "date-fns";
 import { es } from "date-fns/locale";
 import type { ProjectListRow } from "@/lib/types/project-list";
+import { useAccentForUi } from "@/lib/hooks/useAccentForUi";
 
 type ListColumn = ProjectListRow["kanbanColumns"][number];
 
@@ -85,12 +86,14 @@ export function ProjectList({
   );
   const [search, setSearch] = useState(initialFilters.search ?? "");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [overdueMode] = useState(initialFilters.overdue === "1");
 
   /* URL persistence */
   useEffect(() => {
     const sp = new URLSearchParams();
     if (statusFilter) sp.set("status", statusFilter);
     if (search.trim()) sp.set("search", search.trim());
+    if (overdueMode) sp.set("overdue", "1");
     const qs = sp.toString();
     const cur = typeof window !== "undefined" ? window.location.search.replace(/^\?/, "") : "";
     if (cur === qs) return;
@@ -100,7 +103,7 @@ export function ProjectList({
       });
     }, 280);
     return () => clearTimeout(t);
-  }, [statusFilter, search, router]);
+  }, [statusFilter, search, router, overdueMode]);
 
   /* Only show top-level projects in main list */
   const filtered = useMemo(() => {
@@ -114,6 +117,17 @@ export function ProjectList({
 
   return (
     <div className="p-6 max-w-6xl mx-auto space-y-5">
+      {overdueMode && (
+        <div
+          className="flex flex-wrap items-center gap-2 rounded-lg border border-amber-400/25 bg-amber-400/8 px-4 py-2.5 text-xs text-amber-100/95"
+          role="status"
+        >
+          <span>Solo proyectos con tareas vencidas (no completadas).</span>
+          <Link href="/proyectos" className="font-semibold text-[#ffeb66] hover:underline">
+            Ver todos los proyectos
+          </Link>
+        </div>
+      )}
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-semibold text-white">Proyectos</h1>
         <Link
@@ -243,6 +257,7 @@ export function ProjectList({
 /* ── Grid card ───────────────────────────────────────────────────────────── */
 
 function ProjectCard({ project, departmentId }: { project: ProjectListRow; departmentId: string }) {
+  const { accent } = useAccentForUi();
   const totalTasks = project.kanbanColumns.reduce(
     (acc: number, col: ListColumn) => acc + col.tasks.length,
     0
@@ -331,7 +346,7 @@ function ProjectCard({ project, departmentId }: { project: ProjectListRow; depar
         {/* Footer */}
         <div className="flex items-center justify-between pt-2 border-t border-white/6">
           <div className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: project.department.accentColor }} />
+            <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: accent(project.department.accentColor) }} />
             <span className="text-[10px] text-white/35">{project.department.name}</span>
           </div>
           <div className="flex items-center gap-2">
@@ -347,6 +362,7 @@ function ProjectCard({ project, departmentId }: { project: ProjectListRow; depar
 /* ── List row ────────────────────────────────────────────────────────────── */
 
 function ProjectRow({ project, departmentId }: { project: ProjectListRow; departmentId: string }) {
+  const { accent } = useAccentForUi();
   const totalTasks = project.kanbanColumns.reduce(
     (acc: number, col: ListColumn) => acc + col.tasks.length,
     0
@@ -360,7 +376,7 @@ function ProjectRow({ project, departmentId }: { project: ProjectListRow; depart
     <Link href={`/proyectos/${project.id}`}>
       <Card hover className="flex items-center gap-4 hover:border-white/14 py-3">
         {/* Color dot */}
-        <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: project.department.accentColor }} />
+        <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: accent(project.department.accentColor) }} />
 
         {/* Name + badges */}
         <div className="flex-1 min-w-0">

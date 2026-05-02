@@ -1,13 +1,16 @@
 "use client";
 
-import { AlertTriangle } from "lucide-react";
+import type { ReactNode } from "react";
+import { AlertTriangle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 
 interface ConfirmModalProps {
   title: string;
-  message: string;
+  message: ReactNode;
   confirmLabel?: string;
   cancelLabel?: string;
+  /** Texto del botón de confirmación mientras `loading` */
+  confirmLoadingLabel?: string;
   variant?: "danger" | "warning";
   loading?: boolean;
   onConfirm: () => void;
@@ -19,6 +22,7 @@ export function ConfirmModal({
   message,
   confirmLabel = "Confirmar",
   cancelLabel = "Cancelar",
+  confirmLoadingLabel = "Procesando…",
   variant = "danger",
   loading = false,
   onConfirm,
@@ -32,10 +36,14 @@ export function ConfirmModal({
 
   return (
     <div data-app-confirm-modal>
-      <div className="fixed inset-0 z-50 modal-backdrop" onClick={onCancel} />
+      <div
+        className="confirm-modal-scrim fixed inset-0 z-50 bg-[#020308]/85"
+        onClick={onCancel}
+        aria-hidden
+      />
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
         <div
-          className="glass-3 rounded-2xl p-6 w-full max-w-sm shadow-2xl pointer-events-auto animate-in fade-in zoom-in-95 duration-200"
+          className="confirm-modal-card rounded-2xl border border-white/14 bg-[#0a0f1e] p-6 w-full max-w-sm shadow-2xl pointer-events-auto animate-in fade-in zoom-in-95 duration-200"
           onClick={(e) => e.stopPropagation()}
         >
           <div className="flex flex-col items-center text-center gap-4">
@@ -44,7 +52,7 @@ export function ConfirmModal({
             </div>
             <div className="space-y-1.5">
               <h3 className="text-base font-semibold text-white">{title}</h3>
-              <p className="text-sm text-white/50">{message}</p>
+              <div className="text-sm text-white/50 text-left">{message}</div>
             </div>
             <div className="flex gap-3 w-full mt-1">
               <Button
@@ -60,10 +68,18 @@ export function ConfirmModal({
               <button
                 type="button"
                 disabled={loading}
+                aria-busy={loading}
                 onClick={onConfirm}
                 className={`flex-1 flex items-center justify-center gap-2 h-8 px-3 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 ${btnClass}`}
               >
-                {loading ? "Eliminando…" : confirmLabel}
+                {loading ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 shrink-0 animate-spin" aria-hidden />
+                    {confirmLoadingLabel}
+                  </>
+                ) : (
+                  confirmLabel
+                )}
               </button>
             </div>
           </div>

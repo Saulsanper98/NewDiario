@@ -27,6 +27,22 @@
   --shell-chrome-b: 8, 12, 24;
   --shell-canvas-top: #060912;
   --shell-canvas-bottom: #04070f;
+  /* Altura del header de app (h-16) — alinear sticky toolbars */
+  --header-h: 4rem;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --shadow-elevated: 0 12px 48px rgba(0, 0, 0, 0.42);
+  --transition-ui: 180ms ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bg-orb,
+  .bg-orb-1,
+  .bg-orb-2,
+  .bg-orb-3 {
+    animation: none !important;
+  }
 }
 
 /* ── Background animated orbs ─────────────────────────────────────────────── */
@@ -137,6 +153,25 @@ body {
   box-shadow:
     var(--glass-edge),
     0 8px 40px rgba(0, 0, 0, 0.45);
+}
+
+/* Bitácora — barra de filtros sticky: capa base casi opaca para que el scroll no “mancha” el texto */
+.glass-opaque-bitacora {
+  isolation: isolate;
+  position: relative;
+  background:
+    linear-gradient(
+      145deg,
+      rgba(255, 255, 255, 0.055) 0%,
+      rgba(255, 255, 255, 0.02) 100%
+    ),
+    linear-gradient(180deg, rgba(8, 13, 24, 0.97) 0%, rgba(6, 10, 20, 0.985) 100%);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    0 6px 28px rgba(0, 0, 0, 0.42);
 }
 
 /*
@@ -289,6 +324,22 @@ select option {
   outline-offset: 2px;
 }
 
+/* Menú de búsqueda (cmdk): el input ya lleva borde vía contenedor; sin esto outline global + borde = doble amarillo */
+#cmd-palette-panel [cmdk-input]:focus,
+#cmd-palette-panel [cmdk-input]:focus-visible,
+#cmd-palette-panel input[role="combobox"]:focus,
+#cmd-palette-panel input[role="combobox"]:focus-visible {
+  outline: none;
+  outline-offset: 0;
+}
+
+/* Anillo de foco legible sobre fondos amarillos (CTA primario) */
+.focus-ring-on-accent:focus-visible {
+  outline: 2px solid #0a0f1e;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 3px #ffeb66;
+}
+
 /* Selection */
 ::selection {
   background: rgba(255, 235, 102, 0.25);
@@ -344,7 +395,7 @@ select option {
   min-height: 200px;
 }
 
-.ProseMirror p.is-editor-empty:first-child::before {
+html:not([data-theme="light"]) .ProseMirror p.is-editor-empty:first-child::before {
   color: rgba(240, 244, 255, 0.3);
   content: attr(data-placeholder);
   float: left;
@@ -358,7 +409,7 @@ select option {
 }
 
 /* Blockquote */
-.ProseMirror blockquote {
+html:not([data-theme="light"]) .ProseMirror blockquote {
   border-left: 3px solid rgba(255, 235, 102, 0.4);
   padding-left: 1rem;
   margin-left: 0;
@@ -367,7 +418,7 @@ select option {
 }
 
 /* Inline code */
-.ProseMirror code {
+html:not([data-theme="light"]) .ProseMirror code {
   background: rgba(255, 255, 255, 0.08);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 4px;
@@ -378,14 +429,14 @@ select option {
 }
 
 /* Code block */
-.ProseMirror pre {
+html:not([data-theme="light"]) .ProseMirror pre {
   background: rgba(6, 10, 20, 0.7);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 8px;
   padding: 1rem;
   overflow-x: auto;
 }
-.ProseMirror pre code {
+html:not([data-theme="light"]) .ProseMirror pre code {
   background: transparent;
   border: none;
   padding: 0;
@@ -395,7 +446,7 @@ select option {
 }
 
 /* Highlight */
-.ProseMirror mark {
+html:not([data-theme="light"]) .ProseMirror mark {
   background: rgba(255, 235, 102, 0.25);
   color: #ffeb66;
   border-radius: 2px;
@@ -469,8 +520,8 @@ select option {
   height: 14px;
   cursor: pointer;
 }
-.ProseMirror ul[data-type="taskList"] li[data-checked="true"] > div,
-.prose ul[data-type="taskList"] li[data-checked="true"] > div {
+html:not([data-theme="light"]) .ProseMirror ul[data-type="taskList"] li[data-checked="true"] > div,
+html:not([data-theme="light"]) .prose ul[data-type="taskList"] li[data-checked="true"] > div {
   color: rgba(240, 244, 255, 0.4);
   text-decoration: line-through;
 }
@@ -490,35 +541,118 @@ select option {
 }
 
 /* Strikethrough */
-.ProseMirror s {
+html:not([data-theme="light"]) .ProseMirror s {
   color: rgba(240, 244, 255, 0.4);
 }
 
-/* Headings */
-.ProseMirror h2 { font-size: 1.2em; font-weight: 700; margin-top: 1rem; margin-bottom: 0.4rem; color: #f0f4ff; }
-.ProseMirror h3 { font-size: 1.05em; font-weight: 600; margin-top: 0.8rem; margin-bottom: 0.3rem; color: #f0f4ff; }
-.ProseMirror h4 { font-size: 0.95em; font-weight: 600; margin-top: 0.6rem; margin-bottom: 0.3rem; color: rgba(240,244,255,0.85); }
+/* Headings (oscuro: en claro deja actuar prose-zinc / tipografía) */
+html:not([data-theme="light"]) .ProseMirror h2 { font-size: 1.2em; font-weight: 700; margin-top: 1rem; margin-bottom: 0.4rem; color: #f0f4ff; }
+html:not([data-theme="light"]) .ProseMirror h3 { font-size: 1.05em; font-weight: 600; margin-top: 0.8rem; margin-bottom: 0.3rem; color: #f0f4ff; }
+html:not([data-theme="light"]) .ProseMirror h4 { font-size: 0.95em; font-weight: 600; margin-top: 0.6rem; margin-bottom: 0.3rem; color: rgba(240,244,255,0.85); }
 
 /* Table */
 .ProseMirror table {
   border-collapse: collapse;
   width: 100%;
 }
-.ProseMirror td,
-.ProseMirror th {
+html:not([data-theme="light"]) .ProseMirror td,
+html:not([data-theme="light"]) .ProseMirror th {
   border: 1px solid rgba(255, 255, 255, 0.12);
   padding: 6px 12px;
 }
-.ProseMirror th {
+html:not([data-theme="light"]) .ProseMirror th {
   background: rgba(255, 255, 255, 0.05);
   font-weight: 600;
 }
 
 /* Horizontal rule */
-.ProseMirror hr {
+html:not([data-theme="light"]) .ProseMirror hr {
   border: none;
   border-top: 1px solid rgba(255, 255, 255, 0.1);
   margin: 1rem 0;
+}
+
+/* Menú @menciones (TipTap suggestion DOM) — tamaño compacto, sin depender de JIT en .ts */
+.rich-editor-mention-menu {
+  box-sizing: border-box;
+  width: max-content;
+  max-width: min(320px, calc(100vw - 16px));
+  min-width: 220px;
+  max-height: min(280px, 42vh);
+  overflow-x: hidden;
+  overflow-y: auto;
+  border-radius: 10px;
+  padding: 4px 0;
+  box-shadow:
+    0 10px 40px rgba(0, 0, 0, 0.28),
+    0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+.rich-editor-mention-menu--dark {
+  background: #0f1628;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #f4f4f5;
+}
+.rich-editor-mention-menu--light {
+  background: #ffffff;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  color: #18181b;
+  box-shadow:
+    0 10px 36px rgba(15, 23, 42, 0.12),
+    0 0 0 1px rgba(15, 23, 42, 0.06);
+}
+.rich-editor-mention-empty {
+  padding: 8px 12px;
+  font-size: 12px;
+  opacity: 0.55;
+}
+.rich-editor-mention-name {
+  display: block;
+  font-weight: 600;
+  font-size: 13px;
+  line-height: 1.25;
+}
+.rich-editor-mention-meta-light {
+  display: block;
+  font-size: 10px;
+  margin-top: 2px;
+  color: #71717a;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 280px;
+}
+.rich-editor-mention-meta-dark {
+  display: block;
+  font-size: 10px;
+  margin-top: 2px;
+  color: rgba(244, 244, 245, 0.45);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 280px;
+}
+.rich-editor-mention-row {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 8px 12px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+  border-radius: 6px;
+}
+.rich-editor-mention-row--light:hover {
+  background: rgba(15, 23, 42, 0.06);
+}
+.rich-editor-mention-row--active-light {
+  background: rgba(15, 23, 42, 0.1);
+}
+.rich-editor-mention-row--dark:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+.rich-editor-mention-row--active-dark {
+  background: rgba(255, 255, 255, 0.1);
 }
 
 /* ── Progress bar (animated entry) ──────────────────────────────────────── */
@@ -847,6 +981,7 @@ textarea:focus ~ .input-focus-bar {
   animation: login-star-twinkle-a 7.2s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
   animation-delay: -2.4s;
 }
+
 .login-stars::after {
   background-image:
     radial-gradient(1px 1px at 6% 18%, rgba(255,255,255,0.5) 0%, transparent 100%),
@@ -1044,14 +1179,19 @@ textarea:focus ~ .input-focus-bar {
   filter: blur(22px);
   opacity: 0.38;
 }
+
+/* Silueta: suavizar AA gris sin aplastar tonos (contrast alto + fondo negro tapaba el cielo) */
+.login-roque-figure {
+  filter: contrast(1.1);
+}
 /* Suelo del macizo (anotación roja): mismo #010101 que la silueta */
 .login-macizo-foot {
   background: #010101;
 }
 
-/* Olas: franja fina, por encima del Roque; máscara fuerte arriba para no invadir el cielo */
+/* Olas: detrás del Roque (z menor); si quedan por encima, velan la silueta en gris */
 .login-ocean-horizon {
-  z-index: 5;
+  z-index: 1;
   height: 4.25rem;
   -webkit-mask-image: linear-gradient(
     to top,
@@ -1214,6 +1354,14 @@ textarea:focus ~ .input-focus-bar {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .card-slide-in {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+  .urgent-card-pulse {
+    animation: none !important;
+  }
   .bg-orb-1,
   .bg-orb-2,
   .bg-orb-3 {
@@ -1298,4 +1446,125 @@ textarea:focus ~ .input-focus-bar {
   left: 1rem;
   outline: 2px solid #fff;
   outline-offset: 2px;
+}
+
+#main-content:focus {
+  outline: none;
+}
+
+/* Utilidad lector de pantalla (si no está en Tailwind) */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* FAB / botones fijos: respetar safe area en móviles */
+.safe-fab-br {
+  bottom: max(1.5rem, env(safe-area-inset-bottom, 0px));
+  right: max(1.5rem, env(safe-area-inset-right, 0px));
+}
+
+/* FAB esquina inferior izquierda (p. ej. volver arriba — no solapa «Nueva entrada») */
+.safe-fab-bl {
+  bottom: max(1.5rem, env(safe-area-inset-bottom, 0px));
+  left: max(1.5rem, env(safe-area-inset-left, 0px));
+}
+
+/* Indicador sutil de scroll horizontal (Kanban) */
+.kanban-scroll-hint {
+  position: relative;
+}
+.kanban-scroll-hint::after {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 100%;
+  max-height: 100%;
+  pointer-events: none;
+  background: linear-gradient(
+    90deg,
+    rgba(6, 9, 20, 0.55) 0%,
+    transparent 6%,
+    transparent 94%,
+    rgba(6, 9, 20, 0.55) 100%
+  );
+  opacity: 0.65;
+}
+@media (min-width: 1024px) {
+  .kanban-scroll-hint::after {
+    opacity: 0.35;
+  }
+}
+
+/* ── UX: mapa z-index y bordes (convención; valores numéricos en comentarios) ─
+   sidebar 20 · header/fab 30 · dropdown 50 · modal 50 · paleta 400 · toast 500 */
+:root {
+  --z-sidebar: 20;
+  --z-header: 30;
+  --z-fab: 30;
+  --z-dropdown: 50;
+  --z-modal: 50;
+  --z-palette: 400;
+  --z-toast: 500;
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-muted: rgba(255, 255, 255, 0.1);
+  --border-strong: rgba(255, 255, 255, 0.14);
+}
+
+/* Ancho óptimo de lectura para HTML de notas (no afecta dashboards) */
+.prose-read-width {
+  max-width: 70ch;
+}
+
+/* Enlaces y targets grandes: foco visible coherente */
+.focus-ring-inset:focus-visible {
+  outline: 2px solid rgba(255, 235, 102, 0.85);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-in {
+    animation-duration: 0.01ms !important;
+  }
+}
+
+/* ── Impresión / PDF (navegador: Ctrl+P → Guardar como PDF) ───────────────── */
+@media print {
+  @page {
+    margin: 12mm;
+  }
+  html {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .bg-orb,
+  .bg-orb-1,
+  .bg-orb-2,
+  .bg-orb-3 {
+    display: none !important;
+  }
+  .skip-to-main {
+    display: none !important;
+  }
+  .cc-hot-toaster {
+    display: none !important;
+  }
+  .app-dashboard-root {
+    display: block !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+  #main-content {
+    overflow: visible !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+  }
 }

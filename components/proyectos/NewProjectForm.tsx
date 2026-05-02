@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/Input";
 import { Card } from "@/components/ui/Card";
 import { Avatar } from "@/components/ui/Avatar";
 import { PRIORITY_LABELS } from "@/lib/utils";
+import { useAccentForUi } from "@/lib/hooks/useAccentForUi";
 
 const schema = z.object({
   name: z.string().min(2, "Mínimo 2 caracteres").max(200),
@@ -47,6 +48,7 @@ export function NewProjectForm({
   parentId,
   parentName,
 }: NewProjectFormProps) {
+  const { accent } = useAccentForUi();
   const router = useRouter();
   const [extraMemberIds, setExtraMemberIds] = useState<Set<string>>(new Set());
 
@@ -126,7 +128,7 @@ export function NewProjectForm({
           <p className="text-sm text-white/40 mt-1 flex items-center gap-2">
             <span
               className="w-2 h-2 rounded-full shrink-0"
-              style={{ backgroundColor: departmentAccent }}
+              style={{ backgroundColor: accent(departmentAccent) }}
             />
             Departamento: <span className="text-white/60">{departmentName}</span>
           </p>

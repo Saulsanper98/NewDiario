@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import toast from "react-hot-toast";
 import { Calendar, ChevronUp, ChevronDown, Minus } from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
 import { Badge } from "@/components/ui/Badge";
@@ -14,6 +16,9 @@ type KanbanColumnShape = ProjectDetail["kanbanColumns"][number];
 
 type TaskWithColumn = ProjectKanbanTask & { columnName: string };
 
+type Priority = "LOW" | "MEDIUM" | "HIGH";
+const PRIORITY_CYCLE: Priority[] = ["LOW", "MEDIUM", "HIGH"];
+
 interface TaskListViewProps {
   columns: KanbanColumnShape[];
 }
@@ -21,8 +26,18 @@ interface TaskListViewProps {
 type SortKey = "title" | "priority" | "dueDate" | "assignee";
 
 export function TaskListView({ columns }: TaskListViewProps) {
+  const router = useRouter();
   const [sortKey, setSortKey] = useState<SortKey>("priority");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+  const [priorities, setPriorities] = useState<Record<string, Priority>>(() => {
+    const m: Record<string, Priority> = {};
+    for (const col of columns) {
+      for (const t of col.tasks) {
+        m[t.id] = t.priority as Priority;
+      }
+    }
+    return m;
+  });
 
   const allTasks: TaskWithColumn[] = columns.flatMap((col) =>
     col.tasks.map((t) => ({ ...t, columnName: col.name }))
@@ -38,6 +53,8 @@ export function TaskListView({ columns }: TaskListViewProps) {
   }
 
   const sorted = [...allTasks].sort((a, b) => {
+    const pa = priorities[a.id] ?? (a.priority as Priority);
+    const pb = priorities[b.id] ?? (b.priority as Priority);
     let cmp = 0;
     switch (sortKey) {
       case "title":
@@ -45,8 +62,7 @@ export function TaskListView({ columns }: TaskListViewProps) {
         break;
       case "priority": {
         const order = { HIGH: 0, MEDIUM: 1, LOW: 2 };
-        cmp = (order[a.priority as keyof typeof order] ?? 1) -
-              (order[b.priority as keyof typeof order] ?? 1);
+        cmp = (order[pa] ?? 1) - (order[pb] ?? 1);
         break;
       }
       case "dueDate":
@@ -60,6 +76,28 @@ export function TaskListView({ columns }: TaskListViewProps) {
     }
     return sortDir === "asc" ? cmp : -cmp;
   });
+
+  async function cycleTaskPriority(taskId: string, e: React.MouseEvent) {
+    e.stopPropagation();
+    const current = priorities[taskId] ?? "MEDIUM";
+    const idx = PRIORITY_CYCLE.indexOf(current);
+    const next = PRIORITY_CYCLE[(idx + 1) % PRIORITY_CYCLE.length];
+    const prev = current;
+    setPriorities((p) => ({ ...p, [taskId]: next }));
+    try {
+      const res = await fetch(`/api/tasks/${taskId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ priority: next }),
+      });
+      if (!res.ok) throw new Error();
+      toast.success(`Prioridad: ${PRIORITY_LABELS[next]}`);
+      router.refresh();
+    } catch {
+      setPriorities((p) => ({ ...p, [taskId]: prev }));
+      toast.error("No se pudo cambiar la prioridad");
+    }
+  }
 
   function SortIcon({ field }: { field: SortKey }) {
     if (sortKey !== field) return <Minus className="w-3 h-3 text-white/20" />;
@@ -103,6 +141,7 @@ export function TaskListView({ columns }: TaskListViewProps) {
           <tbody>
             {sorted.map((task) => {
               const isOverdue = task.dueDate && isPast(new Date(task.dueDate));
+              const pri = priorities[task.id] ?? (task.priority as Priority);
               return (
                 <tr
                   key={task.id}
@@ -112,9 +151,9 @@ export function TaskListView({ columns }: TaskListViewProps) {
                     <div className="flex items-center gap-2">
                       <div
                         className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                          task.priority === "HIGH"
+                          pri === "HIGH"
                             ? "bg-red-400"
-                            : task.priority === "MEDIUM"
+                            : pri === "MEDIUM"
                             ? "bg-yellow-400"
                             : "bg-green-400"
                         }`}
@@ -142,9 +181,16 @@ export function TaskListView({ columns }: TaskListViewProps) {
                     )}
                   </td>
                   <td className="px-4 py-3">
-                    <Badge className={getPriorityColor(task.priority)} size="sm">
-                      {PRIORITY_LABELS[task.priority as keyof typeof PRIORITY_LABELS]}
-                    </Badge>
+                    <button
+                      type="button"
+                      title="Clic para cambiar prioridad (igual que en el panel de tarea)"
+                      onClick={(e) => void cycleTaskPriority(task.id, e)}
+                      className="cursor-pointer rounded-md outline-none transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-[#ffeb66] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a0f1e]"
+                    >
+                      <Badge className={getPriorityColor(pri)} size="sm">
+                        {PRIORITY_LABELS[pri]}
+                      </Badge>
+                    </button>
                   </td>
                   <td className="px-4 py-3">
                     {task.dueDate ? (

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { useFocusTrap } from "@/lib/hooks/useFocusTrap";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -32,6 +33,9 @@ export function Modal({
   className,
 }: ModalProps) {
   const overlayRef = useRef<HTMLDivElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
+
+  useFocusTrap(open, dialogRef);
 
   useEffect(() => {
     if (!open) return;
@@ -58,17 +62,18 @@ export function Modal({
     >
       <div className="fixed inset-0 modal-backdrop" />
       <div
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby={title ? "modal-title" : undefined}
         className={cn(
-          "glass glass-3 relative w-full rounded-2xl p-6 animate-in fade-in zoom-in-95 duration-200",
+          "app-modal-dialog relative flex max-h-[min(90vh,calc(100dvh-2rem))] w-full flex-col rounded-2xl border border-white/12 bg-[#0a0f1e] shadow-2xl animate-in fade-in zoom-in-95 duration-200",
           sizes[size],
           className
         )}
       >
         {(title || description) && (
-          <div className="mb-5 pr-8">
+          <div className="shrink-0 border-b border-white/8 px-6 pt-6 pb-4 pr-14">
             {title && (
               <h2 id="modal-title" className="text-base font-semibold text-white">{title}</h2>
             )}
@@ -81,11 +86,11 @@ export function Modal({
           type="button"
           onClick={onClose}
           aria-label="Cerrar"
-          className="absolute top-4 right-4 p-1.5 rounded-lg text-white/40 hover:text-white hover:bg-white/8 transition-all duration-200"
+          className="absolute top-4 right-4 z-[1] p-1.5 rounded-lg text-white/40 hover:text-white hover:bg-white/8 transition-all duration-200"
         >
           <X className="w-4 h-4" />
         </button>
-        <div className="overflow-y-auto max-h-[calc(100vh-8rem)]">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 py-5">
           {children}
         </div>
       </div>

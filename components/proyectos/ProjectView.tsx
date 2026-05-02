@@ -2,9 +2,11 @@
 
 import { useState, useRef, useEffect, forwardRef } from "react";
 import { createPortal } from "react-dom";
+import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import {
   Kanban, List, GitGraph, Activity, FolderTree, ArrowRight,
-  TrendingUp, AlertTriangle, Clock, Pencil, Check, X,
+  TrendingUp, AlertTriangle, Clock, Pencil, Check, X, Trash2,
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
@@ -23,7 +25,10 @@ import {
 import { format, isPast, differenceInDays } from "date-fns";
 import { es } from "date-fns/locale";
 import toast from "react-hot-toast";
+import { ConfirmModal } from "@/components/ui/ConfirmModal";
+import type { SessionUser } from "@/lib/auth/types";
 import type { ProjectDetail } from "@/lib/types/project-detail";
+import { useAccentForUi } from "@/lib/hooks/useAccentForUi";
 
 type Tab = "kanban" | "list" | "timeline" | "activity" | "subprojects";
 type ProjectMemberRow = ProjectDetail["members"][number];
@@ -45,6 +50,17 @@ const STATUS_OPTIONS = Object.entries(STATUS_LABELS) as [keyof typeof STATUS_LAB
 const PRIORITY_OPTIONS = Object.entries(PRIORITY_LABELS) as [keyof typeof PRIORITY_LABELS, string][];
 
 export function ProjectView({ project, allUsers }: ProjectViewProps) {
+  const { accent } = useAccentForUi();
+  const router = useRouter();
+  const { data: session } = useSession();
+  const sessionUser = session?.user as SessionUser | undefined;
+
+  const canDeleteProject =
+    !!sessionUser &&
+    (sessionUser.role === "SUPERADMIN" ||
+      sessionUser.role === "ADMIN" ||
+      sessionUser.departments.some((d) => d.id === project.departmentId));
+
   const [activeTab,    setActiveTab]    = useState<Tab>("kanban");
   const [status,       setStatus]       = useState(project.status);
   const [priority,     setPriority]     = useState(project.priority);
@@ -55,6 +71,8 @@ export function ProjectView({ project, allUsers }: ProjectViewProps) {
   const [editAnchor,   setEditAnchor]   = useState<{ top: number; left: number } | null>(null);
   const [saving,       setSaving]       = useState(false);
   const [savingName,   setSavingName]   = useState(false);
+  const [deleteProjectOpen, setDeleteProjectOpen] = useState(false);
+  const [deletingProject, setDeletingProject] = useState(false);
   const nameInputRef = useRef<HTMLInputElement>(null);
   const editButtonRef = useRef<HTMLButtonElement>(null);
   const editPopoverRef = useRef<HTMLDivElement>(null);
@@ -138,6 +156,22 @@ export function ProjectView({ project, allUsers }: ProjectViewProps) {
     }
   }
 
+  async function confirmDeleteProject() {
+    setDeletingProject(true);
+    try {
+      const res = await fetch(`/api/projects/${project.id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error();
+      toast.success("Proyecto eliminado");
+      setDeleteProjectOpen(false);
+      router.push("/proyectos");
+      router.refresh();
+    } catch {
+      toast.error("No se pudo eliminar el proyecto");
+    } finally {
+      setDeletingProject(false);
+    }
+  }
+
   const totalTasks    = project.kanbanColumns.reduce((acc, col) => acc + col.tasks.length, 0);
   const completedTasks = getCompletedColumnCount(project.kanbanColumns);
   const progress       = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
@@ -148,6 +182,25 @@ export function ProjectView({ project, allUsers }: ProjectViewProps) {
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
+      {deleteProjectOpen && (
+        <ConfirmModal
+          title="Eliminar proyecto"
+          message={
+            <>
+              ¿Seguro que quieres eliminar{" "}
+              <strong className="text-white/90 font-semibold">«{projectName}»</strong>? El proyecto se
+              archivará y dejará de mostrarse en la lista principal.
+            </>
+          }
+          confirmLabel="Eliminar"
+          confirmLoadingLabel="Archivando…"
+          cancelLabel="Cancelar"
+          variant="danger"
+          loading={deletingProject}
+          onCancel={() => setDeleteProjectOpen(false)}
+          onConfirm={() => void confirmDeleteProject()}
+        />
+      )}
       {/* Project header: .project-view-toolbar quita el borde superior (ver globals.css). */}
       <div className="glass project-view-toolbar border-b border-white/8 px-6 py-4 shrink-0">
         <div className="flex items-start justify-between gap-4">
@@ -174,7 +227,7 @@ export function ProjectView({ project, allUsers }: ProjectViewProps) {
               </Badge>
               <span className="text-xs text-white/30 flex items-center gap-1">
                 <span className="w-2 h-2 rounded-full inline-block"
-                  style={{ backgroundColor: project.department.accentColor }} />
+                  style={{ backgroundColor: accent(project.department.accentColor) }} />
                 {project.department.name}
               </span>
 
@@ -197,7 +250,13 @@ export function ProjectView({ project, allUsers }: ProjectViewProps) {
                     status={status}
                     priority={priority}
                     saving={saving}
+                    showDelete={canDeleteProject}
                     onSave={saveEdit}
+                    onRequestDelete={() => {
+                      setEditOpen(false);
+                      setEditAnchor(null);
+                      setDeleteProjectOpen(true);
+                    }}
                     onClose={() => { setEditOpen(false); setEditAnchor(null); }}
                   />,
                   document.body
@@ -262,7 +321,7 @@ export function ProjectView({ project, allUsers }: ProjectViewProps) {
                   <div
                     className={cn(
                       "h-full rounded-full progress-bar",
-                      progress === 100 ? "bg-emerald-400" : "bg-gradient-to-r from-[#ffeb66] to-[#ffcf40]"
+                      progress === 100 ? "bg-emerald-400" : "lt-progress-bar-fill"
                     )}
                     style={{ width: `${progress}%` }}
                   />
@@ -274,14 +333,24 @@ export function ProjectView({ project, allUsers }: ProjectViewProps) {
               <p className="text-xs text-white/30">{completedTasks}/{totalTasks} tareas</p>
             </div>
 
-            {/* Members */}
-            <div className="flex -space-x-2">
-              {project.members.slice(0, 4).map((m: ProjectMemberRow) => (
-                <Avatar key={m.id} name={m.user.name} image={m.user.image} size="sm"
-                  className="border-2 border-[#0a0f1e]" />
-              ))}
+            {/* Members: avatares solapados; +N fuera del grupo para no tapar al último */}
+            <div className="flex items-center shrink-0 gap-1">
+              <div className="flex -space-x-2">
+                {project.members.slice(0, 4).map((m: ProjectMemberRow) => (
+                  <Avatar
+                    key={m.id}
+                    name={m.user.name}
+                    image={m.user.image}
+                    size="sm"
+                    className="border-2 border-[#0a0f1e] ring-0"
+                  />
+                ))}
+              </div>
               {project.members.length > 4 && (
-                <div className="w-8 h-8 rounded-full bg-white/10 border-2 border-[#0a0f1e] flex items-center justify-center text-xs text-white/60">
+                <div
+                  className="ml-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 border-[#0a0f1e] bg-white/10 text-xs text-white/70"
+                  title={`${project.members.length - 4} miembro(s) más`}
+                >
                   +{project.members.length - 4}
                 </div>
               )}
@@ -332,7 +401,7 @@ export function ProjectView({ project, allUsers }: ProjectViewProps) {
       </div>
 
       {/* Tab content */}
-      <div className="flex-1 overflow-hidden">
+      <div className="flex-1 min-h-0 overflow-hidden project-view-body">
         {activeTab === "kanban"      && <KanbanBoard project={project} allUsers={allUsers} />}
         {activeTab === "list"        && <TaskListView columns={project.kanbanColumns} />}
         {activeTab === "timeline"    && <ProjectTimeline columns={project.kanbanColumns} />}
@@ -350,12 +419,14 @@ interface EditPopoverProps {
   status: string;
   priority: string;
   saving: boolean;
+  showDelete?: boolean;
   onSave: (status: string, priority: string) => void;
+  onRequestDelete?: () => void;
   onClose: () => void;
 }
 
 const EditPopover = forwardRef<HTMLDivElement, EditPopoverProps>(function EditPopover(
-  { anchor, status, priority, saving, onSave, onClose },
+  { anchor, status, priority, saving, showDelete, onSave, onRequestDelete, onClose },
   ref
 ) {
   const [draftStatus,   setDraftStatus]   = useState(status);
@@ -364,12 +435,13 @@ const EditPopover = forwardRef<HTMLDivElement, EditPopoverProps>(function EditPo
   return (
     <div
       ref={ref}
-      className="glass-2 z-[70] rounded-xl p-4 space-y-3 shadow-xl w-52 border border-white/12 animate-in fade-in slide-in-from-top-1 duration-150"
+      className="app-dropdown-panel z-[70] w-56 animate-in fade-in slide-in-from-top-1 duration-150 rounded-xl border border-white/14 p-4 shadow-2xl backdrop-blur-xl"
       style={{
         position: "fixed",
         top: anchor.top,
         left: anchor.left,
-        /* No inline background: anulaba .glass-2 (gradiente + blur) y dejaba el popover “plano” */
+        background:
+          "linear-gradient(160deg, rgba(14, 18, 32, 0.98) 0%, rgba(10, 14, 26, 0.97) 100%)",
       }}
     >
       <p className="text-[10px] text-white/40 uppercase tracking-wider font-semibold">
@@ -399,23 +471,37 @@ const EditPopover = forwardRef<HTMLDivElement, EditPopoverProps>(function EditPo
           ))}
         </select>
       </div>
-      <div className="flex gap-2 pt-1">
-        <button
-          type="button"
-          disabled={saving}
-          onClick={() => onSave(draftStatus, draftPriority)}
-          className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-[#ffeb66]/15 text-[#ffeb66] border border-[#ffeb66]/25 hover:bg-[#ffeb66]/25 disabled:opacity-50 transition-colors"
-        >
-          <Check className="w-3 h-3" />
-          {saving ? "Guardando…" : "Guardar"}
-        </button>
-        <button
-          type="button"
-          onClick={onClose}
-          className="p-1.5 rounded-lg text-white/30 hover:text-white/70 hover:bg-white/6 transition-colors"
-        >
-          <X className="w-3.5 h-3.5" />
-        </button>
+      <div className="space-y-3 pt-1">
+        <div className="relative flex min-h-[2.25rem] items-center justify-center">
+          <button
+            type="button"
+            disabled={saving}
+            onClick={() => onSave(draftStatus, draftPriority)}
+            className="inline-flex items-center justify-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-medium bg-[#ffeb66]/15 text-[#ffeb66] border border-[#ffeb66]/25 hover:bg-[#ffeb66]/25 disabled:opacity-50 transition-colors"
+          >
+            <Check className="w-3 h-3" />
+            {saving ? "Guardando…" : "Guardar"}
+          </button>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Cerrar"
+            className="absolute right-0 top-1/2 -translate-y-1/2 p-1.5 rounded-lg text-white/30 hover:text-white/70 hover:bg-white/6 transition-colors"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+        {showDelete && onRequestDelete && (
+          <button
+            type="button"
+            disabled={saving}
+            onClick={onRequestDelete}
+            className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-red-500/25 bg-red-500/10 px-3 py-2 text-xs font-medium text-red-300/95 transition-colors hover:bg-red-500/20 disabled:opacity-50"
+          >
+            <Trash2 className="w-3 h-3" />
+            Eliminar proyecto…
+          </button>
+        )}
       </div>
     </div>
   );
@@ -427,6 +513,7 @@ EditPopover.displayName = "EditPopover";
 type SubprojectRow = ProjectDetail["subprojects"][number];
 
 function SubprojectsTab({ project }: { project: ProjectDetail }) {
+  const { accent } = useAccentForUi();
   if (project.subprojects.length === 0) {
     return (
       <div className="p-6 overflow-y-auto h-full">
@@ -519,7 +606,7 @@ function SubprojectsTab({ project }: { project: ProjectDetail }) {
 
                   <div className="flex items-center justify-between pt-1 border-t border-white/5">
                     <span className="text-[10px] text-white/30 flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: sub.department.accentColor }} />
+                      <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: accent(sub.department.accentColor) }} />
                       {sub.department.name}
                     </span>
                     {owner && <Avatar name={owner.user.name} image={owner.user.image} size="xs" />}

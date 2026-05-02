@@ -529,6 +529,7 @@ export const TaskDetailPanel = forwardRef<HTMLDivElement, TaskDetailPanelProps>(
           title="Eliminar tarea"
           message="¿Eliminar esta tarea? Esta acción no se puede deshacer."
           confirmLabel="Eliminar"
+          confirmLoadingLabel="Eliminando…"
           loading={deleting}
           onConfirm={() => void confirmDelete()}
           onCancel={() => setShowConfirm(false)}

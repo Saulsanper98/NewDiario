@@ -30,6 +30,7 @@ import { Avatar } from "@/components/ui/Avatar";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import {
   formatDate,
   formatRelative,
@@ -41,6 +42,9 @@ import {
 import type { SessionUser, UserDepartment } from "@/lib/auth/types";
 import { sanitizeHtml } from "@/lib/sanitize-html";
 import type { LogEntryDetailPage } from "@/lib/types/log-entry-detail";
+import { useAccentForUi } from "@/lib/hooks/useAccentForUi";
+import { useTheme } from "@/components/layout/ThemeProvider";
+import { bitacoraReadingProseClass } from "@/lib/bitacora-html-prose";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -79,14 +83,67 @@ type ReactionEmoji = (typeof REACTION_EMOJIS)[number];
 
 const CHANGES_LABELS: Record<string, string> = {
   title: "Título",
+  content: "Contenido",
   type: "Tipo",
   shift: "Turno",
   status: "Estado",
-  requiresFollowup: "Seguimiento",
-  tagCount: "Etiquetas",
-  shareCount: "Compartidos",
+  requiresFollowup: "Requiere seguimiento",
+  tags: "Etiquetas",
+  shares: "Compartidos",
+  /** Registros antiguos (solo número, sin texto antes/después) */
+  tagCount: "Etiquetas (nº, histórico)",
+  shareCount: "Compartidos (nº, histórico)",
   followupDone: "Seguimiento atendido",
 };
+
+const HISTORY_FIELD_ORDER = [
+  "title",
+  "content",
+  "type",
+  "shift",
+  "status",
+  "requiresFollowup",
+  "tags",
+  "shares",
+  "followupDone",
+  "tagCount",
+  "shareCount",
+] as const;
+
+type HistoryChangeRow =
+  | { key: string; mode: "delta"; before: string; after: string }
+  | { key: string; mode: "legacy"; value: string };
+
+function flattenHistoryChanges(raw: Record<string, unknown>): HistoryChangeRow[] {
+  const keys = Object.keys(raw).filter((k) => CHANGES_LABELS[k]);
+  keys.sort((a, b) => {
+    const ia = HISTORY_FIELD_ORDER.indexOf(a as (typeof HISTORY_FIELD_ORDER)[number]);
+    const ib = HISTORY_FIELD_ORDER.indexOf(b as (typeof HISTORY_FIELD_ORDER)[number]);
+    return (ia === -1 ? 999 : ia) - (ib === -1 ? 999 : ib);
+  });
+
+  const rows: HistoryChangeRow[] = [];
+  for (const key of keys) {
+    const v = raw[key];
+    if (
+      v !== null &&
+      typeof v === "object" &&
+      "before" in (v as object) &&
+      "after" in (v as object)
+    ) {
+      const o = v as { before: unknown; after: unknown };
+      rows.push({
+        key,
+        mode: "delta",
+        before: String(o.before),
+        after: String(o.after),
+      });
+    } else if (v !== undefined && v !== null && typeof v !== "object") {
+      rows.push({ key, mode: "legacy", value: String(v) });
+    }
+  }
+  return rows;
+}
 
 // ── Pure helpers ──────────────────────────────────────────────────────────────
 
@@ -185,6 +242,8 @@ export function LogEntryDetail({
   nextEntry,
   relatedEntries,
 }: LogEntryDetailProps) {
+  const { accent, withAlpha } = useAccentForUi();
+  const { theme } = useTheme();
   const router = useRouter();
 
   // ── Computed / memoized ───────────────────────────────────────────────────
@@ -207,6 +266,9 @@ export function LogEntryDetail({
         (d.role === "ADMIN" || d.role === "SUPERADMIN")
     );
 
+  const canDeleteEntry =
+    currentUser.role === "SUPERADMIN" || entry.authorId === currentUser.id;
+
   // ── State ─────────────────────────────────────────────────────────────────
   const [comment, setComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -221,6 +283,8 @@ export function LogEntryDetail({
   const [mentionQuery, setMentionQuery] = useState("");
   const [showMentionDrop, setShowMentionDrop] = useState(false);
   const [mentionStart, setMentionStart] = useState(-1);
+  const [deleteEntryOpen, setDeleteEntryOpen] = useState(false);
+  const [deletingEntry, setDeletingEntry] = useState(false);
 
   // ── Refs ──────────────────────────────────────────────────────────────────
   const commentInputRef = useRef<HTMLTextAreaElement>(null);
@@ -319,6 +383,22 @@ export function LogEntryDetail({
     setSubmitting(false);
   }
 
+  async function deleteEntry() {
+    setDeletingEntry(true);
+    try {
+      const res = await fetch(`/api/log-entries/${entry.id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error();
+      toast.success("Entrada eliminada");
+      setDeleteEntryOpen(false);
+      router.push("/bitacora");
+      router.refresh();
+    } catch {
+      toast.error("No se pudo eliminar la entrada");
+    } finally {
+      setDeletingEntry(false);
+    }
+  }
+
   async function deleteComment(commentId: string) {
     try {
       const res = await fetch(`/api/log-entries/${entry.id}/comments`, {
@@ -413,7 +493,7 @@ export function LogEntryDetail({
       <div
         className={cn(
           /* Misma escala que la migas (mb-4 sm:mb-5): arriba y abajo del bloque prev/sig */
-          "flex items-center justify-between gap-4 mb-4 sm:mb-5",
+          "flex items-center justify-between gap-4 mb-4 sm:mb-5 print:hidden",
           extraClass
         )}
       >
@@ -449,7 +529,7 @@ export function LogEntryDetail({
     <div className={
       fullscreen
         ? "fixed inset-0 z-50 overflow-y-auto p-4 sm:p-8 detail-fullscreen-bg"
-        : "p-6 md:px-8 md:pb-10 max-w-4xl mx-auto space-y-7 md:space-y-8"
+        : "p-6 md:px-8 md:pb-10 max-w-4xl mx-auto space-y-7 md:space-y-8 print:max-w-none"
     }>
       <div className={fullscreen ? "max-w-4xl mx-auto space-y-7 md:space-y-8" : "contents"}>
 
@@ -457,7 +537,7 @@ export function LogEntryDetail({
         {fullscreen && (
           <button
             onClick={() => setFullscreen(false)}
-            className="flex items-center gap-1.5 text-xs text-white/40 hover:text-white/70 transition-colors mb-2"
+            className="flex items-center gap-1.5 text-xs text-white/40 hover:text-white/70 transition-colors mb-2 print:hidden"
           >
             <Minimize2 className="w-3.5 h-3.5" />
             Salir de pantalla completa
@@ -468,7 +548,7 @@ export function LogEntryDetail({
         {/* B51: Breadcrumb — más aire respecto a la navegación prev/sig */}
         <nav
           aria-label="Ruta de navegación"
-          className="flex items-center gap-1.5 text-xs text-white/35 px-1 mb-4 sm:mb-5"
+          className="flex items-center gap-1.5 text-xs text-white/35 px-1 mb-4 sm:mb-5 print:hidden"
         >
           <button
             onClick={() => router.push("/bitacora")}
@@ -488,7 +568,7 @@ export function LogEntryDetail({
         {renderNav()}
 
         {/* ── Main header card ─────────────────────────────────────────────── */}
-        <div className="glass rounded-2xl p-6 sm:p-8">
+        <div className="glass rounded-2xl p-6 sm:p-8 print:break-inside-avoid">
           {/* Action row */}
           <div className="flex items-start justify-between gap-4 mb-6">
             <div className="flex-1 min-w-0">
@@ -541,7 +621,7 @@ export function LogEntryDetail({
             </div>
 
             {/* Header actions */}
-            <div className="flex items-center gap-2 shrink-0">
+            <div className="flex items-center gap-2 shrink-0 print:hidden">
               <button
                 onClick={() => setFullscreen((f) => !f)}
                 title={fullscreen ? "Salir de pantalla completa" : "Pantalla completa (F)"}
@@ -574,6 +654,17 @@ export function LogEntryDetail({
                   Editar
                 </Button>
               )}
+              {canDeleteEntry && (
+                <Button
+                  variant="danger"
+                  size="sm"
+                  onClick={() => setDeleteEntryOpen(true)}
+                  title="Eliminar esta entrada de la bitácora"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  Eliminar
+                </Button>
+              )}
             </div>
           </div>
 
@@ -604,7 +695,7 @@ export function LogEntryDetail({
               <span className="flex items-center gap-1.5 text-xs text-white/30">
                 <span
                   className="w-2 h-2 rounded-full shrink-0"
-                  style={{ backgroundColor: entry.department.accentColor }}
+                  style={{ backgroundColor: accent(entry.department.accentColor) }}
                 />
                 {entry.department.name}
               </span>
@@ -613,10 +704,11 @@ export function LogEntryDetail({
 
           {/* B54: Table of contents */}
           {toc.length >= 2 && (
-            <div className="mb-7 rounded-xl border border-white/8 bg-white/[0.025] overflow-hidden">
+            <div className="mb-7 rounded-xl border border-white/8 bg-white/[0.025] overflow-hidden print:hidden">
               <button
                 type="button"
                 onClick={() => setTocOpen((o) => !o)}
+                aria-expanded={tocOpen}
                 className="w-full flex items-center justify-between gap-2 px-4 py-3 text-sm text-white/50 hover:text-white/70 hover:bg-white/[0.03] transition-colors duration-150"
               >
                 <span className="flex items-center gap-2">
@@ -658,7 +750,11 @@ export function LogEntryDetail({
           {/* Content */}
           <div
             ref={contentRef}
-            className="prose prose-invert max-w-none text-sm text-white/75 leading-relaxed [&_p]:my-4 [&_li:not([data-type=taskItem])]:my-1.5 [&_ul]:my-4 [&_ol]:my-4 [&_blockquote]:my-5 [&_hr]:my-8 [&_h2]:mt-10 [&_h2]:mb-3 [&_h3]:mt-8 [&_h3]:mb-2.5 [&_h4]:mt-6 [&_h4]:mb-2 [&_ul[data-type=taskList]]:my-4"
+            data-bitacora-html-body
+            className={cn(
+              bitacoraReadingProseClass(theme),
+              "print:break-inside-avoid [&_p]:my-4 [&_li:not([data-type=taskItem])]:my-1.5 [&_ul]:my-4 [&_ol]:my-4 [&_blockquote]:my-5 [&_hr]:my-8 [&_h2]:mt-10 [&_h2]:mb-3 [&_h3]:mt-8 [&_h3]:mb-2.5 [&_h4]:mt-6 [&_h4]:mb-2 [&_ul[data-type=taskList]]:my-4 [&_a]:underline [&_a]:underline-offset-2"
+            )}
             dangerouslySetInnerHTML={{ __html: tocHtml }}
           />
 
@@ -672,9 +768,9 @@ export function LogEntryDetail({
                   key={share.id}
                   className="text-xs px-2 py-0.5 rounded-md border"
                   style={{
-                    borderColor: share.department.accentColor + "33",
-                    color: share.department.accentColor,
-                    backgroundColor: share.department.accentColor + "10",
+                    borderColor: withAlpha(share.department.accentColor, "33"),
+                    color: accent(share.department.accentColor),
+                    backgroundColor: withAlpha(share.department.accentColor, "10"),
                   }}
                 >
                   {share.department.name}
@@ -684,7 +780,7 @@ export function LogEntryDetail({
           )}
 
           {/* B58: Emoji reactions */}
-          <div className="mt-7 pt-6 border-t border-white/8">
+          <div className="mt-7 pt-6 border-t border-white/8 print:hidden">
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-xs text-white/35 mr-1">Reaccionar:</span>
               {REACTION_EMOJIS.map((emoji) => (
@@ -708,7 +804,7 @@ export function LogEntryDetail({
 
           {/* Followup action */}
           {entry.requiresFollowup && !entry.followupDone && canEdit && (
-            <div className="mt-7 pt-6 border-t border-white/8">
+            <div className="mt-7 pt-6 border-t border-white/8 print:hidden">
               <Button
                 variant="outline"
                 size="sm"
@@ -751,10 +847,11 @@ export function LogEntryDetail({
 
         {/* ── B55: Edit history (collapsible) ──────────────────────────────── */}
         {entry.editHistory.length > 0 && (
-          <Card className="p-5 sm:p-6">
+          <Card className="p-5 sm:p-6 print:hidden">
             <button
               type="button"
               onClick={() => setHistoryOpen((o) => !o)}
+              aria-expanded={historyOpen}
               className="w-full flex items-center justify-between gap-2 text-sm py-1 -mx-1 px-1 rounded-lg hover:bg-white/[0.04] transition-colors"
             >
               <span className="flex items-center gap-2 text-white/70 font-medium">
@@ -772,9 +869,7 @@ export function LogEntryDetail({
               <div className="mt-3 space-y-2.5">
                 {entry.editHistory.map((h) => {
                   const changes = parseChanges(h.changes);
-                  const changedKeys = Object.keys(changes).filter(
-                    (k) => CHANGES_LABELS[k]
-                  );
+                  const rows = flattenHistoryChanges(changes);
                   return (
                     <div
                       key={h.id}
@@ -789,23 +884,44 @@ export function LogEntryDetail({
                           {formatRelative(h.createdAt)}
                         </span>
                       </div>
-                      {changedKeys.length > 0 && (
-                        <div className="flex flex-wrap gap-1.5">
-                          {changedKeys.map((k) => (
-                            <span
-                              key={k}
-                              className="text-xs px-2 py-0.5 rounded bg-white/5 text-white/45 border border-white/8"
+                      {rows.length > 0 ? (
+                        <ul className="space-y-2.5">
+                          {rows.map((row) => (
+                            <li
+                              key={`${h.id}-${row.key}`}
+                              className="rounded-lg border border-white/[0.06] bg-black/20 px-2.5 py-2"
                             >
-                              {CHANGES_LABELS[k]}
-                              {changes[k] !== undefined &&
-                                typeof changes[k] !== "object" && (
-                                  <span className="ml-1 text-white/60">
-                                    → {String(changes[k])}
+                              <div className="text-[11px] font-semibold uppercase tracking-wide text-[#ffeb66]/85">
+                                {CHANGES_LABELS[row.key] ?? row.key}
+                              </div>
+                              {row.mode === "delta" ? (
+                                <div className="mt-1.5 space-y-1.5 text-xs leading-relaxed">
+                                  <div className="text-white/40">
+                                    <span className="text-white/35 font-medium">Antes: </span>
+                                    <span className="text-white/65 break-words">
+                                      {row.before}
+                                    </span>
+                                  </div>
+                                  <div className="text-white/40">
+                                    <span className="text-white/35 font-medium">Después: </span>
+                                    <span className="text-white/65 break-words">
+                                      {row.after}
+                                    </span>
+                                  </div>
+                                </div>
+                              ) : (
+                                <p className="mt-1 text-xs text-white/50 leading-relaxed break-words">
+                                  <span className="text-white/35">
+                                    Formato antiguo (solo valor tras la edición, sin “antes”):{" "}
                                   </span>
-                                )}
-                            </span>
+                                  {row.value}
+                                </p>
+                              )}
+                            </li>
                           ))}
-                        </div>
+                        </ul>
+                      ) : (
+                        <p className="text-xs text-white/35">Sin detalle de cambios.</p>
                       )}
                     </div>
                   );
@@ -817,7 +933,7 @@ export function LogEntryDetail({
 
         {/* ── B57: Related entries ─────────────────────────────────────────── */}
         {relatedEntries && relatedEntries.length > 0 && (
-          <Card className="p-5 sm:p-6">
+          <Card className="p-5 sm:p-6 print:hidden">
             <div className="flex flex-col gap-6">
               <div className="flex items-center gap-2">
                 <ExternalLink className="w-4 h-4 text-white/40" />
@@ -890,7 +1006,7 @@ export function LogEntryDetail({
                           {formatRelative(c.createdAt)}
                         </span>
                         {/* Hover actions */}
-                        <div className="ml-auto flex items-center gap-1 opacity-0 group-hover/comment:opacity-100 transition-opacity duration-150">
+                        <div className="ml-auto flex items-center gap-1 opacity-0 group-hover/comment:opacity-100 transition-opacity duration-150 print:hidden">
                           <button
                             type="button"
                             onClick={() => startReply(c.author.name)}
@@ -944,7 +1060,7 @@ export function LogEntryDetail({
 
           {/* B59: Active reply banner */}
           {replyTo && (
-            <div className="flex items-center gap-2 mb-2.5 px-3 py-2 rounded-lg bg-[#4a9eff]/[0.06] border border-[#4a9eff]/20 text-xs text-[#4a9eff]/70">
+            <div className="flex items-center gap-2 mb-2.5 px-3 py-2 rounded-lg bg-[#4a9eff]/[0.06] border border-[#4a9eff]/20 text-xs text-[#4a9eff]/70 print:hidden">
               <CornerDownLeft className="w-3.5 h-3.5 shrink-0" />
               Respondiendo a{" "}
               <strong className="font-semibold">{replyTo.name}</strong>
@@ -959,7 +1075,7 @@ export function LogEntryDetail({
           )}
 
           {/* Comment form */}
-          <form onSubmit={submitComment} className="flex gap-3">
+          <form onSubmit={submitComment} className="flex gap-3 print:hidden">
             <Avatar
               name={currentUser.name}
               image={currentUser.image}
@@ -1056,5 +1172,22 @@ export function LogEntryDetail({
     </div>
   );
 
-  return body;
+  return (
+    <>
+      {body}
+      {deleteEntryOpen && (
+        <ConfirmModal
+          title="Eliminar entrada"
+          message={`¿Eliminar «${entry.title}»? Dejará de ser visible en la bitácora.`}
+          confirmLabel="Eliminar"
+          confirmLoadingLabel="Eliminando…"
+          cancelLabel="Cancelar"
+          variant="danger"
+          loading={deletingEntry}
+          onCancel={() => setDeleteEntryOpen(false)}
+          onConfirm={() => void deleteEntry()}
+        />
+      )}
+    </>
+  );
 }

@@ -2,8 +2,10 @@ import type { Metadata } from "next";
 import { Sora } from "next/font/google";
 import { Toaster } from "react-hot-toast";
 import { SessionProvider } from "@/components/layout/SessionProvider";
+import { ThemeProvider } from "@/components/layout/ThemeProvider";
 import { defaultMetadata } from "@/lib/app-brand";
 import "./globals.css";
+import "./theme-light.css";
 
 const sora = Sora({
   subsets: ["latin"],
@@ -23,14 +25,24 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="es" className={`${sora.variable} h-full`}>
-      <body className="h-full bg-[#0a0f1e] font-sans antialiased">
+    <html lang="es" className={`${sora.variable} h-full`} suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var k='cc-ops-theme';var t=localStorage.getItem(k);if(t==='light')document.documentElement.setAttribute('data-theme','light');else document.documentElement.removeAttribute('data-theme');}catch(e){}})();`,
+          }}
+        />
+      </head>
+      <body className="h-full font-sans antialiased">
         {/* Animated background orbs — give glassmorphism something to blur */}
         <div className="bg-orb bg-orb-1" aria-hidden="true" />
         <div className="bg-orb bg-orb-2" aria-hidden="true" />
         <div className="bg-orb bg-orb-3" aria-hidden="true" />
-        <SessionProvider>{children}</SessionProvider>
+        <ThemeProvider>
+          <SessionProvider>{children}</SessionProvider>
+        </ThemeProvider>
         <Toaster
+          containerClassName="cc-hot-toaster"
           position="top-right"
           toastOptions={{
             className: "toast-glass",

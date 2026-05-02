@@ -3,6 +3,11 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma/client";
 import { z } from "zod";
 import type { SessionUser } from "@/lib/auth/types";
+import {
+  computeLogEntryEditDiff,
+  snapshotFromDbEntry,
+  snapshotFromPatchBody,
+} from "@/lib/log-entry-edit-diff";
 
 const followupOnlySchema = z.object({ followupDone: z.boolean() }).strict();
 
@@ -88,6 +93,10 @@ export async function PATCH(
 
   const entry = await prisma.logEntry.findUnique({
     where: { id, deletedAt: null },
+    include: {
+      tags: { select: { name: true } },
+      shares: { include: { department: { select: { id: true, name: true } } } },
+    },
   });
   if (!entry) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
@@ -111,13 +120,22 @@ export async function PATCH(
     if (!parsed.success) {
       return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
     }
-    await prisma.logEditHistory.create({
-      data: {
-        logEntryId: id,
-        editedById: user.id,
-        changes: JSON.stringify({ followupDone: parsed.data.followupDone }),
-      },
-    });
+    const prevFu = entry.followupDone;
+    const nextFu = parsed.data.followupDone;
+    if (prevFu !== nextFu) {
+      await prisma.logEditHistory.create({
+        data: {
+          logEntryId: id,
+          editedById: user.id,
+          changes: JSON.stringify({
+            followupDone: {
+              before: prevFu ? "Sí" : "No",
+              after: nextFu ? "Sí" : "No",
+            },
+          }),
+        },
+      });
+    }
     const updated = await prisma.logEntry.update({
       where: { id },
       data: { followupDone: parsed.data.followupDone },
@@ -132,21 +150,54 @@ export async function PATCH(
 
   const { title, content, type, shift, status, requiresFollowup, tags, shares } = parsed.data;
 
-  await prisma.logEditHistory.create({
-    data: {
-      logEntryId: id,
-      editedById: user.id,
-      changes: JSON.stringify({
-        title,
-        type,
-        shift,
-        status,
-        requiresFollowup,
-        tagCount: tags.length,
-        shareCount: shares.length,
-      }),
-    },
+  const departmentNames: Record<string, string> = {};
+  for (const s of entry.shares) {
+    departmentNames[s.departmentId] = s.department.name;
+  }
+  const missingDeptIds = shares
+    .map((s) => s.departmentId)
+    .filter((deptId) => departmentNames[deptId] === undefined);
+  if (missingDeptIds.length > 0) {
+    const extra = await prisma.department.findMany({
+      where: { id: { in: [...new Set(missingDeptIds)] } },
+      select: { id: true, name: true },
+    });
+    for (const d of extra) departmentNames[d.id] = d.name;
+  }
+
+  const prevSnap = snapshotFromDbEntry({
+    title: entry.title,
+    content: entry.content,
+    type: entry.type,
+    shift: entry.shift,
+    status: entry.status,
+    requiresFollowup: entry.requiresFollowup,
+    tags: entry.tags,
+    shares: entry.shares.map((s) => ({
+      departmentId: s.departmentId,
+      permission: s.permission,
+    })),
   });
+  const nextSnap = snapshotFromPatchBody({
+    title,
+    content,
+    type,
+    shift,
+    status,
+    requiresFollowup,
+    tags,
+    shares,
+  });
+  const diff = computeLogEntryEditDiff(prevSnap, nextSnap, departmentNames);
+  if (Object.keys(diff).length > 0) {
+    await prisma.logEditHistory.create({
+      data: {
+        logEntryId: id,
+        editedById: user.id,
+        changes: JSON.stringify(diff),
+      },
+    });
+  }
 
   await prisma.$transaction(async (tx) => {
     await tx.logTag.deleteMany({ where: { logEntryId: id } });

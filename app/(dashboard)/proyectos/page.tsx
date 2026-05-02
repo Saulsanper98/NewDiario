@@ -20,6 +20,8 @@ export default async function ProyectosPage({
   if (!deptId) redirect("/login");
 
   const params = await searchParams;
+  const overdueOnly = params.overdue === "1";
+  const now = new Date();
 
   const projects = await prisma.project.findMany({
     where: {
@@ -35,6 +37,17 @@ export default async function ProyectosPage({
           },
         },
       ],
+      ...(overdueOnly
+        ? {
+            tasks: {
+              some: {
+                deletedAt: null,
+                dueDate: { lt: now },
+                column: { name: { not: "Completado" } },
+              },
+            },
+          }
+        : {}),
     },
     include: projectListInclude,
     orderBy: { createdAt: "desc" },

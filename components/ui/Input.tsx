@@ -24,7 +24,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
             {label}
           </label>
         )}
-        <div className="relative">
+        <div className="relative overflow-hidden rounded-lg">
           {icon && (
             <div className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40">
               {icon}

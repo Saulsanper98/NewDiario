@@ -1,19 +1,75 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { Keyboard, X } from "lucide-react";
+import { Keyboard, X, Sparkles } from "lucide-react";
 import { TYPE_LABELS, SHIFT_LABELS, getTypeColor } from "@/lib/utils";
+import { getHelpShortcutSections } from "@/lib/keyboard-shortcuts-config";
+import { useFocusTrap } from "@/lib/hooks/useFocusTrap";
+
+const HINT_STORAGE = "cc-ops-hint-shortcuts-dismissed";
+
+function ShortcutDiscoveryChip() {
+  const pathname = usePathname();
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    if (pathname.startsWith("/login")) return;
+    try {
+      if (localStorage.getItem(HINT_STORAGE) === "1") return;
+    } catch {
+      /* ignore */
+    }
+    const t = window.setTimeout(() => setVisible(true), 1400);
+    return () => window.clearTimeout(t);
+  }, [pathname]);
+
+  if (!visible) return null;
+
+  return (
+    <div
+      className="pointer-events-auto fixed z-[90] max-w-[min(18rem,calc(100vw-2rem))] flex items-start gap-2 rounded-xl border border-white/12 bg-[#0d1428]/95 px-3 py-2.5 text-xs text-white/70 shadow-lg backdrop-blur-md left-[max(1rem,env(safe-area-inset-left,0px))] bottom-[max(1rem,env(safe-area-inset-bottom,0px))]"
+      role="status"
+    >
+      <Sparkles className="w-3.5 h-3.5 shrink-0 text-[#ffeb66]/80 mt-0.5" aria-hidden />
+      <p className="flex-1 leading-snug">
+        Pulsa <kbd className="rounded border border-white/15 bg-white/8 px-1 font-mono text-[10px]">?</kbd>{" "}
+        para ver atajos de teclado y leyenda.
+      </p>
+      <button
+        type="button"
+        className="shrink-0 rounded-md p-1 text-white/35 hover:bg-white/8 hover:text-white/80"
+        aria-label="Cerrar aviso"
+        onClick={() => {
+          try {
+            localStorage.setItem(HINT_STORAGE, "1");
+          } catch {
+            /* ignore */
+          }
+          setVisible(false);
+        }}
+      >
+        <X className="w-3.5 h-3.5" />
+      </button>
+    </div>
+  );
+}
 
 export function KeyboardShortcuts() {
   const router = useRouter();
   const pathname = usePathname();
   const [helpOpen, setHelpOpen] = useState(false);
+  const dialogRef = useRef<HTMLDivElement>(null);
+
+  useFocusTrap(helpOpen, dialogRef);
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       const tag = (e.target as HTMLElement)?.tagName?.toLowerCase();
-      const isEditing = tag === "input" || tag === "textarea" || tag === "select" ||
+      const isEditing =
+        tag === "input" ||
+        tag === "textarea" ||
+        tag === "select" ||
         (e.target as HTMLElement)?.isContentEditable;
 
       if (isEditing) return;
@@ -31,7 +87,6 @@ export function KeyboardShortcuts() {
           break;
         case "/":
           e.preventDefault();
-          /* Trigger CommandPalette — focus the search input if mounted */
           document.getElementById("cmd-palette-trigger")?.click();
           break;
         case "?":
@@ -47,9 +102,12 @@ export function KeyboardShortcuts() {
     return () => window.removeEventListener("keydown", onKey);
   }, [router, pathname]);
 
-  if (!helpOpen) return null;
+  const sections = getHelpShortcutSections(pathname);
 
   return (
+    <div className="print:hidden" data-keyboard-shortcuts-root>
+    <>
+    {helpOpen && (
     <div
       role="dialog"
       aria-modal="true"
@@ -59,32 +117,29 @@ export function KeyboardShortcuts() {
     >
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
       <div
+        ref={dialogRef}
         className="relative glass-4 rounded-2xl p-6 w-full max-w-md mx-4 border border-white/15 max-h-[85vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <h2 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
           <Keyboard className="w-4 h-4 text-[#ffeb66]" /> Atajos y leyenda
         </h2>
-        <div className="space-y-2">
-          {[
-            { key: "N", desc: "Nueva entrada / Nuevo proyecto (en sección activa)" },
-            { key: "/", desc: "Abrir búsqueda global" },
-            { key: "?", desc: "Mostrar / ocultar esta ayuda" },
-            { key: "Esc", desc: "Cerrar paneles / ayuda" },
-            ...(pathname.startsWith("/bitacora/dia")
-              ? ([
-                  {
-                    key: "← →",
-                    desc: "Día anterior / siguiente (vista por día)",
-                  },
-                ] as const)
-              : []),
-          ].map(({ key, desc }) => (
-            <div key={key} className="flex items-center gap-3">
-              <kbd className="px-2 py-0.5 rounded-md bg-white/8 border border-white/12 text-xs font-mono text-white/70 shrink-0 min-w-[2rem] text-center">
-                {key}
-              </kbd>
-              <span className="text-xs text-white/50">{desc}</span>
+        <div className="space-y-5">
+          {sections.map((section) => (
+            <div key={section.title} className="space-y-2">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-white/35">
+                {section.title}
+              </p>
+              <div className="space-y-2">
+                {section.rows.map((row, idx) => (
+                  <div key={`${section.title}-${idx}-${row.key}`} className="flex items-center gap-3">
+                    <kbd className="px-2 py-0.5 rounded-md bg-white/8 border border-white/12 text-xs font-mono text-white/70 shrink-0 min-w-[2rem] text-center">
+                      {row.key}
+                    </kbd>
+                    <span className="text-xs text-white/50">{row.desc}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           ))}
         </div>
@@ -123,6 +178,7 @@ export function KeyboardShortcuts() {
         </div>
 
         <button
+          type="button"
           onClick={() => setHelpOpen(false)}
           className="absolute top-3 right-3 p-1 rounded-md text-white/30 hover:text-white/70 transition-colors"
           aria-label="Cerrar ayuda"
@@ -130,6 +186,10 @@ export function KeyboardShortcuts() {
           <X className="w-3.5 h-3.5" />
         </button>
       </div>
+    </div>
+    )}
+    {!helpOpen && <ShortcutDiscoveryChip />}
+    </>
     </div>
   );
 }

@@ -1,14 +1,16 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
 import toast from "react-hot-toast";
 import { Bell, ChevronDown, Check, X, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { Avatar } from "@/components/ui/Avatar";
 import { CommandPalette } from "@/components/layout/CommandPalette";
+import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import type { SessionUser } from "@/lib/auth/types";
+import { useAccentForUi } from "@/lib/hooks/useAccentForUi";
 
 interface HeaderProps {
   user: SessionUser;
@@ -33,8 +35,18 @@ function isInternalLink(link: string): boolean {
   }
 }
 
+const ROUTE_FALLBACK_TITLE: Record<string, string> = {
+  "/dashboard": "Dashboard",
+  "/bitacora": "Bitácora",
+  "/proyectos": "Proyectos",
+  "/traspaso": "Traspaso",
+  "/configuracion": "Configuración",
+};
+
 export function Header({ user, breadcrumb }: HeaderProps) {
+  const { accent } = useAccentForUi();
   const router = useRouter();
+  const pathname = usePathname();
   const { update } = useSession();
   const [notifOpen, setNotifOpen] = useState(false);
   const [deptOpen, setDeptOpen] = useState(false);
@@ -137,28 +149,43 @@ export function Header({ user, breadcrumb }: HeaderProps) {
     }
   }
 
+  const crumbs = breadcrumb?.length ? breadcrumb : null;
+  const lastCrumb = crumbs?.length ? crumbs[crumbs.length - 1] : null;
+
   return (
-    <header className="h-16 app-top-header flex items-center gap-4 px-6 shrink-0">
-      {/* Breadcrumb */}
-      <div className="flex-1 flex items-center gap-2 min-w-0">
-        {breadcrumb?.map((item, i) => (
-          <span key={i} className="flex items-center gap-2">
-            {i > 0 && <span className="text-white/20">/</span>}
-            {item.href ? (
-              <Link
-                href={item.href}
-                className="text-sm text-white/50 hover:text-white transition-colors"
-              >
-                {item.label}
-              </Link>
-            ) : (
-              <span className="text-sm font-medium text-white">
-                {item.label}
-              </span>
-            )}
+    <header className="h-16 app-top-header flex items-center gap-4 px-6 shrink-0 print:hidden">
+      <nav className="flex-1 flex items-center gap-2 min-w-0" aria-label="Migas de pan">
+        {crumbs ? (
+          crumbs.map((item, i) => (
+            <span key={`${item.label}-${i}`} className="flex items-center gap-2 min-w-0">
+              {i > 0 && (
+                <span className="text-white/20 shrink-0" aria-hidden>
+                  /
+                </span>
+              )}
+              {item.href ? (
+                <Link
+                  href={item.href}
+                  className="text-sm text-white/50 hover:text-white transition-colors truncate"
+                >
+                  {item.label}
+                </Link>
+              ) : (
+                <span
+                  className="text-sm font-medium text-white truncate"
+                  aria-current={item === lastCrumb ? "page" : undefined}
+                >
+                  {item.label}
+                </span>
+              )}
+            </span>
+          ))
+        ) : (
+          <span className="text-sm font-medium text-white truncate">
+            {ROUTE_FALLBACK_TITLE[pathname] ?? "CC Ops"}
           </span>
-        ))}
-      </div>
+        )}
+      </nav>
 
       <CommandPalette activeDepartmentId={user.activeDepartmentId} />
 
@@ -175,9 +202,12 @@ export function Header({ user, breadcrumb }: HeaderProps) {
           >
             <span
               className="w-2 h-2 rounded-full shrink-0"
-              style={{ backgroundColor: activeDept?.accentColor ?? "#FFEB66" }}
+              style={{ backgroundColor: accent(activeDept?.accentColor) }}
             />
-            <span className="text-white/70 max-w-[100px] truncate">
+            <span
+              className="text-white/70 max-w-[120px] sm:max-w-[200px] truncate"
+              title={activeDept?.name ?? undefined}
+            >
               {activeDept?.name ?? "Seleccionar"}
             </span>
             <ChevronDown
@@ -186,7 +216,14 @@ export function Header({ user, breadcrumb }: HeaderProps) {
           </button>
 
           {deptOpen && (
-            <div className="top-full mt-2 right-0 glass-3 rounded-xl p-1.5 min-w-[180px] z-50 animate-in fade-in slide-in-from-top-2 duration-200 border border-white/12" style={{ position: "absolute" }}>
+            <div
+              className="app-dropdown-panel top-full mt-2 right-0 z-50 min-w-[180px] animate-in fade-in slide-in-from-top-2 duration-200 rounded-xl border border-white/14 p-1.5 shadow-xl backdrop-blur-xl"
+              style={{
+                position: "absolute",
+                background:
+                  "linear-gradient(155deg, rgba(13, 20, 40, 0.98) 0%, rgba(10, 15, 28, 0.96) 100%)",
+              }}
+            >
               <p className="px-3 py-1 text-[10px] text-white/30 uppercase tracking-wider font-medium">
                 Departamentos
               </p>
@@ -200,7 +237,7 @@ export function Header({ user, breadcrumb }: HeaderProps) {
                 >
                   <span
                     className="w-2 h-2 rounded-full shrink-0"
-                    style={{ backgroundColor: dept.accentColor }}
+                    style={{ backgroundColor: accent(dept.accentColor) }}
                   />
                   <span className="flex-1 text-left">{dept.name}</span>
                   {dept.id === user.activeDepartmentId && (
@@ -212,6 +249,8 @@ export function Header({ user, breadcrumb }: HeaderProps) {
           )}
         </div>
       )}
+
+      <ThemeToggle />
 
       {/* Notifications */}
       <div className="relative" ref={notifRef}>
@@ -230,8 +269,16 @@ export function Header({ user, breadcrumb }: HeaderProps) {
           )}
         </button>
 
-        {notifOpen && (
-          <div className="top-full mt-2 right-0 glass-3 rounded-xl w-80 z-50 animate-in fade-in slide-in-from-top-2 duration-200 overflow-hidden border border-white/12" style={{ position: "absolute" }}>
+          {notifOpen && (
+          <div
+            className="app-dropdown-panel top-full mt-2 right-0 z-50 w-80 animate-in fade-in slide-in-from-top-2 duration-200 overflow-hidden rounded-xl border border-white/12 shadow-2xl"
+            style={{
+              position: "absolute",
+              /* Casi opaco: sin backdrop-blur para que no “filtre” el contenido detrás */
+              background:
+                "linear-gradient(165deg, rgba(255,255,255,0.055) 0%, rgba(255,255,255,0.02) 100%), linear-gradient(180deg, rgb(10, 14, 26) 0%, rgb(7, 10, 20) 100%)",
+            }}
+          >
             <div className="px-4 py-3 border-b border-white/8 flex items-center justify-between gap-2">
               <span className="text-sm font-semibold text-white">
                 Notificaciones
@@ -297,8 +344,21 @@ export function Header({ user, breadcrumb }: HeaderProps) {
                         void refreshNotifications();
                       }
                       setNotifOpen(false);
-                      if (n.link && isInternalLink(n.link)) {
-                        router.push(n.link);
+                      if (!n.link) return;
+                      if (isInternalLink(n.link)) {
+                        if (n.link.startsWith("/")) {
+                          router.push(n.link);
+                        } else {
+                          const u = new URL(n.link, window.location.origin);
+                          router.push(`${u.pathname}${u.search}${u.hash}`);
+                        }
+                        return;
+                      }
+                      try {
+                        const u = new URL(n.link);
+                        window.open(u.href, "_blank", "noopener,noreferrer");
+                      } catch {
+                        window.open(n.link, "_blank", "noopener,noreferrer");
                       }
                     }}
                   >

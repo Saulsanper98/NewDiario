@@ -76,6 +76,8 @@ type ViewMode = "list" | "columns" | "timeline";
 interface BitacoraDayViewProps {
   logs: BitacoraFeedLog[];
   selectedDate: string; // "YYYY-MM-DD"
+  /** Departamento activo (cabecera al imprimir / PDF) */
+  departmentName?: string;
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -110,7 +112,10 @@ function DayEntryCard({
   searchQuery?: string;
 }) {
   return (
-    <Link href={`/bitacora/${log.id}`} className="block group">
+    <Link
+      href={`/bitacora/${log.id}`}
+      className="block group break-inside-avoid-page rounded-xl focus-ring-inset focus:outline-none"
+    >
       <div
         className={cn(
           "rounded-xl border border-white/8 bg-white/[0.025] hover:bg-white/[0.045] hover:border-white/14 transition-all duration-200",
@@ -219,7 +224,7 @@ function ShiftHeader({ shift, count, compact }: { shift: string; count: number; 
 
 // ── Main component ────────────────────────────────────────────────────────────
 
-export function BitacoraDayView({ logs, selectedDate }: BitacoraDayViewProps) {
+export function BitacoraDayView({ logs, selectedDate, departmentName }: BitacoraDayViewProps) {
   const router = useRouter();
   const [, startTransition] = useTransition();
   const [inputDate, setInputDate]   = useState(selectedDate);
@@ -311,9 +316,20 @@ export function BitacoraDayView({ logs, selectedDate }: BitacoraDayViewProps) {
   }
 
   return (
-    <div className="p-6 sm:p-8 max-w-5xl mx-auto space-y-6 pb-28 print:p-4 print:space-y-4">
+    <div className="p-6 sm:p-8 max-w-5xl mx-auto space-y-6 pb-28 print:max-w-none print:p-4 print:space-y-4 print:pb-6">
 
-      {/* B23: Week mini-calendar */}
+      <div className="hidden print:block mb-4 pb-3 border-b border-white/15 text-center">
+        <p className="text-base font-bold text-white tracking-tight">Bitácora — Vista por día</p>
+        <p className="text-xs text-white/55 mt-1">
+          {format(parsedDate, "EEEE d 'de' MMMM yyyy", { locale: es })}
+        </p>
+        {departmentName ? (
+          <p className="text-xs text-white/45 mt-0.5">Departamento: {departmentName}</p>
+        ) : null}
+      </div>
+
+      {/* B23: Week mini-calendar (solo pantalla; al imprimir se usa la cabecera anterior) */}
+      <div className="print:hidden">
       <div className="glass rounded-2xl p-4">
         <div className="flex items-center gap-1 mb-3">
           <button
@@ -422,6 +438,7 @@ export function BitacoraDayView({ logs, selectedDate }: BitacoraDayViewProps) {
             {total} entrada{total !== 1 ? "s" : ""}
           </span>
         </div>
+      </div>
       </div>
 
       {/* B28: Day stats header */}
@@ -536,7 +553,7 @@ export function BitacoraDayView({ logs, selectedDate }: BitacoraDayViewProps) {
           </p>
           <Link
             href="/bitacora/nueva"
-            className="inline-flex items-center gap-2 mt-2 px-5 py-2.5 rounded-xl bg-[#ffeb66]/10 text-[#ffeb66] text-sm font-medium hover:bg-[#ffeb66]/18 transition-all duration-200"
+            className="inline-flex items-center gap-2 mt-2 px-5 py-2.5 rounded-xl bg-[#ffeb66]/10 text-[#ffeb66] text-sm font-medium hover:bg-[#ffeb66]/18 transition-all duration-200 print:hidden"
           >
             Crear entrada
           </Link>
@@ -624,7 +641,7 @@ export function BitacoraDayView({ logs, selectedDate }: BitacoraDayViewProps) {
           {SHIFT_ORDER.map((shift) => {
             const entries = grouped[shift];
             return (
-              <div key={shift}>
+              <div key={shift} className="break-inside-avoid-page">
                 <ShiftHeader shift={shift} count={entries.length} compact={compact} />
                 {entries.length === 0 ? (
                   <EmptyShiftPlaceholder shift={shift} compact={compact} />

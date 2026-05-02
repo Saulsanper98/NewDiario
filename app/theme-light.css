@@ -1,0 +1,908 @@
+/* Tema claro: zinc neutro + amarillo más cargado que #ffeb66 (legible en claro, sin dorado/marrón).
+   Variables solo en html[data-theme="light"]. */
+
+html[data-theme="light"] {
+  color-scheme: light;
+  --lt-canvas: #e8e8eb;
+  --lt-canvas-mid: #e2e2e6;
+  --lt-surface: #efeff1;
+  --lt-surface-raised: #f6f6f7;
+  --lt-border: rgba(15, 23, 42, 0.08);
+  --lt-border-strong: rgba(15, 23, 42, 0.11);
+  /* Nunca `0 1px 0` sin blur: duplica toda la silueta 1px abajo y parece “otro bloque” bajo el contenedor.
+     Brillo arriba con inset + sombra exterior suave (como tarjetas urgentes, que pisan box-shadow vía animación). */
+  --lt-shadow-soft:
+    inset 0 1px 0 rgba(255, 255, 255, 0.65),
+    0 1px 4px rgba(15, 23, 42, 0.06);
+  /* Acento amarillo (RGB base ≈ #d4bc1a) — más saturado que #ffeb66, no pastel */
+  --lt-yellow-rgb: 212, 188, 26;
+  --lt-yellow-solid: #d4bc1a;
+  --lt-yellow-hover: #c4ae16;
+  --lt-yellow-active: #b29e12;
+  --lt-yellow-text: #4f4608;
+  --lt-yellow-text-soft: #6b5f0a;
+  --lt-accent-bg: rgba(var(--lt-yellow-rgb), 0.12);
+  --lt-accent-bg-mid: rgba(var(--lt-yellow-rgb), 0.16);
+  --lt-accent-bg-strong: rgba(var(--lt-yellow-rgb), 0.24);
+  --lt-accent-border: rgba(165, 145, 20, 0.38);
+  --lt-accent-border-strong: rgba(130, 112, 16, 0.48);
+  --shell-chrome-a: 232, 232, 235;
+  --shell-chrome-b: 226, 226, 230;
+  --shell-canvas-top: #e8e8eb;
+  --shell-canvas-bottom: #dedee2;
+  --shadow-elevated: 0 12px 36px rgba(15, 23, 42, 0.07);
+  --border-subtle: rgba(15, 23, 42, 0.09);
+}
+
+html[data-theme="light"] body {
+  background-color: var(--lt-canvas) !important;
+  background-image: linear-gradient(180deg, #eaeaed 0%, #e4e4e8 100%) !important;
+  color: #18181b !important;
+}
+
+html[data-theme="light"] #main-content {
+  background-color: var(--lt-canvas);
+}
+
+html[data-theme="light"] .bg-orb-1 {
+  background: radial-gradient(circle at center, rgba(74, 158, 255, 0.04) 0%, transparent 68%);
+}
+html[data-theme="light"] .bg-orb-2 {
+  background: radial-gradient(circle at center, rgba(139, 92, 246, 0.025) 0%, transparent 68%);
+}
+html[data-theme="light"] .bg-orb-3 {
+  background: radial-gradient(
+    circle at center,
+    rgba(var(--lt-yellow-rgb), 0.07) 0%,
+    transparent 68%
+  );
+}
+
+html[data-theme="light"] .app-dashboard-root {
+  background: linear-gradient(180deg, var(--shell-canvas-top) 0%, var(--shell-canvas-bottom) 100%);
+}
+
+html[data-theme="light"] .app-sidebar-shell,
+html[data-theme="light"] .app-top-header {
+  background: linear-gradient(180deg, rgb(var(--shell-chrome-a)) 0%, rgb(var(--shell-chrome-b)) 100%);
+  box-shadow: none;
+}
+
+html[data-theme="light"] .app-top-header {
+  border-bottom: 1px solid var(--lt-border-strong);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+html[data-theme="light"] .app-sidebar-shell {
+  border-right: 1px solid var(--lt-border-strong);
+}
+
+/* Tarjetas: superficie elevada, nunca #fff puro */
+html[data-theme="light"] .glass,
+html[data-theme="light"] .glass-1 {
+  background: linear-gradient(180deg, var(--lt-surface-raised) 0%, var(--lt-surface) 100%);
+  border-color: var(--lt-border-strong);
+  box-shadow: var(--lt-shadow-soft);
+}
+
+html[data-theme="light"] .glass-2 {
+  background: linear-gradient(180deg, #f8f8f9 0%, #f0f0f2 100%);
+  border-color: var(--lt-border-strong);
+  box-shadow: var(--lt-shadow-soft);
+}
+
+html[data-theme="light"] .glass-opaque-bitacora {
+  background: linear-gradient(180deg, rgba(250, 250, 251, 0.98) 0%, rgba(238, 238, 241, 0.99) 100%);
+  border-color: var(--lt-border-strong);
+  box-shadow: var(--lt-shadow-soft);
+}
+
+html[data-theme="light"] .glass-3 {
+  background: linear-gradient(180deg, #fafafa 0%, #ececed 100%);
+  border-color: var(--lt-border-strong);
+  box-shadow: var(--lt-shadow-soft);
+}
+
+html[data-theme="light"] .glass-4 {
+  background: linear-gradient(180deg, #fcfcfc 0%, #f0f0f1 100%);
+  border-color: var(--lt-border-strong);
+  box-shadow: var(--lt-shadow-soft);
+}
+
+html[data-theme="light"] .glass-hover:hover {
+  background: linear-gradient(180deg, #ffffff 0%, #f3f3f4 100%);
+  border-color: rgba(15, 23, 42, 0.14);
+  box-shadow: var(--lt-shadow-soft);
+}
+
+/* Textura ::after (z-index:-1): en claro puede verse como borde/capa bajo la superficie */
+html[data-theme="light"] .glass::after,
+html[data-theme="light"] .glass-1::after,
+html[data-theme="light"] .glass-2::after {
+  opacity: 0 !important;
+}
+
+html[data-theme="light"] .app-top-header::after,
+html[data-theme="light"] .app-sidebar-shell::after {
+  opacity: 0 !important;
+}
+
+html[data-theme="light"] .card-3d {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.55),
+    0 2px 10px rgba(15, 23, 42, 0.06);
+}
+
+html[data-theme="light"] .modal-backdrop {
+  background: rgba(15, 23, 42, 0.35);
+}
+
+html[data-theme="light"] .toast-glass {
+  background: rgba(250, 250, 251, 0.97) !important;
+  border: 1px solid var(--lt-border-strong) !important;
+  color: #18181b !important;
+}
+
+html[data-theme="light"] .skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(15, 23, 42, 0.03) 25%,
+    rgba(15, 23, 42, 0.065) 50%,
+    rgba(15, 23, 42, 0.03) 75%
+  );
+}
+
+html[data-theme="light"] ::-webkit-scrollbar-thumb {
+  background: rgba(15, 23, 42, 0.14);
+}
+html[data-theme="light"] ::-webkit-scrollbar-thumb:hover {
+  background: rgba(15, 23, 42, 0.22);
+}
+
+html[data-theme="light"] select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='rgba(24,24,27,0.45)' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+}
+
+html[data-theme="light"] select option {
+  background-color: var(--lt-surface-raised);
+  color: #18181b;
+}
+
+html[data-theme="light"] .kanban-scroll-hint::after {
+  background: linear-gradient(
+    90deg,
+    rgba(232, 232, 235, 0.92) 0%,
+    transparent 6%,
+    transparent 94%,
+    rgba(232, 232, 235, 0.92) 100%
+  );
+}
+
+/* Área Kanban: carril ligeramente más profundo que el lienzo; columnas y tarjetas se separan */
+html[data-theme="light"] .kanban-board-root {
+  background: linear-gradient(180deg, var(--lt-canvas-mid) 0%, var(--lt-canvas) 100%);
+}
+
+html[data-theme="light"] .kanban-filters-bar {
+  background: rgba(255, 255, 255, 0.35);
+  border-color: var(--lt-border) !important;
+}
+
+html[data-theme="light"] .kanban-column-well {
+  background: rgba(15, 23, 42, 0.04) !important;
+  border-color: var(--lt-border) !important;
+}
+
+html[data-theme="light"] .kanban-column-well-drag {
+  background: var(--lt-accent-bg) !important;
+  border-color: var(--lt-accent-border) !important;
+}
+
+html[data-theme="light"] .lt-progress-bar-fill {
+  background: linear-gradient(90deg, var(--lt-yellow-solid), #a89410) !important;
+}
+
+html[data-theme="light"] .ProseMirror p.is-editor-empty:first-child::before {
+  color: rgba(24, 24, 27, 0.35);
+}
+
+html[data-theme="light"] .ProseMirror blockquote {
+  color: rgba(24, 24, 27, 0.52);
+}
+
+html[data-theme="light"] .ProseMirror code {
+  background: rgba(15, 23, 42, 0.05);
+  border-color: var(--lt-border-strong);
+  color: #0369a1;
+}
+
+/* Botón primario y acento #ffeb66 → amarillo más cargado */
+html[data-theme="light"] .bg-\[\#ffeb66\] {
+  background-color: var(--lt-yellow-solid) !important;
+}
+html[data-theme="light"] .hover\:bg-\[\#ffe033\]:hover {
+  background-color: var(--lt-yellow-hover) !important;
+}
+html[data-theme="light"] .active\:bg-\[\#ffd700\]:active {
+  background-color: var(--lt-yellow-active) !important;
+}
+
+html[data-theme="light"] .text-\[\#ffeb66\] {
+  color: var(--lt-yellow-text-soft) !important;
+}
+html[data-theme="light"] .text-\[\#ffeb66\]\/60 {
+  color: rgba(var(--lt-yellow-rgb), 0.62) !important;
+}
+html[data-theme="light"] .text-\[\#ffeb66\]\/70 {
+  color: rgba(var(--lt-yellow-rgb), 0.72) !important;
+}
+html[data-theme="light"] .text-\[\#ffeb66\]\/80 {
+  color: rgba(var(--lt-yellow-rgb), 0.82) !important;
+}
+html[data-theme="light"] .text-\[\#ffeb66\]\/85 {
+  color: rgba(var(--lt-yellow-rgb), 0.88) !important;
+}
+
+html[data-theme="light"] .hover\:text-\[\#ffeb66\]:hover {
+  color: var(--lt-yellow-text-soft) !important;
+}
+html[data-theme="light"] .hover\:text-\[\#ffeb66\]\/80:hover {
+  color: rgba(var(--lt-yellow-rgb), 0.78) !important;
+}
+html[data-theme="light"] .hover\:text-\[\#ffe033\]:hover {
+  color: var(--lt-yellow-text) !important;
+}
+
+html[data-theme="light"] .disabled\:hover\:text-\[\#ffeb66\]:disabled:hover {
+  color: var(--lt-yellow-text-soft) !important;
+}
+
+html[data-theme="light"] .group:hover .group-hover\:text-\[\#ffeb66\] {
+  color: var(--lt-yellow-text-soft) !important;
+}
+
+html[data-theme="light"] .bg-\[\#ffeb66\]\/5 {
+  background-color: var(--lt-accent-bg) !important;
+}
+html[data-theme="light"] .bg-\[\#ffeb66\]\/6 {
+  background-color: rgba(var(--lt-yellow-rgb), 0.08) !important;
+}
+html[data-theme="light"] .bg-\[\#ffeb66\]\/8 {
+  background-color: rgba(var(--lt-yellow-rgb), 0.1) !important;
+}
+html[data-theme="light"] .bg-\[\#ffeb66\]\/10 {
+  background-color: rgba(var(--lt-yellow-rgb), 0.12) !important;
+}
+html[data-theme="light"] .bg-\[\#ffeb66\]\/12 {
+  background-color: var(--lt-accent-bg) !important;
+}
+html[data-theme="light"] .bg-\[\#ffeb66\]\/15 {
+  background-color: var(--lt-accent-bg-mid) !important;
+}
+html[data-theme="light"] .bg-\[\#ffeb66\]\/18 {
+  background-color: rgba(var(--lt-yellow-rgb), 0.18) !important;
+}
+html[data-theme="light"] .bg-\[\#ffeb66\]\/20 {
+  background-color: var(--lt-accent-bg-strong) !important;
+}
+html[data-theme="light"] .bg-\[\#ffeb66\]\/22 {
+  background-color: rgba(var(--lt-yellow-rgb), 0.26) !important;
+}
+html[data-theme="light"] .bg-\[\#ffeb66\]\/25 {
+  background-color: rgba(var(--lt-yellow-rgb), 0.28) !important;
+}
+html[data-theme="light"] .bg-\[\#ffeb66\]\/30 {
+  background-color: rgba(var(--lt-yellow-rgb), 0.32) !important;
+}
+html[data-theme="light"] .bg-\[\#ffeb66\]\/50 {
+  background-color: rgba(var(--lt-yellow-rgb), 0.45) !important;
+}
+
+html[data-theme="light"] .hover\:bg-\[\#ffeb66\]\/10:hover {
+  background-color: rgba(var(--lt-yellow-rgb), 0.12) !important;
+}
+html[data-theme="light"] .hover\:bg-\[\#ffeb66\]\/12:hover {
+  background-color: var(--lt-accent-bg-mid) !important;
+}
+html[data-theme="light"] .hover\:bg-\[\#ffeb66\]\/18:hover {
+  background-color: rgba(var(--lt-yellow-rgb), 0.2) !important;
+}
+html[data-theme="light"] .hover\:bg-\[\#ffeb66\]\/25:hover {
+  background-color: rgba(var(--lt-yellow-rgb), 0.28) !important;
+}
+html[data-theme="light"] .hover\:bg-\[\#ffeb66\]\/30:hover {
+  background-color: rgba(var(--lt-yellow-rgb), 0.34) !important;
+}
+
+html[data-theme="light"] .border-\[\#ffeb66\] {
+  border-color: rgba(var(--lt-yellow-rgb), 0.75) !important;
+}
+
+html[data-theme="light"] .border-\[\#ffeb66\]\/15 {
+  border-color: var(--lt-accent-border) !important;
+}
+html[data-theme="light"] .border-\[\#ffeb66\]\/20 {
+  border-color: var(--lt-accent-border) !important;
+}
+html[data-theme="light"] .border-\[\#ffeb66\]\/25 {
+  border-color: var(--lt-accent-border-strong) !important;
+}
+html[data-theme="light"] .border-\[\#ffeb66\]\/30 {
+  border-color: rgba(var(--lt-yellow-rgb), 0.42) !important;
+}
+html[data-theme="light"] .border-\[\#ffeb66\]\/35 {
+  border-color: rgba(var(--lt-yellow-rgb), 0.46) !important;
+}
+html[data-theme="light"] .border-\[\#ffeb66\]\/40 {
+  border-color: rgba(var(--lt-yellow-rgb), 0.5) !important;
+}
+
+html[data-theme="light"] .border-l-\[\#ffeb66\]\/30 {
+  border-left-color: rgba(var(--lt-yellow-rgb), 0.38) !important;
+}
+
+html[data-theme="light"] .border-\[\#0a0f1e\] {
+  border-color: #d4d4d8 !important;
+}
+
+html[data-theme="light"] .focus\:border-\[\#ffeb66\]\/40:focus {
+  border-color: rgba(var(--lt-yellow-rgb), 0.48) !important;
+}
+html[data-theme="light"] .focus\:border-\[\#ffeb66\]\/50:focus {
+  border-color: rgba(var(--lt-yellow-rgb), 0.55) !important;
+}
+
+html[data-theme="light"] .focus-within\:border-\[\#ffeb66\]\/35:focus-within {
+  border-color: rgba(var(--lt-yellow-rgb), 0.42) !important;
+}
+html[data-theme="light"] .focus-within\:border-\[\#ffeb66\]\/45:focus-within {
+  border-color: rgba(var(--lt-yellow-rgb), 0.5) !important;
+}
+html[data-theme="light"] .focus-within\:border-\[\#ffeb66\]\/55:focus-within {
+  border-color: rgba(var(--lt-yellow-rgb), 0.55) !important;
+}
+
+html[data-theme="light"] .focus\:ring-\[\#ffeb66\]\/20:focus {
+  --tw-ring-color: rgba(var(--lt-yellow-rgb), 0.28) !important;
+}
+html[data-theme="light"] .focus-within\:ring-\[\#ffeb66\]\/15:focus-within {
+  --tw-ring-color: rgba(var(--lt-yellow-rgb), 0.22) !important;
+}
+html[data-theme="light"] .focus-within\:ring-\[\#ffeb66\]\/22:focus-within {
+  --tw-ring-color: rgba(var(--lt-yellow-rgb), 0.3) !important;
+}
+
+html[data-theme="light"] .ring-\[\#ffeb66\]\/20 {
+  --tw-ring-color: rgba(var(--lt-yellow-rgb), 0.28) !important;
+}
+
+html[data-theme="light"] .focus-visible\:ring-\[\#ffeb66\]\/50:focus-visible {
+  --tw-ring-color: rgba(var(--lt-yellow-rgb), 0.42) !important;
+}
+
+html[data-theme="light"] .focus-visible\:ring-\[\#ffeb66\]:focus-visible {
+  --tw-ring-color: rgba(var(--lt-yellow-rgb), 0.45) !important;
+}
+
+html[data-theme="light"] [cmdk-item][data-selected] {
+  border-left-color: rgba(var(--lt-yellow-rgb), 0.88) !important;
+}
+
+html[data-theme="light"] .accent-\[\#ffeb66\] {
+  accent-color: var(--lt-yellow-solid) !important;
+}
+
+html[data-theme="light"] .border-t-\[\#ffeb66\] {
+  border-top-color: var(--lt-yellow-solid) !important;
+}
+
+html[data-theme="light"] .shadow-\[\#ffeb66\]\/20 {
+  box-shadow: 0 4px 18px rgba(var(--lt-yellow-rgb), 0.22) !important;
+}
+
+html[data-theme="light"] .hover\:shadow-\[\#ffeb66\]\/20:hover {
+  box-shadow: 0 6px 22px rgba(var(--lt-yellow-rgb), 0.26) !important;
+}
+
+html[data-theme="light"] .decoration-\[\#ffeb66\]\/60 {
+  text-decoration-color: rgba(var(--lt-yellow-rgb), 0.55) !important;
+}
+
+html[data-theme="light"] .shadow-\[0_0_8px_rgba\(255\,235\,102\,0\.2\)\] {
+  box-shadow: 0 0 10px rgba(var(--lt-yellow-rgb), 0.28) !important;
+}
+
+/* Texto principal (antes blanco sobre oscuro) */
+html[data-theme="light"] .text-white {
+  color: #18181b !important;
+}
+html[data-theme="light"] .text-white\/90 {
+  color: rgb(24 24 27 / 0.92) !important;
+}
+html[data-theme="light"] .text-white\/85 {
+  color: rgb(24 24 27 / 0.88) !important;
+}
+html[data-theme="light"] .text-white\/80 {
+  color: rgb(24 24 27 / 0.82) !important;
+}
+html[data-theme="light"] .text-white\/70 {
+  color: rgb(24 24 27 / 0.72) !important;
+}
+html[data-theme="light"] .text-white\/60 {
+  color: rgb(24 24 27 / 0.62) !important;
+}
+html[data-theme="light"] .text-white\/55 {
+  color: rgb(24 24 27 / 0.55) !important;
+}
+html[data-theme="light"] .text-white\/50 {
+  color: rgb(24 24 27 / 0.5) !important;
+}
+html[data-theme="light"] .text-white\/45 {
+  color: rgb(24 24 27 / 0.45) !important;
+}
+html[data-theme="light"] .text-white\/40 {
+  color: rgb(24 24 27 / 0.42) !important;
+}
+html[data-theme="light"] .text-white\/35 {
+  color: rgb(24 24 27 / 0.38) !important;
+}
+html[data-theme="light"] .text-white\/30 {
+  color: rgb(24 24 27 / 0.34) !important;
+}
+html[data-theme="light"] .text-white\/25 {
+  color: rgb(24 24 27 / 0.3) !important;
+}
+html[data-theme="light"] .text-white\/20 {
+  color: rgb(24 24 27 / 0.26) !important;
+}
+html[data-theme="light"] .text-white\/18 {
+  color: rgb(24 24 27 / 0.24) !important;
+}
+html[data-theme="light"] .text-white\/15 {
+  color: rgb(24 24 27 / 0.22) !important;
+}
+html[data-theme="light"] .text-white\/12 {
+  color: rgb(24 24 27 / 0.2) !important;
+}
+
+html[data-theme="light"] .hover\:text-white:hover {
+  color: #18181b !important;
+}
+html[data-theme="light"] .hover\:text-white\/90:hover {
+  color: rgb(24 24 27 / 0.92) !important;
+}
+html[data-theme="light"] .hover\:text-white\/80:hover {
+  color: rgb(24 24 27 / 0.82) !important;
+}
+html[data-theme="light"] .hover\:text-white\/70:hover {
+  color: rgb(24 24 27 / 0.72) !important;
+}
+html[data-theme="light"] .hover\:text-white\/60:hover {
+  color: rgb(24 24 27 / 0.62) !important;
+}
+
+html[data-theme="light"] .group:hover .group-hover\:text-white {
+  color: #18181b !important;
+}
+
+html[data-theme="light"] .placeholder\:text-white\/35::placeholder,
+html[data-theme="light"] .placeholder\:text-white\/30::placeholder,
+html[data-theme="light"] .placeholder\:text-white\/25::placeholder {
+  color: rgb(24 24 27 / 0.4) !important;
+}
+
+html[data-theme="light"] .border-white\/5 {
+  border-color: rgb(24 24 27 / 0.06) !important;
+}
+html[data-theme="light"] .border-white\/6 {
+  border-color: rgb(24 24 27 / 0.07) !important;
+}
+html[data-theme="light"] .border-white\/8 {
+  border-color: rgb(24 24 27 / 0.09) !important;
+}
+html[data-theme="light"] .border-white\/10 {
+  border-color: rgb(24 24 27 / 0.11) !important;
+}
+html[data-theme="light"] .border-white\/12 {
+  border-color: rgb(24 24 27 / 0.12) !important;
+}
+html[data-theme="light"] .border-white\/14 {
+  border-color: rgb(24 24 27 / 0.13) !important;
+}
+html[data-theme="light"] .border-white\/15 {
+  border-color: rgb(24 24 27 / 0.14) !important;
+}
+html[data-theme="light"] .border-white\/16 {
+  border-color: rgb(24 24 27 / 0.14) !important;
+}
+html[data-theme="light"] .border-white\/18 {
+  border-color: rgb(24 24 27 / 0.15) !important;
+}
+html[data-theme="light"] .border-white\/20 {
+  border-color: rgb(24 24 27 / 0.16) !important;
+}
+html[data-theme="light"] .border-white\/22 {
+  border-color: rgb(24 24 27 / 0.17) !important;
+}
+html[data-theme="light"] .border-white\/24 {
+  border-color: rgb(24 24 27 / 0.18) !important;
+}
+html[data-theme="light"] .border-white\/25 {
+  border-color: rgb(24 24 27 / 0.18) !important;
+}
+
+html[data-theme="light"] .hover\:border-white\/14:hover {
+  border-color: rgb(24 24 27 / 0.14) !important;
+}
+html[data-theme="light"] .hover\:border-white\/20:hover {
+  border-color: rgb(24 24 27 / 0.17) !important;
+}
+html[data-theme="light"] .hover\:border-white\/24:hover {
+  border-color: rgb(24 24 27 / 0.19) !important;
+}
+html[data-theme="light"] .hover\:border-white\/25:hover {
+  border-color: rgb(24 24 27 / 0.19) !important;
+}
+
+html[data-theme="light"] .bg-white\/3 {
+  background-color: rgb(24 24 27 / 0.03) !important;
+}
+html[data-theme="light"] .bg-white\/4 {
+  background-color: rgb(24 24 27 / 0.04) !important;
+}
+html[data-theme="light"] .bg-white\/5 {
+  background-color: rgb(24 24 27 / 0.05) !important;
+}
+html[data-theme="light"] .bg-white\/6 {
+  background-color: rgb(24 24 27 / 0.06) !important;
+}
+html[data-theme="light"] .bg-white\/8 {
+  background-color: rgb(24 24 27 / 0.07) !important;
+}
+html[data-theme="light"] .bg-white\/10 {
+  background-color: rgb(24 24 27 / 0.08) !important;
+}
+
+html[data-theme="light"] .hover\:bg-white\/4:hover {
+  background-color: rgb(24 24 27 / 0.04) !important;
+}
+html[data-theme="light"] .hover\:bg-white\/5:hover {
+  background-color: rgb(24 24 27 / 0.05) !important;
+}
+html[data-theme="light"] .hover\:bg-white\/6:hover {
+  background-color: rgb(24 24 27 / 0.06) !important;
+}
+html[data-theme="light"] .hover\:bg-white\/8:hover {
+  background-color: rgb(24 24 27 / 0.07) !important;
+}
+html[data-theme="light"] .hover\:bg-white\/10:hover {
+  background-color: rgb(24 24 27 / 0.08) !important;
+}
+html[data-theme="light"] .hover\:bg-white\/12:hover {
+  background-color: rgb(24 24 27 / 0.09) !important;
+}
+html[data-theme="light"] .hover\:bg-white\/16:hover {
+  background-color: rgb(24 24 27 / 0.1) !important;
+}
+
+/* Superficies que en oscuro usan #0a0f1e / #060912 — armonizar en claro */
+html[data-theme="light"] .cmd-palette-backdrop {
+  background-color: rgba(24, 24, 27, 0.45) !important;
+}
+
+html[data-theme="light"] #cmd-palette-panel .bg-\[\#0a0f1e\] {
+  background-color: #ececee !important;
+}
+
+html[data-theme="light"] #cmd-palette-panel .bg-\[\#060912\] {
+  background-color: #fafafa !important;
+}
+
+html[data-theme="light"] .app-modal-dialog,
+html[data-theme="light"] .confirm-modal-card {
+  background: linear-gradient(180deg, #fafafa 0%, #f0f0f2 100%) !important;
+  border-color: var(--lt-border-strong) !important;
+}
+
+html[data-theme="light"] .confirm-modal-scrim {
+  background-color: rgba(24, 24, 27, 0.42) !important;
+}
+
+html[data-theme="light"] .bg-\[\#0a0f1e\]\/40 {
+  background-color: rgba(255, 255, 255, 0.55) !important;
+}
+
+html[data-theme="light"] .bg-\[\#0a0f1e\]\/88 {
+  background-color: rgba(250, 250, 251, 0.94) !important;
+}
+
+html[data-theme="light"] .supports-\[backdrop-filter\]\:bg-\[\#0a0f1e\]\/72 {
+  background-color: rgba(252, 252, 253, 0.9) !important;
+}
+
+html[data-theme="light"] .focus-visible\:ring-offset-\[\#0a0f1e\] {
+  --tw-ring-offset-color: var(--lt-canvas) !important;
+}
+
+html[data-theme="light"] .ring-\[\#ffeb66\]\/\[0\.22\] {
+  --tw-ring-color: rgba(var(--lt-yellow-rgb), 0.28) !important;
+}
+
+/* Paneles flotantes (Header + popovers con app-dropdown-panel) */
+html[data-theme="light"] .app-dropdown-panel {
+  background: linear-gradient(180deg, #f6f6f7 0%, #ececee 100%) !important;
+  border-color: var(--lt-border-strong) !important;
+  box-shadow: var(--lt-shadow-soft) !important;
+}
+
+/* Logo: menos neón en claro (el SVG comparte fills #ffeb66 con el tema oscuro) */
+html[data-theme="light"] .app-logo .app-logo-text {
+  color: var(--lt-yellow-text) !important;
+  text-shadow: none !important;
+}
+html[data-theme="light"] .app-logo .app-logo-img {
+  filter: saturate(0.78) brightness(0.9) contrast(1.06);
+}
+
+/* FAB / botón flotante: una sombra corta (evita “placa” oscura bajo el botón amarillo) */
+html[data-theme="light"] .lt-elev-fab {
+  box-shadow: 0 2px 10px rgba(24, 24, 27, 0.1) !important;
+}
+
+/* Sombra interior de campos: menos “hueco doble” dentro de barras glass */
+html[data-theme="light"] .shadow-inner {
+  box-shadow: inset 0 1px 1px rgba(15, 23, 42, 0.04) !important;
+}
+
+/* ── Login: solo tema claro (data-login-page). Tarjeta integrada al paisaje, sin “placa” blanca dura ── */
+
+@keyframes login-sky-live-drift {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(-0.6%, -0.12%, 0) scale(1.008);
+  }
+  100% {
+    transform: translate3d(0.45%, 0.08%, 0) scale(1);
+  }
+}
+
+/* Canvas: pisa el color inline del root (#0a1628 / #060b18); solo si html tiene data-theme="light" */
+html[data-theme="light"] [data-login-page] {
+  background-color: #b9d4ea !important;
+}
+
+/* Base atmosférica + capa .login-sky-live (TS) con volumen de nubes; máscara: no invade el macizo */
+html[data-theme="light"] [data-login-page] .login-bg-day {
+  background:
+    linear-gradient(188deg, rgba(165, 205, 240, 0.42) 0%, rgba(210, 230, 250, 0.12) 32%, transparent 52%),
+    radial-gradient(ellipse 105% 72% at 50% -12%, rgba(125, 185, 232, 0.42) 0%, transparent 58%),
+    radial-gradient(ellipse 72% 52% at 10% 72%, rgba(95, 165, 218, 0.2) 0%, transparent 58%),
+    radial-gradient(ellipse 68% 50% at 90% 76%, rgba(150, 200, 235, 0.18) 0%, transparent 56%),
+    radial-gradient(ellipse 58% 40% at 50% 96%, rgba(80, 130, 185, 0.12) 0%, transparent 52%);
+}
+
+html[data-theme="light"] [data-login-page] .login-bg-night {
+  background:
+    linear-gradient(198deg, rgba(95, 140, 195, 0.28) 0%, rgba(160, 190, 225, 0.08) 38%, transparent 54%),
+    radial-gradient(ellipse 96% 62% at 38% -6%, rgba(85, 135, 190, 0.36) 0%, transparent 60%),
+    radial-gradient(ellipse 70% 48% at 82% 20%, rgba(65, 110, 165, 0.26) 0%, transparent 58%),
+    radial-gradient(ellipse 58% 44% at 50% 92%, rgba(45, 85, 135, 0.2) 0%, transparent 56%),
+    radial-gradient(ellipse 46% 34% at 6% 46%, rgba(100, 90, 150, 0.14) 0%, transparent 50%);
+}
+
+html[data-theme="light"] [data-login-page] .login-sky-live {
+  z-index: 0;
+  opacity: 0.94;
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 50%, transparent 74%);
+  mask-image: linear-gradient(to bottom, #000 0%, #000 50%, transparent 74%);
+  background:
+    radial-gradient(ellipse 52% 17% at 8% 26%, rgba(255, 255, 255, 0.78) 0%, transparent 58%),
+    radial-gradient(ellipse 44% 14% at 36% 16%, rgba(255, 255, 255, 0.72) 0%, transparent 55%),
+    radial-gradient(ellipse 38% 12% at 68% 20%, rgba(255, 255, 255, 0.65) 0%, transparent 52%),
+    radial-gradient(ellipse 48% 15% at 90% 28%, rgba(248, 252, 255, 0.58) 0%, transparent 56%),
+    radial-gradient(ellipse 34% 11% at 54% 36%, rgba(255, 255, 255, 0.48) 0%, transparent 50%),
+    radial-gradient(ellipse 62% 20% at 18% 10%, rgba(175, 210, 245, 0.38) 0%, transparent 62%),
+    radial-gradient(ellipse 72% 24% at 72% 6%, rgba(155, 195, 235, 0.32) 0%, transparent 64%),
+    radial-gradient(ellipse 88% 28% at 48% 42%, rgba(210, 230, 248, 0.22) 0%, transparent 58%);
+  animation: login-sky-live-drift 78s ease-in-out infinite alternate;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-theme="light"] [data-login-page] .login-sky-live {
+    animation: none !important;
+  }
+}
+
+/* Olas: antes leían como velo gris encima del Roque (z alto + azules oscuros semitransparentes) */
+html[data-theme="light"] [data-login-page] .login-ocean-horizon {
+  opacity: 0.52;
+}
+
+/* Respaldo si el halo del Roque siguiera en DOM */
+html[data-theme="light"] [data-login-page] .login-roque-bloom {
+  display: none !important;
+}
+
+html[data-theme="light"] [data-login-page] .login-stars {
+  opacity: 0.32;
+}
+
+html[data-theme="light"] [data-login-page] .login-milky-hint {
+  opacity: 0.1;
+}
+
+html[data-theme="light"] [data-login-page] .login-clouds {
+  opacity: 0.48;
+}
+
+html[data-theme="light"] [data-login-page] .login-vignette {
+  opacity: 0.38;
+}
+
+html[data-theme="light"] [data-login-page] .glass.login-card-premium {
+  background:
+    linear-gradient(
+      168deg,
+      rgba(255, 255, 255, 0.72) 0%,
+      rgba(247, 247, 249, 0.8) 45%,
+      rgba(238, 238, 242, 0.76) 100%
+    ),
+    rgba(228, 228, 234, 0.36) !important;
+  backdrop-filter: blur(22px) saturate(1.12);
+  -webkit-backdrop-filter: blur(22px) saturate(1.12);
+  border-color: rgba(15, 23, 42, 0.1) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.92),
+    0 2px 16px rgba(15, 23, 42, 0.09) !important;
+}
+
+html[data-theme="light"] [data-login-page] .login-card-premium {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.92),
+    0 2px 16px rgba(15, 23, 42, 0.09) !important;
+}
+
+html[data-theme="light"] [data-login-page] .login-shimmer::before {
+  background: radial-gradient(
+    ellipse 70% 55% at 50% 45%,
+    rgba(var(--lt-yellow-rgb), 0.07) 0%,
+    transparent 72%
+  );
+}
+
+html[data-theme="light"] [data-login-page] .login-shimmer::after {
+  opacity: 0.45;
+}
+
+html[data-theme="light"] [data-login-page] .login-field {
+  background: rgba(255, 255, 255, 0.94) !important;
+  border-color: rgba(15, 23, 42, 0.12) !important;
+  box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.04);
+  color: #18181b !important;
+}
+
+html[data-theme="light"] [data-login-page] .login-field:hover {
+  border-color: rgba(15, 23, 42, 0.16) !important;
+}
+
+html[data-theme="light"] [data-login-page] .login-field:focus {
+  background: #ffffff !important;
+  border-color: rgba(var(--lt-yellow-rgb), 0.48) !important;
+}
+
+html[data-theme="light"] [data-login-page] .login-field::placeholder {
+  color: rgba(24, 24, 27, 0.42) !important;
+}
+
+html[data-theme="light"] [data-login-page] input.login-field:-webkit-autofill,
+html[data-theme="light"] [data-login-page] input.login-field:-webkit-autofill:hover,
+html[data-theme="light"] [data-login-page] input.login-field:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0 1000px #f4f4f5 inset !important;
+  -webkit-text-fill-color: #18181b !important;
+  caret-color: var(--lt-yellow-solid);
+  transition: background-color 99999s ease-out 0s;
+}
+
+html[data-theme="light"] [data-login-page] .login-remember {
+  border-color: rgba(15, 23, 42, 0.18) !important;
+  background: rgba(255, 255, 255, 0.9) !important;
+}
+
+html[data-theme="light"] [data-login-page] input#remember:focus-visible {
+  --tw-ring-offset-color: #f4f4f5 !important;
+}
+
+html[data-theme="light"] [data-login-page] form button[type="submit"] {
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.12) !important;
+}
+
+html[data-theme="light"] [data-login-page] .text-white\/30,
+html[data-theme="light"] [data-login-page] .text-white\/35 {
+  color: rgb(24 24 27 / 0.5) !important;
+}
+
+html[data-theme="light"] [data-login-page] label[for="remember"] {
+  color: rgb(24 24 27 / 0.78) !important;
+}
+
+/* Bitácora: cuerpo HTML y editor TipTap en tema claro */
+html[data-theme="light"] [data-bitacora-html-body] span[data-type="mention"],
+html[data-theme="light"] [data-rich-editor] .ProseMirror span[data-type="mention"] {
+  color: #2563eb !important;
+}
+html[data-theme="light"] [data-bitacora-html-body] span[data-type="mention"]:hover,
+html[data-theme="light"] [data-rich-editor] .ProseMirror span[data-type="mention"]:hover {
+  color: #1d4ed8 !important;
+}
+
+html[data-theme="light"] [data-rich-editor] .ProseMirror td,
+html[data-theme="light"] [data-rich-editor] .ProseMirror th {
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  padding: 6px 12px;
+}
+html[data-theme="light"] [data-rich-editor] .ProseMirror th {
+  background: rgba(15, 23, 42, 0.04);
+  font-weight: 600;
+}
+html[data-theme="light"] [data-rich-editor] .ProseMirror hr {
+  border: none;
+  border-top: 1px solid rgba(15, 23, 42, 0.12);
+  margin: 1rem 0;
+}
+html[data-theme="light"] [data-rich-editor] .ProseMirror mark {
+  background: rgba(var(--lt-yellow-rgb), 0.2);
+  color: var(--lt-yellow-text);
+  border-radius: 2px;
+  padding: 0 2px;
+}
+
+html[data-theme="light"] [data-bitacora-html-body] ul[data-type="taskList"] li[data-checked="true"] > div {
+  color: rgba(24, 24, 27, 0.45);
+  text-decoration: line-through;
+}
+
+/* FAB volver arriba (feed bitácora): opaco en claro */
+html[data-theme="light"] .bitacora-back-to-top-fab {
+  background: linear-gradient(180deg, #f6f6f8 0%, #e8e8ec 100%) !important;
+  border-color: rgba(15, 23, 42, 0.14) !important;
+  color: #3f3f46 !important;
+  box-shadow: 0 8px 28px rgba(15, 23, 42, 0.12) !important;
+}
+html[data-theme="light"] .bitacora-back-to-top-fab:hover {
+  background: linear-gradient(180deg, #fafafa 0%, #ececee 100%) !important;
+  color: #18181b !important;
+}
+
+/* Editor notas: color de cuerpo forzado en claro (por si alguna regla legacy pisa prose-zinc) */
+html[data-theme="light"] [data-rich-editor] .ProseMirror {
+  color: #18181b;
+}
+
+/* Formulario entrada: la barra amarilla izquierda del Input choca con bordes redondeados en claro */
+html[data-theme="light"] [data-bitacora-entry-form] .input-focus-bar {
+  display: none;
+}
+
+/* Feed bitácora: botón «Filtros» en tema claro */
+html[data-theme="light"] #bitacora-feed-filters-trigger {
+  border-color: rgba(15, 23, 42, 0.12) !important;
+  background: rgba(255, 255, 255, 0.92) !important;
+  color: #3f3f46 !important;
+}
+html[data-theme="light"] #bitacora-feed-filters-trigger:hover {
+  background: #ffffff !important;
+  color: #18181b !important;
+}
+html[data-theme="light"] #bitacora-feed-filters-trigger[aria-expanded="true"] {
+  border-color: rgba(var(--lt-yellow-rgb), 0.42) !important;
+  background: var(--lt-accent-bg-mid) !important;
+  color: var(--lt-yellow-text) !important;
+}
+html[data-theme="light"] #bitacora-feed-filters-trigger .text-white\/40 {
+  color: rgb(113 113 122 / 0.65) !important;
+}
+html[data-theme="light"] #bitacora-feed-filters-trigger .text-white\/45 {
+  color: rgb(82 82 91 / 0.75) !important;
+}

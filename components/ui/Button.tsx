@@ -30,7 +30,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     const buttonRef = (ref as React.RefObject<HTMLButtonElement>) ?? innerRef;
 
     const base =
-      "inline-flex items-center justify-center gap-2 font-medium rounded-lg transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ffeb66] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a0f1e] disabled:opacity-50 disabled:cursor-not-allowed select-none";
+      "inline-flex items-center justify-center gap-2 font-medium rounded-lg transition-all duration-200 focus-visible:outline-none disabled:opacity-50 disabled:cursor-not-allowed select-none";
 
     const variants = {
       primary:
@@ -80,7 +80,9 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
           base,
           variants[variant],
           sizes[size],
-          isPrimary && "btn-ripple-container",
+          isPrimary
+            ? "btn-ripple-container focus-ring-on-accent"
+            : "focus-visible:ring-2 focus-visible:ring-[#ffeb66] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a0f1e]",
           className
         )}
         disabled={disabled || loading}

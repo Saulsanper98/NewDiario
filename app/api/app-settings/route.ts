@@ -48,6 +48,7 @@ export async function PATCH(req: NextRequest) {
   const { settings } = parsed.data;
   const allowedKeys = new Set([
     "app_name",
+    "app_logo_data_url",
     "shift_morning_start",
     "shift_morning_end",
     "shift_afternoon_start",
@@ -60,6 +61,20 @@ export async function PATCH(req: NextRequest) {
     if (!allowedKeys.has(k)) {
       return NextResponse.json({ error: `Clave no permitida: ${k}` }, { status: 400 });
     }
+  }
+
+  const logoVal = settings.app_logo_data_url;
+  if (logoVal !== undefined && logoVal.length > 450_000) {
+    return NextResponse.json(
+      { error: "Logo demasiado grande (máx. ~450 KB en base64)." },
+      { status: 400 }
+    );
+  }
+  if (logoVal !== undefined && logoVal !== "" && !logoVal.startsWith("data:image/")) {
+    return NextResponse.json(
+      { error: "El logo debe ser una imagen (data URL)." },
+      { status: 400 }
+    );
   }
 
   await Promise.all(

@@ -352,9 +352,9 @@ export function KanbanBoard({ project, allUsers }: KanbanBoardProps) {
   );
 
   return (
-    <div className="h-full flex flex-col overflow-hidden">
+    <div className="kanban-board-root h-full flex flex-col min-h-0 overflow-hidden">
       {/* Kanban filters */}
-      <div className="px-4 py-2 border-b border-white/6 flex items-center gap-3 shrink-0">
+      <div className="kanban-filters-bar px-4 py-2 border-b border-white/6 flex items-center gap-3 shrink-0">
         <select
           value={priorityFilter}
           onChange={(e) => setPriorityFilter(e.target.value)}
@@ -394,7 +394,11 @@ export function KanbanBoard({ project, allUsers }: KanbanBoardProps) {
 
       {/* Board + panel lateral de tarea (flujo flex, no fixed sobre todo el viewport) */}
       <div className="flex flex-1 min-h-0 overflow-hidden">
-      <div className="flex-1 min-w-0 overflow-x-auto overflow-y-hidden">
+      <div
+        role="region"
+        aria-label="Tablero Kanban"
+        className="flex-1 min-w-0 overflow-x-auto overflow-y-hidden kanban-scroll-hint relative"
+      >
         <DragDropContext onDragEnd={onDragEnd}>
           <Droppable
             droppableId="board"
@@ -431,7 +435,7 @@ export function KanbanBoard({ project, allUsers }: KanbanBoardProps) {
                             {col.name}
                           </h3>
                           <span className={cn(
-                            "text-xs font-semibold px-2 py-0.5 rounded-full",
+                            "text-xs font-semibold tabular-nums px-2 py-0.5 rounded-full",
                             col.tasks.length === 0
                               ? "text-white/20 bg-white/4"
                               : "text-white/60 bg-white/8"
@@ -447,10 +451,10 @@ export function KanbanBoard({ project, allUsers }: KanbanBoardProps) {
                               ref={taskDrop.innerRef}
                               {...taskDrop.droppableProps}
                               className={cn(
-                                "flex-1 flex flex-col gap-2 p-2 rounded-xl min-h-20 overflow-y-auto transition-all duration-200",
+                                "kanban-column-well flex-1 flex flex-col gap-2 p-2 rounded-xl min-h-20 overflow-y-auto transition-all duration-200 border",
                                 snapshot.isDraggingOver
-                                  ? "bg-[#ffeb66]/5 border border-[#ffeb66]/15"
-                                  : "bg-white/3 border border-white/5"
+                                  ? "kanban-column-well-drag border-[#ffeb66]/15"
+                                  : "border-white/5"
                               )}
                             >
                               {col.tasks.length === 0 && !snapshot.isDraggingOver && addingColumnId !== col.id && (
@@ -472,8 +476,8 @@ export function KanbanBoard({ project, allUsers }: KanbanBoardProps) {
                                       {...taskDrag.draggableProps}
                                       {...taskDrag.dragHandleProps}
                                       className={cn(
-                                        "transition-transform duration-150",
-                                        taskSnap.isDragging && "rotate-1 scale-105"
+                                        "cursor-grab active:cursor-grabbing transition-transform duration-150",
+                                        taskSnap.isDragging && "rotate-1 scale-105 cursor-grabbing"
                                       )}
                                     >
                                       <KanbanCard

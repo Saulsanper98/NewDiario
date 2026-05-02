@@ -13,12 +13,33 @@ export default function NotFound() {
             La página que buscas no existe o ha sido movida.
           </p>
         </div>
-        <Link
-          href="/dashboard"
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#ffeb66] text-[#0a0f1e] text-sm font-semibold hover:bg-[#ffe033] transition-all duration-200"
-        >
-          Ir al Dashboard
-        </Link>
+        <div className="flex flex-col sm:flex-row gap-2 w-full">
+          <Link
+            href="/dashboard"
+            className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-[#ffeb66] text-[#0a0f1e] text-sm font-semibold hover:bg-[#ffe033] transition-all duration-200"
+          >
+            Ir al Dashboard
+          </Link>
+          <Link
+            href="/bitacora"
+            className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg border border-white/15 text-white/85 text-sm font-medium hover:bg-white/6 transition-all duration-200"
+          >
+            Ir a la bitácora
+          </Link>
+          <Link
+            href="/proyectos"
+            className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg border border-white/15 text-white/85 text-sm font-medium hover:bg-white/6 transition-all duration-200"
+          >
+            Proyectos
+          </Link>
+        </div>
+        <p className="text-xs text-white/30 max-w-sm leading-relaxed">
+          También puedes abrir la búsqueda global con{" "}
+          <kbd className="px-1 py-0.5 rounded bg-white/8 border border-white/10 font-mono text-[10px]">Ctrl</kbd>
+          {" + "}
+          <kbd className="px-1 py-0.5 rounded bg-white/8 border border-white/10 font-mono text-[10px]">K</kbd>
+          {" "}desde el área privada.
+        </p>
       </div>
     </div>
   );

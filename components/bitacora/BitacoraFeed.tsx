@@ -3,6 +3,7 @@
 import {
   useState, useMemo, useEffect, useTransition, useCallback, useRef, type ReactNode,
 } from "react";
+import { createPortal } from "react-dom";
 import type { BitacoraFeedLog } from "@/lib/types/bitacora";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -29,6 +30,7 @@ import {
   Edit,
   Copy,
   Search,
+  User,
 } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { Avatar } from "@/components/ui/Avatar";
@@ -41,6 +43,7 @@ import {
   getTypeColor,
   truncate,
   cn,
+  foldAccentInsensitive,
 } from "@/lib/utils";
 import { format, isToday, isYesterday } from "date-fns";
 import { es } from "date-fns/locale";
@@ -90,7 +93,7 @@ function formatGroupDate(date: Date): string {
 /* B18 — highlight search term in text */
 function HighlightText({ text, query }: { text: string; query: string }): ReactNode {
   if (!query.trim()) return <>{text}</>;
-  const q = query.toLowerCase();
+  const q = query.trim().toLowerCase();
   const lower = text.toLowerCase();
   const parts: ReactNode[] = [];
   let last = 0;
@@ -110,28 +113,32 @@ function HighlightText({ text, query }: { text: string; query: string }): ReactN
 }
 
 /* B4 — Skeleton card */
-function SkeletonCard() {
+function SkeletonCard({ seed = 0 }: { seed?: number }) {
+  const w = ["w-[42%]", "w-[58%]", "w-[55%]", "w-[36%]"][seed % 4]!;
+  const w2 = ["w-[88%]", "w-[72%]", "w-[91%]", "w-[68%]"][seed % 4]!;
   return (
     <div className="glass rounded-xl p-5 sm:p-6 border-l-[3px] border-l-white/8 space-y-3 animate-pulse">
       <div className="flex items-start gap-4">
         <div className="w-9 h-9 rounded-full skeleton shrink-0" />
         <div className="flex-1 space-y-2.5">
           <div className="flex gap-2">
-            <div className="h-4 w-48 skeleton rounded" />
+            <div className={cn("h-4 skeleton rounded", w)} />
             <div className="h-4 w-16 skeleton rounded" />
           </div>
-          <div className="h-3 w-full skeleton rounded" />
-          <div className="h-3 w-3/4 skeleton rounded" />
+          <div className={cn("h-3 skeleton rounded", w2)} />
+          <div className="h-3 w-[76%] skeleton rounded" />
           <div className="flex gap-2">
             <div className="h-3 w-12 skeleton rounded" />
-            <div className="h-3 w-12 skeleton rounded" />
-            <div className="h-3 w-20 skeleton rounded" />
+            <div className="h-3 w-14 skeleton rounded" />
+            <div className="h-3 w-24 skeleton rounded" />
           </div>
         </div>
       </div>
     </div>
   );
 }
+
+const FEED_FILTER_STORAGE_KEY = "cc-ops-bitacora-feed-filters";
 
 /* ── types ──────────────────────────────────────────────────────────────── */
 
@@ -140,6 +147,8 @@ interface GroupKey { date: string; shift: string }
 interface BitacoraFeedProps {
   logs: BitacoraFeedLog[];
   departmentId: string;
+  /** Para filtro «solo mis entradas» (`authorId` en URL y API) */
+  currentUserId?: string;
   initialFilters?: Record<string, string>;
   hasMore?: boolean;
   pageSize?: number;
@@ -150,6 +159,7 @@ interface BitacoraFeedProps {
 export function BitacoraFeed({
   logs,
   departmentId,
+  currentUserId,
   initialFilters = {},
   hasMore = false,
   pageSize = 25,
@@ -160,40 +170,61 @@ export function BitacoraFeed({
   const [typeFilter,    setTypeFilter]    = useState(initialFilters.type ?? "");
   const [shiftFilter,   setShiftFilter]   = useState(initialFilters.shift ?? "");
   const [followupFilter, setFollowupFilter] = useState(initialFilters.followup === "1");
+  const [authorOnly, setAuthorOnly] = useState(
+    () =>
+      Boolean(
+        currentUserId &&
+          initialFilters.authorId &&
+          initialFilters.authorId === currentUserId
+      )
+  );
   const [sortDesc,      setSortDesc]      = useState(initialFilters.sort !== "asc");
   const [list,          setList]          = useState(logs);
   const [more,          setMore]          = useState(hasMore);
   const [nextPage,      setNextPage]      = useState(2);
   const [loadingMore,   setLoadingMore]   = useState(false);
+  const [loadMoreError, setLoadMoreError] = useState(false);
 
   /* B12 — back to top */
   const [showBackToTop, setShowBackToTop] = useState(false);
+  /** Fila de chips tipo/turno/seguimiento: panel colapsable para ganar altura útil */
+  const [filtersPanelOpen, setFiltersPanelOpen] = useState(() =>
+    Boolean(
+      initialFilters.type ||
+        initialFilters.shift ||
+        initialFilters.followup === "1" ||
+        (initialFilters.authorId &&
+          currentUserId &&
+          initialFilters.authorId === currentUserId)
+    )
+  );
 
-  const loadingRef  = useRef(false);
-  const sentinelRef = useRef<HTMLDivElement>(null);
+  const loadingRef     = useRef(false);
+  const sentinelRef    = useRef<HTMLDivElement>(null);
+  const scrollAreaRef  = useRef<HTMLDivElement>(null);
+  const hydratedFiltersRef = useRef(false);
 
-  /* B12 — scroll listener for back-to-top visibility */
+  /* B12 — scroll del panel de lista (no window: la barra de filtros queda fuera del scroll) */
   useEffect(() => {
+    const root = scrollAreaRef.current;
+    if (!root) return;
     function onScroll() {
-      setShowBackToTop(window.scrollY > 600);
+      const el = scrollAreaRef.current;
+      if (!el) return;
+      setShowBackToTop(el.scrollTop > 480);
     }
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
+    onScroll();
+    root.addEventListener("scroll", onScroll, { passive: true });
+    return () => root.removeEventListener("scroll", onScroll);
   }, []);
 
-  /* B19 — 'N' keyboard shortcut to create new entry */
-  useEffect(() => {
-    function onKeyDown(e: KeyboardEvent) {
-      const tag = (e.target as HTMLElement).tagName.toLowerCase();
-      if (["input", "textarea", "select"].includes(tag)) return;
-      if (e.key === "n" || e.key === "N") {
-        e.preventDefault();
-        router.push("/bitacora/nueva");
-      }
-    }
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [router]);
+  function markFollowupDoneLocal(id: string) {
+    setList((prev) =>
+      prev.map((l) =>
+        l.id === id ? { ...l, followupDone: true } : l
+      )
+    );
+  }
 
   /* Sync server logs when they change (filter navigation) */
   useEffect(() => {
@@ -212,6 +243,7 @@ export function BitacoraFeed({
     if (followupFilter) sp.set("followup", "1");
     if (search.trim())  sp.set("search",  search.trim());
     if (!sortDesc)      sp.set("sort",    "asc");
+    if (authorOnly && currentUserId) sp.set("authorId", currentUserId);
     const qs  = sp.toString();
     const cur = typeof window !== "undefined" ? window.location.search.replace(/^\?/, "") : "";
     if (cur === qs) return;
@@ -222,13 +254,14 @@ export function BitacoraFeed({
       });
     }, 280);
     return () => clearTimeout(t);
-  }, [typeFilter, shiftFilter, followupFilter, search, sortDesc, router]);
+  }, [typeFilter, shiftFilter, followupFilter, authorOnly, currentUserId, search, sortDesc, router]);
 
   /* Load more */
   const loadMore = useCallback(async () => {
     if (loadingRef.current || !more) return;
     loadingRef.current = true;
     setLoadingMore(true);
+    setLoadMoreError(false);
     try {
       const sp = new URLSearchParams({
         page:         String(nextPage),
@@ -239,26 +272,32 @@ export function BitacoraFeed({
       if (shiftFilter)    sp.set("shift",    shiftFilter);
       if (followupFilter) sp.set("followup", "1");
       if (search.trim())  sp.set("search",   search.trim());
+      if (authorOnly && currentUserId) sp.set("authorId", currentUserId);
       const res = await fetch(`/api/log-entries?${sp.toString()}`);
       if (!res.ok) throw new Error();
       const data = await res.json();
       setList((prev) => [...prev, ...(data.logs ?? [])]);
       setMore(Boolean(data.hasMore));
       setNextPage((p) => p + 1);
-    } catch { /* keep more=true so user can retry */ }
+    } catch {
+      setLoadMoreError(true);
+    }
     finally {
       loadingRef.current = false;
       setLoadingMore(false);
     }
-  }, [more, nextPage, pageSize, departmentId, typeFilter, shiftFilter, followupFilter, search]);
+  }, [more, nextPage, pageSize, departmentId, typeFilter, shiftFilter, followupFilter, authorOnly, currentUserId, search]);
 
-  /* IntersectionObserver — auto load more */
+  /* IntersectionObserver — auto load more (root = panel con scroll) */
   useEffect(() => {
+    const root = scrollAreaRef.current;
     const el = sentinelRef.current;
-    if (!el || !more) return;
+    if (!el || !more || !root) return;
     const observer = new IntersectionObserver(
-      (entries) => { if (entries[0].isIntersecting) void loadMore(); },
-      { rootMargin: "200px" }
+      (entries) => {
+        if (entries[0].isIntersecting) void loadMore();
+      },
+      { root, rootMargin: "200px" }
     );
     observer.observe(el);
     return () => observer.disconnect();
@@ -268,11 +307,11 @@ export function BitacoraFeed({
   const filtered = useMemo(() => {
     let result = list;
     if (search.trim()) {
-      const q = search.toLowerCase();
+      const q = foldAccentInsensitive(search.trim());
       result = result.filter(
         (log) =>
-          log.title.toLowerCase().includes(q) ||
-          log.author.name.toLowerCase().includes(q)
+          foldAccentInsensitive(log.title).includes(q) ||
+          foldAccentInsensitive(log.author.name).includes(q)
       );
     }
     return sortDesc
@@ -305,52 +344,139 @@ export function BitacoraFeed({
     return c;
   }, [list]);
 
-  const anyFilter = !!(typeFilter || shiftFilter || followupFilter || search.trim());
+  const anyFilter = !!(
+    typeFilter ||
+    shiftFilter ||
+    followupFilter ||
+    search.trim() ||
+    authorOnly
+  );
+  const activeFilterCount =
+    (typeFilter ? 1 : 0) +
+    (shiftFilter ? 1 : 0) +
+    (followupFilter ? 1 : 0) +
+    (search.trim() ? 1 : 0) +
+    (authorOnly ? 1 : 0);
   const showGlobalEmpty = list.length === 0 && !anyFilter;
 
   function clearAll() {
-    setSearch(""); setTypeFilter(""); setShiftFilter(""); setFollowupFilter(false);
+    setSearch("");
+    setTypeFilter("");
+    setShiftFilter("");
+    setFollowupFilter(false);
+    setAuthorOnly(false);
   }
 
-  return (
-    <div className="p-4 sm:p-6 max-w-4xl mx-auto space-y-5 pb-20">
+  /* Restaurar filtros desde localStorage si la URL llega vacía (complemento a URL) */
+  useEffect(() => {
+    if (hydratedFiltersRef.current) return;
+    hydratedFiltersRef.current = true;
+    if (typeof window === "undefined") return;
+    if (window.location.search.length > 1) return;
+    try {
+      const raw = localStorage.getItem(FEED_FILTER_STORAGE_KEY);
+      if (!raw) return;
+      const o = JSON.parse(raw) as Partial<{
+        type: string;
+        shift: string;
+        followup: boolean;
+        search: string;
+        sortDesc: boolean;
+        authorOnly: boolean;
+      }>;
+      if (typeof o.type === "string") setTypeFilter(o.type);
+      if (typeof o.shift === "string") setShiftFilter(o.shift);
+      if (typeof o.followup === "boolean") setFollowupFilter(o.followup);
+      if (typeof o.search === "string") setSearch(o.search);
+      if (typeof o.sortDesc === "boolean") setSortDesc(o.sortDesc);
+      if (typeof o.authorOnly === "boolean" && currentUserId) setAuthorOnly(o.authorOnly);
+    } catch {
+      /* ignore */
+    }
+  }, [currentUserId]);
 
-      {/* B11 — sticky filter bar */}
-      <div className="sticky top-14 z-20 space-y-2.5">
-        {/* Row 1: search + sort + meta */}
-        <div className="glass rounded-xl p-3 flex items-center gap-3 flex-wrap relative">
+  /* Persistir filtros en localStorage (la URL ya se sincroniza en otro efecto) */
+  useEffect(() => {
+    const t = window.setTimeout(() => {
+      try {
+        localStorage.setItem(
+          FEED_FILTER_STORAGE_KEY,
+          JSON.stringify({
+            type: typeFilter,
+            shift: shiftFilter,
+            followup: followupFilter,
+            search: search.trim(),
+            sortDesc,
+            authorOnly,
+          })
+        );
+      } catch {
+        /* ignore */
+      }
+    }, 400);
+    return () => window.clearTimeout(t);
+  }, [typeFilter, shiftFilter, followupFilter, search, sortDesc, authorOnly]);
+
+  return (
+    <div className="flex flex-col flex-1 min-h-0 max-w-4xl mx-auto w-full">
+      <a href="#bitacora-feed-filters" className="skip-to-main">
+        Saltar a filtros de bitácora
+      </a>
+      {/* B11 — barra de filtros: búsqueda siempre visible; chips en panel desplegable */}
+      <div id="bitacora-feed-filters" className="shrink-0 z-20 px-4 sm:px-6 pt-1 pb-2 scroll-mt-20">
+        <div className="glass-opaque-bitacora rounded-xl p-3 flex flex-wrap items-center gap-2 gap-y-2 relative">
           {isPending && (
             <div className="absolute inset-0 rounded-xl bg-[#0a0f1e]/40 flex items-center justify-center z-10 pointer-events-none">
               <Loader2 className="w-5 h-5 text-[#ffeb66] animate-spin" />
             </div>
           )}
 
-          {/* B5 — active filter dot */}
-          <div className="flex items-center gap-1.5 text-white/40">
+          <button
+            type="button"
+            id="bitacora-feed-filters-trigger"
+            aria-expanded={filtersPanelOpen}
+            aria-controls="bitacora-feed-filters-advanced"
+            onClick={() => setFiltersPanelOpen((o) => !o)}
+            className={cn(
+              "flex items-center gap-2 shrink-0 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-all duration-150",
+              filtersPanelOpen
+                ? "border-[#ffeb66]/35 bg-[#ffeb66]/10 text-[#ffeb66]"
+                : "border-white/10 bg-white/[0.04] text-white/65 hover:bg-white/8 hover:text-white"
+            )}
+          >
             <div className="relative">
               <Filter className="w-3.5 h-3.5" />
               {anyFilter && (
                 <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-[#ffeb66]" />
               )}
             </div>
-            <span className="text-xs">Filtros</span>
-          </div>
+            <span>Filtros</span>
+            {activeFilterCount > 0 && (
+              <span className="tabular-nums text-white/45">({activeFilterCount})</span>
+            )}
+            <ChevronDown
+              className={cn(
+                "w-3.5 h-3.5 text-white/40 transition-transform duration-200",
+                filtersPanelOpen && "rotate-180"
+              )}
+            />
+          </button>
 
-          <div className="relative flex-1 min-w-40">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-white/30 pointer-events-none" />
+          <div className="relative flex-1 min-w-[min(100%,10rem)] sm:min-w-48 basis-[14rem] grow rounded-lg border border-white/10 bg-white/[0.04] shadow-inner transition-[box-shadow,border-color] focus-within:border-[#ffeb66]/45 focus-within:ring-2 focus-within:ring-[#ffeb66]/22">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-white/30 pointer-events-none z-[1]" />
             <input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Buscar en bitácora..."
               aria-label="Buscar en bitácora"
-              className="w-full bg-white/5 border border-white/8 rounded-lg pl-7 pr-3 py-1.5 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-[#ffeb66]/40"
+              className="w-full bg-transparent border-0 rounded-lg pl-7 pr-8 py-2 text-sm text-white placeholder:text-white/30 focus:outline-none focus:ring-0"
             />
             {search && (
               <button
                 type="button"
                 onClick={() => setSearch("")}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60"
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 z-[1]"
               >
                 <X className="w-3 h-3" />
               </button>
@@ -386,8 +512,13 @@ export function BitacoraFeed({
           </span>
         </div>
 
-        {/* Row 2: B6 type + shift pills + followup */}
-        <div className="glass rounded-xl px-3 py-2 flex items-center gap-2 flex-wrap">
+        {filtersPanelOpen && (
+        <div
+          id="bitacora-feed-filters-advanced"
+          role="region"
+          aria-labelledby="bitacora-feed-filters-trigger"
+          className="mt-2 glass-opaque-bitacora rounded-xl px-3 py-2 flex items-center gap-2 flex-wrap max-md:overflow-x-auto max-md:flex-nowrap animate-in fade-in slide-in-from-top-1 duration-200"
+        >
           {/* Type pills */}
           <div className="flex items-center gap-1.5 flex-wrap">
             {Object.entries(TYPE_ICONS).map(([type, Icon]) => {
@@ -463,13 +594,42 @@ export function BitacoraFeed({
             Seguimiento
           </label>
 
+          {currentUserId && (
+            <button
+              type="button"
+              onClick={() => setAuthorOnly((v) => !v)}
+              title={authorOnly ? "Mostrar todas las entradas" : "Solo entradas que yo publiqué"}
+              className={cn(
+                "flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-medium transition-all duration-150 border",
+                authorOnly
+                  ? "border-[#ffeb66]/35 bg-[#ffeb66]/10 text-[#ffeb66]"
+                  : "border-white/8 text-white/40 hover:text-white/70 hover:border-white/14"
+              )}
+            >
+              <User className="w-3 h-3" />
+              Mis entradas
+            </button>
+          )}
+
           {/* B19 — shortcut hint */}
           <span className="ml-auto text-[10px] text-white/15 hidden lg:block shrink-0">
-            Presiona <kbd className="px-1 py-0.5 rounded bg-white/6 border border-white/10 font-mono text-[10px]">N</kbd> para nueva entrada
+            Atajo <kbd className="px-1 py-0.5 rounded bg-white/6 border border-white/10 font-mono text-[10px]">N</kbd>: nueva entrada (ver <kbd className="px-1 py-0.5 rounded bg-white/6 border border-white/10 font-mono text-[10px]">?</kbd>)
           </span>
         </div>
+        )}
       </div>
 
+      <div
+        ref={scrollAreaRef}
+        className={cn(
+          "flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-4 sm:px-6 pb-10 min-w-0",
+          isPending && "min-h-[50vh]"
+        )}
+      >
+        <p className="sr-only" aria-live="polite" aria-atomic>
+          {filtered.length} entradas visibles de {list.length} cargadas
+        </p>
+        <div className="space-y-5 pt-1">
       {/* Content */}
       {showGlobalEmpty ? (
         <EmptyState
@@ -540,6 +700,7 @@ export function BitacoraFeed({
               logs={groupLogs}
               departmentId={departmentId}
               searchQuery={search}
+              onFollowupMarked={markFollowupDoneLocal}
             />
           ))}
 
@@ -547,8 +708,8 @@ export function BitacoraFeed({
           <div ref={sentinelRef} className="flex flex-col items-center gap-3 pt-2 pb-4">
             {loadingMore && (
               <>
-                <SkeletonCard />
-                <SkeletonCard />
+                <SkeletonCard seed={0} />
+                <SkeletonCard seed={1} />
                 <div className="flex items-center gap-2 text-xs text-white/30 mt-2">
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
                   Cargando más…
@@ -556,8 +717,21 @@ export function BitacoraFeed({
               </>
             )}
             {/* B16 — explicit load more fallback */}
-            {!loadingMore && more && (
+            {!loadingMore && more && loadMoreError && (
+              <div className="flex flex-col sm:flex-row items-center gap-2 text-center">
+                <p className="text-xs text-amber-400/90">No se pudieron cargar más entradas.</p>
+                <button
+                  type="button"
+                  onClick={() => void loadMore()}
+                  className="px-4 py-2 rounded-lg text-xs text-[#ffeb66] border border-[#ffeb66]/30 hover:bg-[#ffeb66]/10 transition-all duration-200"
+                >
+                  Reintentar
+                </button>
+              </div>
+            )}
+            {!loadingMore && more && !loadMoreError && (
               <button
+                type="button"
                 onClick={() => void loadMore()}
                 className="px-4 py-2 rounded-lg text-xs text-white/50 hover:text-white border border-white/10 hover:border-white/20 bg-white/3 hover:bg-white/6 transition-all duration-200"
               >
@@ -572,18 +746,30 @@ export function BitacoraFeed({
           </div>
         </div>
       )}
+        </div>
+      </div>
 
-      {/* B12 — back to top button */}
-      {showBackToTop && (
-        <button
-          type="button"
-          onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-          className="fixed bottom-6 right-6 z-30 p-3 rounded-full glass-2 border border-white/14 text-white/60 hover:text-white hover:border-white/22 transition-all duration-200 shadow-lg animate-in fade-in zoom-in-90 duration-200"
-          aria-label="Volver al inicio"
-        >
-          <ArrowUp className="w-4 h-4" />
-        </button>
-      )}
+      {/* B12 — volver arriba: portal a body (evita fixed dentro de ancestros con transform) + fondo opaco */}
+      {showBackToTop &&
+        typeof document !== "undefined" &&
+        createPortal(
+          <button
+            type="button"
+            onClick={() =>
+              scrollAreaRef.current?.scrollTo({ top: 0, behavior: "smooth" })
+            }
+            className="bitacora-back-to-top-fab fixed z-[85] p-3 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full border shadow-lg lt-elev-fab animate-in fade-in zoom-in-90 duration-200 text-white/85 hover:text-white hover:brightness-110 border-white/18 bg-[#121a2e] hover:bg-[#161f36] print:hidden"
+            style={{
+              right: "max(1.25rem, env(safe-area-inset-right, 0px))",
+              bottom:
+                "calc(max(1.25rem, env(safe-area-inset-bottom, 0px)) + 4.5rem)",
+            }}
+            aria-label="Volver al inicio"
+          >
+            <ArrowUp className="w-4 h-4" />
+          </button>,
+          document.body
+        )}
     </div>
   );
 }
@@ -595,11 +781,13 @@ function ShiftGroup({
   logs,
   departmentId,
   searchQuery,
+  onFollowupMarked,
 }: {
   groupKey: GroupKey;
   logs: BitacoraFeedLog[];
   departmentId: string;
   searchQuery: string;
+  onFollowupMarked: (id: string) => void;
 }) {
   const storageKey = `bitacora:group:${groupKey.date}:${groupKey.shift}`;
 
@@ -657,7 +845,12 @@ function ShiftGroup({
               className="card-slide-in"
               style={{ animationDelay: `${idx * 45}ms` }}
             >
-              <LogCard log={log} departmentId={departmentId} searchQuery={searchQuery} />
+              <LogCard
+                log={log}
+                departmentId={departmentId}
+                searchQuery={searchQuery}
+                onFollowupMarked={onFollowupMarked}
+              />
             </div>
           ))}
         </div>
@@ -672,10 +865,12 @@ function LogCard({
   log,
   departmentId,
   searchQuery,
+  onFollowupMarked,
 }: {
   log: BitacoraFeedLog;
   departmentId: string;
   searchQuery: string;
+  onFollowupMarked: (id: string) => void;
 }) {
   const router    = useRouter();
   const TypeIcon  = TYPE_ICONS[log.type] ?? Info;
@@ -704,6 +899,8 @@ function LogCard({
         body: JSON.stringify({ followupDone: true }),
       });
       if (!res.ok) throw new Error();
+      onFollowupMarked(log.id);
+      router.refresh();
       toast.success("Seguimiento marcado como atendido");
     } catch {
       toast.error("No se pudo actualizar");

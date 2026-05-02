@@ -76,3 +76,44 @@ export async function PATCH(
 
   return NextResponse.json(updated);
 }
+
+export async function DELETE(
+  _req: NextRequest,
+  { params }: { params: Promise<{ projectId: string }> }
+) {
+  const session = await auth();
+  if (!session?.user)
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const user = session.user as SessionUser;
+  const { projectId } = await params;
+
+  const project = await prisma.project.findFirst({
+    where: { id: projectId, deletedAt: null },
+    select: { id: true, departmentId: true, name: true },
+  });
+  if (!project)
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  const canEdit =
+    user.role === "SUPERADMIN" ||
+    user.role === "ADMIN" ||
+    user.departments.some((d) => d.id === project.departmentId);
+  if (!canEdit)
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+  await prisma.project.update({
+    where: { id: projectId },
+    data: { deletedAt: new Date() },
+  });
+
+  await prisma.projectActivity.create({
+    data: {
+      projectId,
+      userId: user.id,
+      description: `Proyecto eliminado: ${project.name}`,
+    },
+  });
+
+  return NextResponse.json({ success: true });
+}

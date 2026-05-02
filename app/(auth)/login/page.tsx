@@ -15,6 +15,7 @@ import {
 import { Logo } from "@/components/ui/Logo";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { useTheme } from "@/components/layout/ThemeProvider";
 import { APP_ORG, APP_TAGLINE } from "@/lib/app-brand";
 
 /* ── constants ──────────────────────────────────────────────────────────── */
@@ -38,12 +39,29 @@ function isEmailLike(v: string) {
 /* ── sub-components ─────────────────────────────────────────────────────── */
 
 /** Paisaje lejano + silueta muy suave del Teide (Tenerife) al fondo, típica en días claros. */
-function LoginMountainBackdrop({ night }: { night: boolean }) {
-  const fillFar = night ? "rgba(5,12,38,0.42)" : "rgba(4,10,32,0.3)";
-  const fillMid = night ? "rgba(3,6,22,0.72)" : "rgba(2,8,24,0.58)";
-  const fill = night ? "rgba(4,8,28,0.88)" : "rgba(3,10,30,0.74)";
-  const teideFill = night ? "rgba(36, 48, 88, 0.85)" : "rgba(40, 72, 120, 0.7)";
-  const teideOp = night ? 0.48 : 0.34;
+function LoginMountainBackdrop({ night, uiLight }: { night: boolean; uiLight: boolean }) {
+  /* Tema UI claro: una sola familia de tonos oscuros (evita gris “por delante” del Roque negro) */
+  const fillFar = uiLight
+    ? "rgba(5,10,22,0.78)"
+    : night
+      ? "rgba(5,12,38,0.42)"
+      : "rgba(4,10,32,0.3)";
+  const fillMid = uiLight
+    ? "rgba(4,8,18,0.86)"
+    : night
+      ? "rgba(3,6,22,0.72)"
+      : "rgba(2,8,24,0.58)";
+  const fill = uiLight
+    ? "rgba(2,5,12,0.92)"
+    : night
+      ? "rgba(4,8,28,0.88)"
+      : "rgba(3,10,30,0.74)";
+  const teideFill = uiLight
+    ? "rgba(18, 32, 58, 0.55)"
+    : night
+      ? "rgba(36, 48, 88, 0.85)"
+      : "rgba(40, 72, 120, 0.7)";
+  const teideOp = uiLight ? 0.28 : night ? 0.48 : 0.34;
 
   return (
     <svg
@@ -113,26 +131,33 @@ function LoginMountainBackdrop({ night }: { night: boolean }) {
 
 const roqueImg = "/roque-nublo-silhouette-only.svg";
 
-const loginRoqueBand = "min(56vh, 680px)";
+/** Macizo alto para que la silueta llegue abajo, sin tapar todo el cielo (el relleno arriba debe ser transparente) */
+const loginRoqueBand = "min(78vh, 920px)";
 const loginOceanHorizonBottom = "min(46vh, 480px)";
 
-function LoginRoqueSilhouette({ night }: { night: boolean }) {
+function LoginRoqueSilhouette({ night, uiLight }: { night: boolean; uiLight: boolean }) {
+  /* Negro sólido abajo + transparencia arriba: por los huecos del PNG se ve el cielo; #000 opaco en toda la franja tapaba todo */
   const roqueStageBg =
-    "linear-gradient(to top, #010101 0%, #010101 26%, rgba(1,1,1,0.92) 38%, rgba(1,1,1,0.35) 52%, transparent 62%)";
+    "linear-gradient(to top, #000000 0%, #000000 26%, rgba(0,0,0,0.94) 38%, rgba(0,0,0,0.42) 52%, transparent 64%)";
 
   return (
     <div
-      className="pointer-events-none absolute inset-x-0 bottom-0 z-[3] w-full overflow-hidden max-h-[min(82vh,800px)]"
+      className="pointer-events-none absolute inset-x-0 bottom-0 z-[4] w-full overflow-hidden max-h-[min(88vh,960px)]"
       style={{ height: loginRoqueBand, background: roqueStageBg }}
       aria-hidden="true"
     >
       <div className="login-roque-stack relative h-full w-full">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={roqueImg}
-          alt=""
-          className={`login-roque-bloom absolute inset-0 h-full w-full min-w-full max-w-none object-cover object-left-bottom ${night ? "login-roque-bloom-night" : "opacity-90"}`}
-        />
+        {/* Halo borroso: en tema UI claro se omite (evita doble silueta gris) */}
+        {!uiLight && (
+          <>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={roqueImg}
+              alt=""
+              className={`login-roque-bloom absolute inset-0 h-full w-full min-w-full max-w-none object-cover object-left-bottom ${night ? "login-roque-bloom-night" : "opacity-90"}`}
+            />
+          </>
+        )}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={roqueImg}
@@ -144,14 +169,21 @@ function LoginRoqueSilhouette({ night }: { night: boolean }) {
   );
 }
 
-function LoginViewportScene({ night }: { night: boolean }) {
+function LoginViewportScene({ night, uiLight }: { night: boolean; uiLight: boolean }) {
   return (
     <div
       className="login-viewport-scene fixed inset-0 z-0 overflow-hidden pointer-events-none"
       aria-hidden="true"
     >
       <div className={`absolute inset-0 ${night ? "login-bg-night" : "login-bg-day"}`} />
-      {night && <div className="absolute inset-0 login-stars" />}
+      {uiLight && (
+        <div
+          className="login-sky-live absolute inset-0 z-0 pointer-events-none"
+          aria-hidden="true"
+        />
+      )}
+      {/* Estrellas y Vía Láctea / nubes: solo en franja nocturna local (ver isNightHour en la página) */}
+      {night && <div className="absolute inset-0 login-stars" aria-hidden="true" />}
       {night && <div className="absolute inset-0 login-milky-hint" />}
       {night && <div className="login-clouds" aria-hidden="true" />}
       <div
@@ -185,22 +217,34 @@ function LoginViewportScene({ night }: { night: boolean }) {
         }}
       />
       <div className="absolute inset-x-0 bottom-0 z-[1] h-[min(32vh,300px)] w-full min-h-[160px] overflow-hidden">
-        <LoginMountainBackdrop night={night} />
+        <LoginMountainBackdrop night={night} uiLight={uiLight} />
       </div>
       <div
         className="login-macizo-foot pointer-events-none absolute inset-x-0 bottom-0 z-[2] h-3 w-full"
         aria-hidden="true"
       />
-      <LoginRoqueSilhouette night={night} />
-      <OceanWaves night={night} />
+      <LoginRoqueSilhouette night={night} uiLight={uiLight} />
+      <OceanWaves night={night} uiLight={uiLight} />
     </div>
   );
 }
 
-function OceanWaves({ night }: { night: boolean }) {
-  const c1 = night ? "rgba(26, 40, 78, 0.48)" : "rgba(24, 48, 95, 0.4)";
-  const c2 = night ? "rgba(20, 32, 64, 0.4)"  : "rgba(20, 40, 85, 0.34)";
-  const c3 = night ? "rgba(16, 26, 52, 0.34)" : "rgba(16, 34, 72, 0.28)";
+function OceanWaves({ night, uiLight }: { night: boolean; uiLight: boolean }) {
+  const c1 = uiLight
+    ? "rgba(175, 205, 232, 0.42)"
+    : night
+      ? "rgba(26, 40, 78, 0.48)"
+      : "rgba(24, 48, 95, 0.4)";
+  const c2 = uiLight
+    ? "rgba(155, 190, 225, 0.36)"
+    : night
+      ? "rgba(20, 32, 64, 0.4)"
+      : "rgba(20, 40, 85, 0.34)";
+  const c3 = uiLight
+    ? "rgba(135, 175, 215, 0.32)"
+    : night
+      ? "rgba(16, 26, 52, 0.34)"
+      : "rgba(16, 34, 72, 0.28)";
 
   return (
     <div
@@ -279,6 +323,8 @@ function WaveWipe() {
 type LoginPhase = "idle" | "checking" | "redirecting";
 
 export default function LoginPage() {
+  const { theme } = useTheme();
+  const uiLight = theme === "light";
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
   const emailInputRef = useRef<HTMLInputElement>(null);
@@ -289,7 +335,8 @@ export default function LoginPage() {
   const [remember, setRemember]         = useState(false);
   const [error, setError]               = useState<string | null>(null);
   const [microsoftLogin, setMicrosoftLogin] = useState(false);
-  const [night, setNight]               = useState(false);
+  /** null hasta hidratar en cliente; evita parpadeo día↔noche en el primer paint */
+  const [night, setNight]               = useState<boolean | null>(null);
   const [wiping, setWiping]             = useState(false);
 
   /* Sprint 1 state */
@@ -316,9 +363,21 @@ export default function LoginPage() {
     };
   }, []);
 
-  /* day/night */
+  /* Día / noche según la hora real del dispositivo; se actualiza cada minuto y al volver a la pestaña */
   useEffect(() => {
-    startTransition(() => setNight(isNightHour()));
+    function syncNight() {
+      startTransition(() => setNight(isNightHour()));
+    }
+    syncNight();
+    const intervalId = window.setInterval(syncNight, 60_000);
+    function onVisible() {
+      if (document.visibilityState === "visible") syncNight();
+    }
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      window.clearInterval(intervalId);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
   }, []);
 
   /* L14 — session expired message via URL param */
@@ -505,9 +564,9 @@ export default function LoginPage() {
     <div
       data-login-page
       className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden p-4"
-      style={{ backgroundColor: night ? "#060b18" : "#0a1628" }}
+      style={{ backgroundColor: (night ?? false) ? "#060b18" : "#0a1628" }}
     >
-      <LoginViewportScene night={night} />
+      <LoginViewportScene night={night ?? false} uiLight={uiLight} />
       <div className="login-vignette fixed inset-0" aria-hidden="true" />
 
       {/* L5 — ambient cursor parallax light layer */}

@@ -36,6 +36,14 @@ export function slugify(text: string): string {
     .replace(/^-+|-+$/g, "");
 }
 
+/** Normaliza para comparar búsquedas sin depender de mayúsculas ni acentos. */
+export function foldAccentInsensitive(s: string): string {
+  return s
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
 export function getCurrentShift(): "MORNING" | "AFTERNOON" | "NIGHT" {
   const hour = new Date().getHours();
   if (hour >= 6 && hour < 14) return "MORNING";

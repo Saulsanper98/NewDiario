@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Modal } from "@/components/ui/Modal";
 import { Input } from "@/components/ui/Input";
 import type { ConfigPageDepartment } from "@/lib/types/config";
+import { useAccentForUi } from "@/lib/hooks/useAccentForUi";
 
 interface DepartmentsTabProps {
   departments: ConfigPageDepartment[];
@@ -16,6 +17,7 @@ interface DepartmentsTabProps {
 }
 
 export function DepartmentsTab({ departments, isSuperAdmin }: DepartmentsTabProps) {
+  const { accent, withAlpha } = useAccentForUi();
   const router = useRouter();
   const [modalOpen, setModalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -127,11 +129,11 @@ export function DepartmentsTab({ departments, isSuperAdmin }: DepartmentsTabProp
             <div className="flex items-center gap-3">
               <div
                 className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-                style={{ backgroundColor: dept.accentColor + "20" }}
+                style={{ backgroundColor: withAlpha(dept.accentColor, "20") }}
               >
                 <Building2
                   className="w-5 h-5"
-                  style={{ color: dept.accentColor }}
+                  style={{ color: accent(dept.accentColor) }}
                 />
               </div>
               <div>
@@ -153,7 +155,7 @@ export function DepartmentsTab({ departments, isSuperAdmin }: DepartmentsTabProp
               )}
               <div
                 className="w-3 h-3 rounded-full border border-white/20"
-                style={{ backgroundColor: dept.accentColor }}
+                style={{ backgroundColor: accent(dept.accentColor) }}
                 title={`Color: ${dept.accentColor}`}
               />
             </div>

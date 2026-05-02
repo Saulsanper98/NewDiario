@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma/client";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { KeyboardShortcuts } from "@/components/layout/KeyboardShortcuts";
+import { SkipToMain } from "@/components/layout/SkipToMain";
 import { isAdminOrAbove, getActiveDepartmentId } from "@/lib/auth/permissions";
 import type { SessionUser } from "@/lib/auth/types";
 
@@ -29,14 +30,12 @@ export default async function DashboardLayout({
     : 0;
 
   return (
-    <div className="app-dashboard-root flex h-screen overflow-hidden relative">
-      <a href="#main-content" className="skip-to-main">
-        Saltar al contenido
-      </a>
+    <div className="app-dashboard-root flex h-screen overflow-hidden relative print:h-auto print:min-h-0 print:overflow-visible">
+      <SkipToMain />
       <Sidebar user={user} isAdmin={isAdminOrAbove(user)} pendingFollowups={pendingFollowups} />
       <main
         id="main-content"
-        className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-transparent relative z-10"
+        className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-transparent relative z-10 print:h-auto print:min-h-0 print:overflow-visible"
         tabIndex={-1}
       >
         {children}

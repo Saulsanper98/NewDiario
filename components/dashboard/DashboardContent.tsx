@@ -95,6 +95,20 @@ export function DashboardContent({
         </div>
       </div>
 
+      {stats.pendingFollowups > 0 && (
+        <Link
+          href="/bitacora?followup=1"
+          className="flex items-center gap-3 rounded-xl border border-amber-500/25 bg-amber-500/8 px-4 py-3 text-sm text-amber-100/95 hover:bg-amber-500/12 transition-colors"
+        >
+          <AlertTriangle className="w-5 h-5 shrink-0 text-amber-400" aria-hidden />
+          <div className="flex-1 min-w-0">
+            <p className="font-medium text-white">Tienes {stats.pendingFollowups} seguimiento{stats.pendingFollowups === 1 ? "" : "s"} pendiente{stats.pendingFollowups === 1 ? "" : "s"}</p>
+            <p className="text-xs text-white/45 mt-0.5">Revisa la bitácora y marca los seguimientos atendidos.</p>
+          </div>
+          <ArrowRight className="w-4 h-4 shrink-0 text-amber-300/80" aria-hidden />
+        </Link>
+      )}
+
       {/* ── Stats bar ───────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <StatCard
@@ -128,7 +142,7 @@ export function DashboardContent({
           icon={<AlertTriangle className="w-4 h-4" />}
           color={overdueTasks.length > 0 ? "text-red-400" : "text-emerald-400"}
           bg={overdueTasks.length > 0 ? "bg-red-400/8" : "bg-emerald-400/8"}
-          href="/proyectos"
+          href={overdueTasks.length > 0 ? "/proyectos?overdue=1" : "/proyectos"}
           alert={overdueTasks.length > 0}
         />
       </div>
@@ -389,7 +403,9 @@ export function DashboardContent({
                         </div>
                         <span className="text-xs text-white/40 shrink-0 tabular-nums">{progress}%</span>
                       </div>
-                      <p className="text-[10px] text-white/25">{done}/{total} tareas completadas</p>
+                      <p className="text-[10px] text-white/25 tabular-nums">
+                        {done}/{total} tareas completadas
+                      </p>
                     </div>
                   </Link>
                 );
