@@ -419,6 +419,8 @@ model KanbanColumn {
   id        String   @id @default(cuid())
   name      String
   order     Int
+  /** Límite WIP (tareas activas por columna). null = sin límite. */
+  wipLimit  Int?
   color     String?
   projectId String
   createdAt DateTime @default(now())

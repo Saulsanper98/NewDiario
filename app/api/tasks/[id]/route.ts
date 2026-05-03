@@ -86,12 +86,17 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  try {
   const session = await auth();
   if (!session?.user)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;
   const user = session.user as SessionUser;
+  if (!user?.id) {
+    return NextResponse.json({ error: "Sesión inválida" }, { status: 401 });
+  }
+
   const raw = await req.json();
   const parsed = patchTaskSchema.safeParse(raw);
   if (!parsed.success) {
@@ -186,11 +191,40 @@ export async function PATCH(
     return NextResponse.json({ error: "Columna no válida" }, { status: 400 });
   }
 
-  const insertIndex =
-    b.order ??
-    (await prisma.task.count({
-      where: { columnId: targetColumnId, deletedAt: null, NOT: { id } },
-    }));
+  const rawWip = (col as unknown as { wipLimit?: unknown }).wipLimit;
+  const colWipLimit =
+    typeof rawWip === "number" && rawWip > 0 ? rawWip : null;
+
+  if (targetColumnId !== task.columnId) {
+    if (colWipLimit != null) {
+      const destCount = await prisma.task.count({
+        where: {
+          columnId: targetColumnId,
+          deletedAt: null,
+          NOT: { id },
+        },
+      });
+      if (destCount >= colWipLimit) {
+        return NextResponse.json(
+          {
+            error: `La columna «${col.name}» ha alcanzado el límite WIP (${colWipLimit}). Quita una tarea de esa columna antes de mover otra aquí.`,
+          },
+          { status: 409 }
+        );
+      }
+    }
+  }
+
+  const countDest =
+    b.order === undefined
+      ? await prisma.task.count({
+          where: { columnId: targetColumnId, deletedAt: null, NOT: { id } },
+        })
+      : null;
+  const insertIndexRaw = b.order ?? countDest ?? 0;
+  const insertIndex = Number.isFinite(insertIndexRaw)
+    ? insertIndexRaw
+    : 0;
 
   const prevColumnId = task.columnId;
   const movedBetweenColumns = targetColumnId !== prevColumnId;
@@ -257,28 +291,55 @@ export async function PATCH(
   }
 
   if (movedBetweenColumns) {
-    const [oldCol, newCol] = await Promise.all([
-      prisma.kanbanColumn.findUnique({ where: { id: prevColumnId } }),
-      prisma.kanbanColumn.findUnique({ where: { id: targetColumnId } }),
-    ]);
-    await prisma.taskActivity.create({
-      data: {
-        taskId: id,
-        userId: user.id,
-        type: "STATUS_CHANGED",
-        description: `Movido de "${oldCol?.name}" a "${newCol?.name}"`,
-      },
-    });
-    await prisma.projectActivity.create({
-      data: {
-        projectId: task.projectId,
-        userId: user.id,
-        description: `Tarea "${task.title}" movida a "${newCol?.name}"`,
-      },
-    });
+    const activityUserId =
+      typeof user.id === "string" && user.id.length > 0 ? user.id : null;
+    try {
+      const [oldCol, newCol] = await Promise.all([
+        prisma.kanbanColumn.findUnique({
+          where: { id: prevColumnId },
+          select: { name: true },
+        }),
+        prisma.kanbanColumn.findUnique({
+          where: { id: targetColumnId },
+          select: { name: true },
+        }),
+      ]);
+      await prisma.taskActivity.create({
+        data: {
+          taskId: id,
+          userId: activityUserId,
+          type: "STATUS_CHANGED",
+          description: `Movido de "${oldCol?.name ?? "?"}" a "${newCol?.name ?? "?"}"`,
+        },
+      });
+      await prisma.projectActivity.create({
+        data: {
+          projectId: task.projectId,
+          userId: activityUserId,
+          description: `Tarea "${task.title}" movida a "${newCol?.name ?? "?"}"`,
+        },
+      });
+    } catch (logErr) {
+      /* El movimiento ya quedó persistido; el feed de actividad no debe tumbar el PATCH. */
+      console.error("[PATCH /api/tasks/[id]] actividad", logErr);
+    }
   }
 
   return NextResponse.json(updated);
+  } catch (err) {
+    console.error("[PATCH /api/tasks/[id]]", err);
+    const message =
+      err instanceof Error ? err.message : "Error interno del servidor";
+    return NextResponse.json(
+      {
+        error:
+          process.env.NODE_ENV === "development"
+            ? message
+            : "No se pudo actualizar la tarea",
+      },
+      { status: 500 }
+    );
+  }
 }
 
 export async function DELETE(

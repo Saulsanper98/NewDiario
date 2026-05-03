@@ -16,6 +16,10 @@ import {
   AlertTriangle,
   Loader2,
   X,
+  Play,
+  PauseCircle,
+  CheckCircle2,
+  Archive,
 } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
@@ -44,6 +48,13 @@ interface ProjectListProps {
 }
 
 const STATUS_OPTIONS = ["", "ACTIVE", "PAUSED", "COMPLETED", "ARCHIVED"];
+
+const STATUS_ICONS: Record<string, React.ElementType> = {
+  ACTIVE: Play,
+  PAUSED: PauseCircle,
+  COMPLETED: CheckCircle2,
+  ARCHIVED: Archive,
+};
 
 
 function EndDateBadge({ date }: { date: Date }) {
@@ -276,6 +287,7 @@ function ProjectCard({ project, departmentId }: { project: ProjectListRow; depar
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1.5 flex-wrap">
               <Badge className={getStatusColor(project.status)} size="sm">
+                {(() => { const Icon = STATUS_ICONS[project.status]; return Icon ? <Icon className="w-2.5 h-2.5" /> : null; })()}
                 {STATUS_LABELS[project.status as keyof typeof STATUS_LABELS]}
               </Badge>
               <Badge className={getPriorityColor(project.priority)} size="sm">
@@ -351,7 +363,23 @@ function ProjectCard({ project, departmentId }: { project: ProjectListRow; depar
           </div>
           <div className="flex items-center gap-2">
             {project.endDate && <EndDateBadge date={new Date(project.endDate)} />}
-            {owner && <Avatar name={owner.user.name} image={owner.user.image} size="xs" />}
+            {project.members.length > 0 && (
+              <div className="flex items-center">
+                {project.members.slice(0, 3).map((m, i) => (
+                  <div key={m.user.id} title={m.user.name} style={{ marginLeft: i > 0 ? "-5px" : 0 }}>
+                    <Avatar name={m.user.name} image={m.user.image} size="xs" />
+                  </div>
+                ))}
+                {project.members.length > 3 && (
+                  <div
+                    style={{ marginLeft: "-5px" }}
+                    className="w-5 h-5 rounded-full bg-white/10 border border-white/20 flex items-center justify-center"
+                  >
+                    <span className="text-[9px] text-white/50">+{project.members.length - 3}</span>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </Card>
@@ -383,6 +411,7 @@ function ProjectRow({ project, departmentId }: { project: ProjectListRow; depart
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-sm font-medium text-white">{truncate(project.name, 50)}</span>
             <Badge className={getStatusColor(project.status)} size="sm">
+              {(() => { const Icon = STATUS_ICONS[project.status]; return Icon ? <Icon className="w-2.5 h-2.5" /> : null; })()}
               {STATUS_LABELS[project.status as keyof typeof STATUS_LABELS]}
             </Badge>
             <Badge className={getPriorityColor(project.priority)} size="sm">
@@ -411,9 +440,18 @@ function ProjectRow({ project, departmentId }: { project: ProjectListRow; depart
           {project.endDate && <EndDateBadge date={new Date(project.endDate)} />}
         </div>
 
-        {/* Owner */}
-        <div className="shrink-0">
-          {owner && <Avatar name={owner.user.name} image={owner.user.image} size="xs" />}
+        {/* Members */}
+        <div className="shrink-0 flex items-center">
+          {project.members.slice(0, 3).map((m, i) => (
+            <div key={m.user.id} title={m.user.name} style={{ marginLeft: i > 0 ? "-5px" : 0 }}>
+              <Avatar name={m.user.name} image={m.user.image} size="xs" />
+            </div>
+          ))}
+          {project.members.length > 3 && (
+            <div style={{ marginLeft: "-5px" }} className="w-5 h-5 rounded-full bg-white/10 border border-white/20 flex items-center justify-center">
+              <span className="text-[9px] text-white/50">+{project.members.length - 3}</span>
+            </div>
+          )}
         </div>
 
         <ArrowRight className="w-3.5 h-3.5 text-white/20 shrink-0" />

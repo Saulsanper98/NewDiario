@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { X, ClipboardList } from "lucide-react";
+import { X, ClipboardList, Download } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import type { ConfigPageActivityLog } from "@/lib/types/config";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 interface ActivityLogsTabProps {
   logs: ConfigPageActivityLog[];
@@ -19,7 +20,27 @@ export function ActivityLogsTab({ logs }: ActivityLogsTabProps) {
       l.action.toLowerCase().includes(search.toLowerCase())
   );
 
-  const shown = filtered.slice(0, 50);
+  const shown = filtered.slice(0, 100);
+
+  function exportCSV() {
+    const rows = [
+      ["Fecha", "Usuario", "Acción", "Descripción"],
+      ...filtered.map((l) => [
+        new Date(l.createdAt).toLocaleString("es-ES"),
+        l.user?.name ?? "Sistema",
+        l.action,
+        l.description,
+      ]),
+    ];
+    const csv = rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
+    const blob = new Blob([`﻿${csv}`], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `actividad_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
 
   return (
     <div className="space-y-4">
@@ -46,62 +67,84 @@ export function ActivityLogsTab({ logs }: ActivityLogsTabProps) {
         <span className="text-xs text-white/30 shrink-0">
           {search ? `${filtered.length} resultado${filtered.length !== 1 ? "s" : ""}` : `${logs.length} registro${logs.length !== 1 ? "s" : ""}`}
         </span>
+        <button
+          type="button"
+          onClick={exportCSV}
+          title="Exportar CSV"
+          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs text-white/50 hover:text-white border border-white/10 hover:border-white/20 bg-white/3 hover:bg-white/6 transition-all duration-200 ml-auto"
+        >
+          <Download className="w-3.5 h-3.5" />
+          CSV
+        </button>
       </div>
 
       <div className="glass rounded-xl overflow-hidden">
-        <table className="w-full">
-          <thead>
-            <tr className="border-b border-white/8">
-              <th className="text-left px-4 py-3 text-xs font-medium text-white/40">
-                Fecha
-              </th>
-              <th className="text-left px-4 py-3 text-xs font-medium text-white/40">
-                Usuario
-              </th>
-              <th className="text-left px-4 py-3 text-xs font-medium text-white/40">
-                Acción
-              </th>
-              <th className="text-left px-4 py-3 text-xs font-medium text-white/40">
-                Descripción
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {shown.map((log) => (
-              <tr
-                key={log.id}
-                className="border-b border-white/4 hover:bg-white/2 transition-colors"
-              >
-                <td className="px-4 py-3 text-xs text-white/40 whitespace-nowrap">
-                  {formatDate(log.createdAt)}
-                </td>
-                <td className="px-4 py-3 text-xs text-white/60">
-                  {log.user?.name ?? "Sistema"}
-                </td>
-                <td className="px-4 py-3">
-                  <span className="text-xs px-2 py-0.5 rounded-md bg-white/5 text-white/50 border border-white/8 font-mono">
-                    {log.action}
-                  </span>
-                </td>
-                <td className="px-4 py-3 text-xs text-white/50 max-w-xs truncate">
-                  {log.description}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        {filtered.length === 0 && (
-          <div className="py-10 flex flex-col items-center gap-2 text-white/30">
-            <ClipboardList className="w-8 h-8 opacity-30" />
-            <p className="text-sm">
-              {search ? `Sin resultados para "${search}"` : "No hay logs de actividad"}
-            </p>
-          </div>
-        )}
-        {filtered.length > 50 && (
-          <div className="px-4 py-3 border-t border-white/6 text-xs text-white/30 text-center">
-            Mostrando 50 de {filtered.length} registros. Afina la búsqueda para ver más.
-          </div>
+        {filtered.length === 0 ? (
+          <EmptyState
+            compact
+            icon={ClipboardList}
+            title={search ? "Sin resultados" : "No hay actividad registrada"}
+            description={
+              search
+                ? `Ningún log coincide con «${search}». Prueba con otras palabras o revisa la acción buscada.`
+                : "Cuando haya acciones en el sistema (usuarios, proyectos, bitácora…), aparecerán aquí."
+            }
+            secondaryAction={
+              search
+                ? { label: "Limpiar búsqueda", onClick: () => setSearch("") }
+                : undefined
+            }
+            embedded
+          />
+        ) : (
+          <>
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-white/8">
+                  <th className="text-left px-4 py-3 text-xs font-medium text-white/40">
+                    Fecha
+                  </th>
+                  <th className="text-left px-4 py-3 text-xs font-medium text-white/40">
+                    Usuario
+                  </th>
+                  <th className="text-left px-4 py-3 text-xs font-medium text-white/40">
+                    Acción
+                  </th>
+                  <th className="text-left px-4 py-3 text-xs font-medium text-white/40">
+                    Descripción
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {shown.map((log) => (
+                  <tr
+                    key={log.id}
+                    className="border-b border-white/4 hover:bg-white/2 transition-colors"
+                  >
+                    <td className="px-4 py-3 text-xs text-white/40 whitespace-nowrap">
+                      {formatDate(log.createdAt)}
+                    </td>
+                    <td className="px-4 py-3 text-xs text-white/60">
+                      {log.user?.name ?? "Sistema"}
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="text-xs px-2 py-0.5 rounded-md bg-white/5 text-white/50 border border-white/8 font-mono">
+                        {log.action}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-xs text-white/50 max-w-xs truncate">
+                      {log.description}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {filtered.length > 100 && (
+              <div className="px-4 py-3 border-t border-white/6 text-xs text-white/30 text-center">
+                Mostrando 100 de {filtered.length} registros. Afina la búsqueda para ver más.
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>

@@ -314,6 +314,17 @@ export function LogEntryDetail({
     return [...s];
   }, [mentionCandidates, currentUser.name]);
 
+  // ── Highlight own mentions in rich HTML body ──────────────────────────────
+  useEffect(() => {
+    const root = contentRef.current;
+    if (!root) return;
+    root.querySelectorAll<HTMLElement>(".mention-node[data-id]").forEach((el) => {
+      if (el.dataset.id === currentUser.id) {
+        el.classList.add("own-mention");
+      }
+    });
+  }, [currentUser.id, entry.content]);
+
   // ── Effects ───────────────────────────────────────────────────────────────
 
   useEffect(() => {

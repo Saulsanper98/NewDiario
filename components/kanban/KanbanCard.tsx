@@ -114,6 +114,19 @@ export function KanbanCard({ task, onClick }: KanbanCardProps) {
           </div>
         )}
       </div>
+
+      {/* Subtask progress bar */}
+      {totalSubtasks > 0 && (
+        <div className="mt-2.5 h-0.5 bg-white/8 rounded-full overflow-hidden">
+          <div
+            className="h-full rounded-full transition-all duration-500"
+            style={{
+              width: `${(completedSubtasks / totalSubtasks) * 100}%`,
+              backgroundColor: completedSubtasks === totalSubtasks ? "rgb(52,211,153)" : "#ffeb66",
+            }}
+          />
+        </div>
+      )}
     </div>
   );
 }

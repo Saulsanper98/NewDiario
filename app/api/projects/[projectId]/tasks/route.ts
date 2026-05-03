@@ -55,10 +55,25 @@ export async function POST(
 
   const column = await prisma.kanbanColumn.findFirst({
     where: { id: columnId, projectId, project: { deletedAt: null } },
-    select: { id: true, name: true },
   });
   if (!column) {
     return NextResponse.json({ error: "Columna no válida" }, { status: 400 });
+  }
+
+  const rawColumnWip = (column as unknown as { wipLimit?: unknown }).wipLimit;
+  const columnWip =
+    typeof rawColumnWip === "number" && rawColumnWip > 0 ? rawColumnWip : null;
+
+  const tasksInColumn = await prisma.task.count({
+    where: { columnId, deletedAt: null },
+  });
+  if (columnWip != null && tasksInColumn >= columnWip) {
+    return NextResponse.json(
+      {
+        error: `La columna «${column.name}» ha alcanzado el límite WIP (${columnWip} tareas). Mueve o completa tareas antes de añadir más.`,
+      },
+      { status: 409 }
+    );
   }
 
   if (assigneeId) {

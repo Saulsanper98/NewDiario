@@ -2,7 +2,15 @@
 
 import { useState, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Search, UserPlus, Shield, CheckCircle, XCircle } from "lucide-react";
+import {
+  Search,
+  UserPlus,
+  Shield,
+  CheckCircle,
+  XCircle,
+  Download,
+  UserRoundSearch,
+} from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -14,6 +22,7 @@ import type { SessionUser } from "@/lib/auth/types";
 import type { Role } from "@/app/generated/prisma/enums";
 import type { ConfigPageDepartment, ConfigPageUser } from "@/lib/types/config";
 import { useAccentForUi } from "@/lib/hooks/useAccentForUi";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 interface UsersTabProps {
   users: ConfigPageUser[];
@@ -233,6 +242,26 @@ export function UsersTab({
     ? ["OPERATOR", "ADMIN", "SUPERADMIN"]
     : ["OPERATOR", "ADMIN"];
 
+  function exportCSV() {
+    const rows = [
+      ["Nombre", "Email", "Rol", "Departamentos"],
+      ...filtered.map((u) => [
+        u.name,
+        u.email,
+        u.role,
+        u.departments.map((d) => d.department.name).join("; "),
+      ]),
+    ];
+    const csv = rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
+    const blob = new Blob([`﻿${csv}`], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `usuarios_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-3">
@@ -246,6 +275,9 @@ export function UsersTab({
             className="w-full bg-white/5 border border-white/8 rounded-lg pl-9 pr-3 py-2 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-[#ffeb66]/40"
           />
         </div>
+        <Button variant="secondary" size="md" type="button" onClick={exportCSV} title="Exportar CSV">
+          <Download className="w-3.5 h-3.5" />
+        </Button>
         <Button variant="primary" size="md" type="button" onClick={openModal}>
           <UserPlus className="w-3.5 h-3.5" />
           Nuevo usuario
@@ -427,116 +459,130 @@ export function UsersTab({
       </Modal>
 
       <div className="glass rounded-xl overflow-hidden">
-        <table className="w-full">
-          <thead>
-            <tr className="border-b border-white/8">
-              <th className="text-left px-4 py-3 text-xs font-medium text-white/40">
-                Usuario
-              </th>
-              <th className="text-left px-4 py-3 text-xs font-medium text-white/40">
-                Departamento(s)
-              </th>
-              <th className="text-left px-4 py-3 text-xs font-medium text-white/40">
-                Rol
-              </th>
-              <th className="text-left px-4 py-3 text-xs font-medium text-white/40">
-                Estado
-              </th>
-              <th className="px-4 py-3" />
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.map((user) => (
-              <tr
-                key={user.id}
-                className="border-b border-white/4 hover:bg-white/2 transition-colors"
-              >
-                <td className="px-4 py-3">
-                  <div className="flex items-center gap-2.5">
-                    <Avatar name={user.name} image={user.image} size="sm" />
-                    <div>
-                      <p className="text-sm font-medium text-white">
-                        {user.name}
-                      </p>
-                      <p className="text-xs text-white/40">{user.email}</p>
-                    </div>
-                  </div>
-                </td>
-                <td className="px-4 py-3">
-                  <div className="flex flex-wrap gap-1">
-                    {user.departments.slice(0, 2).map((ud) => (
-                      <span
-                        key={ud.id}
-                        className="text-xs px-1.5 py-0.5 rounded border"
-                        style={{
-                          borderColor: withAlpha(ud.department.accentColor, "30"),
-                          color: accent(ud.department.accentColor),
-                          backgroundColor: withAlpha(ud.department.accentColor, "10"),
-                        }}
-                      >
-                        {ud.department.name}
-                      </span>
-                    ))}
-                    {user.departments.length > 2 && (
-                      <span className="text-xs text-white/30">
-                        +{user.departments.length - 2}
-                      </span>
-                    )}
-                  </div>
-                </td>
-                <td className="px-4 py-3">
-                  <div className="flex items-center gap-1.5">
-                    {user.role === "SUPERADMIN" && (
-                      <Shield className="w-3 h-3 text-[#ffeb66]" />
-                    )}
-                    <span className="text-xs text-white/60">
-                      {ROLE_LABELS[user.role as keyof typeof ROLE_LABELS]}
-                    </span>
-                  </div>
-                </td>
-                <td className="px-4 py-3">
-                  <Badge
-                    variant={user.isActive ? "success" : "error"}
-                    size="sm"
-                  >
-                    {user.isActive ? (
-                      <CheckCircle className="w-3 h-3" />
-                    ) : (
-                      <XCircle className="w-3 h-3" />
-                    )}
-                    {user.isActive ? "Activo" : "Inactivo"}
-                  </Badge>
-                </td>
-                <td className="px-4 py-3">
-                  {user.id !== currentUser.id && (
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        type="button"
-                        onClick={() => openEdit(user)}
-                      >
-                        Editar
-                      </Button>
-                      <Button
-                        variant="danger"
-                        size="sm"
-                        type="button"
-                        onClick={() => toggleActive(user.id, user.isActive)}
-                      >
-                        {user.isActive ? "Desactivar" : "Activar"}
-                      </Button>
-                    </div>
-                  )}
-                </td>
+        {filtered.length === 0 ? (
+          <EmptyState
+            compact
+            icon={UserRoundSearch}
+            title="No hay usuarios que mostrar"
+            description={
+              search
+                ? `Ningún nombre ni email coincide con «${search}».`
+                : "No hay usuarios que coincidan con los criterios actuales."
+            }
+            secondaryAction={
+              search
+                ? { label: "Limpiar búsqueda", onClick: () => setSearch("") }
+                : undefined
+            }
+            embedded
+          />
+        ) : (
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-white/8">
+                <th className="text-left px-4 py-3 text-xs font-medium text-white/40">
+                  Usuario
+                </th>
+                <th className="text-left px-4 py-3 text-xs font-medium text-white/40">
+                  Departamento(s)
+                </th>
+                <th className="text-left px-4 py-3 text-xs font-medium text-white/40">
+                  Rol
+                </th>
+                <th className="text-left px-4 py-3 text-xs font-medium text-white/40">
+                  Estado
+                </th>
+                <th className="px-4 py-3" />
               </tr>
-            ))}
-          </tbody>
-        </table>
-        {filtered.length === 0 && (
-          <div className="py-8 text-center text-sm text-white/30">
-            No se encontraron usuarios
-          </div>
+            </thead>
+            <tbody>
+              {filtered.map((user) => (
+                <tr
+                  key={user.id}
+                  className="border-b border-white/4 hover:bg-white/2 transition-colors"
+                >
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-2.5">
+                      <Avatar name={user.name} image={user.image} size="sm" />
+                      <div>
+                        <p className="text-sm font-medium text-white">
+                          {user.name}
+                        </p>
+                        <p className="text-xs text-white/40">{user.email}</p>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex flex-wrap gap-1">
+                      {user.departments.slice(0, 2).map((ud) => (
+                        <span
+                          key={ud.id}
+                          className="text-xs px-1.5 py-0.5 rounded border"
+                          style={{
+                            borderColor: withAlpha(ud.department.accentColor, "30"),
+                            color: accent(ud.department.accentColor),
+                            backgroundColor: withAlpha(ud.department.accentColor, "10"),
+                          }}
+                        >
+                          {ud.department.name}
+                        </span>
+                      ))}
+                      {user.departments.length > 2 && (
+                        <span className="text-xs text-white/30">
+                          +{user.departments.length - 2}
+                        </span>
+                      )}
+                    </div>
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-1.5">
+                      {user.role === "SUPERADMIN" && (
+                        <Shield className="w-3 h-3 text-[#ffeb66]" />
+                      )}
+                      <span className="text-xs text-white/60">
+                        {ROLE_LABELS[user.role as keyof typeof ROLE_LABELS]}
+                      </span>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3">
+                    <Badge
+                      variant={user.isActive ? "success" : "error"}
+                      size="sm"
+                    >
+                      {user.isActive ? (
+                        <CheckCircle className="w-3 h-3" />
+                      ) : (
+                        <XCircle className="w-3 h-3" />
+                      )}
+                      {user.isActive ? "Activo" : "Inactivo"}
+                    </Badge>
+                  </td>
+                  <td className="px-4 py-3">
+                    {user.id !== currentUser.id && (
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          type="button"
+                          onClick={() => openEdit(user)}
+                        >
+                          Editar
+                        </Button>
+                        <Button
+                          variant="danger"
+                          size="sm"
+                          type="button"
+                          onClick={() => toggleActive(user.id, user.isActive)}
+                        >
+                          {user.isActive ? "Desactivar" : "Activar"}
+                        </Button>
+                      </div>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         )}
       </div>
     </div>

@@ -5,8 +5,14 @@ import { hasProjectAccess } from "@/lib/auth/permissions";
 import type { SessionUser } from "@/lib/auth/types";
 import { z } from "zod";
 
+const columnUpdateSchema = z.object({
+  id: z.string().min(1),
+  order: z.number().int().min(0).optional(),
+  wipLimit: z.union([z.number().int().min(1).max(500), z.null()]).optional(),
+});
+
 const reorderSchema = z.object({
-  columns: z.array(z.object({ id: z.string().min(1), order: z.number().int().min(0) })).min(1),
+  columns: z.array(columnUpdateSchema).min(1),
 });
 
 export async function PATCH(
@@ -34,14 +40,22 @@ export async function PATCH(
   if (!parsed.success)
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
 
-  await prisma.$transaction(
-    parsed.data.columns.map(({ id, order }) =>
-      prisma.kanbanColumn.updateMany({
+  const ops = parsed.data.columns
+    .map(({ id, order, wipLimit }) => {
+      const data: { order?: number; wipLimit?: number | null } = {};
+      if (order !== undefined) data.order = order;
+      if (wipLimit !== undefined) data.wipLimit = wipLimit;
+      if (Object.keys(data).length === 0) return null;
+      return prisma.kanbanColumn.updateMany({
         where: { id, projectId },
-        data: { order },
-      })
-    )
-  );
+        data,
+      });
+    })
+    .filter((x): x is NonNullable<typeof x> => x != null);
+
+  if (ops.length > 0) {
+    await prisma.$transaction(ops);
+  }
 
   return NextResponse.json({ ok: true });
 }

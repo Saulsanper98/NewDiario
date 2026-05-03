@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma/client";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { KeyboardShortcuts } from "@/components/layout/KeyboardShortcuts";
 import { SkipToMain } from "@/components/layout/SkipToMain";
+import { MobileNav } from "@/components/layout/MobileNav";
 import { isAdminOrAbove, getActiveDepartmentId } from "@/lib/auth/permissions";
 import type { SessionUser } from "@/lib/auth/types";
 
@@ -41,6 +42,7 @@ export default async function DashboardLayout({
         {children}
       </main>
       <KeyboardShortcuts />
+      <MobileNav />
     </div>
   );
 }

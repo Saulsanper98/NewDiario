@@ -130,8 +130,8 @@ export function Sidebar({ user, isAdmin, pendingFollowups = 0 }: SidebarProps) {
             <Link
               key={item.href}
               href={item.href}
-              aria-label={collapsed ? item.label : undefined}
-              title={collapsed ? item.label : undefined}
+              aria-label={collapsed ? (badge > 0 ? `${item.label} — ${badge} seguimiento${badge !== 1 ? "s" : ""} pendiente${badge !== 1 ? "s" : ""}` : item.label) : undefined}
+              title={collapsed ? (badge > 0 ? `${item.label} — ${badge} seguimiento${badge !== 1 ? "s" : ""} pendiente${badge !== 1 ? "s" : ""}` : item.label) : (badge > 0 ? `${badge} seguimiento${badge !== 1 ? "s" : ""} pendiente${badge !== 1 ? "s" : ""}` : undefined)}
               className={cn(
                 "relative flex items-center gap-3 rounded-lg text-sm font-medium transition-all duration-200",
                 active
@@ -185,7 +185,7 @@ export function Sidebar({ user, isAdmin, pendingFollowups = 0 }: SidebarProps) {
       {/* User section */}
       <div className="p-3 border-t border-white/8 shrink-0">
         {!collapsed && (
-          <div className="flex items-center gap-2.5 mb-2 px-1">
+          <div className="flex items-center gap-2.5 mb-1 px-1">
             <Avatar name={user.name} image={user.image} size="sm" />
             <div className="flex-1 min-w-0">
               <p className="text-xs font-semibold text-white truncate">
@@ -195,6 +195,20 @@ export function Sidebar({ user, isAdmin, pendingFollowups = 0 }: SidebarProps) {
             </div>
           </div>
         )}
+        {/* Active department indicator */}
+        {!collapsed && (() => {
+          const activeDept = user.departments.find(d => d.id === user.activeDepartmentId);
+          if (!activeDept) return null;
+          return (
+            <div className="flex items-center gap-1.5 px-1 mb-2">
+              <span
+                className="w-1.5 h-1.5 rounded-full shrink-0"
+                style={{ backgroundColor: activeDept.accentColor }}
+              />
+              <span className="text-[10px] text-white/35 truncate">{activeDept.name}</span>
+            </div>
+          );
+        })()}
         <button
           type="button"
           disabled={signingOut}

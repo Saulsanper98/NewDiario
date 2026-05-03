@@ -480,6 +480,14 @@ html:not([data-theme="light"]) .ProseMirror mark {
   color: #93c5fd !important;
 }
 
+/* Own-mention highlight — added via JS in LogEntryDetail */
+.own-mention {
+  color: #ffeb66 !important;
+  background-color: rgba(255, 235, 102, 0.12) !important;
+  border-radius: 3px;
+  padding: 0 2px;
+}
+
 /* Task list — editor (.ProseMirror) y HTML renderizado (.prose en detalle nota / preview) */
 .ProseMirror ul[data-type="taskList"],
 .prose ul[data-type="taskList"] {
@@ -1533,6 +1541,79 @@ textarea:focus ~ .input-focus-bar {
   .animate-in {
     animation-duration: 0.01ms !important;
   }
+}
+
+/* ── Widget fade-in stagger (Dashboard) ──────────────────────────────────── */
+@keyframes widget-fade-up {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.widget-appear {
+  animation: widget-fade-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Badge count-change pop */
+@keyframes badge-pop {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.35); }
+  70%  { transform: scale(0.95); }
+  100% { transform: scale(1); }
+}
+.badge-pop-animate {
+  animation: badge-pop 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .widget-appear {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+  .badge-pop-animate {
+    animation: none !important;
+  }
+}
+
+/* ── Mobile bottom navigation ─────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .mobile-bottom-nav {
+    display: flex;
+  }
+  .app-sidebar-shell {
+    display: none !important;
+  }
+  #main-content {
+    padding-bottom: 4rem; /* space for bottom nav */
+  }
+}
+@media (min-width: 641px) {
+  .mobile-bottom-nav {
+    display: none !important;
+  }
+}
+
+/* ── Traspaso print styles ─────────────────────────────────────────────────── */
+@media print {
+  .traspaso-print-header {
+    border-bottom: 2px solid #333;
+    padding-bottom: 8px;
+    margin-bottom: 16px;
+  }
+  .glass, .glass-2, .glass-3, .glass-4 {
+    background: #fff !important;
+    border: 1px solid #ddd !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+  }
+  .text-white { color: #111 !important; }
+  .text-white\/40, .text-white\/45, .text-white\/50, .text-white\/55, .text-white\/60 {
+    color: #555 !important;
+  }
+  .text-white\/30, .text-white\/25 { color: #777 !important; }
+  .border-white\/8, .border-white\/10, .border-white\/12, .border-white\/14 {
+    border-color: #e5e5e5 !important;
+  }
+  .bg-white\/5, .bg-white\/6, .bg-white\/4 { background: #f8f8f8 !important; }
 }
 
 /* ── Impresión / PDF (navegador: Ctrl+P → Guardar como PDF) ───────────────── */

@@ -4,13 +4,14 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
 import toast from "react-hot-toast";
-import { Bell, ChevronDown, Check, X, Loader2 } from "lucide-react";
+import { Bell, ChevronDown, Check, X, Loader2, WifiOff } from "lucide-react";
 import Link from "next/link";
 import { Avatar } from "@/components/ui/Avatar";
 import { CommandPalette } from "@/components/layout/CommandPalette";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import type { SessionUser } from "@/lib/auth/types";
 import { useAccentForUi } from "@/lib/hooks/useAccentForUi";
+import { cn } from "@/lib/utils";
 
 interface HeaderProps {
   user: SessionUser;
@@ -152,8 +153,27 @@ export function Header({ user, breadcrumb }: HeaderProps) {
   const crumbs = breadcrumb?.length ? breadcrumb : null;
   const lastCrumb = crumbs?.length ? crumbs[crumbs.length - 1] : null;
 
+  const [isOffline, setIsOffline] = useState(false);
+  useEffect(() => {
+    const update = () => setIsOffline(!navigator.onLine);
+    update();
+    window.addEventListener("online", update);
+    window.addEventListener("offline", update);
+    return () => {
+      window.removeEventListener("online", update);
+      window.removeEventListener("offline", update);
+    };
+  }, []);
+
   return (
-    <header className="h-16 app-top-header flex items-center gap-4 px-6 shrink-0 print:hidden">
+    <>
+    {isOffline && (
+      <div className="fixed top-0 left-0 right-0 z-[500] flex items-center justify-center gap-2 bg-amber-500/95 text-amber-950 text-xs font-semibold py-1.5 px-4 print:hidden">
+        <WifiOff className="w-3.5 h-3.5 shrink-0" />
+        Sin conexión — Los cambios no se guardarán hasta que vuelva la conexión
+      </div>
+    )}
+    <header className={cn("h-16 app-top-header flex items-center gap-4 px-6 shrink-0 print:hidden", isOffline ? "mt-7" : "")}>
       <nav className="flex-1 flex items-center gap-2 min-w-0" aria-label="Migas de pan">
         {crumbs ? (
           crumbs.map((item, i) => (
@@ -385,5 +405,6 @@ export function Header({ user, breadcrumb }: HeaderProps) {
       {/* Avatar */}
       <Avatar name={user.name} image={user.image} size="sm" />
     </header>
+    </>
   );
 }

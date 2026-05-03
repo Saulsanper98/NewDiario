@@ -11,7 +11,10 @@
       "Bash(grep -v \"^Effects\\\\|^$\\\\|^\\\\*\\\\|^Calling\\\\|^$\\\\|^Update\\\\|^Subscribe\\\\|^C:.*cc-ops$\")",
       "Bash(python3 -c ' *)",
       "Bash(python3 *)",
-      "Bash(grep -v \"//.*<button\")"
+      "Bash(grep -v \"//.*<button\")",
+      "Bash(Get-ChildItem -Path \"C:\\\\Saul Web\\\\NewDiario\\\\NewDiario\" -Recurse -Force)",
+      "Bash(Select-Object FullName, PSIsContainer)",
+      "Bash(ConvertTo-Json)"
     ]
   }
 }

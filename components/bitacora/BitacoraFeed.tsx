@@ -31,6 +31,8 @@ import {
   Copy,
   Search,
   User,
+  List,
+  LayoutList,
 } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { Avatar } from "@/components/ui/Avatar";
@@ -88,6 +90,12 @@ function formatGroupDate(date: Date): string {
   if (isToday(date))     return "Hoy";
   if (isYesterday(date)) return "Ayer";
   return format(date, "EEEE d 'de' MMMM", { locale: es });
+}
+
+function tagHue(name: string): number {
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) & 0xffff;
+  return h % 360;
 }
 
 /* B18 — highlight search term in text */
@@ -184,6 +192,7 @@ export function BitacoraFeed({
   const [nextPage,      setNextPage]      = useState(2);
   const [loadingMore,   setLoadingMore]   = useState(false);
   const [loadMoreError, setLoadMoreError] = useState(false);
+  const [compactView,   setCompactView]   = useState(false);
 
   /* B12 — back to top */
   const [showBackToTop, setShowBackToTop] = useState(false);
@@ -494,6 +503,22 @@ export function BitacoraFeed({
             {sortDesc ? <SortDesc className="w-3.5 h-3.5" /> : <SortAsc className="w-3.5 h-3.5" />}
           </button>
 
+          {/* Compact view toggle */}
+          <button
+            type="button"
+            onClick={() => setCompactView((v) => !v)}
+            title={compactView ? "Vista normal" : "Vista compacta"}
+            aria-label={compactView ? "Vista normal" : "Vista compacta"}
+            className={cn(
+              "p-1.5 rounded-md transition-all duration-150",
+              compactView
+                ? "bg-[#ffeb66]/12 text-[#ffeb66]"
+                : "text-white/40 hover:text-white hover:bg-white/6"
+            )}
+          >
+            {compactView ? <List className="w-3.5 h-3.5" /> : <LayoutList className="w-3.5 h-3.5" />}
+          </button>
+
           {anyFilter && (
             <button
               type="button"
@@ -700,6 +725,7 @@ export function BitacoraFeed({
               logs={groupLogs}
               departmentId={departmentId}
               searchQuery={search}
+              compact={compactView}
               onFollowupMarked={markFollowupDoneLocal}
             />
           ))}
@@ -781,12 +807,14 @@ function ShiftGroup({
   logs,
   departmentId,
   searchQuery,
+  compact = false,
   onFollowupMarked,
 }: {
   groupKey: GroupKey;
   logs: BitacoraFeedLog[];
   departmentId: string;
   searchQuery: string;
+  compact?: boolean;
   onFollowupMarked: (id: string) => void;
 }) {
   const storageKey = `bitacora:group:${groupKey.date}:${groupKey.shift}`;
@@ -838,7 +866,7 @@ function ShiftGroup({
 
       {/* Cards with B3 stagger */}
       {!collapsed && (
-        <div className="flex flex-col gap-5">
+        <div className={cn("flex flex-col", compact ? "gap-1.5" : "gap-5")}>
           {logs.map((log, idx) => (
             <div
               key={log.id}
@@ -849,6 +877,7 @@ function ShiftGroup({
                 log={log}
                 departmentId={departmentId}
                 searchQuery={searchQuery}
+                compact={compact}
                 onFollowupMarked={onFollowupMarked}
               />
             </div>
@@ -865,11 +894,13 @@ function LogCard({
   log,
   departmentId,
   searchQuery,
+  compact = false,
   onFollowupMarked,
 }: {
   log: BitacoraFeedLog;
   departmentId: string;
   searchQuery: string;
+  compact?: boolean;
   onFollowupMarked: (id: string) => void;
 }) {
   const router    = useRouter();
@@ -913,6 +944,8 @@ function LogCard({
     .trim()
     .slice(0, 160);
 
+  const srcDeptColor = sharedFrom ? log.department.accentColor : null;
+
   return (
     /* B14 — relative container for hover actions */
     <div className="relative group/card">
@@ -920,79 +953,125 @@ function LogCard({
         <Card
           hover
           className={cn(
-            "p-5 sm:p-6 border-l-[3px]",
+            "border-l-[3px]",
+            compact ? "py-2.5 px-4" : "p-5 sm:p-6",
             typeBorder,
             isUrgent ? "urgent-card-pulse" : "",
-            /* B9 — shared entries subtle distinction */
-            sharedFrom ? "bg-blue-500/[0.025] border-r border-r-blue-400/15" : ""
+            sharedFrom ? "border-r-2" : ""
           )}
+          style={srcDeptColor ? { borderRightColor: `${srcDeptColor}60` } : undefined}
         >
-          <div className="flex items-start gap-4">
-            <Avatar name={log.author.name} image={log.author.image} size="md" />
-
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 flex-wrap mb-1">
-                <span className={`font-semibold text-sm ${isUrgent ? "text-red-300" : "text-white"}`}>
-                  {/* B18 — highlight search term */}
-                  <HighlightText text={truncate(log.title, 60)} query={searchQuery} />
+          {compact ? (
+            /* ── Compact single-row layout ── */
+            <div className="flex items-center gap-3 min-w-0">
+              <TypeIcon className={cn("w-3.5 h-3.5 shrink-0", isUrgent ? "text-red-400" : "text-white/35")} />
+              <span className={cn("flex-1 font-medium text-sm truncate min-w-0", isUrgent ? "text-red-300" : "text-white/85")}>
+                <HighlightText text={truncate(log.title, 60)} query={searchQuery} />
+              </span>
+              {log.requiresFollowup && !log.followupDone && (
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-400/12 text-amber-400 border border-amber-400/20 shrink-0">Seg.</span>
+              )}
+              <span className="text-xs text-white/35 shrink-0 hidden sm:block">{log.author.name}</span>
+              <span
+                className="text-xs text-white/25 shrink-0"
+                title={new Date(log.createdAt).toLocaleString("es-ES", { dateStyle: "full", timeStyle: "short" })}
+              >
+                {formatRelative(log.createdAt)}
+              </span>
+              {log._count.comments > 0 && (
+                <span className="flex items-center gap-0.5 text-[10px] text-white/25 shrink-0">
+                  <MessageSquare className="w-3 h-3" />
+                  {log._count.comments}
                 </span>
-                <Badge className={getTypeColor(log.type)} size="sm">
-                  <TypeIcon className="w-3 h-3" />
-                  {TYPE_LABELS[log.type as keyof typeof TYPE_LABELS]}
-                </Badge>
-                {log.requiresFollowup && (
-                  <Badge variant={log.followupDone ? "success" : "warning"} size="sm">
-                    {log.followupDone ? "Atendido" : "Seguimiento"}
-                  </Badge>
-                )}
-                {sharedFrom && log.shares?.[0] && (
-                  <Badge variant="info" size="sm">
-                    Compartido
-                  </Badge>
-                )}
-              </div>
+              )}
+            </div>
+          ) : (
+            /* ── Normal layout ── */
+            <div className="flex items-start gap-4">
+              <Avatar name={log.author.name} image={log.author.image} size="md" />
 
-              <p className="text-sm text-white/45 line-clamp-2 mb-2">
-                <HighlightText text={plainContent} query={searchQuery} />
-              </p>
-
-              {log.tags.length > 0 && (
-                <div className="flex gap-1.5 flex-wrap mb-2">
-                  {log.tags.slice(0, 4).map((tag) => (
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap mb-1">
+                  <span className={`font-semibold text-sm ${isUrgent ? "text-red-300" : "text-white"}`}>
+                    <HighlightText text={truncate(log.title, 60)} query={searchQuery} />
+                  </span>
+                  <Badge className={getTypeColor(log.type)} size="sm">
+                    <TypeIcon className="w-3 h-3" />
+                    {TYPE_LABELS[log.type as keyof typeof TYPE_LABELS]}
+                  </Badge>
+                  {log.requiresFollowup && (
+                    <Badge variant={log.followupDone ? "success" : "warning"} size="sm">
+                      {log.followupDone ? "Atendido" : "Seguimiento"}
+                    </Badge>
+                  )}
+                  {sharedFrom && (
                     <span
-                      key={tag.id}
-                      className="text-xs px-1.5 py-0.5 rounded bg-white/5 text-white/40 border border-white/8 max-w-[120px] truncate"
+                      className="text-[10px] font-medium px-1.5 py-0.5 rounded-full border shrink-0"
+                      style={{
+                        color: log.department.accentColor,
+                        backgroundColor: `${log.department.accentColor}18`,
+                        borderColor: `${log.department.accentColor}35`,
+                      }}
                     >
-                      #{tag.name}
+                      ↗ {log.department.name}
                     </span>
-                  ))}
-                  {log.tags.length > 4 && (
-                    <span className="text-xs text-white/25">+{log.tags.length - 4} más</span>
                   )}
                 </div>
-              )}
 
-              <div className="flex items-center gap-3 text-xs text-white/30">
-                <span className="font-medium text-white/40">{log.author.name}</span>
-                <span>·</span>
-                <span className="flex items-center gap-1">
-                  <Clock className="w-3 h-3" />
-                  {SHIFT_LABELS[log.shift as keyof typeof SHIFT_LABELS]}
-                </span>
-                <span>·</span>
-                <span>{formatRelative(log.createdAt)}</span>
-                {log._count.comments > 0 && (
-                  <>
-                    <span>·</span>
-                    <span className="flex items-center gap-1">
-                      <MessageSquare className="w-3 h-3" />
-                      {log._count.comments}
-                    </span>
-                  </>
+                <p className="text-sm text-white/45 line-clamp-2 mb-2">
+                  <HighlightText text={plainContent} query={searchQuery} />
+                </p>
+
+                {log.tags.length > 0 && (
+                  <div className="flex gap-1.5 flex-wrap mb-2">
+                    {log.tags.slice(0, 4).map((tag) => {
+                      const hue = tagHue(tag.name);
+                      return (
+                        <span
+                          key={tag.id}
+                          className="text-xs px-1.5 py-0.5 rounded border max-w-[120px] truncate"
+                          style={{
+                            backgroundColor: `hsl(${hue},55%,15%)`,
+                            color: `hsl(${hue},70%,65%)`,
+                            borderColor: `hsl(${hue},45%,28%)`,
+                          }}
+                        >
+                          #{tag.name}
+                        </span>
+                      );
+                    })}
+                    {log.tags.length > 4 && (
+                      <span className="text-xs text-white/25">+{log.tags.length - 4} más</span>
+                    )}
+                  </div>
                 )}
+
+                <div className="flex items-center gap-3 text-xs text-white/30">
+                  <span className="font-medium text-white/40">{log.author.name}</span>
+                  <span>·</span>
+                  <span className="flex items-center gap-1">
+                    <Clock className="w-3 h-3" />
+                    {SHIFT_LABELS[log.shift as keyof typeof SHIFT_LABELS]}
+                  </span>
+                  <span>·</span>
+                  <span
+                    title={new Date(log.createdAt).toLocaleString("es-ES", { dateStyle: "full", timeStyle: "short" })}
+                  >
+                    {formatRelative(log.createdAt)}
+                  </span>
+                  {log._count.comments > 0 && (
+                    <>
+                      <span>·</span>
+                      <span className="flex items-center gap-1">
+                        <MessageSquare className="w-3 h-3" />
+                        {log._count.comments}
+                      </span>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
+          )}
         </Card>
       </Link>
 

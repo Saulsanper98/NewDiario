@@ -14,10 +14,31 @@ import {
   ArrowLeftRight,
   Plus,
   CalendarDays,
+  Clock,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useFocusTrap } from "@/lib/hooks/useFocusTrap";
 import { paletteShortcutLabel } from "@/lib/platform-kbd";
+
+const RECENT_KEY = "cc-ops-palette-recent";
+const MAX_RECENT = 5;
+
+type RecentItem = { label: string; href: string; type: "log" | "task" | "project" | "nav" };
+
+function getRecent(): RecentItem[] {
+  try {
+    const raw = localStorage.getItem(RECENT_KEY);
+    return raw ? (JSON.parse(raw) as RecentItem[]) : [];
+  } catch { return []; }
+}
+
+function pushRecent(item: RecentItem) {
+  try {
+    const list = getRecent().filter((r) => r.href !== item.href);
+    list.unshift(item);
+    localStorage.setItem(RECENT_KEY, JSON.stringify(list.slice(0, MAX_RECENT)));
+  } catch { /* ignore */ }
+}
 
 type SearchPayload = {
   logs: {
@@ -48,6 +69,7 @@ export function CommandPalette({
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<SearchPayload | null>(null);
   const [kbdHint, setKbdHint] = useState("Ctrl+K");
+  const [recent, setRecent] = useState<RecentItem[]>([]);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -58,6 +80,7 @@ export function CommandPalette({
 
   useEffect(() => {
     setPortalReady(true);
+    setRecent(getRecent());
   }, []);
 
   useEffect(() => {
@@ -136,7 +159,11 @@ export function CommandPalette({
     };
   }, [query, open, fetchSearch]);
 
-  function go(href: string) {
+  function go(href: string, item?: RecentItem) {
+    if (item) {
+      pushRecent(item);
+      setRecent(getRecent());
+    }
     closePalette();
     router.push(href);
   }
@@ -224,6 +251,25 @@ export function CommandPalette({
                 )}
               </div>
               <Command.List className="max-h-[min(50vh,420px)] overflow-y-auto bg-[#0a0f1e] p-2">
+                {query.trim().length === 0 && recent.length > 0 && (
+                  <Command.Group
+                    heading="Recientes"
+                    className="text-[11px] font-medium text-white/35 uppercase tracking-wide px-2 pt-2 pb-1"
+                  >
+                    {recent.map((item) => (
+                      <Command.Item
+                        key={item.href}
+                        value={`recent-${item.href}`}
+                        onSelect={() => go(item.href)}
+                        className="flex items-center gap-2 px-2 py-2 rounded-lg cursor-pointer text-sm text-white/70 data-[selected=true]:bg-white/10 data-[selected=true]:border-l-2 data-[selected=true]:border-[#ffeb66] data-[selected=true]:pl-[6px]"
+                      >
+                        <Clock className="w-3.5 h-3.5 text-white/25 shrink-0" />
+                        <span className="truncate">{item.label}</span>
+                      </Command.Item>
+                    ))}
+                  </Command.Group>
+                )}
+
                 {query.trim().length === 0 && (
                   <Command.Group
                     heading="Ir a"
@@ -246,7 +292,7 @@ export function CommandPalette({
                         <Command.Item
                           key={item.href}
                           value={item.label}
-                          onSelect={() => go(item.href)}
+                          onSelect={() => go(item.href, { label: item.label, href: item.href, type: "nav" })}
                           className="flex items-center gap-2 px-2 py-2 rounded-lg cursor-pointer text-sm text-white/80 data-[selected=true]:bg-white/10 data-[selected=true]:border-l-2 data-[selected=true]:border-[#ffeb66] data-[selected=true]:pl-[6px]"
                         >
                           <Icon className="w-4 h-4 text-white/40 shrink-0" />
@@ -282,7 +328,7 @@ export function CommandPalette({
                       <Command.Item
                         key={log.id}
                         value={`log-${log.id}`}
-                        onSelect={() => go(`/bitacora/${log.id}`)}
+                        onSelect={() => go(`/bitacora/${log.id}`, { label: log.title, href: `/bitacora/${log.id}`, type: "log" })}
                         className="flex items-center gap-2 px-2 py-2 rounded-lg cursor-pointer text-sm text-white/80 data-[selected=true]:bg-white/10 data-[selected=true]:border-l-2 data-[selected=true]:border-[#ffeb66] data-[selected=true]:pl-[6px]"
                       >
                         <BookOpen className="w-4 h-4 text-[#ffeb66]/70 shrink-0" />
@@ -306,7 +352,7 @@ export function CommandPalette({
                       <Command.Item
                         key={t.id}
                         value={`task-${t.id}`}
-                        onSelect={() => go(`/proyectos/${t.projectId}`)}
+                        onSelect={() => go(`/proyectos/${t.projectId}`, { label: t.title, href: `/proyectos/${t.projectId}`, type: "task" })}
                         className="flex items-center gap-2 px-2 py-2 rounded-lg cursor-pointer text-sm text-white/80 data-[selected=true]:bg-white/10 data-[selected=true]:border-l-2 data-[selected=true]:border-[#ffeb66] data-[selected=true]:pl-[6px]"
                       >
                         <CheckSquare className="w-4 h-4 text-[#4a9eff]/80 shrink-0" />
@@ -330,7 +376,7 @@ export function CommandPalette({
                       <Command.Item
                         key={p.id}
                         value={`proj-${p.id}`}
-                        onSelect={() => go(`/proyectos/${p.id}`)}
+                        onSelect={() => go(`/proyectos/${p.id}`, { label: p.name, href: `/proyectos/${p.id}`, type: "project" })}
                         className="flex items-center gap-2 px-2 py-2 rounded-lg cursor-pointer text-sm text-white/80 data-[selected=true]:bg-white/10 data-[selected=true]:border-l-2 data-[selected=true]:border-[#ffeb66] data-[selected=true]:pl-[6px]"
                       >
                         <FolderKanban className="w-4 h-4 text-emerald-400/80 shrink-0" />

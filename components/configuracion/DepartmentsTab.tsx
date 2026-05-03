@@ -4,6 +4,11 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { Building2, Users, Plus } from "lucide-react";
+
+const PALETTE_COLORS = [
+  "#ffeb66", "#ff6b6b", "#ff9f43", "#48dbfb", "#1dd1a1",
+  "#c56ef3", "#54a0ff", "#fd79a8", "#00d2d3", "#a29bfe",
+];
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Modal } from "@/components/ui/Modal";
@@ -95,6 +100,22 @@ export function DepartmentsTab({ departments, isSuperAdmin }: DepartmentsTabProp
             <label className="text-xs font-medium text-white/60 uppercase tracking-wide">
               Color de acento
             </label>
+            {/* Palette chips */}
+            <div className="flex flex-wrap gap-1.5 mb-1">
+              {PALETTE_COLORS.map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  title={c}
+                  onClick={() => setAccentColor(c)}
+                  className="w-6 h-6 rounded-full border-2 transition-transform hover:scale-110"
+                  style={{
+                    backgroundColor: c,
+                    borderColor: accentColor === c ? "white" : "transparent",
+                  }}
+                />
+              ))}
+            </div>
             <div className="flex items-center gap-3">
               <input
                 type="color"
@@ -103,6 +124,13 @@ export function DepartmentsTab({ departments, isSuperAdmin }: DepartmentsTabProp
                 className="h-9 w-14 rounded border border-white/10 bg-transparent cursor-pointer"
               />
               <span className="text-xs text-white/40 font-mono">{accentColor}</span>
+              {/* Live preview */}
+              <div className="flex items-center gap-2 ml-auto px-2.5 py-1.5 rounded-lg" style={{ backgroundColor: `${accentColor}18`, borderLeft: `3px solid ${accentColor}` }}>
+                <Building2 className="w-4 h-4 shrink-0" style={{ color: accentColor }} />
+                <span className="text-xs font-medium" style={{ color: accentColor }}>
+                  {name.trim() || "Previsualización"}
+                </span>
+              </div>
             </div>
           </div>
           <div className="flex justify-end gap-2 pt-2">

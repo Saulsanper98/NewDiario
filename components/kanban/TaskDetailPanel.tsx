@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect, useRef, forwardRef } from "react";
 import { useRouter } from "next/navigation";
 import {
   X, Calendar, User, Tag, CheckSquare, MessageSquare,
-  Clock, Zap, AlertTriangle, Pencil, Check, Trash2,
+  Clock, Zap, AlertTriangle, Pencil, Check, Trash2, Copy,
 } from "lucide-react";
 import { isPast } from "date-fns";
 import toast from "react-hot-toast";
@@ -47,6 +47,7 @@ export const TaskDetailPanel = forwardRef<HTMLDivElement, TaskDetailPanelProps>(
   const [submitting,     setSubmitting]     = useState(false);
   const [deleting,       setDeleting]       = useState(false);
   const [showConfirm,    setShowConfirm]    = useState(false);
+  const [duplicating,    setDuplicating]    = useState(false);
   const [editingTitle,   setEditingTitle]   = useState(false);
   const [titleDraft,     setTitleDraft]     = useState(task.title);
   const [currentTitle,   setCurrentTitle]   = useState(task.title);
@@ -235,6 +236,22 @@ export const TaskDetailPanel = forwardRef<HTMLDivElement, TaskDetailPanelProps>(
     }
   }
 
+  async function duplicateTask() {
+    setDuplicating(true);
+    try {
+      const res = await fetch(`/api/tasks/${task.id}/duplicate`, {
+        method: "POST",
+      });
+      if (!res.ok) throw new Error();
+      toast.success("Tarea duplicada");
+      router.refresh();
+    } catch {
+      toast.error("No se pudo duplicar la tarea");
+    } finally {
+      setDuplicating(false);
+    }
+  }
+
   const completedSubtasks = subtasks.filter((s) => s.completed).length;
   const dueDateObj = dueDate ? new Date(dueDate) : null;
   const isOverdue  = dueDateObj ? isPast(dueDateObj) : false;
@@ -300,14 +317,26 @@ export const TaskDetailPanel = forwardRef<HTMLDivElement, TaskDetailPanelProps>(
           </div>
           <div className="flex items-center justify-between">
             <p className="text-[10px] text-white/25 uppercase tracking-wider">Detalle de tarea</p>
-            <button
-              type="button"
-              onClick={() => setShowConfirm(true)}
-              className="p-1 rounded text-white/20 hover:text-red-400 hover:bg-red-400/8 transition-all duration-150"
-              aria-label="Eliminar tarea"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-            </button>
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => void duplicateTask()}
+                disabled={duplicating}
+                title="Duplicar tarea"
+                aria-label="Duplicar tarea"
+                className="p-1 rounded text-white/20 hover:text-[#ffeb66] hover:bg-[#ffeb66]/8 transition-all duration-150 disabled:opacity-40"
+              >
+                <Copy className="w-3.5 h-3.5" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowConfirm(true)}
+                className="p-1 rounded text-white/20 hover:text-red-400 hover:bg-red-400/8 transition-all duration-150"
+                aria-label="Eliminar tarea"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            </div>
           </div>
         </div>
 
@@ -507,17 +536,28 @@ export const TaskDetailPanel = forwardRef<HTMLDivElement, TaskDetailPanelProps>(
                 ))}
               </div>
             )}
-            <form onSubmit={submitComment} className="flex gap-2">
-              <input
-                type="text"
-                value={comment}
-                onChange={(e) => setComment(e.target.value)}
-                placeholder="Añadir comentario..."
-                className="flex-1 bg-white/5 border border-white/8 rounded-lg px-3 py-1.5 text-xs text-white placeholder:text-white/25 focus:outline-none focus:border-[#ffeb66]/40"
-              />
-              <Button type="submit" variant="primary" size="sm" loading={submitting}>
-                Enviar
-              </Button>
+            <form onSubmit={submitComment} className="space-y-1.5">
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={comment}
+                  onChange={(e) => setComment(e.target.value.slice(0, 500))}
+                  placeholder="Añadir comentario..."
+                  maxLength={500}
+                  className="flex-1 bg-white/5 border border-white/8 rounded-lg px-3 py-1.5 text-xs text-white placeholder:text-white/25 focus:outline-none focus:border-[#ffeb66]/40"
+                />
+                <Button type="submit" variant="primary" size="sm" loading={submitting}>
+                  Enviar
+                </Button>
+              </div>
+              {comment.length > 0 && (
+                <p className={cn(
+                  "text-[10px] text-right transition-colors",
+                  comment.length > 450 ? "text-amber-400" : "text-white/20"
+                )}>
+                  {comment.length}/500
+                </p>
+              )}
             </form>
           </div>
         </div>

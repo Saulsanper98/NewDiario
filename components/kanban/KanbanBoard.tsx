@@ -6,9 +6,10 @@ import {
   DragDropContext,
   Droppable,
   Draggable,
+  type DragStart,
   type DropResult,
 } from "@hello-pangea/dnd";
-import { Plus, GripVertical } from "lucide-react";
+import { Plus, GripVertical, ChevronLeft, ListChecks } from "lucide-react";
 import toast from "react-hot-toast";
 import { KanbanCard } from "./KanbanCard";
 import { TaskDetailPanel } from "./TaskDetailPanel";
@@ -62,6 +63,12 @@ function taskMatchesFilters(
   return true;
 }
 
+function columnWipFull(col: KanbanColumnState): boolean {
+  const lim = col.wipLimit;
+  if (lim == null || lim <= 0) return false;
+  return col.tasks.length >= lim;
+}
+
 /** Índice de inserción en `full` equivalente al índice del DnD sobre la lista filtrada. */
 function dndIndexToFullInsertIndex<T extends { id: string }>(
   full: T[],
@@ -100,7 +107,11 @@ export function KanbanBoard({ project, allUsers }: KanbanBoardProps) {
     () =>
       (project.kanbanColumns ?? [])
         .map((c) =>
-          [c.id, c.tasks.map((t) => taskBoardSig(t)).join(";")].join(":")
+          [
+            c.id,
+            c.wipLimit ?? "",
+            c.tasks.map((t) => taskBoardSig(t)).join(";"),
+          ].join(":")
         )
         .join("|"),
     [project.kanbanColumns]
@@ -118,6 +129,23 @@ export function KanbanBoard({ project, allUsers }: KanbanBoardProps) {
   const [addingColumnId, setAddingColumnId] = useState<string | null>(null);
   const [draftTitle, setDraftTitle] = useState("");
   const [creatingTask, setCreatingTask] = useState(false);
+  const [collapsedCols, setCollapsedCols] = useState<Set<string>>(new Set());
+
+  function toggleColCollapse(colId: string) {
+    setCollapsedCols((prev) => {
+      const next = new Set(prev);
+      if (next.has(colId)) next.delete(colId);
+      else next.add(colId);
+      return next;
+    });
+  }
+  /** Columna origen al arrastrar una tarea (para deshabilitar drop en columnas WIP llenas). */
+  const dragSourceColIdRef = useRef<string | null>(null);
+  /** Fuerza re-render al iniciar/finalizar arrastre para actualizar isDropDisabled (WIP). */
+  const [, setDragSession] = useState(0);
+  const [wipEditColId, setWipEditColId] = useState<string | null>(null);
+  const [wipDraft, setWipDraft] = useState("");
+  const [savingWip, setSavingWip] = useState(false);
   const lastFocusRef = useRef<HTMLElement | null>(null);
   const taskDetailRootRef = useRef<HTMLDivElement>(null);
   const [taskPanelLayout, setTaskPanelLayout] = useState<"docked" | "overlay">(
@@ -177,8 +205,26 @@ export function KanbanBoard({ project, allUsers }: KanbanBoardProps) {
     }
   }, [columns, selectedTask]);
 
+  const onDragStart = useCallback(
+    (start: DragStart) => {
+      if (start.type === "COLUMN") {
+        dragSourceColIdRef.current = null;
+      } else {
+        const src = columns.find((c) =>
+          c.tasks.some((t) => t.id === start.draggableId)
+        );
+        dragSourceColIdRef.current = src?.id ?? null;
+      }
+      setDragSession((n) => n + 1);
+    },
+    [columns]
+  );
+
   const onDragEnd = useCallback(
     async (result: DropResult) => {
+      dragSourceColIdRef.current = null;
+      setDragSession((n) => n + 1);
+
       const { destination, source, draggableId, type } = result;
       if (!destination) return;
       if (
@@ -255,6 +301,13 @@ export function KanbanBoard({ project, allUsers }: KanbanBoardProps) {
         return;
       }
 
+      if (columnWipFull(destCol) && sourceCol.id !== destCol.id) {
+        toast.error(
+          `La columna «${destCol.name}» ha alcanzado el límite WIP (${destCol.wipLimit}).`
+        );
+        return;
+      }
+
       const srcTasks: ProjectKanbanTask[] = Array.from(sourceCol.tasks);
       const [moved] = srcTasks.splice(sourceIndex, 1);
       const dstTasks: ProjectKanbanTask[] = Array.from(destCol.tasks);
@@ -288,15 +341,63 @@ export function KanbanBoard({ project, allUsers }: KanbanBoardProps) {
             order: insertFull,
           }),
         });
-        if (!res.ok) throw new Error();
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          const msg =
+            typeof err?.error === "string"
+              ? err.error
+              : "No se pudo mover la tarea";
+          throw new Error(msg);
+        }
         router.refresh();
-      } catch {
+      } catch (e) {
         setColumns(snapshot);
-        toast.error("No se pudo mover la tarea");
+        toast.error(e instanceof Error ? e.message : "No se pudo mover la tarea");
       }
     },
     [columns, project.id, priorityFilter, assigneeFilter, router]
   );
+
+  async function saveWipLimit(
+    columnId: string,
+    explicit?: number | null
+  ) {
+    let wipLimit: number | null;
+    if (explicit !== undefined) {
+      wipLimit = explicit;
+    } else {
+      const trimmed = wipDraft.trim();
+      if (trimmed === "") wipLimit = null;
+      else {
+        const n = Number.parseInt(trimmed, 10);
+        if (Number.isNaN(n) || n < 1 || n > 500) {
+          toast.error("Número entre 1 y 500, o vacío para sin límite");
+          return;
+        }
+        wipLimit = n;
+      }
+    }
+    setSavingWip(true);
+    try {
+      const res = await fetch(`/api/projects/${project.id}/columns`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ columns: [{ id: columnId, wipLimit }] }),
+      });
+      if (!res.ok) throw new Error();
+      setColumns((prev) =>
+        prev.map((c) => (c.id === columnId ? { ...c, wipLimit } : c))
+      );
+      setWipEditColId(null);
+      setWipDraft("");
+      toast.success("Límite WIP guardado");
+      router.refresh();
+    } catch {
+      toast.error("No se pudo guardar el límite");
+    } finally {
+      setSavingWip(false);
+    }
+  }
 
   function openTask(task: ProjectKanbanTask) {
     lastFocusRef.current = document.activeElement as HTMLElement | null;
@@ -306,6 +407,13 @@ export function KanbanBoard({ project, allUsers }: KanbanBoardProps) {
   async function createTask(columnId: string) {
     const title = draftTitle.trim();
     if (!title || creatingTask) return;
+    const colMeta = columns.find((c) => c.id === columnId);
+    if (colMeta && columnWipFull(colMeta)) {
+      toast.error(
+        `La columna «${colMeta.name}» ha alcanzado el límite WIP (${colMeta.wipLimit}).`
+      );
+      return;
+    }
     setCreatingTask(true);
     try {
       const res = await fetch(`/api/projects/${project.id}/tasks`, {
@@ -397,9 +505,9 @@ export function KanbanBoard({ project, allUsers }: KanbanBoardProps) {
       <div
         role="region"
         aria-label="Tablero Kanban"
-        className="flex-1 min-w-0 overflow-x-auto overflow-y-hidden kanban-scroll-hint relative"
+        className="flex-1 min-w-0 min-h-0 overflow-auto kanban-scroll-hint relative scroll-smooth sm:scroll-auto snap-x sm:snap-none snap-mandatory"
       >
-        <DragDropContext onDragEnd={onDragEnd}>
+        <DragDropContext onDragStart={onDragStart} onDragEnd={onDragEnd}>
           <Droppable
             droppableId="board"
             direction="horizontal"
@@ -411,7 +519,21 @@ export function KanbanBoard({ project, allUsers }: KanbanBoardProps) {
                 {...provided.droppableProps}
                 className="flex gap-3 h-full p-4 min-w-max"
               >
-                {filteredColumns.map((col, colIndex) => (
+                {filteredColumns.map((col, colIndex) => {
+                  const fullCol = columns.find((c) => c.id === col.id);
+                  if (!fullCol) return null;
+                  const taskCount = fullCol.tasks.length;
+                  const wipLimit = fullCol.wipLimit;
+                  const wipFull = columnWipFull(fullCol);
+                  const dragSrc = dragSourceColIdRef.current;
+                  const dropBlockedByWip =
+                    !!dragSrc &&
+                    dragSrc !== col.id &&
+                    wipLimit != null &&
+                    wipLimit > 0 &&
+                    taskCount >= wipLimit;
+
+                  return (
                   <Draggable
                     key={col.id}
                     draggableId={`col-${col.id}`}
@@ -421,46 +543,175 @@ export function KanbanBoard({ project, allUsers }: KanbanBoardProps) {
                       <div
                         ref={colDraggable.innerRef}
                         {...colDraggable.draggableProps}
-                        className="flex flex-col w-72 shrink-0"
+                        className={cn(
+                          "flex flex-col shrink-0 transition-all duration-200 snap-start",
+                          collapsedCols.has(col.id) ? "w-12" : "w-72"
+                        )}
                       >
                         {/* Column header */}
-                        <div className="flex items-center gap-2 mb-2 px-1 group/col">
-                          <div
-                            {...colDraggable.dragHandleProps}
-                            className="text-white/15 hover:text-white/50 cursor-grab transition-colors opacity-0 group-hover/col:opacity-100"
+                        <div className={cn(
+                          "flex items-center gap-2 mb-2 px-1 group/col",
+                          collapsedCols.has(col.id) ? "flex-col py-2" : ""
+                        )}>
+                          {!collapsedCols.has(col.id) && (
+                            <div
+                              {...colDraggable.dragHandleProps}
+                              className="text-white/15 hover:text-white/50 cursor-grab transition-colors opacity-0 group-hover/col:opacity-100"
+                            >
+                              <GripVertical className="w-3.5 h-3.5" />
+                            </div>
+                          )}
+                          {collapsedCols.has(col.id) ? (
+                            <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest writing-mode-vertical rotate-180 py-1" style={{ writingMode: "vertical-rl" }}>
+                              {col.name}
+                            </span>
+                          ) : (
+                            <h3 className="text-xs font-bold text-white/60 flex-1 uppercase tracking-wider">
+                              {col.name}
+                            </h3>
+                          )}
+                          <span
+                            title={
+                              wipLimit != null && wipLimit > 0
+                                ? `WIP máx. ${wipLimit} tareas`
+                                : "Tareas en la columna"
+                            }
+                            className={cn(
+                              "text-xs font-semibold tabular-nums px-2 py-0.5 rounded-full shrink-0",
+                              taskCount === 0
+                                ? "text-white/20 bg-white/4"
+                                : wipFull
+                                  ? "text-amber-200/90 bg-amber-500/15 border border-amber-500/25"
+                                  : "text-white/60 bg-white/8"
+                            )}
                           >
-                            <GripVertical className="w-3.5 h-3.5" />
-                          </div>
-                          <h3 className="text-xs font-bold text-white/60 flex-1 uppercase tracking-wider">
-                            {col.name}
-                          </h3>
-                          <span className={cn(
-                            "text-xs font-semibold tabular-nums px-2 py-0.5 rounded-full",
-                            col.tasks.length === 0
-                              ? "text-white/20 bg-white/4"
-                              : "text-white/60 bg-white/8"
-                          )}>
-                            {col.tasks.length}
+                            {taskCount}
+                            {wipLimit != null && wipLimit > 0 ? (
+                              <span className="text-white/35 font-normal">
+                                {" "}
+                                /{wipLimit}
+                              </span>
+                            ) : null}
                           </span>
+                          {!collapsedCols.has(col.id) && (
+                            <button
+                              type="button"
+                              title="Límite WIP (tareas por columna)"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setWipEditColId((id) =>
+                                  id === col.id ? null : col.id
+                                );
+                                setWipDraft(
+                                  wipLimit != null && wipLimit > 0
+                                    ? String(wipLimit)
+                                    : ""
+                                );
+                              }}
+                              className={cn(
+                                "p-0.5 rounded text-white/20 hover:text-[#ffeb66]/80 transition-colors opacity-0 group-hover/col:opacity-100",
+                                wipLimit != null &&
+                                  wipLimit > 0 &&
+                                  "opacity-100 text-[#ffeb66]/50"
+                              )}
+                            >
+                              <ListChecks className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => toggleColCollapse(col.id)}
+                            title={collapsedCols.has(col.id) ? "Expandir columna" : "Colapsar columna"}
+                            className="text-white/20 hover:text-white/60 transition-colors opacity-0 group-hover/col:opacity-100"
+                          >
+                            <ChevronLeft className={cn("w-3.5 h-3.5 transition-transform duration-200", collapsedCols.has(col.id) ? "rotate-180" : "")} />
+                          </button>
                         </div>
 
-                        {/* Tasks droppable */}
-                        <Droppable droppableId={col.id} type="TASK">
+                        {wipEditColId === col.id && !collapsedCols.has(col.id) && (
+                          <form
+                            className="mb-2 px-1 flex flex-wrap items-center gap-1.5"
+                            onSubmit={(e) => {
+                              e.preventDefault();
+                              void saveWipLimit(col.id);
+                            }}
+                            onClick={(ev) => ev.stopPropagation()}
+                          >
+                            <label className="text-[10px] text-white/40 uppercase tracking-wide shrink-0">
+                              WIP
+                            </label>
+                            <input
+                              type="number"
+                              min={1}
+                              max={500}
+                              placeholder="∞"
+                              value={wipDraft}
+                              onChange={(e) => setWipDraft(e.target.value)}
+                              disabled={savingWip}
+                              className="w-14 bg-white/5 border border-white/10 rounded px-1.5 py-0.5 text-[11px] text-white tabular-nums focus:outline-none focus:border-[#ffeb66]/40"
+                            />
+                            <button
+                              type="submit"
+                              disabled={savingWip}
+                              className="text-[10px] px-1.5 py-0.5 rounded bg-[#ffeb66]/15 text-[#ffeb66] border border-[#ffeb66]/20 hover:bg-[#ffeb66]/25 disabled:opacity-40"
+                            >
+                              OK
+                            </button>
+                            <button
+                              type="button"
+                              disabled={savingWip}
+                              onClick={() => void saveWipLimit(col.id, null)}
+                              className="text-[10px] text-white/35 hover:text-white/60 px-1"
+                            >
+                              Quitar
+                            </button>
+                            <button
+                              type="button"
+                              className="text-[10px] text-white/30 hover:text-white/55 ml-auto"
+                              onClick={() => {
+                                setWipEditColId(null);
+                                setWipDraft("");
+                              }}
+                            >
+                              Cerrar
+                            </button>
+                          </form>
+                        )}
+
+                        {/* Tasks droppable — hidden when column collapsed */}
+                        <Droppable
+                          droppableId={col.id}
+                          type="TASK"
+                          isDropDisabled={
+                            collapsedCols.has(col.id) || dropBlockedByWip
+                          }
+                        >
                           {(taskDrop, snapshot) => (
                             <div
                               ref={taskDrop.innerRef}
                               {...taskDrop.droppableProps}
                               className={cn(
-                                "kanban-column-well flex-1 flex flex-col gap-2 p-2 rounded-xl min-h-20 overflow-y-auto transition-all duration-200 border",
+                                "kanban-column-well flex-1 flex flex-col gap-2 p-2 rounded-xl min-h-20 min-w-0 overflow-visible transition-all duration-200 border",
+                                collapsedCols.has(col.id) ? "hidden" : "",
                                 snapshot.isDraggingOver
                                   ? "kanban-column-well-drag border-[#ffeb66]/15"
                                   : "border-white/5"
                               )}
                             >
-                              {col.tasks.length === 0 && !snapshot.isDraggingOver && addingColumnId !== col.id && (
+                              {col.tasks.length === 0 &&
+                                !snapshot.isDraggingOver &&
+                                addingColumnId !== col.id && (
                                 <div className="flex flex-col items-center gap-1 py-6 select-none">
-                                  <p className="text-[11px] text-white/20 text-center">Sin tareas</p>
-                                  <p className="text-[10px] text-white/12 text-center">Arrastra aquí o usa + Añadir</p>
+                                  <p className="text-[11px] text-white/25 text-center">
+                                    {fullCol.tasks.length > 0
+                                      ? "Ninguna tarea coincide con el filtro"
+                                      : "Sin tareas"}
+                                  </p>
+                                  <p className="text-[10px] text-white/12 text-center">
+                                    {fullCol.tasks.length > 0
+                                      ? "Prueba a limpiar filtros arriba"
+                                      : "Arrastra aquí o usa + Añadir"}
+                                  </p>
                                 </div>
                               )}
                               {col.tasks.map(
@@ -548,7 +799,8 @@ export function KanbanBoard({ project, allUsers }: KanbanBoardProps) {
                       </div>
                     )}
                   </Draggable>
-                ))}
+                  );
+                })}
                 {provided.placeholder}
               </div>
             )}
