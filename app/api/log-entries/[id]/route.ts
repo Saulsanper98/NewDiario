@@ -8,6 +8,7 @@ import {
   snapshotFromDbEntry,
   snapshotFromPatchBody,
 } from "@/lib/log-entry-edit-diff";
+import { computePublishHints } from "@/lib/log-entry-publish-hints";
 
 const followupOnlySchema = z.object({ followupDone: z.boolean() }).strict();
 
@@ -27,6 +28,9 @@ const editEntrySchema = z.object({
       })
     )
     .default([]),
+  metricAnchorLabel: z.string().max(160).nullable().optional(),
+  metricAnchorValue: z.string().max(120).nullable().optional(),
+  metricAnchorTrend: z.enum(["UP", "DOWN", "FLAT"]).nullable().optional(),
 });
 
 export async function GET(
@@ -148,7 +152,34 @@ export async function PATCH(
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
-  const { title, content, type, shift, status, requiresFollowup, tags, shares } = parsed.data;
+  const {
+    title,
+    content,
+    type,
+    shift,
+    status,
+    requiresFollowup,
+    tags,
+    shares,
+    metricAnchorLabel,
+    metricAnchorValue,
+    metricAnchorTrend,
+  } = parsed.data;
+
+  const metricLabel =
+    metricAnchorLabel === undefined
+      ? undefined
+      : metricAnchorLabel === null
+        ? null
+        : metricAnchorLabel.trim() || null;
+  const metricValue =
+    metricAnchorValue === undefined
+      ? undefined
+      : metricAnchorValue === null
+        ? null
+        : metricAnchorValue.trim() || null;
+  const metricTrend =
+    metricAnchorTrend === undefined ? undefined : metricAnchorTrend;
 
   const departmentNames: Record<string, string> = {};
   for (const s of entry.shares) {
@@ -177,7 +208,25 @@ export async function PATCH(
       departmentId: s.departmentId,
       permission: s.permission,
     })),
+    metricAnchorLabel: entry.metricAnchorLabel,
+    metricAnchorValue: entry.metricAnchorValue,
+    metricAnchorTrend: entry.metricAnchorTrend,
   });
+  const nextLabelEff =
+    metricAnchorLabel === undefined
+      ? entry.metricAnchorLabel
+      : metricAnchorLabel === null
+        ? null
+        : metricAnchorLabel.trim() || null;
+  const nextValueEff =
+    metricAnchorValue === undefined
+      ? entry.metricAnchorValue
+      : metricAnchorValue === null
+        ? null
+        : metricAnchorValue.trim() || null;
+  const nextTrendEff =
+    metricAnchorTrend === undefined ? entry.metricAnchorTrend : metricAnchorTrend;
+
   const nextSnap = snapshotFromPatchBody({
     title,
     content,
@@ -187,6 +236,9 @@ export async function PATCH(
     requiresFollowup,
     tags,
     shares,
+    metricAnchorLabel: nextLabelEff,
+    metricAnchorValue: nextValueEff,
+    metricAnchorTrend: nextTrendEff,
   });
   const diff = computeLogEntryEditDiff(prevSnap, nextSnap, departmentNames);
   if (Object.keys(diff).length > 0) {
@@ -211,6 +263,9 @@ export async function PATCH(
         shift,
         status,
         requiresFollowup,
+        ...(metricLabel !== undefined && { metricAnchorLabel: metricLabel }),
+        ...(metricValue !== undefined && { metricAnchorValue: metricValue }),
+        ...(metricTrend !== undefined && { metricAnchorTrend: metricTrend }),
         tags: { createMany: { data: tags.map((name) => ({ name })) } },
         shares: {
           createMany: {
@@ -228,8 +283,22 @@ export async function PATCH(
     where: { id },
     include: { tags: true, shares: true },
   });
+  if (!updated) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
 
-  return NextResponse.json(updated);
+  let publishHints: Awaited<ReturnType<typeof computePublishHints>> = [];
+  if (status === "PUBLISHED") {
+    publishHints = await computePublishHints(prisma, {
+      departmentId: updated.departmentId,
+      title: updated.title,
+      contentHtml: updated.content,
+      tagNames: updated.tags.map((t) => t.name),
+      excludeEntryId: id,
+    });
+  }
+
+  return NextResponse.json({ ...updated, publishHints });
 }
 
 export async function DELETE(

@@ -19,7 +19,32 @@ export type LogEditSnapshot = {
   requiresFollowup: boolean;
   tags: string[];
   shares: { departmentId: string; permission: string }[];
+  /** Resumen legible de ancla métrica (KPI opcional). */
+  metricAnchorLine: string;
 };
+
+const TREND_LABEL: Record<string, string> = {
+  UP: "Sube",
+  DOWN: "Baja",
+  FLAT: "Estable",
+};
+
+export function formatMetricAnchorLine(
+  label: string | null | undefined,
+  value: string | null | undefined,
+  trend: string | null | undefined
+): string {
+  const l = label?.trim() || "";
+  const v = value?.trim() || "";
+  const t = trend?.trim() || "";
+  if (!l && !v && !t) return "Sin ancla métrica";
+  const parts: string[] = [];
+  if (l) parts.push(l);
+  if (v) parts.push(`= ${v}`);
+  if (t && TREND_LABEL[t]) parts.push(`(${TREND_LABEL[t]})`);
+  else if (t) parts.push(`(${t})`);
+  return parts.join(" ");
+}
 
 type ShareRow = { departmentId: string; permission: string };
 
@@ -89,6 +114,9 @@ export function snapshotFromPatchBody(body: {
   requiresFollowup: boolean;
   tags: string[];
   shares: ShareRow[];
+  metricAnchorLabel?: string | null;
+  metricAnchorValue?: string | null;
+  metricAnchorTrend?: string | null;
 }): LogEditSnapshot {
   return {
     title: body.title.trim(),
@@ -99,6 +127,11 @@ export function snapshotFromPatchBody(body: {
     requiresFollowup: body.requiresFollowup,
     tags: sortedTags(body.tags),
     shares: sortedShares(body.shares),
+    metricAnchorLine: formatMetricAnchorLine(
+      body.metricAnchorLabel,
+      body.metricAnchorValue,
+      body.metricAnchorTrend
+    ),
   };
 }
 
@@ -112,6 +145,9 @@ export function snapshotFromDbEntry(entry: {
   requiresFollowup: boolean;
   tags: { name: string }[];
   shares: ShareRow[];
+  metricAnchorLabel?: string | null;
+  metricAnchorValue?: string | null;
+  metricAnchorTrend?: string | null;
 }): LogEditSnapshot {
   return {
     title: entry.title.trim(),
@@ -122,6 +158,11 @@ export function snapshotFromDbEntry(entry: {
     requiresFollowup: entry.requiresFollowup,
     tags: sortedTags(entry.tags.map((t) => t.name)),
     shares: sortedShares(entry.shares),
+    metricAnchorLine: formatMetricAnchorLine(
+      entry.metricAnchorLabel,
+      entry.metricAnchorValue,
+      entry.metricAnchorTrend
+    ),
   };
 }
 
@@ -175,6 +216,12 @@ export function computeLogEntryEditDiff(
     diff.shares = {
       before: formatSharesLine(prev.shares, departmentNames),
       after: formatSharesLine(next.shares, departmentNames),
+    };
+  }
+  if (prev.metricAnchorLine !== next.metricAnchorLine) {
+    diff.metricAnchor = {
+      before: prev.metricAnchorLine,
+      after: next.metricAnchorLine,
     };
   }
 

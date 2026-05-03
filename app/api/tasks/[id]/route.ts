@@ -5,6 +5,7 @@ import type { Prisma } from "@/app/generated/prisma/client";
 import { hasProjectAccess } from "@/lib/auth/permissions";
 import type { SessionUser } from "@/lib/auth/types";
 import { z } from "zod";
+import { assigneeUnavailabilityWarningMessage } from "@/lib/assignee-unavailability-warning";
 
 const patchTaskSchema = z
   .object({
@@ -19,6 +20,9 @@ const patchTaskSchema = z
     estimatedHours: z.number().nonnegative().nullable().optional(),
     isShiftTask: z.boolean().optional(),
     linkedLogEntryId: z.string().nullable().optional(),
+    contractNotifyUserId: z.string().nullable().optional(),
+    contractSlaNote: z.string().max(8000).nullable().optional(),
+    contractImpactNote: z.string().max(8000).nullable().optional(),
   })
   .strict();
 
@@ -37,6 +41,9 @@ async function loadTaskWithProject(id: string) {
     where: { id, deletedAt: null },
     include: {
       assignee: { select: { id: true, name: true, image: true } },
+      contractNotifyUser: {
+        select: { id: true, name: true, image: true },
+      },
       coResponsibles: { select: { id: true, name: true, image: true } },
       column: { select: { id: true, name: true } },
       project: {
@@ -124,6 +131,21 @@ export async function PATCH(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
+  if (parsed.data.contractNotifyUserId !== undefined) {
+    const uid = parsed.data.contractNotifyUserId;
+    if (uid !== null) {
+      const member = await prisma.projectMember.findFirst({
+        where: { projectId: task.projectId, userId: uid },
+      });
+      if (!member) {
+        return NextResponse.json(
+          { error: "El aviso por retraso debe ser un miembro del proyecto" },
+          { status: 400 }
+        );
+      }
+    }
+  }
+
   const b = parsed.data;
   const hasKanbanReorder =
     b.columnId !== undefined || b.order !== undefined;
@@ -138,6 +160,12 @@ export async function PATCH(
   if (b.isShiftTask !== undefined) data.isShiftTask = b.isShiftTask;
   if (b.linkedLogEntryId !== undefined)
     data.linkedLogEntryId = b.linkedLogEntryId;
+  if (b.contractNotifyUserId !== undefined)
+    data.contractNotifyUserId = b.contractNotifyUserId;
+  if (b.contractSlaNote !== undefined)
+    data.contractSlaNote = b.contractSlaNote;
+  if (b.contractImpactNote !== undefined)
+    data.contractImpactNote = b.contractImpactNote;
 
   if (b.dueDate !== undefined) {
     const d = parseOptDate(b.dueDate);
@@ -180,7 +208,11 @@ export async function PATCH(
       where: { id },
       data: data as Prisma.TaskUpdateInput,
     });
-    return NextResponse.json(updated);
+    const assigneeUnavailabilityWarning =
+      b.assigneeId !== undefined
+        ? await assigneeUnavailabilityWarningMessage(b.assigneeId)
+        : null;
+    return NextResponse.json({ ...updated, assigneeUnavailabilityWarning });
   }
 
   const targetColumnId = b.columnId ?? task.columnId;
@@ -290,6 +322,11 @@ export async function PATCH(
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
+  const assigneeUnavailabilityWarning =
+    b.assigneeId !== undefined
+      ? await assigneeUnavailabilityWarningMessage(b.assigneeId)
+      : null;
+
   if (movedBetweenColumns) {
     const activityUserId =
       typeof user.id === "string" && user.id.length > 0 ? user.id : null;
@@ -325,7 +362,7 @@ export async function PATCH(
     }
   }
 
-  return NextResponse.json(updated);
+  return NextResponse.json({ ...updated, assigneeUnavailabilityWarning });
   } catch (err) {
     console.error("[PATCH /api/tasks/[id]]", err);
     const message =

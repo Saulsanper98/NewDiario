@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -20,6 +21,37 @@ import { sanitizeHtml } from "@/lib/sanitize-html";
 import { useAccentForUi } from "@/lib/hooks/useAccentForUi";
 import { useTheme } from "@/components/layout/ThemeProvider";
 import { bitacoraPreviewProseClass } from "@/lib/bitacora-html-prose";
+import type { PublishHint } from "@/lib/log-entry-publish-hints";
+import { PUBLISH_HINT_LABEL } from "@/lib/log-entry-publish-hints";
+
+function notifyPublishHints(hints: PublishHint[] | undefined) {
+  if (!hints?.length) return;
+  toast.custom(
+    (t) => (
+      <div className="max-w-sm rounded-xl border border-amber-500/25 bg-[#0d1428]/95 p-4 text-sm text-white/85 shadow-xl backdrop-blur-md">
+        <p className="mb-2 font-medium text-amber-200/90">Sugerencias al publicar</p>
+        <p className="mb-3 text-xs text-white/45">
+          No bloquean la publicación. Revísalas si quieres evitar duplicados o contradicciones.
+        </p>
+        <ul className="space-y-2 text-xs">
+          {hints.map((h) => (
+            <li key={h.entryId} className="flex flex-col gap-0.5">
+              <span className="text-white/35">{PUBLISH_HINT_LABEL[h.kind]}</span>
+              <Link
+                href={`/bitacora/${h.entryId}`}
+                className="truncate text-[#ffeb66]/90 hover:underline"
+                onClick={() => toast.dismiss(t.id)}
+              >
+                {h.title}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </div>
+    ),
+    { duration: 14000 }
+  );
+}
 
 /* ── schema ─────────────────────────────────────────────────────────────── */
 
@@ -202,6 +234,9 @@ export type EditingLogEntry = {
   updatedAt?:       string;
   tags:             { name: string }[];
   shares:           { departmentId: string; permission: "READ" | "READ_COMMENT" }[];
+  metricAnchorLabel?:  string | null;
+  metricAnchorValue?:  string | null;
+  metricAnchorTrend?:  string | null;
 };
 
 interface NewLogEntryFormProps {
@@ -227,6 +262,12 @@ export function NewLogEntryForm({
   const [tagInput,   setTagInput]   = useState("");
   const [sharedWith, setSharedWith] = useState<{ departmentId: string; permission: "READ" | "READ_COMMENT" }[]>(
     editingEntry?.shares ?? []
+  );
+
+  const [metricLabel, setMetricLabel] = useState(editingEntry?.metricAnchorLabel ?? "");
+  const [metricValue, setMetricValue] = useState(editingEntry?.metricAnchorValue ?? "");
+  const [metricTrend, setMetricTrend] = useState<"" | "UP" | "DOWN" | "FLAT">(
+    (editingEntry?.metricAnchorTrend as "UP" | "DOWN" | "FLAT" | undefined) ?? ""
   );
 
   /* B31 — autosave state */
@@ -360,27 +401,68 @@ export function NewLogEntryForm({
       toast.error("El contenido no puede estar vacío");
       return;
     }
+    async function serverMessage(res: Response): Promise<string | null> {
+      try {
+        const body = (await res.json()) as Record<string, unknown>;
+        const err = body?.error;
+        const msg = body?.message;
+        if (typeof err === "string" && err.trim()) return err;
+        if (typeof msg === "string" && msg.trim()) return msg;
+      } catch {
+        /* ignore */
+      }
+      return null;
+    }
+
     try {
       if (editingEntry) {
         const res = await fetch(`/api/log-entries/${editingEntry.id}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ ...data, content, tags, shares: sharedWith }),
+          body: JSON.stringify({
+            ...data,
+            content,
+            tags,
+            shares: sharedWith,
+            metricAnchorLabel: metricLabel.trim() || null,
+            metricAnchorValue: metricValue.trim() || null,
+            metricAnchorTrend: metricTrend || null,
+          }),
         });
-        if (!res.ok) throw new Error();
+        if (!res.ok) {
+          const detail = await serverMessage(res);
+          toast.error(detail ?? `Error al actualizar (${res.status})`);
+          return;
+        }
+        const payload = (await res.json()) as { publishHints?: PublishHint[] };
         toast.success("Entrada actualizada");
+        if (data.status === "PUBLISHED") notifyPublishHints(payload.publishHints);
         router.push(`/bitacora/${editingEntry.id}`);
         return;
       }
       const res = await fetch("/api/log-entries", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...data, content, tags, departmentId: deptForEntry, shares: sharedWith }),
+        body: JSON.stringify({
+          ...data,
+          content,
+          tags,
+          departmentId: deptForEntry,
+          shares: sharedWith,
+          ...(metricLabel.trim() && { metricAnchorLabel: metricLabel.trim() }),
+          ...(metricValue.trim() && { metricAnchorValue: metricValue.trim() }),
+          ...(metricTrend && { metricAnchorTrend: metricTrend }),
+        }),
       });
-      if (!res.ok) throw new Error();
-      const entry = await res.json();
+      if (!res.ok) {
+        const detail = await serverMessage(res);
+        toast.error(detail ?? `Error al guardar (${res.status})`);
+        return;
+      }
+      const entry = (await res.json()) as { id: string; publishHints?: PublishHint[] };
       clearDraft(draftKey);
       toast.success(data.status === "DRAFT" ? "Borrador guardado" : "Entrada publicada");
+      if (data.status === "PUBLISHED") notifyPublishHints(entry.publishHints);
       router.push(`/bitacora/${entry.id}`);
     } catch {
       toast.error("Error al guardar la entrada");
@@ -642,6 +724,76 @@ export function NewLogEntryForm({
               placeholder="Describe la incidencia, novedad o información relevante..."
             />
           )}
+        </div>
+
+        {/* Ancla métrica (opcional) */}
+        <div
+          className={cn(
+            "rounded-xl border p-4 space-y-3",
+            theme === "light"
+              ? "border-zinc-200/90 bg-white/90 shadow-sm"
+              : "border-white/10 bg-white/[0.03]"
+          )}
+        >
+          <div>
+            <label className={formLabelClass(theme)}>Ancla métrica (opcional)</label>
+            <p
+              className={cn(
+                "text-[11px] mt-1",
+                theme === "light" ? "text-zinc-500" : "text-white/30"
+              )}
+            >
+              KPI o dato breve para contexto (no sustituye el cuerpo de la entrada).
+            </p>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-1">
+              <label className={cn("text-[11px]", theme === "light" ? "text-zinc-600" : "text-white/45")}>
+                Etiqueta
+              </label>
+              <Input
+                value={metricLabel}
+                onChange={(e) => setMetricLabel(e.target.value)}
+                maxLength={160}
+                placeholder="Ej: Incidencias abiertas"
+                className={theme === "light" ? lightTitleInputClass : undefined}
+              />
+            </div>
+            <div className="space-y-1">
+              <label className={cn("text-[11px]", theme === "light" ? "text-zinc-600" : "text-white/45")}>
+                Valor
+              </label>
+              <Input
+                value={metricValue}
+                onChange={(e) => setMetricValue(e.target.value)}
+                maxLength={120}
+                placeholder="Ej: 12"
+                className={theme === "light" ? lightTitleInputClass : undefined}
+              />
+            </div>
+          </div>
+          <div className="space-y-1">
+            <label className={cn("text-[11px]", theme === "light" ? "text-zinc-600" : "text-white/45")}>
+              Tendencia
+            </label>
+            <select
+              value={metricTrend}
+              onChange={(e) =>
+                setMetricTrend(e.target.value as "" | "UP" | "DOWN" | "FLAT")
+              }
+              className={cn(
+                "w-full max-w-xs rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2",
+                theme === "light"
+                  ? "border-zinc-200 bg-white text-zinc-900 focus:border-[#c4ae16]/70 focus:ring-[#d4bc1a]/25"
+                  : "border-white/10 bg-white/5 text-white/80 focus:border-[#ffeb66]/35 focus:ring-[#ffeb66]/15"
+              )}
+            >
+              <option value="">— Sin indicar —</option>
+              <option value="UP">Sube</option>
+              <option value="DOWN">Baja</option>
+              <option value="FLAT">Estable</option>
+            </select>
+          </div>
         </div>
 
         {/* Tags */}

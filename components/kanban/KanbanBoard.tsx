@@ -9,10 +9,11 @@ import {
   type DragStart,
   type DropResult,
 } from "@hello-pangea/dnd";
-import { Plus, GripVertical, ChevronLeft, ListChecks } from "lucide-react";
+import { Plus, GripVertical, ChevronLeft, ListChecks, FlaskConical } from "lucide-react";
 import toast from "react-hot-toast";
 import { KanbanCard } from "./KanbanCard";
 import { TaskDetailPanel } from "./TaskDetailPanel";
+import { KanbanWhatIfSimulator } from "./KanbanWhatIfSimulator";
 import { cn } from "@/lib/utils";
 import type {
   ProjectDetail,
@@ -21,7 +22,18 @@ import type {
 
 type KanbanColumnState = ProjectDetail["kanbanColumns"][number];
 
-/** Firma estable de la tarea para detectar cambios del servidor (prioridad, título, etc.). */
+/** Huella corta de un string largo (descripción / notas de contrato) para la firma del tablero. */
+function strBoardSig(s: string | null | undefined): string {
+  const v = s ?? "";
+  let h = 2166136261;
+  for (let i = 0; i < v.length; i++) {
+    h ^= v.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return `${v.length}:${(h >>> 0).toString(16)}`;
+}
+
+/** Firma estable de la tarea para detectar cambios del servidor (prioridad, título, contrato, etc.). */
 function taskBoardSig(t: ProjectKanbanTask): string {
   const due =
     t.dueDate == null
@@ -50,6 +62,10 @@ function taskBoardSig(t: ProjectKanbanTask): string {
     cc: comments,
     sub,
     tags,
+    desc: strBoardSig(t.description ?? ""),
+    cnu: t.contractNotifyUserId ?? "",
+    csla: strBoardSig(t.contractSlaNote ?? ""),
+    cimp: strBoardSig(t.contractImpactNote ?? ""),
   });
 }
 
@@ -130,6 +146,7 @@ export function KanbanBoard({ project, allUsers }: KanbanBoardProps) {
   const [draftTitle, setDraftTitle] = useState("");
   const [creatingTask, setCreatingTask] = useState(false);
   const [collapsedCols, setCollapsedCols] = useState<Set<string>>(new Set());
+  const [whatIfOpen, setWhatIfOpen] = useState(false);
 
   function toggleColCollapse(colId: string) {
     setCollapsedCols((prev) => {
@@ -460,7 +477,13 @@ export function KanbanBoard({ project, allUsers }: KanbanBoardProps) {
   );
 
   return (
-    <div className="kanban-board-root h-full flex flex-col min-h-0 overflow-hidden">
+    <div className="kanban-board-root flex min-h-0 flex-1 flex-col overflow-hidden">
+      {whatIfOpen && (
+        <KanbanWhatIfSimulator
+          columns={columns}
+          onClose={() => setWhatIfOpen(false)}
+        />
+      )}
       {/* Kanban filters */}
       <div className="kanban-filters-bar px-4 py-2 border-b border-white/6 flex items-center gap-3 shrink-0">
         <select
@@ -498,14 +521,23 @@ export function KanbanBoard({ project, allUsers }: KanbanBoardProps) {
             Limpiar filtros
           </button>
         )}
+        <button
+          type="button"
+          onClick={() => setWhatIfOpen(true)}
+          className="ml-auto flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 text-xs text-white/55 hover:border-[#ffeb66]/30 hover:text-[#ffeb66]/90 transition-colors"
+          title="Simular carga del tablero sin guardar cambios"
+        >
+          <FlaskConical className="w-3.5 h-3.5" />
+          What-if
+        </button>
       </div>
 
       {/* Board + panel lateral de tarea (flujo flex, no fixed sobre todo el viewport) */}
-      <div className="flex flex-1 min-h-0 overflow-hidden">
+      <div className="flex h-full min-h-0 flex-1 items-stretch overflow-hidden">
       <div
         role="region"
         aria-label="Tablero Kanban"
-        className="flex-1 min-w-0 min-h-0 overflow-auto kanban-scroll-hint relative scroll-smooth sm:scroll-auto snap-x sm:snap-none snap-mandatory"
+        className="min-h-0 min-w-0 flex-1 overflow-auto kanban-scroll-hint relative scroll-smooth sm:scroll-auto snap-x sm:snap-none snap-mandatory"
       >
         <DragDropContext onDragStart={onDragStart} onDragEnd={onDragEnd}>
           <Droppable
@@ -562,7 +594,12 @@ export function KanbanBoard({ project, allUsers }: KanbanBoardProps) {
                             </div>
                           )}
                           {collapsedCols.has(col.id) ? (
-                            <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest writing-mode-vertical rotate-180 py-1" style={{ writingMode: "vertical-rl" }}>
+                            <span
+                              {...colDraggable.dragHandleProps}
+                              title={`${col.name} — arrastrar columna`}
+                              className="text-[10px] font-bold text-white/40 uppercase tracking-widest writing-mode-vertical rotate-180 py-1 cursor-grab active:cursor-grabbing"
+                              style={{ writingMode: "vertical-rl" }}
+                            >
                               {col.name}
                             </span>
                           ) : (
@@ -808,11 +845,19 @@ export function KanbanBoard({ project, allUsers }: KanbanBoardProps) {
         </DragDropContext>
       </div>
 
+      {/* Hueco reservado: el panel acoplado se renderiza en portal (`TaskDetailPanel`). */}
+      {selectedTask && taskPanelLayout === "docked" && (
+        <div
+          aria-hidden
+          className="shrink-0 self-stretch w-[min(420px,42vw)] min-w-[280px] max-w-[min(420px,42vw)]"
+        />
+      )}
       {selectedTask && (
         <TaskDetailPanel
           ref={taskDetailRootRef}
           task={selectedTask}
           allUsers={allUsers}
+          contractNotifyOptions={project.members.map((m) => m.user)}
           onClose={closeTaskPanel}
           layout={taskPanelLayout}
         />

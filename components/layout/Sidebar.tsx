@@ -8,6 +8,7 @@ import {
   BookOpen,
   FolderKanban,
   ArrowLeftRight,
+  CalendarOff,
   Settings,
   ChevronLeft,
   ChevronRight,
@@ -31,6 +32,7 @@ const navItems: NavItem[] = [
   { label: "Bitácora", href: "/bitacora", icon: BookOpen },
   { label: "Proyectos", href: "/proyectos", icon: FolderKanban },
   { label: "Traspaso", href: "/traspaso", icon: ArrowLeftRight, exact: true },
+  { label: "Disponibilidad", href: "/disponibilidad", icon: CalendarOff, exact: true },
 ];
 
 const STORAGE_KEY = "cc-ops-sidebar-collapsed";
@@ -126,12 +128,18 @@ export function Sidebar({ user, isAdmin, pendingFollowups = 0 }: SidebarProps) {
           const Icon = item.icon;
           const active = isActive(item);
           const badge  = item.href === "/bitacora" && pendingFollowups > 0 ? pendingFollowups : 0;
+          const itemHref =
+            item.href === "/bitacora" && badge > 0 ? "/bitacora?followup=1" : item.href;
+          const bitacoraHint =
+            badge > 0
+              ? `${badge} entrada(s) con seguimiento pendiente: abre el filtro para verlas y marca «atendido» en cada una (no se quita solo al leer).`
+              : undefined;
           return (
             <Link
               key={item.href}
-              href={item.href}
+              href={itemHref}
               aria-label={collapsed ? (badge > 0 ? `${item.label} — ${badge} seguimiento${badge !== 1 ? "s" : ""} pendiente${badge !== 1 ? "s" : ""}` : item.label) : undefined}
-              title={collapsed ? (badge > 0 ? `${item.label} — ${badge} seguimiento${badge !== 1 ? "s" : ""} pendiente${badge !== 1 ? "s" : ""}` : item.label) : (badge > 0 ? `${badge} seguimiento${badge !== 1 ? "s" : ""} pendiente${badge !== 1 ? "s" : ""}` : undefined)}
+              title={collapsed ? (badge > 0 ? `${item.label} — ${badge} seguimiento${badge !== 1 ? "s" : ""} pendiente${badge !== 1 ? "s" : ""}` : item.label) : bitacoraHint}
               className={cn(
                 "relative flex items-center gap-3 rounded-lg text-sm font-medium transition-all duration-200",
                 active
@@ -150,11 +158,14 @@ export function Sidebar({ user, isAdmin, pendingFollowups = 0 }: SidebarProps) {
                 )}
               </span>
               {!collapsed && (
-                <span className="flex-1 flex items-center justify-between">
-                  {item.label}
+                <span className="flex-1 flex items-center justify-between gap-2 min-w-0">
+                  <span className="truncate">{item.label}</span>
                   {badge > 0 && (
-                    <span className="ml-auto text-[10px] font-semibold bg-amber-400/15 text-amber-400 px-1.5 py-0.5 rounded-full leading-none">
-                      {badge}
+                    <span
+                      title={bitacoraHint}
+                      className="ml-auto shrink-0 text-[9px] font-semibold uppercase tracking-wide bg-amber-400/15 text-amber-400 px-1.5 py-0.5 rounded-full leading-none"
+                    >
+                      {badge} seg.
                     </span>
                   )}
                 </span>

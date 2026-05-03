@@ -79,6 +79,9 @@ export default async function EditarEntradaPage({
               departmentId: s.departmentId,
               permission: s.permission,
             })),
+            metricAnchorLabel: entry.metricAnchorLabel,
+            metricAnchorValue: entry.metricAnchorValue,
+            metricAnchorTrend: entry.metricAnchorTrend,
           }}
         />
       </div>

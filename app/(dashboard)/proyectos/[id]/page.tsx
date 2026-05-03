@@ -48,7 +48,7 @@ export default async function ProyectoPage({
   ];
 
   return (
-    <div className="flex flex-col h-full overflow-hidden">
+    <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
       <Header user={user} breadcrumb={breadcrumb} />
       <ProjectView project={project} allUsers={allUsers} />
     </div>

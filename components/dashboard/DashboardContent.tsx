@@ -12,6 +12,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { cn } from "@/lib/utils";
 import {
   formatRelative,
@@ -329,15 +330,14 @@ export function DashboardContent({
             </CardHeader>
             <CardContent>
               {recentLogs.length === 0 ? (
-                <div className="py-6 text-center space-y-2">
-                  <BookOpen className="w-8 h-8 text-white/10 mx-auto" />
-                  <p className="text-sm text-white/30">Sin entradas recientes</p>
-                  <Link href="/bitacora/nueva">
-                    <Button variant="secondary" size="sm">
-                      <Plus className="w-3 h-3" /> Nueva entrada
-                    </Button>
-                  </Link>
-                </div>
+                <EmptyState
+                  embedded
+                  compact
+                  icon={BookOpen}
+                  title="Sin entradas recientes"
+                  description="Publica en la bitácora para verlas aquí."
+                  action={{ label: "Nueva entrada", href: "/bitacora/nueva" }}
+                />
               ) : (
                 <div className="space-y-1">
                   {recentLogs.map((log) => (
@@ -384,13 +384,14 @@ export function DashboardContent({
             </CardHeader>
             <CardContent>
               {shiftTasks.length === 0 ? (
-                <div className="py-6 text-center space-y-1">
-                  <Zap className="w-7 h-7 text-white/10 mx-auto" />
-                  <p className="text-sm text-white/30">Sin tareas de turno</p>
-                  <p className="text-xs text-white/20">
-                    Crea tareas marcadas como &quot;turno&quot; en tus proyectos
-                  </p>
-                </div>
+                <EmptyState
+                  embedded
+                  compact
+                  icon={Zap}
+                  title="Sin tareas de turno"
+                  description='Crea tareas marcadas como "turno" en tus proyectos.'
+                  action={{ label: "Ir a proyectos", href: "/proyectos" }}
+                />
               ) : (
                 <div className="space-y-1.5">
                   {shiftTasks.map((task) => (
@@ -433,15 +434,14 @@ export function DashboardContent({
             </CardHeader>
             <CardContent>
               {myTasks.length === 0 ? (
-                <div className="py-6 text-center space-y-2">
-                  <CheckSquare className="w-7 h-7 text-white/10 mx-auto" />
-                  <p className="text-sm text-white/30">Sin tareas asignadas</p>
-                  <Link href="/proyectos">
-                    <Button variant="secondary" size="sm">
-                      <ArrowRight className="w-3 h-3" /> Ver proyectos
-                    </Button>
-                  </Link>
-                </div>
+                <EmptyState
+                  embedded
+                  compact
+                  icon={CheckSquare}
+                  title="Sin tareas asignadas"
+                  description="Cuando te asignen tareas en un proyecto, aparecerán aquí."
+                  action={{ label: "Ver proyectos", href: "/proyectos" }}
+                />
               ) : (
                 <div className="space-y-1">
                   {myTasks.slice(0, 6).map((task) => (
@@ -492,11 +492,14 @@ export function DashboardContent({
             </CardHeader>
             <CardContent>
               {overdueTasks.length === 0 ? (
-                <div className="py-6 text-center space-y-1">
-                  <CheckCircle2 className="w-8 h-8 text-emerald-400/50 mx-auto" />
-                  <p className="text-sm text-emerald-400/70 font-medium">¡Todo al día!</p>
-                  <p className="text-xs text-white/25">No hay tareas vencidas</p>
-                </div>
+                <EmptyState
+                  embedded
+                  compact
+                  icon={CheckCircle2}
+                  title="¡Todo al día!"
+                  description="No hay tareas vencidas."
+                  className="[&_h3]:text-emerald-400/90 [&_svg]:text-emerald-400/70"
+                />
               ) : (
                 <div className="space-y-1">
                   {overdueTasks.slice(0, 6).map((task) => (
@@ -542,15 +545,14 @@ export function DashboardContent({
           </CardHeader>
           <CardContent>
             {projects.length === 0 ? (
-              <div className="py-6 text-center space-y-2">
-                <FolderKanban className="w-8 h-8 text-white/10 mx-auto" />
-                <p className="text-sm text-white/30">Sin proyectos activos</p>
-                <Link href="/proyectos/nuevo">
-                  <Button variant="secondary" size="sm">
-                    <Plus className="w-3 h-3" /> Crear proyecto
-                  </Button>
-                </Link>
-              </div>
+              <EmptyState
+                embedded
+                compact
+                icon={FolderKanban}
+                title="Sin proyectos activos"
+                description="Crea un proyecto para organizar tareas en tablero Kanban."
+                action={{ label: "Crear proyecto", href: "/proyectos/nuevo" }}
+              />
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                 {projects.map((project) => {

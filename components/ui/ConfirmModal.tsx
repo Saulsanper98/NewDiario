@@ -37,11 +37,11 @@ export function ConfirmModal({
   return (
     <div data-app-confirm-modal>
       <div
-        className="confirm-modal-scrim fixed inset-0 z-50 bg-[#020308]/85"
+        className="confirm-modal-scrim fixed inset-0 z-[200] bg-[#020308]/85"
         onClick={onCancel}
         aria-hidden
       />
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
+      <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 pointer-events-none">
         <div
           className="confirm-modal-card rounded-2xl border border-white/14 bg-[#0a0f1e] p-6 w-full max-w-sm shadow-2xl pointer-events-auto animate-in fade-in zoom-in-95 duration-200"
           onClick={(e) => e.stopPropagation()}

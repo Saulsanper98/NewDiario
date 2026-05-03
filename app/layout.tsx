@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Sora } from "next/font/google";
 import { Toaster } from "react-hot-toast";
+import { BackgroundOrbs } from "@/components/layout/BackgroundOrbs";
 import { SessionProvider } from "@/components/layout/SessionProvider";
 import { ThemeProvider } from "@/components/layout/ThemeProvider";
 import { defaultMetadata } from "@/lib/app-brand";
@@ -29,16 +30,13 @@ export default function RootLayout({
       <head>
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var k='cc-ops-theme';var t=localStorage.getItem(k);if(t==='light')document.documentElement.setAttribute('data-theme','light');else document.documentElement.removeAttribute('data-theme');}catch(e){}})();`,
+            __html: `(function(){try{var k='cc-ops-theme',r=document.documentElement,t=localStorage.getItem(k);r.removeAttribute('data-theme');r.removeAttribute('data-aurora');if(t==='light')r.setAttribute('data-theme','light');else if(t==='dark'){}else r.setAttribute('data-aurora','true');}catch(e){}})();`,
           }}
         />
       </head>
       <body className="h-full font-sans antialiased">
-        {/* Animated background orbs — give glassmorphism something to blur */}
-        <div className="bg-orb bg-orb-1" aria-hidden="true" />
-        <div className="bg-orb bg-orb-2" aria-hidden="true" />
-        <div className="bg-orb bg-orb-3" aria-hidden="true" />
         <ThemeProvider>
+          <BackgroundOrbs />
           <SessionProvider>{children}</SessionProvider>
         </ThemeProvider>
         <Toaster
@@ -54,6 +52,25 @@ export default function RootLayout({
               color: "#f0f4ff",
               fontFamily: "Sora, sans-serif",
               fontSize: "14px",
+            },
+            success: {
+              duration: 3500,
+              iconTheme: { primary: "#0a0f1e", secondary: "#ffeb66" },
+              style: {
+                border: "1px solid rgba(255, 235, 102, 0.28)",
+                boxShadow: "0 0 0 1px rgba(255, 235, 102, 0.08)",
+              },
+            },
+            error: {
+              duration: 6500,
+              iconTheme: { primary: "#fecaca", secondary: "#7f1d1d" },
+              style: {
+                border: "1px solid rgba(248, 113, 113, 0.35)",
+                background: "rgba(40, 12, 16, 0.96)",
+              },
+            },
+            loading: {
+              iconTheme: { primary: "#ffeb66", secondary: "#0a0f1e" },
             },
           }}
         />

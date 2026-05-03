@@ -19,13 +19,12 @@ import {
 type ThemeContextValue = {
   theme: ThemeMode;
   setTheme: (mode: ThemeMode) => void;
-  toggleTheme: () => void;
 };
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setThemeState] = useState<ThemeMode>("dark");
+  const [theme, setThemeState] = useState<ThemeMode>("aurora");
 
   useLayoutEffect(() => {
     const t = getStoredTheme();
@@ -43,22 +42,9 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const toggleTheme = useCallback(() => {
-    setThemeState((prev) => {
-      const next: ThemeMode = prev === "dark" ? "light" : "dark";
-      applyThemeToDocument(next);
-      try {
-        localStorage.setItem(THEME_STORAGE_KEY, next);
-      } catch {
-        /* ignore */
-      }
-      return next;
-    });
-  }, []);
-
   const value = useMemo(
-    () => ({ theme, setTheme, toggleTheme }),
-    [theme, setTheme, toggleTheme]
+    () => ({ theme, setTheme }),
+    [theme, setTheme]
   );
 
   return (

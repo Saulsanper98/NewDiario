@@ -37,10 +37,10 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .bg-orb,
-  .bg-orb-1,
-  .bg-orb-2,
-  .bg-orb-3 {
+  .bg-orb:not(.bg-orb--js-motion),
+  .bg-orb-1:not(.bg-orb--js-motion),
+  .bg-orb-2:not(.bg-orb--js-motion),
+  .bg-orb-3:not(.bg-orb--js-motion) {
     animation: none !important;
   }
 }
@@ -71,23 +71,35 @@
 .bg-orb-1 {
   width: 70vw; height: 70vw;
   max-width: 900px; max-height: 900px;
-  background: radial-gradient(circle at center, rgba(74,158,255,0.06) 0%, transparent 65%);
+  /* Visibles tras quitar el lienzo opaco de .app-dashboard-root */
+  background: radial-gradient(circle at center, rgba(74,158,255,0.22) 0%, transparent 58%);
   top: -25%; left: 15%;
   animation: orb-drift-1 50s ease-in-out infinite;
 }
 .bg-orb-2 {
   width: 55vw; height: 55vw;
   max-width: 750px; max-height: 750px;
-  background: radial-gradient(circle at center, rgba(139,92,246,0.05) 0%, transparent 65%);
+  background: radial-gradient(circle at center, rgba(139,92,246,0.18) 0%, transparent 58%);
   bottom: -15%; right: -10%;
   animation: orb-drift-2 62s ease-in-out infinite;
 }
 .bg-orb-3 {
   width: 45vw; height: 45vw;
   max-width: 620px; max-height: 620px;
-  background: radial-gradient(circle at center, rgba(255,235,102,0.04) 0%, transparent 65%);
+  background: radial-gradient(circle at center, rgba(255,235,102,0.16) 0%, transparent 58%);
   bottom: 15%; left: -8%;
   animation: orb-drift-3 43s ease-in-out infinite;
+}
+
+/* Aurora: movimiento aleatorio vía JS (BackgroundOrbs) — sin keyframes CSS */
+.bg-orb.bg-orb--js-motion {
+  animation: none !important;
+}
+
+/* Orbes solo con tema Aurora (`data-aurora` en html; ver lib/theme applyThemeToDocument) */
+html:not([data-aurora]) .bg-orb,
+html[data-theme="light"] .bg-orb {
+  display: none !important;
 }
 
 *, *::before, *::after {
@@ -175,8 +187,8 @@ body {
 }
 
 /*
- * Chrome shell (sidebar + header): MISMO fondo opaco en ambos.
- * Antes el sidebar hacía blur sobre `body` y el header sobre `main` oscuro → dos grises distintos.
+ * Chrome shell (sidebar + header): translúcido + blur para que los orbes (body, z-0)
+ * se vean suavizados también bajo el menú — evita el “corte” duro en el borde con el lienzo.
  */
 .app-sidebar-shell,
 .app-top-header {
@@ -191,9 +203,11 @@ body {
     ),
     linear-gradient(
       180deg,
-      rgb(var(--shell-chrome-a)) 0%,
-      rgb(var(--shell-chrome-b)) 100%
+      rgba(var(--shell-chrome-a), 0.78) 0%,
+      rgba(var(--shell-chrome-b), 0.84) 100%
     );
+  backdrop-filter: blur(20px) saturate(1.08);
+  -webkit-backdrop-filter: blur(20px) saturate(1.08);
 }
 
 .app-top-header {
@@ -215,13 +229,10 @@ body {
   z-index: -1;
 }
 
-/* Lienzo único detrás de sidebar + main (el chrome va encima opaco; sin “tres mundos”) */
+/* Lienzo del shell: transparente para no tapar los orbes (fixed, z-0, hermanos antes en body).
+   La profundidad visual la dan body + .bg-orb-*; sidebar/header: cristal translúcido (.app-sidebar-shell / .app-top-header). */
 .app-dashboard-root {
-  background: linear-gradient(
-    180deg,
-    var(--shell-canvas-top) 0%,
-    var(--shell-canvas-bottom) 100%
-  );
+  background: transparent;
 }
 
 /* glass-3: reducir opacidad de 0.92→0.55 para que el blur sea visible */
@@ -356,6 +367,12 @@ select option {
 .modal-backdrop {
   background: rgba(0, 0, 0, 0.6);
   backdrop-filter: blur(4px);
+}
+
+/* Aurora: menos “negro plano”, más coherente con el lienzo */
+html[data-aurora] .modal-backdrop {
+  background: rgba(6, 10, 20, 0.48);
+  backdrop-filter: blur(10px);
 }
 
 /* Kanban card drag */
@@ -1410,11 +1427,23 @@ textarea:focus ~ .input-focus-bar {
 
 /* ── LogEntryDetail — Sprint 7 ────────────────────────────────────────────── */
 
-/* B56: Fullscreen reading overlay */
+/* B56: Fullscreen reading overlay (mismo aspecto en Aurora y oscuro; en Aurora los orbes van en `BackgroundOrbs mode="layer"`). */
 .detail-fullscreen-bg {
   background:
     radial-gradient(ellipse 80% 50% at 50% 0%, rgba(74,158,255,0.04) 0%, transparent 55%),
     #060a14;
+}
+
+/* Orbes Aurora dentro de un lienzo acotado (p. ej. bitácora a pantalla completa): mismas clases .bg-orb-* que el root, pero `absolute` en lugar de `fixed`. */
+.bg-orb-layer-host {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+.bg-orb-layer-host > .bg-orb {
+  position: absolute !important;
 }
 
 /* B58: Reaction button active glow */

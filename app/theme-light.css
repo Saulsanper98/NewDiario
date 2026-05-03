@@ -59,7 +59,8 @@ html[data-theme="light"] .bg-orb-3 {
 }
 
 html[data-theme="light"] .app-dashboard-root {
-  background: linear-gradient(180deg, var(--shell-canvas-top) 0%, var(--shell-canvas-bottom) 100%);
+  /* Mismo criterio que oscuro: no tapar orbes / body; el lienzo claro lo marca #main-content y body */
+  background: transparent;
 }
 
 html[data-theme="light"] .app-sidebar-shell,
@@ -135,6 +136,11 @@ html[data-theme="light"] .card-3d {
 
 html[data-theme="light"] .modal-backdrop {
   background: rgba(15, 23, 42, 0.35);
+}
+
+html[data-theme="light"] .detail-fullscreen-bg {
+  background-color: var(--lt-canvas);
+  background-image: linear-gradient(180deg, #eaeaed 0%, #e4e4e8 100%);
 }
 
 html[data-theme="light"] .toast-glass {

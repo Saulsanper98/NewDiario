@@ -1,11 +1,12 @@
 "use client";
 
+import { useId } from "react";
 import { MessageSquare, CheckSquare, Calendar } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { Avatar } from "@/components/ui/Avatar";
 import { format, isPast } from "date-fns";
 import { es } from "date-fns/locale";
-import { cn } from "@/lib/utils";
+import { cn, PRIORITY_LABELS } from "@/lib/utils";
 import type { ProjectKanbanTask } from "@/lib/types/project-detail";
 
 interface KanbanCardProps {
@@ -20,16 +21,27 @@ const PRIORITY_BORDER: Record<string, string> = {
 };
 
 export function KanbanCard({ task, onClick }: KanbanCardProps) {
+  const summaryId = useId();
   const isOverdue = task.dueDate && isPast(new Date(task.dueDate));
   const completedSubtasks =
     task.subtasks?.filter((s) => s.completed).length ?? 0;
   const totalSubtasks = task.subtasks?.length ?? 0;
+
+  const priorityLabel =
+    PRIORITY_LABELS[task.priority as keyof typeof PRIORITY_LABELS] ??
+    task.priority;
+  const dueSummary = task.dueDate
+    ? isOverdue
+      ? `Vencida, fecha ${format(new Date(task.dueDate), "d MMMM yyyy", { locale: es })}`
+      : `Fecha límite ${format(new Date(task.dueDate), "d MMMM yyyy", { locale: es })}`
+    : "Sin fecha límite";
 
   return (
     <div
       role="button"
       tabIndex={0}
       aria-label={task.title}
+      aria-describedby={summaryId}
       onClick={onClick}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
@@ -44,6 +56,12 @@ export function KanbanCard({ task, onClick }: KanbanCardProps) {
         PRIORITY_BORDER[task.priority] ?? "border-t-white/10"
       )}
     >
+      <span id={summaryId} className="sr-only">
+        Prioridad {priorityLabel}. {dueSummary}.
+        {totalSubtasks > 0
+          ? ` Subtareas ${completedSubtasks} de ${totalSubtasks} completadas.`
+          : ""}
+      </span>
       {/* Shift badge */}
       {task.isShiftTask && (
         <div className="flex items-center mb-2">

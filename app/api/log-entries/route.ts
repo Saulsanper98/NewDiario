@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma/client";
 import { z } from "zod";
 import { getActiveDepartmentId } from "@/lib/auth/permissions";
 import { buildPublishedLogWhere } from "@/lib/bitacora-where";
+import { computePublishHints } from "@/lib/log-entry-publish-hints";
 import type { SessionUser } from "@/lib/auth/types";
 
 const createSchema = z.object({
@@ -23,6 +24,9 @@ const createSchema = z.object({
       })
     )
     .default([]),
+  metricAnchorLabel: z.string().max(160).optional(),
+  metricAnchorValue: z.string().max(120).optional(),
+  metricAnchorTrend: z.enum(["UP", "DOWN", "FLAT"]).optional(),
 });
 
 export async function GET(req: NextRequest) {
@@ -88,8 +92,24 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const { title, content, type, shift, status, requiresFollowup, departmentId, tags, shares } =
-    parsed.data;
+  const {
+    title,
+    content,
+    type,
+    shift,
+    status,
+    requiresFollowup,
+    departmentId,
+    tags,
+    shares,
+    metricAnchorLabel: rawMetricLabel,
+    metricAnchorValue: rawMetricValue,
+    metricAnchorTrend: rawMetricTrend,
+  } = parsed.data;
+
+  const metricAnchorLabel = rawMetricLabel?.trim() || null;
+  const metricAnchorValue = rawMetricValue?.trim() || null;
+  const metricAnchorTrend = rawMetricTrend ?? null;
 
   // Verify user has access to department
   const hasDept =
@@ -107,6 +127,9 @@ export async function POST(req: NextRequest) {
       shift,
       status,
       requiresFollowup,
+      metricAnchorLabel,
+      metricAnchorValue,
+      metricAnchorTrend,
       authorId: user.id,
       departmentId,
       tags: {
@@ -127,5 +150,16 @@ export async function POST(req: NextRequest) {
     },
   });
 
-  return NextResponse.json(entry, { status: 201 });
+  let publishHints: Awaited<ReturnType<typeof computePublishHints>> = [];
+  if (status === "PUBLISHED") {
+    publishHints = await computePublishHints(prisma, {
+      departmentId,
+      title,
+      contentHtml: content,
+      tagNames: tags,
+      excludeEntryId: entry.id,
+    });
+  }
+
+  return NextResponse.json({ ...entry, publishHints }, { status: 201 });
 }

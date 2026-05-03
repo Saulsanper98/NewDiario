@@ -70,6 +70,7 @@ export function CommandPalette({
   const [results, setResults] = useState<SearchPayload | null>(null);
   const [kbdHint, setKbdHint] = useState("Ctrl+K");
   const [recent, setRecent] = useState<RecentItem[]>([]);
+  const [searchError, setSearchError] = useState<string | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -96,6 +97,7 @@ export function CommandPalette({
           if (!next) {
             setQuery("");
             setResults(null);
+            setSearchError(null);
           }
           return next;
         });
@@ -109,6 +111,7 @@ export function CommandPalette({
     setOpen(false);
     setQuery("");
     setResults(null);
+    setSearchError(null);
   }, []);
 
   useEffect(() => {
@@ -127,19 +130,31 @@ export function CommandPalette({
     async (q: string) => {
       const t = q.trim();
       if (t.length < 2) {
+        setSearchError(null);
         setResults({ logs: [], tasks: [], projects: [] });
         setLoading(false);
         return;
       }
       setLoading(true);
+      setSearchError(null);
       try {
+        if (typeof navigator !== "undefined" && !navigator.onLine) {
+          setSearchError(
+            "Sin conexión. Comprueba tu red e inténtalo de nuevo.",
+          );
+          setResults({ logs: [], tasks: [], projects: [] });
+          return;
+        }
         const sp = new URLSearchParams({ q: t });
         if (activeDepartmentId) sp.set("departmentId", activeDepartmentId);
         const res = await fetch(`/api/search?${sp.toString()}`);
-        if (!res.ok) throw new Error();
+        if (!res.ok) throw new Error("fetch_failed");
         const data = (await res.json()) as SearchPayload;
         setResults(data);
       } catch {
+        setSearchError(
+          "No se pudo completar la búsqueda. Inténtalo de nuevo.",
+        );
         setResults({ logs: [], tasks: [], projects: [] });
       } finally {
         setLoading(false);
@@ -171,6 +186,7 @@ export function CommandPalette({
   const empty =
     query.trim().length >= 2 &&
     !loading &&
+    !searchError &&
     results &&
     results.logs.length === 0 &&
     results.tasks.length === 0 &&
@@ -250,6 +266,15 @@ export function CommandPalette({
                   <Loader2 className="w-4 h-4 shrink-0 text-[#ffeb66] animate-spin" />
                 )}
               </div>
+              {searchError && query.trim().length >= 2 && (
+                <div
+                  role="alert"
+                  aria-live="polite"
+                  className="border-b border-amber-500/25 bg-amber-500/10 px-3 py-2.5 text-sm text-amber-100/95"
+                >
+                  {searchError}
+                </div>
+              )}
               <Command.List className="max-h-[min(50vh,420px)] overflow-y-auto bg-[#0a0f1e] p-2">
                 {query.trim().length === 0 && recent.length > 0 && (
                   <Command.Group

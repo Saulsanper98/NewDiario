@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useMemo, useEffect, useRef, forwardRef } from "react";
+import { useState, useMemo, useEffect, useLayoutEffect, useRef, forwardRef } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import {
   X, Calendar, User, Tag, CheckSquare, MessageSquare,
-  Clock, Zap, AlertTriangle, Pencil, Check, Trash2, Copy,
+  Clock, Zap, AlertTriangle, Pencil, Check, Trash2, Copy, Bell,
 } from "lucide-react";
 import { isPast } from "date-fns";
 import toast from "react-hot-toast";
@@ -30,6 +31,8 @@ const PRIORITY_CYCLE: Priority[] = ["LOW", "MEDIUM", "HIGH"];
 interface TaskDetailPanelProps {
   task: ProjectKanbanTask;
   allUsers: { id: string; name: string; image: string | null }[];
+  /** Miembros del proyecto para «avisar si retraso»; por defecto se usa `allUsers`. */
+  contractNotifyOptions?: { id: string; name: string; image: string | null }[];
   onClose: () => void;
   /** docked = columna lateral junto al tablero; overlay = modal pantalla completa (legacy) */
   layout?: "docked" | "overlay";
@@ -37,7 +40,7 @@ interface TaskDetailPanelProps {
 
 export const TaskDetailPanel = forwardRef<HTMLDivElement, TaskDetailPanelProps>(
   function TaskDetailPanel(
-    { task, allUsers, onClose, layout = "docked" },
+    { task, allUsers, contractNotifyOptions, onClose, layout = "docked" },
     ref
   ) {
   const router = useRouter();
@@ -59,7 +62,45 @@ export const TaskDetailPanel = forwardRef<HTMLDivElement, TaskDetailPanelProps>(
   );
   const [editingDue,     setEditingDue]     = useState(false);
   const [savingAssignee, setSavingAssignee] = useState(false);
+  const [contractNotifyUserId, setContractNotifyUserId] = useState<string | null>(
+    task.contractNotifyUserId ?? null
+  );
+  const [contractSlaNote, setContractSlaNote] = useState(
+    task.contractSlaNote ?? ""
+  );
+  const [contractImpactNote, setContractImpactNote] = useState(
+    task.contractImpactNote ?? ""
+  );
+  const [savingContract, setSavingContract] = useState(false);
   const titleInputRef = useRef<HTMLInputElement>(null);
+
+  /** Panel acoplado: portal a `body` alineado con `#main-content` (evita recorte por flex/overflow). */
+  const [mainHostRect, setMainHostRect] = useState<DOMRect | null>(() => {
+    if (typeof window === "undefined") return null;
+    return document.getElementById("main-content")?.getBoundingClientRect() ?? null;
+  });
+
+  useLayoutEffect(() => {
+    if (layout !== "docked") return;
+    const mainEl = document.getElementById("main-content");
+    if (!mainEl) return;
+    function sync() {
+      const box = document.getElementById("main-content")?.getBoundingClientRect();
+      if (box) setMainHostRect(box);
+    }
+    sync();
+    const ro = new ResizeObserver(sync);
+    ro.observe(mainEl);
+    window.addEventListener("resize", sync);
+    window.addEventListener("scroll", sync, true);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", sync);
+      window.removeEventListener("scroll", sync, true);
+    };
+  }, [layout]);
+
+  const notifyUserChoices = contractNotifyOptions ?? allUsers;
   const safeDescription = useMemo(
     () => sanitizeHtml(task.description ?? ""),
     [task.description]
@@ -108,6 +149,9 @@ export const TaskDetailPanel = forwardRef<HTMLDivElement, TaskDetailPanelProps>(
       setCurrentTitle(task.title);
       setTitleDraft(task.title);
     }
+    setContractNotifyUserId(task.contractNotifyUserId ?? null);
+    setContractSlaNote(task.contractSlaNote ?? "");
+    setContractImpactNote(task.contractImpactNote ?? "");
     // eslint-disable-next-line react-hooks/exhaustive-deps -- leer `task` actual; comentarios/subtareas no suben `updatedAt` del Task
   }, [task.id, task.updatedAt, editingTitle, task.comments?.length, subtaskSig]);
 
@@ -125,11 +169,27 @@ export const TaskDetailPanel = forwardRef<HTMLDivElement, TaskDetailPanelProps>(
     if (newId === assigneeId) return;
     setSavingAssignee(true);
     try {
-      await patch({ assigneeId: newId });
+      const res = await fetch(`/api/tasks/${task.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ assigneeId: newId }),
+      });
+      if (!res.ok) throw new Error();
+      const data = (await res.json()) as {
+        assigneeUnavailabilityWarning?: string | null;
+      };
+      router.refresh();
       setAssigneeId(newId);
       const found = allUsers.find((u) => u.id === newId) ?? null;
       setAssignee(found ? { id: found.id, name: found.name, image: found.image } : null);
       toast.success(newId ? "Asignado correctamente" : "Asignación eliminada");
+      if (data.assigneeUnavailabilityWarning) {
+        toast(data.assigneeUnavailabilityWarning, {
+          icon: "⏸️",
+          duration: 9000,
+          style: { maxWidth: 440 },
+        });
+      }
     } catch {
       toast.error("No se pudo cambiar el asignado");
     } finally {
@@ -236,6 +296,24 @@ export const TaskDetailPanel = forwardRef<HTMLDivElement, TaskDetailPanelProps>(
     }
   }
 
+  async function saveContract() {
+    setSavingContract(true);
+    try {
+      await patch({
+        contractNotifyUserId: contractNotifyUserId || null,
+        contractSlaNote: contractSlaNote.trim() ? contractSlaNote.trim() : null,
+        contractImpactNote: contractImpactNote.trim()
+          ? contractImpactNote.trim()
+          : null,
+      });
+      toast.success("Contrato / aviso actualizado");
+    } catch {
+      toast.error("No se pudo guardar el contrato");
+    } finally {
+      setSavingContract(false);
+    }
+  }
+
   async function duplicateTask() {
     setDuplicating(true);
     try {
@@ -257,33 +335,15 @@ export const TaskDetailPanel = forwardRef<HTMLDivElement, TaskDetailPanelProps>(
   const isOverdue  = dueDateObj ? isPast(dueDateObj) : false;
   const isDocked = layout === "docked";
 
-  return (
-    <div
-      ref={ref}
-      data-task-detail-root
-      className={
-        isDocked
-          ? /* Altura del flex row: sin esto + hijo absolute, el slot colapsa y el panel no llena */
-            "relative flex w-[min(420px,42vw)] min-w-[280px] shrink-0 self-stretch min-h-0 h-full flex-col"
-          : "contents"
-      }
-    >
-      {!isDocked && (
-        <div className="fixed inset-0 z-40 modal-backdrop" onClick={onClose} />
-      )}
-      <div
-        className={cn(
-          "glass border-l border-white/8 flex flex-col overflow-hidden min-h-0",
-          isDocked
-            ? "z-10 h-full flex-1 bg-[rgba(12,17,34,0.92)] backdrop-blur-xl shadow-[-16px_0_48px_rgba(0,0,0,0.35)] animate-in slide-in-from-right duration-200"
-            : "z-50 w-full max-w-[420px] sm:w-[420px] animate-in slide-in-from-right duration-300"
-        )}
-        style={
-          isDocked
-            ? undefined
-            : { position: "fixed", top: 0, right: 0, bottom: 0 }
-        }
-      >
+  const glassClassName = cn(
+    "glass border-l border-white/8 flex min-h-0 w-full flex-col overflow-hidden pointer-events-auto",
+    isDocked
+      ? "relative z-10 min-h-0 flex-1 bg-[rgba(12,17,34,0.92)] backdrop-blur-xl shadow-[-16px_0_48px_rgba(0,0,0,0.35)] animate-in slide-in-from-right duration-200"
+      : "relative z-10 flex h-svh max-h-svh w-full max-w-[min(420px,100%)] shrink-0 sm:max-w-[420px] bg-[rgba(12,17,34,0.96)] backdrop-blur-xl shadow-[-16px_0_48px_rgba(0,0,0,0.35)] animate-in slide-in-from-right duration-300"
+  );
+
+  const panelColumn = (
+    <div className={glassClassName}>
         {/* Header */}
         <div className="px-5 py-4 border-b border-white/8 shrink-0">
           <div className="flex items-center justify-between mb-2">
@@ -340,7 +400,7 @@ export const TaskDetailPanel = forwardRef<HTMLDivElement, TaskDetailPanelProps>(
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-5 space-y-5">
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-5 space-y-5 pb-[max(2rem,env(safe-area-inset-bottom,0px))]">
           {/* Title — editable on click */}
           <div className="group/title">
             {editingTitle ? (
@@ -461,6 +521,89 @@ export const TaskDetailPanel = forwardRef<HTMLDivElement, TaskDetailPanelProps>(
                 <span className="text-xs text-white/60 ml-auto">{task.estimatedHours}h</span>
               </div>
             )}
+
+            {isOverdue && contractNotifyUserId && (
+              <p className="text-[11px] text-amber-400/90 flex items-start gap-1.5 pt-1 border-t border-white/6">
+                <Bell className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                <span>
+                  Fecha vencida: hay una persona designada para avisos por retraso
+                  {(() => {
+                    const n = notifyUserChoices.find(
+                      (u) => u.id === contractNotifyUserId
+                    )?.name;
+                    return n ? ` (${n}).` : ".";
+                  })()}
+                </span>
+              </p>
+            )}
+          </div>
+
+          {/* Contrato / SLA (aviso si retraso) */}
+          <div className="space-y-2.5 p-3 rounded-xl bg-amber-500/[0.06] border border-amber-500/15">
+            <p className="text-xs text-amber-200/85 flex items-center gap-1.5 font-medium">
+              <Bell className="w-3.5 h-3.5 shrink-0" />
+              Contrato · aviso si retraso
+            </p>
+            <p className="text-[10px] text-white/35 leading-relaxed">
+              Indica quién debe ser informado si la tarea se retrasa y deja notas de SLA o impacto
+              para el equipo.
+            </p>
+            <div>
+              <label className="block text-[10px] font-semibold uppercase tracking-wide text-white/35 mb-1">
+                Avisar a (miembro del proyecto)
+              </label>
+              <select
+                value={contractNotifyUserId ?? ""}
+                onChange={(e) =>
+                  setContractNotifyUserId(e.target.value || null)
+                }
+                className="w-full bg-white/5 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-white/70 focus:outline-none focus:border-amber-400/40"
+                aria-label="Usuario aviso por retraso"
+              >
+                <option value="">Nadie</option>
+                {notifyUserChoices.map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-[10px] font-semibold uppercase tracking-wide text-white/35 mb-1">
+                Nota SLA / plazos
+              </label>
+              <textarea
+                value={contractSlaNote}
+                onChange={(e) => setContractSlaNote(e.target.value)}
+                rows={2}
+                maxLength={8000}
+                placeholder="Ej. Entrega crítica para el viernes; escalar a PM si +2 días."
+                className="w-full bg-white/5 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-white/70 placeholder:text-white/25 focus:outline-none focus:border-amber-400/40 resize-y min-h-[2.5rem]"
+              />
+            </div>
+            <div>
+              <label className="block text-[10px] font-semibold uppercase tracking-wide text-white/35 mb-1">
+                Impacto si falla o se retrasa
+              </label>
+              <textarea
+                value={contractImpactNote}
+                onChange={(e) => setContractImpactNote(e.target.value)}
+                rows={2}
+                maxLength={8000}
+                placeholder="Ej. Bloquea el despliegue del módulo X."
+                className="w-full bg-white/5 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-white/70 placeholder:text-white/25 focus:outline-none focus:border-amber-400/40 resize-y min-h-[2.5rem]"
+              />
+            </div>
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              className="w-full"
+              loading={savingContract}
+              onClick={() => void saveContract()}
+            >
+              Guardar contrato
+            </Button>
           </div>
 
           {/* Tags */}
@@ -562,20 +705,65 @@ export const TaskDetailPanel = forwardRef<HTMLDivElement, TaskDetailPanelProps>(
           </div>
         </div>
       </div>
+  );
 
-      {/* Confirm delete modal */}
-      {showConfirm && (
-        <ConfirmModal
-          title="Eliminar tarea"
-          message="¿Eliminar esta tarea? Esta acción no se puede deshacer."
-          confirmLabel="Eliminar"
-          confirmLoadingLabel="Eliminando…"
-          loading={deleting}
-          onConfirm={() => void confirmDelete()}
-          onCancel={() => setShowConfirm(false)}
-        />
-      )}
-    </div>
+  const deleteModal =
+    showConfirm ? (
+      <ConfirmModal
+        title="Eliminar tarea"
+        message="¿Eliminar esta tarea? Esta acción no se puede deshacer."
+        confirmLabel="Eliminar"
+        confirmLoadingLabel="Eliminando…"
+        loading={deleting}
+        onConfirm={() => void confirmDelete()}
+        onCancel={() => setShowConfirm(false)}
+      />
+    ) : null;
+
+  if (isDocked) {
+    if (mainHostRect == null) {
+      return null;
+    }
+    return createPortal(
+      <div
+        className="fixed z-[75] pointer-events-none"
+        style={{
+          top: mainHostRect.top,
+          left: mainHostRect.left,
+          width: mainHostRect.width,
+          height: mainHostRect.height,
+        }}
+      >
+        <div className="flex h-full min-h-0 w-full justify-end">
+          <div
+            ref={ref}
+            data-task-detail-root
+            className="pointer-events-auto flex h-full min-h-0 w-[min(420px,42vw)] min-w-[280px] max-w-[min(420px,42vw)] shrink-0 flex-col overflow-hidden"
+          >
+            {panelColumn}
+            {deleteModal}
+          </div>
+        </div>
+      </div>,
+      document.body,
+    );
+  }
+
+  return createPortal(
+    <div
+      ref={ref}
+      data-task-detail-root
+      className="fixed inset-0 z-[180] flex justify-end pointer-events-none"
+    >
+      <div
+        role="presentation"
+        className="absolute inset-0 modal-backdrop cursor-pointer pointer-events-auto"
+        onClick={onClose}
+      />
+      {panelColumn}
+      {deleteModal}
+    </div>,
+    document.body,
   );
 });
 

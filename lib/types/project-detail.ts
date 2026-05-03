@@ -41,6 +41,9 @@ export const projectDetailInclude = {
         orderBy: { order: "asc" },
         include: {
           assignee: { select: { id: true, name: true, image: true } },
+          contractNotifyUser: {
+            select: { id: true, name: true, image: true },
+          },
           tags: true,
           subtasks: true,
           comments: {
@@ -58,6 +61,16 @@ export const projectDetailInclude = {
   activityFeed: {
     orderBy: { createdAt: "desc" },
     take: 20,
+  },
+  boardSnapshots: {
+    orderBy: { createdAt: "desc" },
+    take: 15,
+    select: {
+      id: true,
+      label: true,
+      createdAt: true,
+      author: { select: { id: true, name: true } },
+    },
   },
 } satisfies Prisma.ProjectInclude;
 

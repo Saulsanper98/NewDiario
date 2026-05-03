@@ -43,6 +43,36 @@ export default async function BitacoraPage({
   const hasMore = raw.length > PAGE_SIZE;
   const logs = raw.slice(0, PAGE_SIZE);
 
+  const pendienteSeguimientoCount = await prisma.logEntry.count({
+    where: {
+      departmentId: deptId,
+      status: "PUBLISHED",
+      requiresFollowup: true,
+      followupDone: false,
+    },
+  });
+
+  const handoffRow = await prisma.shiftHandoff.findFirst({
+    where: { departmentId: deptId, dismissedAt: null },
+    orderBy: { createdAt: "desc" },
+    include: {
+      author: { select: { id: true, name: true, image: true } },
+    },
+  });
+  const activeHandoff = handoffRow
+    ? {
+        id: handoffRow.id,
+        departmentId: handoffRow.departmentId,
+        authorId: handoffRow.authorId,
+        shift: handoffRow.shift,
+        pendingText: handoffRow.pendingText,
+        watchText: handoffRow.watchText,
+        avoidText: handoffRow.avoidText,
+        createdAt: handoffRow.createdAt.toISOString(),
+        author: handoffRow.author,
+      }
+    : null;
+
   return (
     <div className="flex flex-col h-full overflow-hidden">
       <Header
@@ -79,6 +109,8 @@ export default async function BitacoraPage({
             initialFilters={params}
             hasMore={hasMore}
             pageSize={PAGE_SIZE}
+            activeHandoff={activeHandoff}
+            pendienteSeguimientoCount={pendienteSeguimientoCount}
           />
         </div>
       </div>

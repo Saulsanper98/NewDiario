@@ -458,7 +458,7 @@ export function UsersTab({
         </form>
       </Modal>
 
-      <div className="glass rounded-xl overflow-hidden">
+      <div className="glass rounded-xl overflow-hidden flex flex-col max-h-[min(70vh,560px)]">
         {filtered.length === 0 ? (
           <EmptyState
             compact
@@ -477,8 +477,9 @@ export function UsersTab({
             embedded
           />
         ) : (
+          <div className="min-h-0 flex-1 overflow-auto">
           <table className="w-full">
-            <thead>
+            <thead className="sticky top-0 z-10 bg-[#0a0f1e]/95 backdrop-blur-sm shadow-[0_1px_0_rgba(255,255,255,0.06)]">
               <tr className="border-b border-white/8">
                 <th className="text-left px-4 py-3 text-xs font-medium text-white/40">
                   Usuario
@@ -583,6 +584,7 @@ export function UsersTab({
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </div>
     </div>

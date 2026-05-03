@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect, useRef, type ReactNode } from "react";
+import { useState, useMemo, useEffect, useLayoutEffect, useRef, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import {
@@ -25,6 +25,9 @@ import {
   CornerDownLeft,
   AtSign,
   ExternalLink,
+  TrendingUp,
+  TrendingDown,
+  Minus,
 } from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
 import { Badge } from "@/components/ui/Badge";
@@ -42,7 +45,9 @@ import {
 import type { SessionUser, UserDepartment } from "@/lib/auth/types";
 import { sanitizeHtml } from "@/lib/sanitize-html";
 import type { LogEntryDetailPage } from "@/lib/types/log-entry-detail";
+import { LogEntryLinksCard } from "@/components/bitacora/LogEntryLinksCard";
 import { useAccentForUi } from "@/lib/hooks/useAccentForUi";
+import { BackgroundOrbs } from "@/components/layout/BackgroundOrbs";
 import { useTheme } from "@/components/layout/ThemeProvider";
 import { bitacoraReadingProseClass } from "@/lib/bitacora-html-prose";
 
@@ -94,6 +99,7 @@ const CHANGES_LABELS: Record<string, string> = {
   tagCount: "Etiquetas (nº, histórico)",
   shareCount: "Compartidos (nº, histórico)",
   followupDone: "Seguimiento atendido",
+  metricAnchor: "Ancla métrica",
 };
 
 const HISTORY_FIELD_ORDER = [
@@ -103,6 +109,7 @@ const HISTORY_FIELD_ORDER = [
   "shift",
   "status",
   "requiresFollowup",
+  "metricAnchor",
   "tags",
   "shares",
   "followupDone",
@@ -341,6 +348,25 @@ export function LogEntryDetail({
     return () => window.removeEventListener("keydown", handler);
   }, [fullscreen]);
 
+  /*
+   * Sin portal: el overlay `fixed` vive bajo `#main-content` (z-10), por debajo de la sidebar (z-20).
+   * Subimos `#main-content` al salir de fullscreen para que el lienzo fijo tape sidebar + header de ruta.
+   */
+  useLayoutEffect(() => {
+    const main = document.getElementById("main-content");
+    if (!main) return;
+    if (fullscreen) {
+      const prev = main.style.zIndex;
+      main.dataset.ccBitacoraFsPrevZ = prev;
+      main.style.zIndex = "30";
+      return () => {
+        main.style.zIndex = main.dataset.ccBitacoraFsPrevZ ?? "";
+        delete main.dataset.ccBitacoraFsPrevZ;
+      };
+    }
+    return undefined;
+  }, [fullscreen]);
+
   // IntersectionObserver for active TOC item
   useEffect(() => {
     if (!toc.length) return;
@@ -537,24 +563,21 @@ export function LogEntryDetail({
   // ── JSX ───────────────────────────────────────────────────────────────────
 
   const body = (
-    <div className={
-      fullscreen
-        ? "fixed inset-0 z-50 overflow-y-auto p-4 sm:p-8 detail-fullscreen-bg"
-        : "p-6 md:px-8 md:pb-10 max-w-4xl mx-auto space-y-7 md:space-y-8 print:max-w-none"
-    }>
-      <div className={fullscreen ? "max-w-4xl mx-auto space-y-7 md:space-y-8" : "contents"}>
-
-        {/* B56: fullscreen exit hint */}
-        {fullscreen && (
-          <button
-            onClick={() => setFullscreen(false)}
-            className="flex items-center gap-1.5 text-xs text-white/40 hover:text-white/70 transition-colors mb-2 print:hidden"
-          >
-            <Minimize2 className="w-3.5 h-3.5" />
-            Salir de pantalla completa
-            <kbd className="ml-1 text-white/20 font-mono">Esc</kbd>
-          </button>
-        )}
+    <div
+      className={
+        fullscreen
+          ? "fixed inset-0 z-[150] flex flex-col overflow-y-auto bg-[#060a14] detail-fullscreen-bg print:static print:inset-auto print:z-auto print:overflow-visible"
+          : "flex min-h-0 flex-1 flex-col overflow-y-auto p-6 md:px-8 md:pb-10 max-w-4xl mx-auto space-y-7 md:space-y-8 print:max-w-none"
+      }
+    >
+      {fullscreen && <BackgroundOrbs mode="layer" />}
+      <div
+        className={
+          fullscreen
+            ? "relative z-10 max-w-4xl mx-auto space-y-7 md:space-y-8 px-4 pb-8 pt-6 sm:px-8 sm:pb-10 sm:pt-8"
+            : "contents"
+        }
+      >
 
         {/* B51: Breadcrumb — más aire respecto a la navegación prev/sig */}
         <nav
@@ -613,6 +636,38 @@ export function LogEntryDetail({
               <h1 className="text-xl sm:text-2xl font-bold text-white leading-snug">
                 {entry.title}
               </h1>
+              {(entry.metricAnchorLabel ||
+                entry.metricAnchorValue ||
+                entry.metricAnchorTrend) && (
+                <div className="mt-4 flex flex-wrap items-center gap-3 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3">
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-white/35">
+                    Ancla métrica
+                  </span>
+                  <div className="flex flex-wrap items-center gap-2 text-sm text-white/80">
+                    {entry.metricAnchorLabel ? (
+                      <span className="font-medium text-white/90">{entry.metricAnchorLabel}</span>
+                    ) : null}
+                    {entry.metricAnchorValue ? (
+                      <span className="font-mono text-[#ffeb66]/90">{entry.metricAnchorValue}</span>
+                    ) : null}
+                    {entry.metricAnchorTrend === "UP" && (
+                      <span className="inline-flex items-center gap-1 text-emerald-300/90 text-xs">
+                        <TrendingUp className="w-3.5 h-3.5" /> Sube
+                      </span>
+                    )}
+                    {entry.metricAnchorTrend === "DOWN" && (
+                      <span className="inline-flex items-center gap-1 text-rose-300/90 text-xs">
+                        <TrendingDown className="w-3.5 h-3.5" /> Baja
+                      </span>
+                    )}
+                    {entry.metricAnchorTrend === "FLAT" && (
+                      <span className="inline-flex items-center gap-1 text-white/45 text-xs">
+                        <Minus className="w-3.5 h-3.5" /> Estable
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
               {entry.tags.length > 0 && (
                 <div className="mt-5 flex flex-wrap items-center gap-x-2 gap-y-2">
                   <span className="text-[10px] font-semibold uppercase tracking-wider text-white/35 w-full sm:w-auto sm:mr-1">
@@ -941,6 +996,16 @@ export function LogEntryDetail({
             )}
           </Card>
         )}
+
+        <LogEntryLinksCard
+          key={entry.id}
+          entryId={entry.id}
+          entryDepartmentId={entry.departmentId}
+          currentUser={currentUser}
+          canAddLink
+          initialOutgoing={entry.outgoingLogLinks}
+          initialIncoming={entry.incomingLogLinks}
+        />
 
         {/* ── B57: Related entries ─────────────────────────────────────────── */}
         {relatedEntries && relatedEntries.length > 0 && (

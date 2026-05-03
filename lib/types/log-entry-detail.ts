@@ -22,6 +22,26 @@ export const logEntryDetailPageInclude = {
     orderBy: { createdAt: "desc" as const },
     take: 5,
   },
+  outgoingLogLinks: {
+    select: {
+      id: true,
+      linkType: true,
+      createdAt: true,
+      createdById: true,
+      toLog: { select: { id: true, title: true } },
+    },
+    orderBy: { createdAt: "desc" as const },
+  },
+  incomingLogLinks: {
+    select: {
+      id: true,
+      linkType: true,
+      createdAt: true,
+      createdById: true,
+      fromLog: { select: { id: true, title: true, departmentId: true } },
+    },
+    orderBy: { createdAt: "desc" as const },
+  },
 } satisfies Prisma.LogEntryInclude;
 
 export type LogEntryDetailPage = Prisma.LogEntryGetPayload<{

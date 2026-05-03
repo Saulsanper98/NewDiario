@@ -8,7 +8,7 @@ import { Bell, ChevronDown, Check, X, Loader2, WifiOff } from "lucide-react";
 import Link from "next/link";
 import { Avatar } from "@/components/ui/Avatar";
 import { CommandPalette } from "@/components/layout/CommandPalette";
-import { ThemeToggle } from "@/components/layout/ThemeToggle";
+import { ThemeSelector } from "@/components/layout/ThemeSelector";
 import type { SessionUser } from "@/lib/auth/types";
 import { useAccentForUi } from "@/lib/hooks/useAccentForUi";
 import { cn } from "@/lib/utils";
@@ -270,7 +270,7 @@ export function Header({ user, breadcrumb }: HeaderProps) {
         </div>
       )}
 
-      <ThemeToggle />
+      <ThemeSelector />
 
       {/* Notifications */}
       <div className="relative" ref={notifRef}>

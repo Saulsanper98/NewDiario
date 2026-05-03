@@ -93,6 +93,12 @@ model User {
   assignedTasks        Task[]           @relation("TaskAssignee")
   coResponsibleTasks   Task[]           @relation("TaskCoResponsible")
   projectMemberships   ProjectMember[]
+  shiftHandoffsAuthored   ShiftHandoff[]   @relation("ShiftHandoffAuthor")
+  shiftHandoffsDismissed  ShiftHandoff[]   @relation("ShiftHandoffDismissedBy")
+  logEntryLinksCreated    LogEntryLink[]
+  contractNotifyTasks     Task[]           @relation("TaskContractNotify")
+  boardSnapshotsAuthored ProjectBoardSnapshot[] @relation("BoardSnapshotAuthor")
+  unavailabilities     UserUnavailability[]
   notifications        Notification[]
   activityLogs         ActivityLog[]
   accounts             Account[]
@@ -112,11 +118,12 @@ model Department {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  members       UserDepartment[]
-  logEntries    LogEntry[]
-  logShares     LogShare[]     @relation("SharedWithDepartment")
-  projects      Project[]
-  projectShares ProjectShare[] @relation("ProjectSharedWith")
+  members        UserDepartment[]
+  logEntries     LogEntry[]
+  logShares      LogShare[]       @relation("SharedWithDepartment")
+  projects       Project[]
+  projectShares  ProjectShare[]   @relation("ProjectSharedWith")
+  shiftHandoffs  ShiftHandoff[]
 
   @@index([slug])
 }
@@ -135,6 +142,21 @@ model UserDepartment {
   @@unique([userId, departmentId])
   @@index([userId])
   @@index([departmentId])
+}
+
+/** Bloques donde el usuario no debe recibir asignaciones críticas (despacho / ventana de cambio). */
+model UserUnavailability {
+  id        String   @id @default(cuid())
+  userId    String
+  startsAt  DateTime
+  endsAt    DateTime
+  label     String?  @db.VarChar(200)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, startsAt, endsAt])
 }
 
 // ─── NextAuth ─────────────────────────────────────────────────────────────────
@@ -189,6 +211,10 @@ model LogEntry {
   shift            Shift
   requiresFollowup Boolean        @default(false)
   followupDone     Boolean        @default(false)
+  /** Ancla narrativa opcional (KPI / umbral) para informes y contexto. */
+  metricAnchorLabel  String?        @db.VarChar(160)
+  metricAnchorValue  String?        @db.VarChar(120)
+  metricAnchorTrend  String?        @db.VarChar(16)
   authorId         String
   departmentId     String
   createdAt        DateTime       @default(now())
@@ -200,9 +226,11 @@ model LogEntry {
   comments    LogComment[]
   attachments LogAttachment[]
   tags        LogTag[]
-  shares      LogShare[]
-  tasks       Task[]           @relation("TaskLinkedLog")
-  editHistory LogEditHistory[]
+  shares           LogShare[]
+  tasks            Task[]           @relation("TaskLinkedLog")
+  editHistory      LogEditHistory[]
+  outgoingLogLinks LogEntryLink[]   @relation("LogLinkFrom")
+  incomingLogLinks LogEntryLink[]   @relation("LogLinkTo")
 
   @@index([authorId])
   @@index([departmentId])
@@ -284,6 +312,48 @@ model LogShare {
   @@index([departmentId])
 }
 
+/** Notas breves para el siguiente turno (semilla de continuidad). */
+model ShiftHandoff {
+  id            String    @id @default(cuid())
+  departmentId  String
+  authorId      String
+  shift         Shift
+  pendingText   String    @db.Text
+  watchText     String    @db.Text
+  avoidText     String    @db.Text
+  createdAt     DateTime  @default(now())
+  dismissedAt   DateTime?
+  dismissedById String?
+
+  department  Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  author      User       @relation("ShiftHandoffAuthor", fields: [authorId], references: [id])
+  dismissedBy User?      @relation("ShiftHandoffDismissedBy", fields: [dismissedById], references: [id])
+
+  @@index([departmentId, dismissedAt, createdAt])
+}
+
+enum LogEntryLinkType {
+  LEADS_TO
+}
+
+/** Relación explícita entre entradas (causa → efecto). */
+model LogEntryLink {
+  id          String           @id @default(cuid())
+  fromLogId   String
+  toLogId     String
+  linkType    LogEntryLinkType @default(LEADS_TO)
+  createdById String
+  createdAt   DateTime         @default(now())
+
+  fromLog   LogEntry @relation("LogLinkFrom", fields: [fromLogId], references: [id], onDelete: Cascade)
+  toLog     LogEntry @relation("LogLinkTo", fields: [toLogId], references: [id], onDelete: Cascade)
+  createdBy User     @relation(fields: [createdById], references: [id])
+
+  @@unique([fromLogId, toLogId, linkType])
+  @@index([fromLogId])
+  @@index([toLogId])
+}
+
 // ─── Projects & Tasks ─────────────────────────────────────────────────────────
 
 model Project {
@@ -311,13 +381,28 @@ model Project {
   links         ProjectLink[]
   tags          ProjectTag[]
   comments      ProjectComment[]
-  activityFeed  ProjectActivity[]
+  activityFeed   ProjectActivity[]
+  boardSnapshots ProjectBoardSnapshot[]
 
   @@index([departmentId])
   @@index([status])
   @@index([parentId])
   @@index([deletedAt])
   @@index([name])
+}
+
+model ProjectBoardSnapshot {
+  id        String   @id @default(cuid())
+  projectId String
+  authorId  String
+  label     String?
+  snapshot  String   @db.Text
+  createdAt DateTime @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  author  User    @relation("BoardSnapshotAuthor", fields: [authorId], references: [id])
+
+  @@index([projectId, createdAt])
 }
 
 model ProjectMember {
@@ -452,9 +537,15 @@ model Task {
 
   linkedLogEntryId String?
 
+  /** Contrato operativo (opcional): avisar si retraso, notas SLA / impacto */
+  contractNotifyUserId String?
+  contractSlaNote        String? @db.Text
+  contractImpactNote    String? @db.Text
+
   column         KanbanColumn   @relation(fields: [columnId], references: [id])
   project        Project        @relation(fields: [projectId], references: [id])
   assignee       User?          @relation("TaskAssignee", fields: [assigneeId], references: [id])
+  contractNotifyUser User?      @relation("TaskContractNotify", fields: [contractNotifyUserId], references: [id])
   coResponsibles User[]         @relation("TaskCoResponsible")
   linkedLogEntry LogEntry?      @relation("TaskLinkedLog", fields: [linkedLogEntryId], references: [id])
   subtasks       Subtask[]

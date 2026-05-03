@@ -15,20 +15,32 @@ export function buildPublishedLogWhere(
   deptId: string | null,
   filters: BitacoraListFilters
 ): Prisma.LogEntryWhereInput {
+  const shareDeptIds = user.departments.map((d) => d.id);
+  const accessOr: Prisma.LogEntryWhereInput[] = [];
+  if (deptId) {
+    accessOr.push({ departmentId: deptId });
+  }
+  if (shareDeptIds.length > 0) {
+    accessOr.push({
+      shares: {
+        some: { departmentId: { in: shareDeptIds } },
+      },
+    });
+  }
+
   const where: Prisma.LogEntryWhereInput = {
     status: "PUBLISHED",
     deletedAt: null,
-    OR: [
-      { departmentId: deptId ?? undefined },
-      {
-        shares: {
-          some: {
-            departmentId: { in: user.departments.map((d) => d.id) },
-          },
-        },
-      },
-    ],
   };
+
+  if (accessOr.length === 0) {
+    /* Sin dept activo ni membresías: evita `in: []` y OR degenerado (puede tumbar Prisma/SQL). */
+    where.id = { equals: "__cc_ops_no_log_access__" };
+  } else if (accessOr.length === 1) {
+    Object.assign(where, accessOr[0]!);
+  } else {
+    where.OR = accessOr;
+  }
 
   if (filters.type && (Object.values(LogEntryType) as string[]).includes(filters.type)) {
     where.type = filters.type as (typeof LogEntryType)[keyof typeof LogEntryType];

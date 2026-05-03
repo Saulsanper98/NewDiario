@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useRef, useEffect, forwardRef } from "react";
+import { useState, useRef, useEffect, useMemo, forwardRef } from "react";
 import { createPortal } from "react-dom";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import {
   Kanban, List, GitGraph, Activity, FolderTree, ArrowRight,
@@ -29,6 +29,7 @@ import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import type { SessionUser } from "@/lib/auth/types";
 import type { ProjectDetail } from "@/lib/types/project-detail";
 import { useAccentForUi } from "@/lib/hooks/useAccentForUi";
+import { BoardSnapshotPanel } from "@/components/proyectos/BoardSnapshotPanel";
 
 type Tab = "kanban" | "list" | "timeline" | "activity" | "subprojects";
 type ProjectMemberRow = ProjectDetail["members"][number];
@@ -52,6 +53,7 @@ const PRIORITY_OPTIONS = Object.entries(PRIORITY_LABELS) as [keyof typeof PRIORI
 export function ProjectView({ project, allUsers }: ProjectViewProps) {
   const { accent } = useAccentForUi();
   const router = useRouter();
+  const pathname = usePathname();
   const { data: session } = useSession();
   const sessionUser = session?.user as SessionUser | undefined;
 
@@ -61,7 +63,12 @@ export function ProjectView({ project, allUsers }: ProjectViewProps) {
       sessionUser.role === "ADMIN" ||
       sessionUser.departments.some((d) => d.id === project.departmentId));
 
-  const [activeTab,    setActiveTab]    = useState<Tab>("kanban");
+  const tabStorageKey = useMemo(
+    () => `cc-project-tab-${project.id}`,
+    [project.id],
+  );
+
+  const [activeTab, setActiveTab] = useState<Tab>("kanban");
   const [status,       setStatus]       = useState(project.status);
   const [priority,     setPriority]     = useState(project.priority);
   const [projectName,  setProjectName]  = useState(project.name);
@@ -82,6 +89,53 @@ export function ProjectView({ project, allUsers }: ProjectViewProps) {
   useEffect(() => {
     if (editingName) nameInputRef.current?.focus();
   }, [editingName]);
+
+  /* Pestaña: ?tab= en URL (compartir enlace) + localStorage por proyecto */
+  useEffect(() => {
+    const valid = (t: string | null): t is Tab =>
+      !!t && TABS.some((x) => x.id === t);
+
+    let next: Tab = "kanban";
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const q = params.get("tab");
+      if (valid(q)) next = q;
+      else {
+        const stored = localStorage.getItem(tabStorageKey);
+        if (valid(stored)) next = stored;
+      }
+    } catch {
+      /* ignore */
+    }
+    setActiveTab(next);
+  }, [tabStorageKey]);
+
+  useEffect(() => {
+    function onPopState() {
+      try {
+        const q = new URLSearchParams(window.location.search).get("tab");
+        if (q && TABS.some((x) => x.id === q)) setActiveTab(q as Tab);
+      } catch {
+        /* ignore */
+      }
+    }
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, []);
+
+  function selectTab(id: Tab) {
+    setActiveTab(id);
+    try {
+      localStorage.setItem(tabStorageKey, id);
+    } catch {
+      /* ignore */
+    }
+    const params = new URLSearchParams(
+      typeof window !== "undefined" ? window.location.search : "",
+    );
+    params.set("tab", id);
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+  }
 
   async function saveName() {
     const trimmed = nameDraft.trim();
@@ -181,7 +235,7 @@ export function ProjectView({ project, allUsers }: ProjectViewProps) {
     differenceInDays(new Date(project.endDate), new Date()) <= 7;
 
   return (
-    <div className="flex-1 flex flex-col overflow-hidden">
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
       {deleteProjectOpen && (
         <ConfirmModal
           title="Eliminar proyecto"
@@ -384,7 +438,7 @@ export function ProjectView({ project, allUsers }: ProjectViewProps) {
               <button
                 key={tab.id}
                 type="button"
-                onClick={() => setActiveTab(tab.id)}
+                onClick={() => selectTab(tab.id)}
                 className={cn(
                   "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200",
                   activeTab === tab.id
@@ -402,7 +456,19 @@ export function ProjectView({ project, allUsers }: ProjectViewProps) {
 
       {/* Tab content */}
       <div className="flex-1 min-h-0 overflow-hidden project-view-body">
-        {activeTab === "kanban"      && <KanbanBoard project={project} allUsers={allUsers} />}
+        {activeTab === "kanban" && (
+          <div className="flex flex-1 min-h-0 flex-col overflow-hidden">
+            <BoardSnapshotPanel
+              projectId={project.id}
+              departmentId={project.departmentId}
+              currentUser={sessionUser}
+              initialSnapshots={project.boardSnapshots}
+            />
+            <div className="min-h-0 flex-1 overflow-hidden">
+              <KanbanBoard project={project} allUsers={allUsers} />
+            </div>
+          </div>
+        )}
         {activeTab === "list"        && <TaskListView columns={project.kanbanColumns} />}
         {activeTab === "timeline"    && <ProjectTimeline columns={project.kanbanColumns} />}
         {activeTab === "activity"    && <ProjectActivity activities={project.activityFeed} />}

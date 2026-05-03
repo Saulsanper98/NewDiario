@@ -5,6 +5,8 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import type { BitacoraFeedLog } from "@/lib/types/bitacora";
+import type { ShiftHandoffActive } from "@/lib/types/shift-handoff";
+import { ShiftHandoffPanel } from "@/components/bitacora/ShiftHandoffPanel";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -160,6 +162,10 @@ interface BitacoraFeedProps {
   initialFilters?: Record<string, string>;
   hasMore?: boolean;
   pageSize?: number;
+  /** Semilla de continuidad activa (si existe). */
+  activeHandoff?: ShiftHandoffActive | null;
+  /** Coincide con el badge del menú: entradas publicadas con seguimiento sin marcar atendido. */
+  pendienteSeguimientoCount?: number;
 }
 
 /* ── main component ─────────────────────────────────────────────────────── */
@@ -171,6 +177,8 @@ export function BitacoraFeed({
   initialFilters = {},
   hasMore = false,
   pageSize = 25,
+  activeHandoff = null,
+  pendienteSeguimientoCount = 0,
 }: BitacoraFeedProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -431,6 +439,41 @@ export function BitacoraFeed({
       <a href="#bitacora-feed-filters" className="skip-to-main">
         Saltar a filtros de bitácora
       </a>
+      <ShiftHandoffPanel
+        departmentId={departmentId}
+        initialHandoff={activeHandoff ?? null}
+      />
+
+      {pendienteSeguimientoCount > 0 && (
+        <div className="shrink-0 px-4 sm:px-6 pt-2">
+          <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2.5 text-xs text-amber-100/90 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <p className="leading-relaxed">
+              <span className="font-semibold text-amber-200 tabular-nums">
+                {pendienteSeguimientoCount}
+              </span>{" "}
+              {pendienteSeguimientoCount === 1
+                ? "entrada tiene"
+                : "entradas tienen"}{" "}
+              <strong>seguimiento pendiente</strong>. El aviso del menú no es de «notificaciones
+              leídas»: hay que marcar cada una como <strong>atendida</strong> en la nota o en el
+              listado (chip Seg.).
+            </p>
+            {!followupFilter ? (
+              <Link
+                href="/bitacora?followup=1"
+                className="shrink-0 rounded-lg border border-amber-400/40 bg-amber-400/10 px-2.5 py-1.5 text-[11px] font-medium text-amber-100 hover:bg-amber-400/20 text-center transition-colors"
+              >
+                Ver solo esas
+              </Link>
+            ) : (
+              <span className="shrink-0 text-[10px] text-amber-200/80 font-medium">
+                Filtro «Seguimiento» activo
+              </span>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* B11 — barra de filtros: búsqueda siempre visible; chips en panel desplegable */}
       <div id="bitacora-feed-filters" className="shrink-0 z-20 px-4 sm:px-6 pt-1 pb-2 scroll-mt-20">
         <div className="glass-opaque-bitacora rounded-xl p-3 flex flex-wrap items-center gap-2 gap-y-2 relative">
