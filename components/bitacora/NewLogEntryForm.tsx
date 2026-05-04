@@ -726,32 +726,48 @@ export function NewLogEntryForm({
           )}
         </div>
 
-        {/* Ancla métrica (opcional) */}
+        {/* Ancla métrica (opcional): una fila en sm+ (etiqueta | valor | tendencia), misma altura de controles */}
         <div
           className={cn(
-            "rounded-xl border p-4 space-y-3",
+            "rounded-xl border p-4 sm:p-5",
             theme === "light"
               ? "border-zinc-200/90 bg-white/90 shadow-sm"
               : "border-white/10 bg-white/[0.03]"
           )}
         >
-          <div>
-            <label className={formLabelClass(theme)}>Ancla métrica (opcional)</label>
+          <div className="mb-4">
+            <label className={cn(formLabelClass(theme), "block")}>
+              Ancla métrica (opcional)
+            </label>
             <p
               className={cn(
-                "text-[11px] mt-1",
-                theme === "light" ? "text-zinc-500" : "text-white/30"
+                "text-xs mt-1.5 leading-relaxed max-w-2xl",
+                theme === "light" ? "text-zinc-500" : "text-white/35"
               )}
             >
               KPI o dato breve para contexto (no sustituye el cuerpo de la entrada).
             </p>
           </div>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="space-y-1">
-              <label className={cn("text-[11px]", theme === "light" ? "text-zinc-600" : "text-white/45")}>
+
+          <div
+            className={cn(
+              "grid grid-cols-1 gap-4",
+              /* Etiqueta crece; valor corto (número/KPI); tendencia ancho fijo — alineados en una fila */
+              "sm:grid-cols-[minmax(0,1fr)_minmax(5.5rem,7rem)_minmax(9.5rem,12rem)] sm:gap-x-3 sm:gap-y-0"
+            )}
+          >
+            <div className="flex min-w-0 flex-col gap-1.5">
+              <label
+                htmlFor="metric-anchor-label"
+                className={cn(
+                  "text-xs font-medium",
+                  theme === "light" ? "text-zinc-600" : "text-white/50"
+                )}
+              >
                 Etiqueta
               </label>
               <Input
+                id="metric-anchor-label"
                 value={metricLabel}
                 onChange={(e) => setMetricLabel(e.target.value)}
                 maxLength={160}
@@ -759,11 +775,18 @@ export function NewLogEntryForm({
                 className={theme === "light" ? lightTitleInputClass : undefined}
               />
             </div>
-            <div className="space-y-1">
-              <label className={cn("text-[11px]", theme === "light" ? "text-zinc-600" : "text-white/45")}>
+            <div className="flex min-w-0 flex-col gap-1.5">
+              <label
+                htmlFor="metric-anchor-value"
+                className={cn(
+                  "text-xs font-medium",
+                  theme === "light" ? "text-zinc-600" : "text-white/50"
+                )}
+              >
                 Valor
               </label>
               <Input
+                id="metric-anchor-value"
                 value={metricValue}
                 onChange={(e) => setMetricValue(e.target.value)}
                 maxLength={120}
@@ -771,28 +794,35 @@ export function NewLogEntryForm({
                 className={theme === "light" ? lightTitleInputClass : undefined}
               />
             </div>
-          </div>
-          <div className="space-y-1">
-            <label className={cn("text-[11px]", theme === "light" ? "text-zinc-600" : "text-white/45")}>
-              Tendencia
-            </label>
-            <select
-              value={metricTrend}
-              onChange={(e) =>
-                setMetricTrend(e.target.value as "" | "UP" | "DOWN" | "FLAT")
-              }
-              className={cn(
-                "w-full max-w-xs rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2",
-                theme === "light"
-                  ? "border-zinc-200 bg-white text-zinc-900 focus:border-[#c4ae16]/70 focus:ring-[#d4bc1a]/25"
-                  : "border-white/10 bg-white/5 text-white/80 focus:border-[#ffeb66]/35 focus:ring-[#ffeb66]/15"
-              )}
-            >
-              <option value="">— Sin indicar —</option>
-              <option value="UP">Sube</option>
-              <option value="DOWN">Baja</option>
-              <option value="FLAT">Estable</option>
-            </select>
+            <div className="flex min-w-0 flex-col gap-1.5">
+              <label
+                htmlFor="metric-anchor-trend"
+                className={cn(
+                  "text-xs font-medium",
+                  theme === "light" ? "text-zinc-600" : "text-white/50"
+                )}
+              >
+                Tendencia
+              </label>
+              <select
+                id="metric-anchor-trend"
+                value={metricTrend}
+                onChange={(e) =>
+                  setMetricTrend(e.target.value as "" | "UP" | "DOWN" | "FLAT")
+                }
+                className={cn(
+                  "h-9 w-full shrink-0 rounded-lg border px-3 text-sm transition-colors focus:outline-none focus:ring-2",
+                  theme === "light"
+                    ? "border-zinc-200 bg-white text-zinc-900 focus:border-[#c4ae16]/70 focus:ring-[#d4bc1a]/25"
+                    : "border-white/10 bg-white/5 text-white/85 focus:border-[#ffeb66]/35 focus:ring-[#ffeb66]/15"
+                )}
+              >
+                <option value="">— Sin indicar —</option>
+                <option value="UP">Sube</option>
+                <option value="DOWN">Baja</option>
+                <option value="FLAT">Estable</option>
+              </select>
+            </div>
           </div>
         </div>
 

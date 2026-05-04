@@ -187,8 +187,8 @@ body {
 }
 
 /*
- * Chrome shell (sidebar + header): translúcido + blur para que los orbes (body, z-0)
- * se vean suavizados también bajo el menú — evita el “corte” duro en el borde con el lienzo.
+ * Chrome shell (sidebar + header): translúcido + blur para que el fondo (orbes en body, z-0)
+ * se filtre suave bajo el menú. Aurora: rail un poco más abierto (sin eco amarillo) para suavizar la junta con el main.
  */
 .app-sidebar-shell,
 .app-top-header {
@@ -219,6 +219,24 @@ body {
 .app-sidebar-shell {
   border-right: 1px solid rgba(255, 255, 255, 0.07);
 }
+
+/* Aurora: solo un pelín más translúcido el rail (sin tinte amarillo); el borde derecho más suave = menos “corte” duro con el lienzo. */
+html[data-aurora] .app-sidebar-shell {
+  border-right-color: rgba(255, 255, 255, 0.045);
+  background:
+    linear-gradient(
+      145deg,
+      rgba(255, 255, 255, 0.055) 0%,
+      rgba(255, 255, 255, 0.03) 50%,
+      rgba(255, 255, 255, 0.016) 100%
+    ),
+    linear-gradient(
+      180deg,
+      rgba(var(--shell-chrome-a), 0.72) 0%,
+      rgba(var(--shell-chrome-b), 0.78) 100%
+    );
+}
+
 .app-sidebar-shell::after {
   content: "";
   position: absolute;
@@ -229,7 +247,7 @@ body {
   z-index: -1;
 }
 
-/* Lienzo del shell: transparente para no tapar los orbes (fixed, z-0, hermanos antes en body).
+/* Lienzo del shell: transparente para no tapar los orbes (fixed, z-0, en body).
    La profundidad visual la dan body + .bg-orb-*; sidebar/header: cristal translúcido (.app-sidebar-shell / .app-top-header). */
 .app-dashboard-root {
   background: transparent;

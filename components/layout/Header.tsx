@@ -173,7 +173,13 @@ export function Header({ user, breadcrumb }: HeaderProps) {
         Sin conexión — Los cambios no se guardarán hasta que vuelva la conexión
       </div>
     )}
-    <header className={cn("h-16 app-top-header flex items-center gap-4 px-6 shrink-0 print:hidden", isOffline ? "mt-7" : "")}>
+    <header
+      className={cn(
+        /* relative z-30: dropdowns (notif., dept.) deben pintar sobre el contenido siguiente (mismo padre flex). */
+        "h-16 app-top-header relative z-30 flex items-center gap-4 px-6 shrink-0 print:hidden",
+        isOffline ? "mt-7" : ""
+      )}
+    >
       <nav className="flex-1 flex items-center gap-2 min-w-0" aria-label="Migas de pan">
         {crumbs ? (
           crumbs.map((item, i) => (

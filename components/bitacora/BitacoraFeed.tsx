@@ -1,7 +1,7 @@
 "use client";
 
 import {
-  useState, useMemo, useEffect, useTransition, useCallback, useRef, type ReactNode,
+  useState, useMemo, useEffect, useTransition, useCallback, useRef,
 } from "react";
 import { createPortal } from "react-dom";
 import type { BitacoraFeedLog } from "@/lib/types/bitacora";
@@ -37,6 +37,7 @@ import {
   LayoutList,
 } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
+import { HighlightText } from "@/components/ui/HighlightText";
 import { Avatar } from "@/components/ui/Avatar";
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -91,7 +92,13 @@ const SHIFT_META: Record<string, { icon: React.ElementType; color: string; label
 function formatGroupDate(date: Date): string {
   if (isToday(date))     return "Hoy";
   if (isYesterday(date)) return "Ayer";
-  return format(date, "EEEE d 'de' MMMM", { locale: es });
+  const thisYear = new Date().getFullYear();
+  const dateYear = date.getFullYear();
+  return format(
+    date,
+    dateYear !== thisYear ? "EEEE d 'de' MMMM 'de' yyyy" : "EEEE d 'de' MMMM",
+    { locale: es }
+  );
 }
 
 function tagHue(name: string): number {
@@ -100,27 +107,7 @@ function tagHue(name: string): number {
   return h % 360;
 }
 
-/* B18 — highlight search term in text */
-function HighlightText({ text, query }: { text: string; query: string }): ReactNode {
-  if (!query.trim()) return <>{text}</>;
-  const q = query.trim().toLowerCase();
-  const lower = text.toLowerCase();
-  const parts: ReactNode[] = [];
-  let last = 0;
-  let idx = lower.indexOf(q, last);
-  while (idx !== -1) {
-    if (idx > last) parts.push(text.slice(last, idx));
-    parts.push(
-      <mark key={idx} className="bg-[#ffeb66]/22 text-[#ffeb66] rounded-sm px-0.5">
-        {text.slice(idx, idx + q.length)}
-      </mark>
-    );
-    last = idx + q.length;
-    idx = lower.indexOf(q, last);
-  }
-  if (last < text.length) parts.push(text.slice(last));
-  return <>{parts}</>;
-}
+
 
 /* B4 — Skeleton card */
 function SkeletonCard({ seed = 0 }: { seed?: number }) {
@@ -200,12 +187,14 @@ export function BitacoraFeed({
   const [nextPage,      setNextPage]      = useState(2);
   const [loadingMore,   setLoadingMore]   = useState(false);
   const [loadMoreError, setLoadMoreError] = useState(false);
-  const [compactView,   setCompactView]   = useState(false);
+  const [compactView,   setCompactView]   = useState(() => {
+    try { return localStorage.getItem("cc-ops-bitacora-compact") === "1"; } catch { return false; }
+  });
 
   /* B12 — back to top */
   const [showBackToTop, setShowBackToTop] = useState(false);
   /** Fila de chips tipo/turno/seguimiento: panel colapsable para ganar altura útil */
-  const [filtersPanelOpen, setFiltersPanelOpen] = useState(() =>
+  const [filtersPanelOpen,  setFiltersPanelOpen]  = useState(() =>
     Boolean(
       initialFilters.type ||
         initialFilters.shift ||
@@ -215,10 +204,12 @@ export function BitacoraFeed({
           initialFilters.authorId === currentUserId)
     )
   );
+  const [filtersPanelClosing, setFiltersPanelClosing] = useState(false);
 
-  const loadingRef     = useRef(false);
-  const sentinelRef    = useRef<HTMLDivElement>(null);
-  const scrollAreaRef  = useRef<HTMLDivElement>(null);
+  const loadingRef         = useRef(false);
+  const loadAbortRef       = useRef<AbortController | null>(null);
+  const sentinelRef        = useRef<HTMLDivElement>(null);
+  const scrollAreaRef      = useRef<HTMLDivElement>(null);
   const hydratedFiltersRef = useRef(false);
 
   /* B12 — scroll del panel de lista (no window: la barra de filtros queda fuera del scroll) */
@@ -243,12 +234,17 @@ export function BitacoraFeed({
     );
   }
 
-  /* Sync server logs when they change (filter navigation) */
+  /* Sync server logs when they change (filter navigation) — abort any in-flight loadMore */
   useEffect(() => {
+    loadAbortRef.current?.abort();
+    loadAbortRef.current = null;
+    loadingRef.current   = false;
     startTransition(() => {
       setList(logs);
       setMore(hasMore);
       setNextPage(2);
+      setLoadingMore(false);
+      setLoadMoreError(false);
     });
   }, [logs, hasMore]);
 
@@ -273,10 +269,12 @@ export function BitacoraFeed({
     return () => clearTimeout(t);
   }, [typeFilter, shiftFilter, followupFilter, authorOnly, currentUserId, search, sortDesc, router]);
 
-  /* Load more */
+  /* Load more — uses AbortController to discard stale responses after filter reset */
   const loadMore = useCallback(async () => {
     if (loadingRef.current || !more) return;
     loadingRef.current = true;
+    const controller = new AbortController();
+    loadAbortRef.current = controller;
     setLoadingMore(true);
     setLoadMoreError(false);
     try {
@@ -290,16 +288,16 @@ export function BitacoraFeed({
       if (followupFilter) sp.set("followup", "1");
       if (search.trim())  sp.set("search",   search.trim());
       if (authorOnly && currentUserId) sp.set("authorId", currentUserId);
-      const res = await fetch(`/api/log-entries?${sp.toString()}`);
+      const res = await fetch(`/api/log-entries?${sp.toString()}`, { signal: controller.signal });
       if (!res.ok) throw new Error();
       const data = await res.json();
       setList((prev) => [...prev, ...(data.logs ?? [])]);
       setMore(Boolean(data.hasMore));
       setNextPage((p) => p + 1);
-    } catch {
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") return;
       setLoadMoreError(true);
-    }
-    finally {
+    } finally {
       loadingRef.current = false;
       setLoadingMore(false);
     }
@@ -328,7 +326,8 @@ export function BitacoraFeed({
       result = result.filter(
         (log) =>
           foldAccentInsensitive(log.title).includes(q) ||
-          foldAccentInsensitive(log.author.name).includes(q)
+          foldAccentInsensitive(log.author.name).includes(q) ||
+          foldAccentInsensitive(log.content.replace(/<[^>]+>/g, " ")).includes(q)
       );
     }
     return sortDesc
@@ -360,6 +359,27 @@ export function BitacoraFeed({
     for (const l of list) c[l.shift] = (c[l.shift] ?? 0) + 1;
     return c;
   }, [list]);
+
+  function toggleFiltersPanel() {
+    if (filtersPanelOpen) {
+      setFiltersPanelClosing(true);
+      setTimeout(() => {
+        setFiltersPanelOpen(false);
+        setFiltersPanelClosing(false);
+      }, 150);
+    } else {
+      setFiltersPanelClosing(false);
+      setFiltersPanelOpen(true);
+    }
+  }
+
+  function toggleCompactView() {
+    setCompactView((v) => {
+      const next = !v;
+      try { localStorage.setItem("cc-ops-bitacora-compact", next ? "1" : "0"); } catch { /* */ }
+      return next;
+    });
+  }
 
   const anyFilter = !!(
     typeFilter ||
@@ -488,7 +508,7 @@ export function BitacoraFeed({
             id="bitacora-feed-filters-trigger"
             aria-expanded={filtersPanelOpen}
             aria-controls="bitacora-feed-filters-advanced"
-            onClick={() => setFiltersPanelOpen((o) => !o)}
+            onClick={toggleFiltersPanel}
             className={cn(
               "flex items-center gap-2 shrink-0 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-all duration-150",
               filtersPanelOpen
@@ -541,17 +561,19 @@ export function BitacoraFeed({
             onClick={() => setSortDesc((v) => !v)}
             title={sortDesc ? "Más recientes primero" : "Más antiguos primero"}
             aria-label={sortDesc ? "Ordenar: más antiguos primero" : "Ordenar: más recientes primero"}
-            className="p-1.5 rounded-md text-white/40 hover:text-white hover:bg-white/6 transition-all duration-150"
+            className="flex items-center gap-1 px-2 py-1.5 rounded-md text-white/40 hover:text-white hover:bg-white/6 transition-all duration-150"
           >
             {sortDesc ? <SortDesc className="w-3.5 h-3.5" /> : <SortAsc className="w-3.5 h-3.5" />}
+            <span className="text-[11px] hidden sm:inline">{sortDesc ? "Recientes" : "Antiguos"}</span>
           </button>
 
           {/* Compact view toggle */}
           <button
             type="button"
-            onClick={() => setCompactView((v) => !v)}
+            onClick={toggleCompactView}
             title={compactView ? "Vista normal" : "Vista compacta"}
             aria-label={compactView ? "Vista normal" : "Vista compacta"}
+            aria-pressed={compactView}
             className={cn(
               "p-1.5 rounded-md transition-all duration-150",
               compactView
@@ -575,8 +597,11 @@ export function BitacoraFeed({
           )}
 
           {/* B17 — entries count indicator */}
-          <span className="ml-auto text-xs text-white/25 tabular-nums shrink-0">
-            {filtered.length}/{list.length}
+          <span
+            className="ml-auto text-xs text-white/40 tabular-nums shrink-0"
+            title={`${filtered.length} entradas visibles de ${list.length} cargadas`}
+          >
+            {filtered.length}<span className="text-white/20">/{list.length}</span>
           </span>
         </div>
 
@@ -585,7 +610,12 @@ export function BitacoraFeed({
           id="bitacora-feed-filters-advanced"
           role="region"
           aria-labelledby="bitacora-feed-filters-trigger"
-          className="mt-2 glass-opaque-bitacora rounded-xl px-3 py-2 flex items-center gap-2 flex-wrap max-md:overflow-x-auto max-md:flex-nowrap animate-in fade-in slide-in-from-top-1 duration-200"
+          className={cn(
+            "mt-2 glass-opaque-bitacora rounded-xl px-3 py-2 flex items-center gap-2 flex-wrap max-md:overflow-x-auto max-md:flex-nowrap",
+            filtersPanelClosing
+              ? "animate-out fade-out slide-out-to-top-1 duration-150"
+              : "animate-in fade-in slide-in-from-top-1 duration-200"
+          )}
         >
           {/* Type pills */}
           <div className="flex items-center gap-1.5 flex-wrap">
@@ -598,6 +628,7 @@ export function BitacoraFeed({
                   type="button"
                   onClick={() => setTypeFilter(isActive ? "" : type)}
                   title={TYPE_LABELS[type as keyof typeof TYPE_LABELS]}
+                  aria-pressed={isActive}
                   className={cn(
                     "flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-medium transition-all duration-150 border",
                     isActive
@@ -609,8 +640,11 @@ export function BitacoraFeed({
                   <Icon className="w-3 h-3" />
                   <span>{TYPE_SHORT[type]}</span>
                   {count > 0 && (
-                    <span className={cn("tabular-nums", isActive ? "text-white/70" : "text-white/30")}>
-                      {count}
+                    <span
+                      className={cn("tabular-nums", isActive ? "text-white/70" : "text-white/30")}
+                      title="Entradas en esta vista (desplázate para cargar más)"
+                    >
+                      {count}*
                     </span>
                   )}
                 </button>
@@ -633,6 +667,7 @@ export function BitacoraFeed({
                   type="button"
                   onClick={() => setShiftFilter(isActive ? "" : shift)}
                   title={SHIFT_LABELS[shift]}
+                  aria-pressed={isActive}
                   className={cn(
                     "flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-medium transition-all duration-150 border",
                     isActive
@@ -642,7 +677,14 @@ export function BitacoraFeed({
                   )}
                 >
                   <Icon className="w-3 h-3" />
-                  {count > 0 && <span className="tabular-nums">{count}</span>}
+                  {count > 0 && (
+                    <span
+                      className="tabular-nums"
+                      title="Entradas en esta vista (desplázate para cargar más)"
+                    >
+                      {count}*
+                    </span>
+                  )}
                 </button>
               );
             })}
@@ -697,7 +739,7 @@ export function BitacoraFeed({
         <p className="sr-only" aria-live="polite" aria-atomic>
           {filtered.length} entradas visibles de {list.length} cargadas
         </p>
-        <div className="space-y-5 pt-1">
+        <div className={cn("space-y-5 pt-1 transition-opacity duration-200", isPending && "opacity-50 pointer-events-none")}>
       {/* Content */}
       {showGlobalEmpty ? (
         <EmptyState
@@ -787,12 +829,13 @@ export function BitacoraFeed({
             )}
             {/* B16 — explicit load more fallback */}
             {!loadingMore && more && loadMoreError && (
-              <div className="flex flex-col sm:flex-row items-center gap-2 text-center">
-                <p className="text-xs text-amber-400/90">No se pudieron cargar más entradas.</p>
+              <div className="flex flex-col sm:flex-row items-center gap-3 px-4 py-3 rounded-xl border border-amber-500/25 bg-amber-500/6 text-center">
+                <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
+                <p className="text-xs text-amber-300 flex-1">No se pudieron cargar más entradas.</p>
                 <button
                   type="button"
                   onClick={() => void loadMore()}
-                  className="px-4 py-2 rounded-lg text-xs text-[#ffeb66] border border-[#ffeb66]/30 hover:bg-[#ffeb66]/10 transition-all duration-200"
+                  className="px-4 py-1.5 rounded-lg text-xs text-[#ffeb66] border border-[#ffeb66]/30 hover:bg-[#ffeb66]/10 transition-all duration-200 shrink-0"
                 >
                   Reintentar
                 </button>
@@ -808,9 +851,13 @@ export function BitacoraFeed({
               </button>
             )}
             {!more && list.length > 0 && (
-              <p className="text-xs text-white/20 py-2">
-                — {list.length} entrada{list.length !== 1 ? "s" : ""} en total —
-              </p>
+              <div className="flex items-center gap-3 py-3 w-full max-w-xs mx-auto">
+                <div className="h-px flex-1 bg-white/8" />
+                <p className="text-xs text-white/30 shrink-0 tabular-nums">
+                  {list.length} entrada{list.length !== 1 ? "s" : ""}
+                </p>
+                <div className="h-px flex-1 bg-white/8" />
+              </div>
             )}
           </div>
         </div>
@@ -1007,7 +1054,13 @@ function LogCard({
           {compact ? (
             /* ── Compact single-row layout ── */
             <div className="flex items-center gap-3 min-w-0">
-              <TypeIcon className={cn("w-3.5 h-3.5 shrink-0", isUrgent ? "text-red-400" : "text-white/35")} />
+              <TypeIcon className={cn("w-3.5 h-3.5 shrink-0", {
+                INCIDENCIA:   "text-orange-400",
+                INFORMATIVO:  "text-blue-400",
+                URGENTE:      "text-red-400",
+                MANTENIMIENTO:"text-purple-400",
+                SIN_NOVEDADES:"text-green-400",
+              }[log.type as string] ?? "text-white/35")} />
               <span className={cn("flex-1 font-medium text-sm truncate min-w-0", isUrgent ? "text-red-300" : "text-white/85")}>
                 <HighlightText text={truncate(log.title, 60)} query={searchQuery} />
               </span>
@@ -1074,8 +1127,8 @@ function LogCard({
                           key={tag.id}
                           className="text-xs px-1.5 py-0.5 rounded border max-w-[120px] truncate"
                           style={{
-                            backgroundColor: `hsl(${hue},55%,15%)`,
-                            color: `hsl(${hue},70%,65%)`,
+                            backgroundColor: `hsl(${hue},50%,12%)`,
+                            color: `hsl(${hue},75%,75%)`,
                             borderColor: `hsl(${hue},45%,28%)`,
                           }}
                         >
@@ -1120,14 +1173,16 @@ function LogCard({
 
       {/* B14 — hover quick actions */}
       <div className="absolute top-3 right-3 flex gap-1 opacity-0 group-hover/card:opacity-100 transition-all duration-150 z-10">
-        <button
-          type="button"
-          onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push(`/bitacora/${log.id}/editar`); }}
-          className="p-1.5 rounded-md glass-2 border border-white/12 text-white/50 hover:text-white hover:border-white/24 transition-all duration-150"
-          title="Editar entrada"
-        >
-          <Edit className="w-3 h-3" />
-        </button>
+        {!sharedFrom && (
+          <button
+            type="button"
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push(`/bitacora/${log.id}/editar`); }}
+            className="p-1.5 rounded-md glass-2 border border-white/12 text-white/50 hover:text-white hover:border-white/24 transition-all duration-150"
+            title="Editar entrada"
+          >
+            <Edit className="w-3 h-3" />
+          </button>
+        )}
         <button
           type="button"
           onClick={handleCopyLink}

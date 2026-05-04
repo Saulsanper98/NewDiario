@@ -61,7 +61,11 @@ export function ProjectView({ project, allUsers }: ProjectViewProps) {
     !!sessionUser &&
     (sessionUser.role === "SUPERADMIN" ||
       sessionUser.role === "ADMIN" ||
-      sessionUser.departments.some((d) => d.id === project.departmentId));
+      sessionUser.departments.some(
+        (d) =>
+          d.id === project.departmentId &&
+          (d.role === "ADMIN" || d.role === "SUPERADMIN")
+      ));
 
   const tabStorageKey = useMemo(
     () => `cc-project-tab-${project.id}`,
@@ -114,14 +118,20 @@ export function ProjectView({ project, allUsers }: ProjectViewProps) {
     function onPopState() {
       try {
         const q = new URLSearchParams(window.location.search).get("tab");
-        if (q && TABS.some((x) => x.id === q)) setActiveTab(q as Tab);
+        const valid = (t: string | null): t is Tab => !!t && TABS.some((x) => x.id === t);
+        if (valid(q)) {
+          setActiveTab(q);
+        } else {
+          const stored = localStorage.getItem(tabStorageKey);
+          setActiveTab(valid(stored) ? stored : "kanban");
+        }
       } catch {
         /* ignore */
       }
     }
     window.addEventListener("popstate", onPopState);
     return () => window.removeEventListener("popstate", onPopState);
-  }, []);
+  }, [tabStorageKey]);
 
   function selectTab(id: Tab) {
     setActiveTab(id);
@@ -429,9 +439,9 @@ export function ProjectView({ project, allUsers }: ProjectViewProps) {
 
         {/* Tabs */}
         <div className="flex items-center gap-1 mt-4 flex-wrap">
-          {TABS.map((tab) => {
+          {TABS.filter((tab) => !(tab.id === "subprojects" && subCount === 0)).map((tab) => {
             const Icon = tab.icon;
-            const label = tab.id === "subprojects" && subCount > 0
+            const label = tab.id === "subprojects"
               ? `Subproyectos (${subCount})`
               : tab.label;
             return (

@@ -19,6 +19,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useFocusTrap } from "@/lib/hooks/useFocusTrap";
 import { paletteShortcutLabel } from "@/lib/platform-kbd";
+import { HighlightText } from "@/components/ui/HighlightText";
 
 const RECENT_KEY = "cc-ops-palette-recent";
 const MAX_RECENT = 5;
@@ -103,8 +104,15 @@ export function CommandPalette({
         });
       }
     }
+    function onCustomOpen() {
+      setOpen(true);
+    }
     document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
+    document.addEventListener("cc-open-palette", onCustomOpen);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.removeEventListener("cc-open-palette", onCustomOpen);
+    };
   }, []);
 
   const closePalette = useCallback(() => {
@@ -358,7 +366,7 @@ export function CommandPalette({
                       >
                         <BookOpen className="w-4 h-4 text-[#ffeb66]/70 shrink-0" />
                         <div className="min-w-0 flex-1">
-                          <p className="truncate">{log.title}</p>
+                          <p className="truncate"><HighlightText text={log.title} query={query} /></p>
                           {log.department?.name && (
                             <p className="text-[11px] text-white/30 truncate">{log.department.name}</p>
                           )}
@@ -382,7 +390,7 @@ export function CommandPalette({
                       >
                         <CheckSquare className="w-4 h-4 text-[#4a9eff]/80 shrink-0" />
                         <div className="min-w-0 flex-1">
-                          <p className="truncate">{t.title}</p>
+                          <p className="truncate"><HighlightText text={t.title} query={query} /></p>
                           <p className="text-xs text-white/35 truncate">
                             {t.project.name}
                           </p>
@@ -405,7 +413,7 @@ export function CommandPalette({
                         className="flex items-center gap-2 px-2 py-2 rounded-lg cursor-pointer text-sm text-white/80 data-[selected=true]:bg-white/10 data-[selected=true]:border-l-2 data-[selected=true]:border-[#ffeb66] data-[selected=true]:pl-[6px]"
                       >
                         <FolderKanban className="w-4 h-4 text-emerald-400/80 shrink-0" />
-                        <span className="truncate">{p.name}</span>
+                        <span className="truncate"><HighlightText text={p.name} query={query} /></span>
                       </Command.Item>
                     ))}
                   </Command.Group>

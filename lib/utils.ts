@@ -19,12 +19,9 @@ export function formatRelative(date: Date | string): string {
 }
 
 export function getInitials(name: string): string {
-  return name
-    .split(" ")
-    .map((n) => n[0])
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
+  const parts = name.split(" ").filter(Boolean);
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return parts.map((n) => n[0]).slice(0, 2).join("").toUpperCase();
 }
 
 export function slugify(text: string): string {
@@ -119,13 +116,17 @@ export function truncate(str: string, length: number): string {
   return str.slice(0, length) + "...";
 }
 
+const DONE_COLUMN_NAMES = new Set([
+  "completado", "completada", "done", "terminado", "terminada",
+  "cerrado", "cerrada", "entregado", "entregada", "hecho", "hechas",
+  "finalizado", "finalizada", "resuelto", "resuelta", "acabado",
+]);
+
 export function getCompletedColumnCount(
   columns: { name: string; order: number; tasks: { id: string }[] }[]
 ): number {
-  const byName = columns.find(
-    (c) =>
-      c.name.toLowerCase() === "completado" ||
-      c.name.toLowerCase() === "done"
+  const byName = columns.find((c) =>
+    DONE_COLUMN_NAMES.has(c.name.toLowerCase().trim())
   );
   if (byName) return byName.tasks.length;
   const sorted = [...columns].sort((a, b) => b.order - a.order);

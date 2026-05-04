@@ -37,7 +37,7 @@ export function ConfirmModal({
   return (
     <div data-app-confirm-modal>
       <div
-        className="confirm-modal-scrim fixed inset-0 z-[200] bg-[#020308]/85"
+        className="confirm-modal-scrim fixed inset-0 z-[200] bg-[#020308]/85 animate-in fade-in duration-150"
         onClick={onCancel}
         aria-hidden
       />

@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import {
   X, Calendar, User, Tag, CheckSquare, MessageSquare,
-  Clock, Zap, AlertTriangle, Pencil, Check, Trash2, Copy, Bell,
+  Clock, Zap, AlertTriangle, Pencil, Check, Trash2, Copy, Bell, Plus, Loader2,
 } from "lucide-react";
 import { isPast } from "date-fns";
 import toast from "react-hot-toast";
@@ -72,7 +72,29 @@ export const TaskDetailPanel = forwardRef<HTMLDivElement, TaskDetailPanelProps>(
     task.contractImpactNote ?? ""
   );
   const [savingContract, setSavingContract] = useState(false);
+  const [localTags, setLocalTags] = useState<{ id: string; name: string }[]>(task.tags ?? []);
+  const [newTagDraft, setNewTagDraft] = useState("");
+  const [addingTag, setAddingTag] = useState(false);
+  const [assigneeSearch, setAssigneeSearch] = useState("");
+  const [assigneeOpen, setAssigneeOpen] = useState(false);
+  const assigneeInputRef = useRef<HTMLInputElement>(null);
+  const [newSubtaskDraft, setNewSubtaskDraft] = useState("");
+  const [addingSubtask, setAddingSubtask] = useState(false);
+  const [showUnsavedWarning, setShowUnsavedWarning] = useState(false);
   const titleInputRef = useRef<HTMLInputElement>(null);
+
+  const isContractDirty =
+    contractNotifyUserId !== (task.contractNotifyUserId ?? null) ||
+    contractSlaNote !== (task.contractSlaNote ?? "") ||
+    contractImpactNote !== (task.contractImpactNote ?? "");
+
+  function handleClose() {
+    if (isContractDirty && !savingContract) {
+      setShowUnsavedWarning(true);
+      return;
+    }
+    onClose();
+  }
 
   /** Panel acoplado: portal a `body` alineado con `#main-content` (evita recorte por flex/overflow). */
   const [mainHostRect, setMainHostRect] = useState<DOMRect | null>(() => {
@@ -120,11 +142,12 @@ export const TaskDetailPanel = forwardRef<HTMLDivElement, TaskDetailPanelProps>(
 
   useEffect(() => {
     function handleKey(e: KeyboardEvent) {
-      if (e.key === "Escape" && !showConfirm) onClose();
+      if (e.key === "Escape" && !showConfirm && !showUnsavedWarning) handleClose();
     }
     document.addEventListener("keydown", handleKey);
     return () => document.removeEventListener("keydown", handleKey);
-  }, [onClose, showConfirm]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onClose, showConfirm, showUnsavedWarning, isContractDirty, savingContract]);
 
   useEffect(() => {
     if (layout !== "overlay") return;
@@ -152,6 +175,7 @@ export const TaskDetailPanel = forwardRef<HTMLDivElement, TaskDetailPanelProps>(
     setContractNotifyUserId(task.contractNotifyUserId ?? null);
     setContractSlaNote(task.contractSlaNote ?? "");
     setContractImpactNote(task.contractImpactNote ?? "");
+    setLocalTags(task.tags ?? []);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- leer `task` actual; comentarios/subtareas no suben `updatedAt` del Task
   }, [task.id, task.updatedAt, editingTitle, task.comments?.length, subtaskSig]);
 
@@ -260,8 +284,9 @@ export const TaskDetailPanel = forwardRef<HTMLDivElement, TaskDetailPanelProps>(
       router.refresh();
     } catch {
       toast.error("Error al añadir comentario");
+    } finally {
+      setSubmitting(false);
     }
-    setSubmitting(false);
   }
 
   async function toggleSubtask(subtaskId: string, completed: boolean) {
@@ -278,6 +303,60 @@ export const TaskDetailPanel = forwardRef<HTMLDivElement, TaskDetailPanelProps>(
     } catch {
       setSubtasks(prev);
       toast.error("Error al actualizar subtarea");
+    }
+  }
+
+  async function createSubtask(title: string) {
+    const trimmed = title.trim();
+    if (!trimmed || addingSubtask) return;
+    setAddingSubtask(true);
+    try {
+      const res = await fetch(`/api/tasks/${task.id}/subtasks`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: trimmed }),
+      });
+      if (!res.ok) throw new Error();
+      const sub = await res.json();
+      setSubtasks((prev) => [...prev, sub]);
+      setNewSubtaskDraft("");
+      router.refresh();
+    } catch {
+      toast.error("Error al crear subtarea");
+    } finally {
+      setAddingSubtask(false);
+    }
+  }
+
+  async function addTag(name: string) {
+    const trimmed = name.trim();
+    if (!trimmed || addingTag) return;
+    setAddingTag(true);
+    try {
+      const res = await fetch(`/api/tasks/${task.id}/tags`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: trimmed }),
+      });
+      if (!res.ok) throw new Error();
+      const tag = await res.json();
+      setLocalTags((prev) => [...prev, tag]);
+      setNewTagDraft("");
+      router.refresh();
+    } catch {
+      toast.error("Error al añadir etiqueta");
+    } finally {
+      setAddingTag(false);
+    }
+  }
+
+  async function removeTag(tagId: string) {
+    setLocalTags((prev) => prev.filter((t) => t.id !== tagId));
+    try {
+      await fetch(`/api/tasks/${task.id}/tags/${tagId}`, { method: "DELETE" });
+      router.refresh();
+    } catch {
+      toast.error("Error al eliminar etiqueta");
     }
   }
 
@@ -368,7 +447,7 @@ export const TaskDetailPanel = forwardRef<HTMLDivElement, TaskDetailPanelProps>(
             </div>
             <button
               type="button"
-              onClick={onClose}
+              onClick={handleClose}
               aria-label="Cerrar panel de tarea"
               className="p-1.5 rounded-lg text-white/40 hover:text-white hover:bg-white/8 transition-all duration-200"
             >
@@ -454,22 +533,56 @@ export const TaskDetailPanel = forwardRef<HTMLDivElement, TaskDetailPanelProps>(
             <div className="flex items-center gap-2.5">
               <User className="w-3.5 h-3.5 text-white/30 shrink-0" />
               <span className="text-xs text-white/40 shrink-0">Asignado</span>
-              <div className="ml-auto flex items-center gap-1.5 min-w-0">
-                {assignee && (
+              <div className="ml-auto flex items-center gap-1.5 min-w-0 relative">
+                {assignee && !assigneeOpen && (
                   <Avatar name={assignee.name} image={assignee.image} size="xs" />
                 )}
-                <select
-                  value={assigneeId ?? ""}
-                  disabled={savingAssignee}
-                  onChange={(e) => void saveAssignee(e.target.value || null)}
-                  className="bg-transparent border-0 text-xs text-white/60 focus:outline-none cursor-pointer hover:text-white transition-colors max-w-[130px] truncate disabled:opacity-50"
-                  aria-label="Cambiar asignado"
-                >
-                  <option value="">Sin asignar</option>
-                  {allUsers.map((u) => (
-                    <option key={u.id} value={u.id}>{u.name}</option>
-                  ))}
-                </select>
+                <div className="relative">
+                  <button
+                    type="button"
+                    disabled={savingAssignee}
+                    onClick={() => { setAssigneeOpen(true); setAssigneeSearch(""); setTimeout(() => assigneeInputRef.current?.focus(), 0); }}
+                    className={`text-xs text-white/60 hover:text-white transition-colors max-w-[130px] truncate disabled:opacity-50 ${assigneeOpen ? "hidden" : ""}`}
+                  >
+                    {assignee?.name ?? "Sin asignar"}
+                  </button>
+                  {assigneeOpen && (
+                    <div className="relative">
+                      <input
+                        ref={assigneeInputRef}
+                        type="text"
+                        value={assigneeSearch}
+                        onChange={(e) => setAssigneeSearch(e.target.value)}
+                        onBlur={() => setTimeout(() => setAssigneeOpen(false), 150)}
+                        onKeyDown={(e) => { if (e.key === "Escape") setAssigneeOpen(false); }}
+                        placeholder="Buscar…"
+                        className="w-28 bg-white/8 border border-white/20 rounded px-2 py-0.5 text-xs text-white placeholder:text-white/30 focus:outline-none focus:border-[#ffeb66]/40"
+                      />
+                      <div className="absolute right-0 top-full mt-1 w-44 bg-[#0d1428] border border-white/15 rounded-lg shadow-xl z-50 max-h-48 overflow-y-auto">
+                        <button
+                          type="button"
+                          onMouseDown={() => { void saveAssignee(null); setAssigneeOpen(false); }}
+                          className="w-full text-left px-2.5 py-1.5 text-xs text-white/40 hover:bg-white/6 hover:text-white/70 transition-colors"
+                        >
+                          Sin asignar
+                        </button>
+                        {allUsers
+                          .filter((u) => !assigneeSearch || u.name.toLowerCase().includes(assigneeSearch.toLowerCase()))
+                          .map((u) => (
+                            <button
+                              key={u.id}
+                              type="button"
+                              onMouseDown={() => { void saveAssignee(u.id); setAssigneeOpen(false); }}
+                              className={`w-full flex items-center gap-2 text-left px-2.5 py-1.5 text-xs hover:bg-white/6 transition-colors ${assigneeId === u.id ? "text-[#ffeb66]" : "text-white/70 hover:text-white"}`}
+                            >
+                              <Avatar name={u.name} image={u.image} size="xs" />
+                              {u.name}
+                            </button>
+                          ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -606,56 +719,112 @@ export const TaskDetailPanel = forwardRef<HTMLDivElement, TaskDetailPanelProps>(
             </Button>
           </div>
 
+          <div className="h-px bg-white/6" />
+
           {/* Tags */}
-          {task.tags?.length > 0 && (
-            <div>
-              <p className="text-xs text-white/40 mb-2 flex items-center gap-1.5">
-                <Tag className="w-3.5 h-3.5" />
-                Etiquetas
-              </p>
-              <div className="flex flex-wrap gap-1.5">
-                {task.tags.map((tag) => (
-                  <span key={tag.id} className="text-xs px-2 py-0.5 rounded-md bg-white/5 text-white/40 border border-white/8">
-                    #{tag.name}
-                  </span>
-                ))}
-              </div>
+          <div>
+            <p className="text-xs text-white/40 mb-2 flex items-center gap-1.5">
+              <Tag className="w-3.5 h-3.5" />
+              Etiquetas
+            </p>
+            <div className="flex flex-wrap gap-1.5 mb-2">
+              {localTags.map((tag) => (
+                <span key={tag.id} className="group/tag flex items-center gap-1 text-xs px-2 py-0.5 rounded-md bg-white/5 text-white/40 border border-white/8 hover:border-white/16 transition-colors">
+                  #{tag.name}
+                  <button
+                    type="button"
+                    onClick={() => void removeTag(tag.id)}
+                    className="opacity-0 group-hover/tag:opacity-100 text-white/30 hover:text-red-400 transition-all duration-100 -mr-0.5"
+                    aria-label={`Eliminar etiqueta ${tag.name}`}
+                  >
+                    <X className="w-2.5 h-2.5" />
+                  </button>
+                </span>
+              ))}
             </div>
-          )}
+            <form
+              onSubmit={(e) => { e.preventDefault(); void addTag(newTagDraft); }}
+              className="flex items-center gap-1.5"
+            >
+              <input
+                type="text"
+                value={newTagDraft}
+                onChange={(e) => setNewTagDraft(e.target.value)}
+                placeholder="Nueva etiqueta…"
+                disabled={addingTag}
+                maxLength={60}
+                className="flex-1 bg-white/5 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-white placeholder:text-white/25 focus:outline-none focus:border-[#ffeb66]/40 disabled:opacity-50"
+              />
+              <button
+                type="submit"
+                disabled={addingTag || !newTagDraft.trim()}
+                className="p-1.5 rounded-lg bg-white/6 border border-white/10 text-white/40 hover:text-white hover:border-white/20 transition-all duration-150 disabled:opacity-40"
+                aria-label="Añadir etiqueta"
+              >
+                {addingTag ? <Loader2 className="w-3 h-3 animate-spin" /> : <Plus className="w-3 h-3" />}
+              </button>
+            </form>
+          </div>
 
           {/* Subtasks */}
-          {subtasks.length > 0 && (
-            <div>
-              <p className="text-xs text-white/40 mb-2 flex items-center gap-1.5">
-                <CheckSquare className="w-3.5 h-3.5" />
-                Subtareas ({completedSubtasks}/{subtasks.length})
-              </p>
-              <div className="h-1 bg-white/6 rounded-full mb-3 overflow-hidden">
-                <div
-                  className="h-full bg-[#ffeb66] rounded-full transition-all duration-300"
-                  style={{ width: `${subtasks.length > 0 ? (completedSubtasks / subtasks.length) * 100 : 0}%` }}
-                />
-              </div>
-              <div className="space-y-1.5">
-                {subtasks.map((subtask) => (
-                  <label
-                    key={subtask.id}
-                    className="flex items-center gap-2.5 p-2 rounded-lg hover:bg-white/4 cursor-pointer transition-all duration-150"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={subtask.completed}
-                      onChange={(e) => toggleSubtask(subtask.id, e.target.checked)}
-                      className="w-3.5 h-3.5 accent-[#ffeb66]"
-                    />
-                    <span className={`text-sm ${subtask.completed ? "text-white/30 line-through" : "text-white/70"}`}>
-                      {subtask.title}
-                    </span>
-                  </label>
-                ))}
-              </div>
-            </div>
-          )}
+          <div>
+            <p className="text-xs text-white/40 mb-2 flex items-center gap-1.5">
+              <CheckSquare className="w-3.5 h-3.5" />
+              Subtareas{subtasks.length > 0 && ` (${completedSubtasks}/${subtasks.length})`}
+            </p>
+            {subtasks.length > 0 && (
+              <>
+                <div className="h-1 bg-white/6 rounded-full mb-3 overflow-hidden">
+                  <div
+                    className="h-full bg-[#ffeb66] rounded-full transition-all duration-300"
+                    style={{ width: `${(completedSubtasks / subtasks.length) * 100}%` }}
+                  />
+                </div>
+                <div className="space-y-0.5 mb-2">
+                  {subtasks.map((subtask) => (
+                    <label
+                      key={subtask.id}
+                      className="flex items-center gap-2.5 p-2 rounded-lg hover:bg-white/4 cursor-pointer transition-all duration-150"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={subtask.completed}
+                        onChange={(e) => toggleSubtask(subtask.id, e.target.checked)}
+                        className="w-3.5 h-3.5 accent-[#ffeb66]"
+                      />
+                      <span className={`text-sm ${subtask.completed ? "text-white/30 line-through" : "text-white/70"}`}>
+                        {subtask.title}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </>
+            )}
+            <form
+              onSubmit={(e) => { e.preventDefault(); void createSubtask(newSubtaskDraft); }}
+              className="flex items-center gap-1.5"
+            >
+              <input
+                type="text"
+                value={newSubtaskDraft}
+                onChange={(e) => setNewSubtaskDraft(e.target.value)}
+                placeholder="Nueva subtarea…"
+                disabled={addingSubtask}
+                maxLength={500}
+                className="flex-1 bg-white/5 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-white placeholder:text-white/25 focus:outline-none focus:border-[#ffeb66]/40 disabled:opacity-50"
+              />
+              <button
+                type="submit"
+                disabled={addingSubtask || !newSubtaskDraft.trim()}
+                className="p-1.5 rounded-lg bg-white/6 border border-white/10 text-white/40 hover:text-white hover:border-white/20 transition-all duration-150 disabled:opacity-40"
+                aria-label="Añadir subtarea"
+              >
+                {addingSubtask ? <Loader2 className="w-3 h-3 animate-spin" /> : <Plus className="w-3 h-3" />}
+              </button>
+            </form>
+          </div>
+
+          <div className="h-px bg-white/6" />
 
           {/* Comments */}
           <div>
@@ -720,6 +889,19 @@ export const TaskDetailPanel = forwardRef<HTMLDivElement, TaskDetailPanelProps>(
       />
     ) : null;
 
+  const unsavedWarningModal =
+    showUnsavedWarning ? (
+      <ConfirmModal
+        variant="warning"
+        title="Cambios sin guardar"
+        message="El contrato tiene cambios sin guardar. ¿Descartarlos y cerrar?"
+        confirmLabel="Descartar y cerrar"
+        cancelLabel="Volver"
+        onConfirm={() => { setShowUnsavedWarning(false); onClose(); }}
+        onCancel={() => setShowUnsavedWarning(false)}
+      />
+    ) : null;
+
   if (isDocked) {
     if (mainHostRect == null) {
       return null;
@@ -742,6 +924,7 @@ export const TaskDetailPanel = forwardRef<HTMLDivElement, TaskDetailPanelProps>(
           >
             {panelColumn}
             {deleteModal}
+            {unsavedWarningModal}
           </div>
         </div>
       </div>,
@@ -758,10 +941,11 @@ export const TaskDetailPanel = forwardRef<HTMLDivElement, TaskDetailPanelProps>(
       <div
         role="presentation"
         className="absolute inset-0 modal-backdrop cursor-pointer pointer-events-auto"
-        onClick={onClose}
+        onClick={handleClose}
       />
       {panelColumn}
       {deleteModal}
+      {unsavedWarningModal}
     </div>,
     document.body,
   );

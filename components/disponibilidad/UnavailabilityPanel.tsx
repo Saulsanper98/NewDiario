@@ -49,6 +49,16 @@ export function UnavailabilityPanel() {
       toast.error("Indica inicio y fin");
       return;
     }
+    const startDate = new Date(startsAt);
+    const endDate   = new Date(endsAt);
+    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+      toast.error("Las fechas no son válidas");
+      return;
+    }
+    if (endDate <= startDate) {
+      toast.error("La fecha de fin debe ser posterior a la de inicio");
+      return;
+    }
     setSaving(true);
     try {
       const res = await fetch("/api/me/unavailability", {

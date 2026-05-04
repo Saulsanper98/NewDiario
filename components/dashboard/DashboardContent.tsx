@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   BookOpen, CheckSquare, AlertTriangle, Zap,
   FolderKanban, Plus, ArrowRight, CalendarCheck,
@@ -53,18 +53,22 @@ interface DashboardContentProps {
 
 /* ── Animated counter hook ───────────────────────────────────────────────── */
 function useAnimatedCounter(target: number, duration = 650): number {
-  const [count, setCount] = useState(0);
+  const [count, setCount] = useState(target);
+  const prevRef = useRef(target);
   useEffect(() => {
-    if (target === 0) { setCount(0); return; }
+    const from = prevRef.current;
+    prevRef.current = target;
+    if (from === target) return;
     const reduced = typeof window !== "undefined"
       && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (reduced) { setCount(target); return; }
     let start: number | null = null;
     let rafId: number;
+    const range = target - from;
     const step = (ts: number) => {
       if (!start) start = ts;
       const p = Math.min((ts - start) / duration, 1);
-      setCount(Math.round((1 - Math.pow(1 - p, 3)) * target));
+      setCount(Math.round(from + (1 - Math.pow(1 - p, 3)) * range));
       if (p < 1) rafId = requestAnimationFrame(step);
     };
     rafId = requestAnimationFrame(step);
@@ -112,7 +116,7 @@ function ShiftProgressBar({ shift }: { shift: "MORNING" | "AFTERNOON" | "NIGHT" 
           {rh > 0 ? `${rh}h ` : ""}{rm}min restantes
         </span>
       </div>
-      <div className="h-0.5 bg-white/6 rounded-full overflow-hidden">
+      <div className="h-1.5 bg-white/6 rounded-full overflow-hidden">
         <div
           className="h-full rounded-full transition-all duration-1000"
           style={{ width: `${progress}%`, backgroundColor: barColor }}
@@ -125,9 +129,7 @@ function ShiftProgressBar({ shift }: { shift: "MORNING" | "AFTERNOON" | "NIGHT" 
 /* ── Quick actions ───────────────────────────────────────────────────────── */
 function QuickActions() {
   function openPalette() {
-    document.dispatchEvent(
-      new KeyboardEvent("keydown", { key: "k", ctrlKey: true, bubbles: true })
-    );
+    document.dispatchEvent(new CustomEvent("cc-open-palette"));
   }
 
   return (
@@ -573,7 +575,7 @@ export function DashboardContent({
                           <ArrowRight className="w-3.5 h-3.5 text-white/20 shrink-0 mt-0.5" />
                         </div>
                         <div className="flex items-center gap-2 mb-1.5">
-                          <div className="flex-1 h-1.5 bg-white/6 rounded-full overflow-hidden">
+                          <div className="flex-1 h-2 bg-white/6 rounded-full overflow-hidden">
                             <div
                               className={cn("h-full rounded-full progress-bar", progress === 100 ? "bg-emerald-400" : "bg-[#ffeb66]")}
                               style={{ width: `${progress}%` }}

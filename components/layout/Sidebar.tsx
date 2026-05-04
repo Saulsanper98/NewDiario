@@ -101,12 +101,13 @@ export function Sidebar({ user, isAdmin, pendingFollowups = 0 }: SidebarProps) {
       </div>
 
       {/* Collapse toggle — fixed so it escapes layout overflow-hidden */}
+      {/* left = sidebar-width - half-button-width (22px) so it straddles the edge */}
       <button
         type="button"
         onClick={toggle}
         aria-label={collapsed ? "Expandir menú" : "Colapsar menú"}
         title={collapsed ? "Expandir menú" : "Colapsar menú"}
-        style={{ left: collapsed ? "52px" : "228px" }}
+        style={{ left: collapsed ? "calc(4rem - 12px)" : "calc(15rem - 12px)" }}
         className={cn(
           /* .glass fuerza position:relative en globals; !fixed gana en cascada */
           "glass rounded-full border border-white/15 flex items-center justify-center",
@@ -157,19 +158,20 @@ export function Sidebar({ user, isAdmin, pendingFollowups = 0 }: SidebarProps) {
                   </span>
                 )}
               </span>
-              {!collapsed && (
-                <span className="flex-1 flex items-center justify-between gap-2 min-w-0">
-                  <span className="truncate">{item.label}</span>
-                  {badge > 0 && (
-                    <span
-                      title={bitacoraHint}
-                      className="ml-auto shrink-0 text-[9px] font-semibold uppercase tracking-wide bg-amber-400/15 text-amber-400 px-1.5 py-0.5 rounded-full leading-none"
-                    >
-                      {badge} seg.
-                    </span>
-                  )}
-                </span>
-              )}
+              <span className={cn(
+                "flex-1 flex items-center justify-between gap-2 min-w-0 overflow-hidden transition-all duration-200",
+                collapsed ? "w-0 max-w-0 opacity-0 pointer-events-none" : "opacity-100"
+              )}>
+                <span className="truncate whitespace-nowrap">{item.label}</span>
+                {badge > 0 && (
+                  <span
+                    title={bitacoraHint}
+                    className="ml-auto shrink-0 text-[9px] font-semibold uppercase tracking-wide bg-amber-400/15 text-amber-400 px-1.5 py-0.5 rounded-full leading-none"
+                  >
+                    {badge} seg.
+                  </span>
+                )}
+              </span>
             </Link>
           );
         })}
@@ -188,7 +190,10 @@ export function Sidebar({ user, isAdmin, pendingFollowups = 0 }: SidebarProps) {
             )}
           >
             <Settings className="w-4 h-4 shrink-0" />
-            {!collapsed && <span>Configuración</span>}
+            <span className={cn(
+              "overflow-hidden whitespace-nowrap transition-all duration-200",
+              collapsed ? "w-0 max-w-0 opacity-0 pointer-events-none" : "opacity-100"
+            )}>Configuración</span>
           </Link>
         )}
       </nav>
@@ -230,12 +235,15 @@ export function Sidebar({ user, isAdmin, pendingFollowups = 0 }: SidebarProps) {
           aria-label={collapsed ? "Cerrar sesión" : undefined}
           title={collapsed ? "Cerrar sesión" : undefined}
           className={cn(
-            "flex items-center gap-2 w-full rounded-lg text-xs text-red-400/70 hover:text-red-400 hover:bg-red-400/8 transition-all duration-200 disabled:opacity-50",
+            "flex items-center gap-2 w-full rounded-lg text-xs text-white/35 hover:text-white/60 hover:bg-white/6 transition-all duration-200 disabled:opacity-50",
             collapsed ? "justify-center px-2 py-2" : "px-3 py-2"
           )}
         >
           <LogOut className="w-3.5 h-3.5 shrink-0" />
-          {!collapsed && <span>Cerrar sesión</span>}
+          <span className={cn(
+            "overflow-hidden whitespace-nowrap transition-all duration-200",
+            collapsed ? "w-0 max-w-0 opacity-0 pointer-events-none" : "opacity-100"
+          )}>Cerrar sesión</span>
         </button>
       </div>
     </aside>

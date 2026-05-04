@@ -15,9 +15,15 @@ interface KanbanCardProps {
 }
 
 const PRIORITY_BORDER: Record<string, string> = {
-  HIGH:   "border-t-red-400/70",
-  MEDIUM: "border-t-yellow-400/60",
-  LOW:    "border-t-green-400/50",
+  HIGH:   "border-t-red-400/90",
+  MEDIUM: "border-t-yellow-400/80",
+  LOW:    "border-t-green-400/70",
+};
+
+const PRIORITY_DOT: Record<string, string> = {
+  HIGH:   "bg-red-400",
+  MEDIUM: "bg-yellow-400",
+  LOW:    "bg-green-400",
 };
 
 export function KanbanCard({ task, onClick }: KanbanCardProps) {
@@ -51,7 +57,7 @@ export function KanbanCard({ task, onClick }: KanbanCardProps) {
       }}
       className={cn(
         "card-3d glass-hover glass rounded-xl p-3 cursor-pointer group",
-        "border border-white/6 hover:border-white/12 border-t-2",
+        "border border-white/6 hover:border-white/12 border-t-[3px]",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ffeb66]/50",
         PRIORITY_BORDER[task.priority] ?? "border-t-white/10"
       )}
@@ -92,6 +98,11 @@ export function KanbanCard({ task, onClick }: KanbanCardProps) {
 
       {/* Footer */}
       <div className="flex items-center gap-3 mt-2">
+        {/* Priority dot */}
+        <span
+          title={priorityLabel}
+          className={cn("w-1.5 h-1.5 rounded-full shrink-0", PRIORITY_DOT[task.priority] ?? "bg-white/20")}
+        />
         {/* Due date */}
         {task.dueDate && (
           <span

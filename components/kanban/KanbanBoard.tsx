@@ -9,7 +9,7 @@ import {
   type DragStart,
   type DropResult,
 } from "@hello-pangea/dnd";
-import { Plus, GripVertical, ChevronLeft, ListChecks, FlaskConical } from "lucide-react";
+import { Plus, GripVertical, ChevronLeft, ListChecks, FlaskConical, Loader2 } from "lucide-react";
 import toast from "react-hot-toast";
 import { KanbanCard } from "./KanbanCard";
 import { TaskDetailPanel } from "./TaskDetailPanel";
@@ -144,6 +144,7 @@ export function KanbanBoard({ project, allUsers }: KanbanBoardProps) {
   const [assigneeFilter, setAssigneeFilter] = useState("");
   const [addingColumnId, setAddingColumnId] = useState<string | null>(null);
   const [draftTitle, setDraftTitle] = useState("");
+  const [draftPriority, setDraftPriority] = useState<"HIGH" | "MEDIUM" | "LOW">("MEDIUM");
   const [creatingTask, setCreatingTask] = useState(false);
   const [collapsedCols, setCollapsedCols] = useState<Set<string>>(new Set());
   const [whatIfOpen, setWhatIfOpen] = useState(false);
@@ -254,6 +255,7 @@ export function KanbanBoard({ project, allUsers }: KanbanBoardProps) {
         const beforeCols = JSON.parse(JSON.stringify(columns)) as typeof columns;
         const newCols = Array.from(columns);
         const [removed] = newCols.splice(source.index, 1);
+        if (!removed) return;
         newCols.splice(destination.index, 0, removed);
         setColumns(newCols);
         void fetch(`/api/projects/${project.id}/columns`, {
@@ -286,6 +288,7 @@ export function KanbanBoard({ project, allUsers }: KanbanBoardProps) {
       if (sourceCol.id === destCol.id) {
         const newTasks = Array.from(sourceCol.tasks);
         const [moved] = newTasks.splice(sourceIndex, 1);
+        if (!moved) return;
         const filteredRest = newTasks.filter((t) =>
           taskMatchesFilters(t, priorityFilter, assigneeFilter)
         );
@@ -327,6 +330,7 @@ export function KanbanBoard({ project, allUsers }: KanbanBoardProps) {
 
       const srcTasks: ProjectKanbanTask[] = Array.from(sourceCol.tasks);
       const [moved] = srcTasks.splice(sourceIndex, 1);
+      if (!moved) return;
       const dstTasks: ProjectKanbanTask[] = Array.from(destCol.tasks);
       const destFiltered = destCol.tasks.filter((t) =>
         taskMatchesFilters(t, priorityFilter, assigneeFilter)
@@ -436,7 +440,7 @@ export function KanbanBoard({ project, allUsers }: KanbanBoardProps) {
       const res = await fetch(`/api/projects/${project.id}/tasks`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ columnId, title }),
+        body: JSON.stringify({ columnId, title, priority: draftPriority }),
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
@@ -454,6 +458,7 @@ export function KanbanBoard({ project, allUsers }: KanbanBoardProps) {
       );
       setAddingColumnId(null);
       setDraftTitle("");
+      setDraftPriority("MEDIUM");
       toast.success("Tarea creada");
       router.refresh();
     } catch (e) {
@@ -475,6 +480,20 @@ export function KanbanBoard({ project, allUsers }: KanbanBoardProps) {
       })),
     [columns, priorityFilter, assigneeFilter]
   );
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      const tag = document.activeElement?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (e.key === "n" && !selectedTask) {
+        const firstCol = filteredColumns[0];
+        if (firstCol) { e.preventDefault(); setAddingColumnId(firstCol.id); setDraftTitle(""); }
+      }
+    }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [selectedTask, filteredColumns]);
 
   return (
     <div className="kanban-board-root flex min-h-0 flex-1 flex-col overflow-hidden">
@@ -732,7 +751,9 @@ export function KanbanBoard({ project, allUsers }: KanbanBoardProps) {
                                 collapsedCols.has(col.id) ? "hidden" : "",
                                 snapshot.isDraggingOver
                                   ? "kanban-column-well-drag border-[#ffeb66]/15"
-                                  : "border-white/5"
+                                  : colIndex === filteredColumns.length - 1
+                                    ? "border-emerald-500/12 bg-emerald-400/[0.025]"
+                                    : "border-white/5"
                               )}
                             >
                               {col.tasks.length === 0 &&
@@ -795,6 +816,25 @@ export function KanbanBoard({ project, allUsers }: KanbanBoardProps) {
                                     disabled={creatingTask}
                                     className="w-full bg-white/5 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-white placeholder:text-white/25 focus:outline-none focus:border-[#ffeb66]/40"
                                   />
+                                  <div className="flex gap-1">
+                                    {(["HIGH", "MEDIUM", "LOW"] as const).map((p) => (
+                                      <button
+                                        key={p}
+                                        type="button"
+                                        onClick={() => setDraftPriority(p)}
+                                        className={cn(
+                                          "flex-1 text-[10px] py-0.5 rounded border transition-all duration-150",
+                                          draftPriority === p
+                                            ? p === "HIGH" ? "bg-red-400/15 border-red-400/40 text-red-300"
+                                              : p === "MEDIUM" ? "bg-yellow-400/15 border-yellow-400/40 text-yellow-300"
+                                              : "bg-green-400/15 border-green-400/40 text-green-300"
+                                            : "bg-white/5 border-white/8 text-white/30 hover:text-white/60"
+                                        )}
+                                      >
+                                        {p === "HIGH" ? "Alta" : p === "MEDIUM" ? "Media" : "Baja"}
+                                      </button>
+                                    ))}
+                                  </div>
                                   <div className="flex gap-2 justify-end">
                                     <button
                                       type="button"
@@ -802,6 +842,7 @@ export function KanbanBoard({ project, allUsers }: KanbanBoardProps) {
                                       onClick={() => {
                                         setAddingColumnId(null);
                                         setDraftTitle("");
+                                        setDraftPriority("MEDIUM");
                                       }}
                                       className="text-xs text-white/40 hover:text-white/70 px-2 py-1"
                                     >
@@ -812,7 +853,7 @@ export function KanbanBoard({ project, allUsers }: KanbanBoardProps) {
                                       disabled={creatingTask || !draftTitle.trim()}
                                       className="text-xs px-2.5 py-1 rounded-md bg-[#ffeb66]/20 text-[#ffeb66] border border-[#ffeb66]/25 hover:bg-[#ffeb66]/30 disabled:opacity-40"
                                     >
-                                      {creatingTask ? "…" : "Crear"}
+                                      {creatingTask ? <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden /> : "Crear"}
                                     </button>
                                   </div>
                                 </form>

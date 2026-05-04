@@ -8,6 +8,7 @@ import {
   BookOpen,
   FolderKanban,
   ArrowLeftRight,
+  CalendarOff,
   Settings,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -20,10 +21,11 @@ type MobileNavItem = {
 };
 
 const coreNav: MobileNavItem[] = [
-  { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, exact: true },
-  { label: "Bitácora", href: "/bitacora", icon: BookOpen },
-  { label: "Proyectos", href: "/proyectos", icon: FolderKanban },
-  { label: "Traspaso", href: "/traspaso", icon: ArrowLeftRight, exact: true },
+  { label: "Dashboard",     href: "/dashboard",     icon: LayoutDashboard, exact: true },
+  { label: "Bitácora",      href: "/bitacora",      icon: BookOpen },
+  { label: "Proyectos",     href: "/proyectos",     icon: FolderKanban },
+  { label: "Traspaso",      href: "/traspaso",      icon: ArrowLeftRight,  exact: true },
+  { label: "Disponib.",     href: "/disponibilidad", icon: CalendarOff,    exact: true },
 ];
 
 interface MobileNavProps {

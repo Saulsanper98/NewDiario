@@ -27,7 +27,19 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     ref
   ) => {
     const innerRef = useRef<HTMLButtonElement>(null);
-    const buttonRef = (ref as React.RefObject<HTMLButtonElement>) ?? innerRef;
+
+    const mergedRef = useCallback(
+      (node: HTMLButtonElement | null) => {
+        (innerRef as React.MutableRefObject<HTMLButtonElement | null>).current = node;
+        if (typeof ref === "function") {
+          ref(node);
+        } else if (ref) {
+          (ref as React.MutableRefObject<HTMLButtonElement | null>).current = node;
+        }
+      },
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      [ref]
+    );
 
     const base =
       "inline-flex items-center justify-center gap-2 font-medium rounded-lg transition-all duration-200 focus-visible:outline-none disabled:opacity-50 disabled:cursor-not-allowed select-none";
@@ -53,8 +65,8 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     const handleClick = useCallback(
       (e: React.MouseEvent<HTMLButtonElement>) => {
         try {
-          if (variant === "primary" && buttonRef.current) {
-            const btn = buttonRef.current;
+          if (variant === "primary" && innerRef.current) {
+            const btn = innerRef.current;
             const rect = btn.getBoundingClientRect();
             const ripple = document.createElement("span");
             ripple.className = "btn-ripple";
@@ -68,14 +80,14 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         }
         onClick?.(e);
       },
-      [onClick, variant, buttonRef]
+      [onClick, variant]
     );
 
     const isPrimary = variant === "primary";
 
     return (
       <button
-        ref={buttonRef}
+        ref={mergedRef}
         className={cn(
           base,
           variants[variant],

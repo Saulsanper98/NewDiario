@@ -22,6 +22,8 @@ import {
   truncate,
   PRIORITY_LABELS,
   getPriorityColor,
+  getCurrentShift,
+  cn,
 } from "@/lib/utils";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -63,6 +65,8 @@ export function TraspasoView({
     }
   }
 
+  const currentShift = getCurrentShift();
+
   const shiftCountMap: Record<string, number> = {};
   shiftCounts.forEach((s) => {
     shiftCountMap[s.shift] = s._count.id;
@@ -92,9 +96,29 @@ export function TraspasoView({
             const count = shiftCountMap[shift] ?? 0;
             const shiftColor = shift === "MORNING" ? "text-amber-300" : shift === "AFTERNOON" ? "text-orange-300" : "text-indigo-300";
             const shiftBg = shift === "MORNING" ? "bg-amber-400/8 border-amber-400/15" : shift === "AFTERNOON" ? "bg-orange-400/8 border-orange-400/15" : "bg-indigo-400/8 border-indigo-400/15";
+            const isCurrentShift = shift === currentShift;
             return (
-              <Card key={shift} className={`text-center py-5 ${shiftBg}`}>
-                <Icon className={`w-6 h-6 mx-auto mb-2 ${shiftColor}`} />
+              <Card
+                key={shift}
+                className={cn(
+                  `text-center py-5 ${shiftBg}`,
+                  isCurrentShift && "ring-2 ring-offset-1 ring-offset-[#0a0f1e]",
+                  isCurrentShift && (shift === "MORNING" ? "ring-amber-400/40" : shift === "AFTERNOON" ? "ring-orange-400/40" : "ring-indigo-400/40")
+                )}
+              >
+                <div className="flex flex-col items-center">
+                  {/* Franja fija: evita que «Ahora» se superponga al icono (antes absolute -top-1). */}
+                  <div className="mb-1 flex min-h-[15px] w-full items-end justify-center">
+                    {isCurrentShift ? (
+                      <span
+                        className={`text-[9px] font-bold uppercase tracking-widest opacity-70 ${shiftColor}`}
+                      >
+                        Ahora
+                      </span>
+                    ) : null}
+                  </div>
+                  <Icon className={`mb-2 h-6 w-6 ${shiftColor}`} />
+                </div>
                 <p className={`text-2xl font-bold ${shiftColor}`}>{count}</p>
                 <p className="text-xs text-white/40 mt-1">
                   Entradas {SHIFT_LABELS[shift].toLowerCase()}
