@@ -17,6 +17,9 @@
 /.next/
 /out/
 
+# user-uploaded media
+/uploads/
+
 # production
 /build
 

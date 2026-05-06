@@ -22,7 +22,8 @@ export default auth((req) => {
   const isPublicApi =
     nextUrl.pathname.startsWith("/api/auth") ||
     nextUrl.pathname === "/api/features" ||
-    nextUrl.pathname === "/api/branding";
+    nextUrl.pathname === "/api/branding" ||
+    nextUrl.pathname === "/api/login-users";
 
   if (isPublicApi) return;
 

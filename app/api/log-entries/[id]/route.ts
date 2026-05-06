@@ -3,6 +3,12 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma/client";
 import { z } from "zod";
 import type { SessionUser } from "@/lib/auth/types";
+
+function extractMentionIds(html: string): string[] {
+  const ids = new Set<string>();
+  for (const m of html.matchAll(/data-id="([^"]+)"/g)) ids.add(m[1]);
+  return [...ids];
+}
 import {
   computeLogEntryEditDiff,
   snapshotFromDbEntry,
@@ -296,6 +302,20 @@ export async function PATCH(
       tagNames: updated.tags.map((t) => t.name),
       excludeEntryId: id,
     });
+
+    const mentionedIds = extractMentionIds(content).filter((uid) => uid !== user.id);
+    if (mentionedIds.length > 0) {
+      await prisma.notification.createMany({
+        data: mentionedIds.map((uid) => ({
+          userId: uid,
+          type: "MENTION" as const,
+          title: "Te mencionaron en una nota",
+          message: `${user.name} te mencionó en «${title}»`,
+          link: `/bitacora/${id}`,
+        })),
+        skipDuplicates: true,
+      });
+    }
   }
 
   return NextResponse.json({ ...updated, publishHints });

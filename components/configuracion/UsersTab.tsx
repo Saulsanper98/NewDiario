@@ -10,6 +10,7 @@ import {
   XCircle,
   Download,
   UserRoundSearch,
+  Trash2,
 } from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
 import { Badge } from "@/components/ui/Badge";
@@ -57,6 +58,10 @@ export function UsersTab({
   const [editRole, setEditRole] = useState<Role>("OPERATOR");
   const [editPassword, setEditPassword] = useState("");
   const [editSaving, setEditSaving] = useState(false);
+
+  const [deleteTarget, setDeleteTarget] = useState<ConfigPageUser | null>(null);
+  const [deleteConfirmName, setDeleteConfirmName] = useState("");
+  const [deleting, setDeleting] = useState(false);
 
   const assignableDepartments = useMemo(() => {
     if (isSuperAdmin) return departments;
@@ -180,6 +185,26 @@ export function UsersTab({
       router.refresh();
     } catch {
       toast.error("Error al actualizar usuario");
+    }
+  }
+
+  async function handleDeleteUser() {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/users/${deleteTarget.id}`, { method: "DELETE" });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        throw new Error(typeof d?.error === "string" ? d.error : "Error al eliminar");
+      }
+      toast.success(`Usuario "${deleteTarget.name}" eliminado`);
+      setDeleteTarget(null);
+      setDeleteConfirmName("");
+      router.refresh();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Error al eliminar usuario");
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -458,6 +483,42 @@ export function UsersTab({
         </form>
       </Modal>
 
+      <Modal
+        open={!!deleteTarget}
+        onClose={() => { setDeleteTarget(null); setDeleteConfirmName(""); }}
+        title="Eliminar usuario"
+        description={`Esta acción eliminará permanentemente la cuenta de ${deleteTarget?.name ?? "este usuario"}. Escribe el nombre exacto para confirmar.`}
+        size="sm"
+      >
+        <div className="space-y-4">
+          <div className="rounded-lg bg-red-500/8 border border-red-500/20 p-3 text-sm text-red-400">
+            <strong>Advertencia:</strong> Esta operación no se puede deshacer. Se perderán todos los datos asociados a este usuario.
+          </div>
+          <Input
+            label={`Escribe "${deleteTarget?.name}" para confirmar`}
+            value={deleteConfirmName}
+            onChange={(e) => setDeleteConfirmName(e.target.value)}
+            placeholder={deleteTarget?.name ?? ""}
+            autoComplete="off"
+          />
+          <div className="flex justify-end gap-2 pt-1">
+            <Button type="button" variant="secondary" onClick={() => { setDeleteTarget(null); setDeleteConfirmName(""); }}>
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              variant="danger"
+              loading={deleting}
+              disabled={deleteConfirmName !== deleteTarget?.name}
+              onClick={handleDeleteUser}
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              Eliminar usuario
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
       <div className="glass rounded-xl overflow-hidden flex flex-col max-h-[min(70vh,560px)]">
         {filtered.length === 0 ? (
           <EmptyState
@@ -559,16 +620,16 @@ export function UsersTab({
                     </Badge>
                   </td>
                   <td className="px-4 py-3">
-                    {user.id !== currentUser.id && (
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          type="button"
-                          onClick={() => openEdit(user)}
-                        >
-                          Editar
-                        </Button>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        type="button"
+                        onClick={() => openEdit(user)}
+                      >
+                        Editar
+                      </Button>
+                      {user.id !== currentUser.id && (
                         <Button
                           variant="danger"
                           size="sm"
@@ -577,8 +638,20 @@ export function UsersTab({
                         >
                           {user.isActive ? "Desactivar" : "Activar"}
                         </Button>
-                      </div>
-                    )}
+                      )}
+                      {isSuperAdmin && user.id !== currentUser.id && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          type="button"
+                          onClick={() => { setDeleteTarget(user); setDeleteConfirmName(""); }}
+                          title="Eliminar usuario"
+                          className="text-red-400/60 hover:text-red-400"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}

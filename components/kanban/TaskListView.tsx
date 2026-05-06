@@ -109,7 +109,7 @@ export function TaskListView({ columns }: TaskListViewProps) {
   }
 
   return (
-    <div className="flex-1 overflow-auto p-4">
+    <div className="flex-1 min-h-0 overflow-auto p-4">
       <div className="glass rounded-xl overflow-hidden">
         <table className="w-full">
           <thead>

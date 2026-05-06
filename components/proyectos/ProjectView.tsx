@@ -72,12 +72,21 @@ export function ProjectView({ project, allUsers }: ProjectViewProps) {
     [project.id],
   );
 
+  const rawDesc = project.description
+    ? project.description.replace(/<[^>]+>/g, "").trim()
+    : "";
+
   const [activeTab, setActiveTab] = useState<Tab>("kanban");
   const [status,       setStatus]       = useState(project.status);
   const [priority,     setPriority]     = useState(project.priority);
   const [projectName,  setProjectName]  = useState(project.name);
   const [editingName,  setEditingName]  = useState(false);
   const [nameDraft,    setNameDraft]    = useState(project.name);
+  const [description,    setDescription]    = useState(rawDesc);
+  const [editingDesc,    setEditingDesc]    = useState(false);
+  const [descDraft,      setDescDraft]      = useState(rawDesc);
+  const [savingDesc,     setSavingDesc]     = useState(false);
+  const [projectEndDate, setProjectEndDate] = useState<Date | string | null>(project.endDate ?? null);
   const [editOpen,     setEditOpen]     = useState(false);
   const [editAnchor,   setEditAnchor]   = useState<{ top: number; left: number } | null>(null);
   const [saving,       setSaving]       = useState(false);
@@ -85,6 +94,7 @@ export function ProjectView({ project, allUsers }: ProjectViewProps) {
   const [deleteProjectOpen, setDeleteProjectOpen] = useState(false);
   const [deletingProject, setDeletingProject] = useState(false);
   const nameInputRef = useRef<HTMLInputElement>(null);
+  const descTextareaRef = useRef<HTMLTextAreaElement>(null);
   const editButtonRef = useRef<HTMLButtonElement>(null);
   const editPopoverRef = useRef<HTMLDivElement>(null);
 
@@ -93,6 +103,10 @@ export function ProjectView({ project, allUsers }: ProjectViewProps) {
   useEffect(() => {
     if (editingName) nameInputRef.current?.focus();
   }, [editingName]);
+
+  useEffect(() => {
+    if (editingDesc) descTextareaRef.current?.focus();
+  }, [editingDesc]);
 
   /* Pestaña: ?tab= en URL (compartir enlace) + localStorage por proyecto */
   useEffect(() => {
@@ -198,18 +212,44 @@ export function ProjectView({ project, allUsers }: ProjectViewProps) {
     setEditOpen(true);
   }
 
-  async function saveEdit(newStatus: string, newPriority: string) {
-    if (newStatus === status && newPriority === priority) { setEditOpen(false); setEditAnchor(null); return; }
+  async function saveDescription() {
+    const trimmed = descDraft.trim();
+    if (trimmed === description) { setEditingDesc(false); return; }
+    setSavingDesc(true);
+    try {
+      const res = await fetch(`/api/projects/${project.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ description: trimmed || null }),
+      });
+      if (!res.ok) throw new Error();
+      setDescription(trimmed);
+      setEditingDesc(false);
+      toast.success("Descripción actualizada");
+    } catch {
+      toast.error("No se pudo actualizar la descripción");
+      setEditingDesc(false);
+    } finally {
+      setSavingDesc(false);
+    }
+  }
+
+  async function saveEdit(newStatus: string, newPriority: string, newEndDate: string | null) {
+    const curEndDate = projectEndDate ? new Date(projectEndDate).toISOString().slice(0, 10) : null;
+    if (newStatus === status && newPriority === priority && newEndDate === curEndDate) {
+      setEditOpen(false); setEditAnchor(null); return;
+    }
     setSaving(true);
     try {
       const res = await fetch(`/api/projects/${project.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: newStatus, priority: newPriority }),
+        body: JSON.stringify({ status: newStatus, priority: newPriority, endDate: newEndDate }),
       });
       if (!res.ok) throw new Error();
       setStatus(newStatus as typeof status);
       setPriority(newPriority as typeof priority);
+      setProjectEndDate(newEndDate ? new Date(newEndDate) : null);
       setEditOpen(false);
       setEditAnchor(null);
       toast.success("Proyecto actualizado");
@@ -240,9 +280,9 @@ export function ProjectView({ project, allUsers }: ProjectViewProps) {
   const completedTasks = getCompletedColumnCount(project.kanbanColumns);
   const progress       = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
-  const endDateOverdue = project.endDate && isPast(new Date(project.endDate));
-  const endDateSoon    = project.endDate && !endDateOverdue &&
-    differenceInDays(new Date(project.endDate), new Date()) <= 7;
+  const endDateOverdue = projectEndDate && isPast(new Date(projectEndDate));
+  const endDateSoon    = projectEndDate && !endDateOverdue &&
+    differenceInDays(new Date(projectEndDate), new Date()) <= 7;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
@@ -313,6 +353,7 @@ export function ProjectView({ project, allUsers }: ProjectViewProps) {
                     anchor={editAnchor}
                     status={status}
                     priority={priority}
+                    endDate={projectEndDate ? new Date(projectEndDate).toISOString().slice(0, 10) : null}
                     saving={saving}
                     showDelete={canDeleteProject}
                     onSave={saveEdit}
@@ -370,11 +411,54 @@ export function ProjectView({ project, allUsers }: ProjectViewProps) {
                 </>
               )}
             </div>
-            {project.description && (
-              <p className="text-sm text-white/40 mt-1 line-clamp-1">
-                {project.description.replace(/<[^>]+>/g, "").slice(0, 120)}
-              </p>
-            )}
+            {/* Description — editable inline */}
+            <div className="group/desc mt-1">
+              {editingDesc ? (
+                <div className="flex items-start gap-2">
+                  <textarea
+                    ref={descTextareaRef}
+                    value={descDraft}
+                    onChange={(e) => setDescDraft(e.target.value)}
+                    onBlur={() => void saveDescription()}
+                    onKeyDown={(e) => {
+                      if (e.key === "Escape") { setEditingDesc(false); setDescDraft(description); }
+                      if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); void saveDescription(); }
+                    }}
+                    maxLength={1000}
+                    disabled={savingDesc}
+                    rows={2}
+                    placeholder="Añade una descripción…"
+                    className="flex-1 bg-white/5 border border-[#ffeb66]/40 rounded-lg px-2 py-1 text-sm text-white/70 focus:outline-none disabled:opacity-50 resize-none"
+                  />
+                  <button type="button" onClick={() => void saveDescription()}
+                    className="mt-1 p-1 rounded text-[#ffeb66] hover:bg-[#ffeb66]/10 transition-colors shrink-0">
+                    <Check className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ) : (
+                <div
+                  className="flex items-center gap-1 cursor-text"
+                  onClick={() => { setDescDraft(description); setEditingDesc(true); }}
+                >
+                  {description ? (
+                    <p className="text-sm text-white/40 line-clamp-1 hover:text-white/55 transition-colors">
+                      {description}
+                    </p>
+                  ) : (
+                    <p className="text-xs text-white/20 italic group-hover/desc:text-white/35 transition-colors">
+                      Añadir descripción…
+                    </p>
+                  )}
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); setDescDraft(description); setEditingDesc(true); }}
+                    className="opacity-0 group-hover/desc:opacity-100 p-0.5 rounded text-white/20 hover:text-white/50 transition-all duration-150 shrink-0"
+                  >
+                    <Pencil className="w-2.5 h-2.5" />
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Progress & meta */}
@@ -421,7 +505,7 @@ export function ProjectView({ project, allUsers }: ProjectViewProps) {
             </div>
 
             {/* End date */}
-            {project.endDate && (
+            {projectEndDate && (
               <div className="text-right">
                 <p className="text-xs text-white/30">Fecha límite</p>
                 <p className={cn(
@@ -430,7 +514,7 @@ export function ProjectView({ project, allUsers }: ProjectViewProps) {
                 )}>
                   {endDateOverdue && <AlertTriangle className="w-3.5 h-3.5" />}
                   {endDateSoon && !endDateOverdue && <Clock className="w-3.5 h-3.5" />}
-                  {format(new Date(project.endDate), "d MMM yyyy", { locale: es })}
+                  {format(new Date(projectEndDate), "d MMM yyyy", { locale: es })}
                 </p>
               </div>
             )}
@@ -465,7 +549,7 @@ export function ProjectView({ project, allUsers }: ProjectViewProps) {
       </div>
 
       {/* Tab content */}
-      <div className="flex-1 min-h-0 overflow-hidden project-view-body">
+      <div className="flex flex-col flex-1 min-h-0 overflow-hidden project-view-body">
         {activeTab === "kanban" && (
           <div className="flex flex-1 min-h-0 flex-col overflow-hidden">
             <BoardSnapshotPanel
@@ -494,19 +578,21 @@ interface EditPopoverProps {
   anchor: { top: number; left: number };
   status: string;
   priority: string;
+  endDate?: string | null;
   saving: boolean;
   showDelete?: boolean;
-  onSave: (status: string, priority: string) => void;
+  onSave: (status: string, priority: string, endDate: string | null) => void;
   onRequestDelete?: () => void;
   onClose: () => void;
 }
 
 const EditPopover = forwardRef<HTMLDivElement, EditPopoverProps>(function EditPopover(
-  { anchor, status, priority, saving, showDelete, onSave, onRequestDelete, onClose },
+  { anchor, status, priority, endDate, saving, showDelete, onSave, onRequestDelete, onClose },
   ref
 ) {
   const [draftStatus,   setDraftStatus]   = useState(status);
   const [draftPriority, setDraftPriority] = useState(priority);
+  const [draftEndDate,  setDraftEndDate]  = useState(endDate ?? "");
 
   return (
     <div
@@ -520,7 +606,7 @@ const EditPopover = forwardRef<HTMLDivElement, EditPopoverProps>(function EditPo
           "linear-gradient(160deg, rgba(14, 18, 32, 0.98) 0%, rgba(10, 14, 26, 0.97) 100%)",
       }}
     >
-      <p className="text-[10px] text-white/40 uppercase tracking-wider font-semibold">
+      <p className="text-[10px] text-white/40 uppercase tracking-wider font-semibold mb-3">
         Editar proyecto
       </p>
       <div className="space-y-1.5">
@@ -535,7 +621,7 @@ const EditPopover = forwardRef<HTMLDivElement, EditPopoverProps>(function EditPo
           ))}
         </select>
       </div>
-      <div className="space-y-1.5">
+      <div className="space-y-1.5 mt-2">
         <label className="text-xs text-white/50">Prioridad</label>
         <select
           value={draftPriority}
@@ -547,12 +633,29 @@ const EditPopover = forwardRef<HTMLDivElement, EditPopoverProps>(function EditPo
           ))}
         </select>
       </div>
-      <div className="space-y-3 pt-1">
+      <div className="space-y-1.5 mt-2">
+        <label className="text-xs text-white/50">Fecha límite (opcional)</label>
+        <div className="flex items-center gap-1">
+          <input
+            type="date"
+            value={draftEndDate}
+            onChange={(e) => setDraftEndDate(e.target.value)}
+            className="flex-1 bg-white/5 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-[#ffeb66]/40 min-w-0"
+          />
+          {draftEndDate && (
+            <button type="button" onClick={() => setDraftEndDate("")}
+              className="p-1 rounded text-white/30 hover:text-white/60 shrink-0">
+              <X className="w-3 h-3" />
+            </button>
+          )}
+        </div>
+      </div>
+      <div className="space-y-3 pt-3">
         <div className="relative flex min-h-[2.25rem] items-center justify-center">
           <button
             type="button"
             disabled={saving}
-            onClick={() => onSave(draftStatus, draftPriority)}
+            onClick={() => onSave(draftStatus, draftPriority, draftEndDate || null)}
             className="inline-flex items-center justify-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-medium bg-[#ffeb66]/15 text-[#ffeb66] border border-[#ffeb66]/25 hover:bg-[#ffeb66]/25 disabled:opacity-50 transition-colors"
           >
             <Check className="w-3 h-3" />

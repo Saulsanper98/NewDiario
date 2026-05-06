@@ -4,6 +4,8 @@ import type { SessionUser } from "@/lib/auth/types";
 export const edgeAuthConfig: NextAuthConfig = {
   // Auth.js v5 exige secret en Edge (middleware). Acepta AUTH_SECRET o NEXTAUTH_SECRET (Docker/README).
   secret: process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET,
+  // Permitir IPs y hosts no-localhost (despliegue en servidor Windows con IP fija)
+  trustHost: true,
   pages: {
     signIn: "/login",
     error: "/login",
@@ -12,6 +14,12 @@ export const edgeAuthConfig: NextAuthConfig = {
     authorized({ auth, request: { nextUrl } }) {
       // Dejar pasar rutas Auth.js; si no, authorized devuelve redirect HTML y el cliente recibe HTML en lugar de JSON (signIn / CSRF).
       if (nextUrl.pathname.startsWith("/api/auth")) return true;
+      // Rutas API públicas (accesibles sin sesión)
+      if (
+        nextUrl.pathname === "/api/features" ||
+        nextUrl.pathname === "/api/branding" ||
+        nextUrl.pathname === "/api/login-users"
+      ) return true;
 
       const isLoggedIn = !!auth?.user;
       const isOnLoginPage = nextUrl.pathname.startsWith("/login");

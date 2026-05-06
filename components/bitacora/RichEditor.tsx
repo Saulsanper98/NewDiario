@@ -18,7 +18,7 @@ import {
   Minus, Code, Code2, Quote, Strikethrough, Link as LinkIcon, ListChecks,
   AlignLeft, AlignCenter, AlignRight, Undo2, Redo2, Highlighter, ImageIcon,
   RemoveFormatting, Heading4, ChevronDown, Maximize2, Minimize2,
-  MoreHorizontal, TableRowsSplit, Columns3, Trash2, ExternalLink,
+  MoreHorizontal, TableRowsSplit, Columns3, Trash2, ExternalLink, Film,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { sanitizeHtml } from "@/lib/sanitize-html";
@@ -28,8 +28,22 @@ import toast from "react-hot-toast";
 import { useTheme } from "@/components/layout/ThemeProvider";
 import { richEditorMention } from "./rich-editor-mention";
 import { richEditorBodyProseClass } from "@/lib/bitacora-html-prose";
+import { VideoExtension } from "./rich-editor-video";
 
-const IMAGE_FILE_MAX_BYTES = 2_500_000;
+const VIDEO_FILE_MAX_BYTES = 200 * 1024 * 1024; // 200 MB
+const IMAGE_FILE_MAX_BYTES = 50 * 1024 * 1024;  // 50 MB (server upload, no base64 limit)
+
+async function uploadMedia(file: File): Promise<string> {
+  const fd = new FormData();
+  fd.append("file", file);
+  const res = await fetch("/api/uploads", { method: "POST", body: fd });
+  if (!res.ok) {
+    const err = (await res.json().catch(() => ({}))) as { error?: string };
+    throw new Error(err.error ?? "Error al subir el archivo");
+  }
+  const data = (await res.json()) as { url: string };
+  return data.url;
+}
 
 interface RichEditorProps {
   content:      string;
@@ -62,7 +76,9 @@ export function RichEditor({
   const editorRef = useRef<ReturnType<typeof useEditor>>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const imageFileInputRef = useRef<HTMLInputElement>(null);
+  const videoFileInputRef = useRef<HTMLInputElement>(null);
   const linkInputRef = useRef<HTMLInputElement>(null);
+  const [uploadingMedia, setUploadingMedia] = useState(false);
 
   const extensions = useMemo(
     () => [
@@ -70,6 +86,7 @@ export function RichEditor({
         codeBlock: { HTMLAttributes: { class: "prose-code-block" } },
       }),
       Image.configure({ inline: false, allowBase64: true }),
+      VideoExtension,
       Table.configure({ resizable: true }),
       TableRow,
       TableCell,
@@ -259,6 +276,10 @@ export function RichEditor({
     imageFileInputRef.current?.click();
   }, []);
 
+  const insertVideoFromFile = useCallback(() => {
+    videoFileInputRef.current?.click();
+  }, []);
+
   const onImageFileSelected = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
@@ -272,17 +293,45 @@ export function RichEditor({
         toast.error(`Imagen demasiado grande (máx. ${Math.round(IMAGE_FILE_MAX_BYTES / 1_000_000)} MB).`);
         return;
       }
-      const reader = new FileReader();
-      reader.onload = () => {
-        const src = reader.result as string;
-        if (!src?.startsWith("data:image/")) {
-          toast.error("No se pudo leer la imagen.");
-          return;
-        }
-        editor.chain().focus().setImage({ src }).run();
-      };
-      reader.onerror = () => toast.error("No se pudo leer la imagen.");
-      reader.readAsDataURL(file);
+      setUploadingMedia(true);
+      const tid = toast.loading("Subiendo imagen…");
+      uploadMedia(file)
+        .then((url) => {
+          editor.chain().focus().setImage({ src: url }).run();
+          toast.success("Imagen subida", { id: tid });
+        })
+        .catch((err: unknown) =>
+          toast.error(err instanceof Error ? err.message : "Error al subir la imagen", { id: tid })
+        )
+        .finally(() => setUploadingMedia(false));
+    },
+    [editor]
+  );
+
+  const onVideoFileSelected = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      e.target.value = "";
+      if (!file || !editor) return;
+      if (!file.type.startsWith("video/")) {
+        toast.error("Elige un archivo de vídeo (MP4, WebM, MOV…).");
+        return;
+      }
+      if (file.size > VIDEO_FILE_MAX_BYTES) {
+        toast.error("Vídeo demasiado grande (máx. 200 MB).");
+        return;
+      }
+      setUploadingMedia(true);
+      const tid = toast.loading("Subiendo vídeo…");
+      uploadMedia(file)
+        .then((url) => {
+          editor.chain().focus().setVideo({ src: url }).run();
+          toast.success("Vídeo subido", { id: tid });
+        })
+        .catch((err: unknown) =>
+          toast.error(err instanceof Error ? err.message : "Error al subir el vídeo", { id: tid })
+        )
+        .finally(() => setUploadingMedia(false));
     },
     [editor]
   );
@@ -353,6 +402,15 @@ export function RichEditor({
         aria-hidden
         tabIndex={-1}
         onChange={onImageFileSelected}
+      />
+      <input
+        ref={videoFileInputRef}
+        type="file"
+        accept="video/mp4,video/webm,video/quicktime"
+        className="sr-only"
+        aria-hidden
+        tabIndex={-1}
+        onChange={onVideoFileSelected}
       />
       {/* ── Main Toolbar ─────────────────────────────────────────────────── */}
       {!focusMode && (
@@ -454,7 +512,8 @@ export function RichEditor({
           {sep()}
 
           {btn(false, () => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run(), "Insertar tabla",       <TableIcon className="w-3.5 h-3.5" />)}
-          {btn(false, insertImageFromFile, "Insertar imagen desde el equipo", <ImageIcon className="w-3.5 h-3.5" />)}
+          {btn(false, insertImageFromFile, "Insertar imagen / GIF desde el equipo", <ImageIcon className="w-3.5 h-3.5" />, uploadingMedia)}
+          {btn(false, insertVideoFromFile, "Insertar vídeo desde el equipo", <Film className="w-3.5 h-3.5" />, uploadingMedia)}
           {btn(false, () => editor.chain().focus().setHorizontalRule().run(), "Separador horizontal", <Minus className="w-3.5 h-3.5" />)}
 
           {sep()}
@@ -493,8 +552,9 @@ export function RichEditor({
             {btn(editor.isActive("bold"),      () => editor.chain().focus().toggleBold().run(),    "Negrita", <Bold    className="w-3.5 h-3.5" />)}
             {btn(editor.isActive("italic"),    () => editor.chain().focus().toggleItalic().run(),  "Cursiva", <Italic  className="w-3.5 h-3.5" />)}
             {btn(editor.isActive("highlight"), () => editor.chain().focus().toggleHighlight().run(),"Resaltar",<Highlighter className="w-3.5 h-3.5" />)}
-            {btn(false,                        () => editor.chain().focus().undo().run(),           "Deshacer",<Undo2   className="w-3.5 h-3.5" />, !canUndo)}
-            {btn(false,                        insertImageFromFile, "Insertar imagen desde el equipo", <ImageIcon className="w-3.5 h-3.5" />)}
+            {btn(false, () => editor.chain().focus().undo().run(), "Deshacer", <Undo2 className="w-3.5 h-3.5" />, !canUndo)}
+            {btn(false, insertImageFromFile, "Insertar imagen / GIF", <ImageIcon className="w-3.5 h-3.5" />, uploadingMedia)}
+            {btn(false, insertVideoFromFile, "Insertar vídeo", <Film className="w-3.5 h-3.5" />, uploadingMedia)}
           </div>
           <button
             type="button"

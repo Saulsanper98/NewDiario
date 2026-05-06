@@ -10,8 +10,22 @@ const patchSchema = z
     priority: z.enum(["LOW", "MEDIUM", "HIGH"]).optional(),
     name: z.string().min(2).max(200).optional(),
     endDate: z.union([z.string(), z.null()]).optional(),
+    description: z.string().max(20000).nullable().optional(),
   })
   .strict();
+
+function descriptionToHtml(text: string | null | undefined): string | null {
+  if (!text?.trim()) return null;
+  const escaped = text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .join("</p><p>");
+  return `<p>${escaped}</p>`;
+}
 
 export async function PATCH(
   req: NextRequest,
@@ -55,6 +69,9 @@ export async function PATCH(
       const d = new Date(b.endDate);
       if (!Number.isNaN(d.getTime())) data.endDate = d;
     }
+  }
+  if (b.description !== undefined) {
+    data.description = b.description === null ? null : descriptionToHtml(b.description);
   }
 
   if (Object.keys(data).length === 0)

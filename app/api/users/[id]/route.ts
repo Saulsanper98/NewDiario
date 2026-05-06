@@ -130,3 +130,48 @@ export async function PATCH(
 
   return NextResponse.json(updated);
 }
+
+export async function DELETE(
+  _req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const session = await auth();
+  if (!session?.user)
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const actor = session.user as SessionUser;
+  if (!isSuperAdmin(actor)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const { id } = await params;
+
+  if (id === actor.id) {
+    return NextResponse.json(
+      { error: "No puedes eliminar tu propia cuenta" },
+      { status: 400 }
+    );
+  }
+
+  const target = await prisma.user.findUnique({ where: { id } });
+  if (!target || target.deletedAt) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
+  await prisma.user.update({
+    where: { id },
+    data: { deletedAt: new Date() },
+  });
+
+  await prisma.activityLog.create({
+    data: {
+      userId: actor.id,
+      action: "USER_DELETE",
+      entityType: "User",
+      entityId: id,
+      description: `${actor.name} eliminó el usuario ${target.name} (${target.email})`,
+    },
+  });
+
+  return NextResponse.json({ ok: true });
+}

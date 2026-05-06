@@ -29,7 +29,7 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, exact: true },
-  { label: "Bitácora", href: "/bitacora", icon: BookOpen },
+  { label: "Bitácora", href: "/bitacora/dia", icon: BookOpen },
   { label: "Proyectos", href: "/proyectos", icon: FolderKanban },
   { label: "Traspaso", href: "/traspaso", icon: ArrowLeftRight, exact: true },
   { label: "Disponibilidad", href: "/disponibilidad", icon: CalendarOff, exact: true },
@@ -76,6 +76,7 @@ export function Sidebar({ user, isAdmin, pendingFollowups = 0 }: SidebarProps) {
 
   const isActive = (item: NavItem) => {
     if (item.exact) return pathname === item.href;
+    if (item.href === "/bitacora/dia") return pathname.startsWith("/bitacora");
     return pathname.startsWith(item.href);
   };
 
@@ -128,9 +129,8 @@ export function Sidebar({ user, isAdmin, pendingFollowups = 0 }: SidebarProps) {
         {navItems.map((item) => {
           const Icon = item.icon;
           const active = isActive(item);
-          const badge  = item.href === "/bitacora" && pendingFollowups > 0 ? pendingFollowups : 0;
-          const itemHref =
-            item.href === "/bitacora" && badge > 0 ? "/bitacora?followup=1" : item.href;
+          const badge  = item.href === "/bitacora/dia" && pendingFollowups > 0 ? pendingFollowups : 0;
+          const itemHref = item.href;
           const bitacoraHint =
             badge > 0
               ? `${badge} entrada(s) con seguimiento pendiente: abre el filtro para verlas y marca «atendido» en cada una (no se quita solo al leer).`

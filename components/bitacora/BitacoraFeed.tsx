@@ -423,7 +423,6 @@ export function BitacoraFeed({
       }>;
       if (typeof o.type === "string") setTypeFilter(o.type);
       if (typeof o.shift === "string") setShiftFilter(o.shift);
-      if (typeof o.followup === "boolean") setFollowupFilter(o.followup);
       if (typeof o.search === "string") setSearch(o.search);
       if (typeof o.sortDesc === "boolean") setSortDesc(o.sortDesc);
       if (typeof o.authorOnly === "boolean" && currentUserId) setAuthorOnly(o.authorOnly);
@@ -441,7 +440,6 @@ export function BitacoraFeed({
           JSON.stringify({
             type: typeFilter,
             shift: shiftFilter,
-            followup: followupFilter,
             search: search.trim(),
             sortDesc,
             authorOnly,

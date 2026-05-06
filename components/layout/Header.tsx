@@ -39,6 +39,8 @@ function isInternalLink(link: string): boolean {
 const ROUTE_FALLBACK_TITLE: Record<string, string> = {
   "/dashboard": "Dashboard",
   "/bitacora": "Bitácora",
+  "/bitacora/dia": "Bitácora",
+  "/bitacora/feed": "Bitácora",
   "/proyectos": "Proyectos",
   "/traspaso": "Traspaso",
   "/configuracion": "Configuración",

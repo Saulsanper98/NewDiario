@@ -11,7 +11,11 @@ export function sanitizeHtml(dirty: string): string {
       "data-id",
       "data-label",
       "data-mention-suggestion-char",
+      /* Video */
+      "controls",
+      "preload",
     ],
+    ADD_TAGS: ["video"],
     FORBID_TAGS: ["script", "iframe", "object", "embed"],
   });
 }

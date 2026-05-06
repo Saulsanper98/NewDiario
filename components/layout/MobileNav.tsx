@@ -22,7 +22,7 @@ type MobileNavItem = {
 
 const coreNav: MobileNavItem[] = [
   { label: "Dashboard",     href: "/dashboard",     icon: LayoutDashboard, exact: true },
-  { label: "Bitácora",      href: "/bitacora",      icon: BookOpen },
+  { label: "Bitácora",      href: "/bitacora/dia",  icon: BookOpen },
   { label: "Proyectos",     href: "/proyectos",     icon: FolderKanban },
   { label: "Traspaso",      href: "/traspaso",      icon: ArrowLeftRight,  exact: true },
   { label: "Disponib.",     href: "/disponibilidad", icon: CalendarOff,    exact: true },
@@ -41,8 +41,11 @@ export function MobileNav({
 }: MobileNavProps) {
   const pathname = usePathname();
 
-  const isActive = (href: string, exact?: boolean) =>
-    exact ? pathname === href : pathname.startsWith(href);
+  const isActive = (href: string, exact?: boolean) => {
+    if (exact) return pathname === href;
+    if (href === "/bitacora/dia") return pathname.startsWith("/bitacora");
+    return pathname.startsWith(href);
+  };
 
   const items: MobileNavItem[] = showSettings
     ? [...coreNav, { label: "Ajustes", href: "/configuracion", icon: Settings, exact: true }]
@@ -56,12 +59,9 @@ export function MobileNav({
       <div className="flex items-center justify-around h-14">
         {items.map((item) => {
           const Icon = item.icon;
-          const href =
-            item.href === "/bitacora" && pendingFollowups > 0
-              ? "/bitacora?followup=1"
-              : item.href;
+          const href = item.href;
           const active = isActive(item.href, item.exact === true);
-          const bitacoraBadge = item.href === "/bitacora" && pendingFollowups > 0;
+          const bitacoraBadge = item.href === "/bitacora/dia" && pendingFollowups > 0;
           return (
             <Link
               key={item.href}

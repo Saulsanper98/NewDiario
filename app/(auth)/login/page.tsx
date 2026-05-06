@@ -1,22 +1,263 @@
 "use client";
 
 import { useState, useEffect, useRef, startTransition, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import {
   Eye,
   EyeOff,
   Lock,
-  Mail,
   AlertCircle,
-  CheckCircle,
   Loader2,
+  ChevronDown,
+  Check,
+  User,
+  Search,
 } from "lucide-react";
 import { Logo } from "@/components/ui/Logo";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { Avatar } from "@/components/ui/Avatar";
 import { useTheme } from "@/components/layout/ThemeProvider";
 import { APP_ORG, APP_TAGLINE } from "@/lib/app-brand";
+
+/* ── types ──────────────────────────────────────────────────────────────── */
+
+interface LoginUser {
+  id: string;
+  name: string;
+  email: string;
+  image: string | null;
+}
+
+/* ── UserPicker ─────────────────────────────────────────────────────────── */
+
+const GOLD = "#ffeb66";
+const GOLD_10 = "rgba(255,235,102,0.10)";
+const GOLD_18 = "rgba(255,235,102,0.18)";
+const GOLD_40 = "rgba(255,235,102,0.40)";
+
+function UserPicker({
+  users,
+  value,
+  onChange,
+  loading,
+  disabled,
+}: {
+  users: LoginUser[];
+  value: string;
+  onChange: (email: string) => void;
+  loading: boolean;
+  disabled?: boolean;
+}) {
+  const [open, setOpen]     = useState(false);
+  const [search, setSearch] = useState("");
+  const [pos, setPos]       = useState<React.CSSProperties>({});
+  const [mounted, setMounted] = useState(false);
+  const btnRef    = useRef<HTMLButtonElement>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
+
+  const selected = users.find((u) => u.email === value) ?? null;
+  const filtered = users.filter(
+    (u) =>
+      u.name.toLowerCase().includes(search.toLowerCase()) ||
+      u.email.toLowerCase().includes(search.toLowerCase())
+  );
+
+  useEffect(() => { setMounted(true); }, []);
+
+  function recalc() {
+    if (!btnRef.current) return;
+    const r = btnRef.current.getBoundingClientRect();
+    setPos({ position: "fixed", top: r.bottom + 4, left: r.left, width: r.width, zIndex: 9999 });
+  }
+
+  useEffect(() => {
+    if (!open) { setSearch(""); return; }
+    recalc();
+    setTimeout(() => searchRef.current?.focus(), 60);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    window.addEventListener("scroll", recalc, true);
+    window.addEventListener("resize", recalc);
+    return () => {
+      window.removeEventListener("scroll", recalc, true);
+      window.removeEventListener("resize", recalc);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    function onOut(e: MouseEvent) {
+      const t = e.target as Node;
+      if (btnRef.current?.contains(t) || document.getElementById("upp")?.contains(t)) return;
+      setOpen(false);
+    }
+    document.addEventListener("mousedown", onOut);
+    return () => document.removeEventListener("mousedown", onOut);
+  }, [open]);
+
+  /* ── render ── */
+  const panel = open && mounted && (
+    createPortal(
+      <div
+        id="upp"
+        style={{
+          ...pos,
+          borderRadius: "12px",
+          overflow: "hidden",
+          animation: "upp-in 0.18s cubic-bezier(0.16,1,0.3,1) both",
+          /* Mismo tono oscuro que el glass de la card */
+          background: "rgba(8,13,28,0.97)",
+          border: "1px solid rgba(255,255,255,0.10)",
+          boxShadow: "0 24px 60px rgba(0,0,0,0.8), 0 4px 16px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06)",
+        }}
+      >
+        <style>{`
+          @keyframes upp-in {
+            from { opacity:0; transform:translateY(-4px) scale(0.99); }
+            to   { opacity:1; transform:translateY(0)   scale(1);     }
+          }
+          #upp .upp-list::-webkit-scrollbar { width:3px; }
+          #upp .upp-list::-webkit-scrollbar-track { background:transparent; }
+          #upp .upp-list::-webkit-scrollbar-thumb { background:rgba(255,235,102,0.2); border-radius:4px; }
+        `}</style>
+
+        {/* Buscador — misma clase bg-white/5 border-white/10 que el Input del sistema */}
+        <div className="p-2" style={{ borderBottom:"1px solid rgba(255,255,255,0.06)" }}>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/30 pointer-events-none" />
+            <input
+              ref={searchRef}
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Buscar usuario…"
+              className="w-full bg-white/5 border border-white/10 rounded-lg text-sm text-white placeholder:text-white/30 h-9 pl-9 pr-3 focus:outline-none focus:border-white/20 transition-all duration-200"
+            />
+          </div>
+        </div>
+
+        {/* Lista */}
+        <ul role="listbox" className="upp-list" style={{ maxHeight:"14rem", overflowY:"auto", padding:"4px" }}>
+          {filtered.length === 0 ? (
+            <li className="py-8 text-center text-xs text-white/25 tracking-wide">Sin resultados</li>
+          ) : filtered.map((u) => {
+            const sel = u.email === value;
+            return (
+              <li
+                key={u.id}
+                role="option"
+                aria-selected={sel}
+                onClick={() => { onChange(u.email); setOpen(false); }}
+                className="flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer select-none transition-colors duration-100"
+                style={{
+                  background: sel ? "rgba(255,235,102,0.08)" : "transparent",
+                  border: sel ? "1px solid rgba(255,235,102,0.15)" : "1px solid transparent",
+                  marginBottom: "1px",
+                }}
+                onMouseEnter={(e) => { if (!sel) (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.05)"; }}
+                onMouseLeave={(e) => { if (!sel) (e.currentTarget as HTMLElement).style.background = "transparent"; }}
+              >
+                {/* Avatar */}
+                <div style={{
+                  flexShrink:0, borderRadius:"50%", padding:"2px",
+                  background: sel ? `linear-gradient(135deg, rgba(255,235,102,0.5), rgba(255,235,102,0.15))` : "transparent",
+                }}>
+                  <Avatar name={u.name} image={u.image} size="sm" />
+                </div>
+
+                {/* Nombre + email */}
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm truncate leading-tight" style={{ fontWeight: sel ? 600 : 500, color: sel ? "#fff" : "rgba(255,255,255,0.75)" }}>
+                    {u.name}
+                  </p>
+                  <p className="text-[11px] truncate mt-0.5" style={{ color: sel ? "rgba(255,235,102,0.5)" : "rgba(255,255,255,0.3)" }}>
+                    {u.email}
+                  </p>
+                </div>
+
+                {/* Check */}
+                {sel && (
+                  <span className="shrink-0 w-5 h-5 rounded-full flex items-center justify-center" style={{ background: "rgba(255,235,102,0.15)" }}>
+                    <Check className="w-2.5 h-2.5" style={{ color: GOLD, strokeWidth: 3 }} />
+                  </span>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+
+        {/* Pie */}
+        <div className="px-3 py-1.5 text-center" style={{ borderTop:"1px solid rgba(255,255,255,0.05)" }}>
+          <span className="text-[10px] text-white/20 tracking-wide">
+            {users.length} usuario{users.length !== 1 ? "s" : ""} disponible{users.length !== 1 ? "s" : ""}
+          </span>
+        </div>
+      </div>,
+      document.body
+    )
+  );
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      {/* Label idéntico al del componente Input */}
+      <label className="text-xs font-medium text-white/60 uppercase tracking-wide">
+        Usuario
+      </label>
+
+      {/* Trigger — replica exacta del wrapper del Input */}
+      <div className="relative overflow-hidden rounded-lg">
+        {/* Icono izquierda — misma posición que el Lock del campo contraseña */}
+        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40 pointer-events-none z-10">
+          {loading ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : selected ? (
+            <Avatar name={selected.name} image={selected.image} size="xs" />
+          ) : (
+            <User className="w-4 h-4" />
+          )}
+        </div>
+
+        <button
+          ref={btnRef}
+          type="button"
+          disabled={disabled || loading}
+          onClick={() => setOpen((v) => !v)}
+          aria-haspopup="listbox"
+          aria-expanded={open}
+          className={[
+            "login-field w-full bg-white/5 border border-white/10 rounded-lg text-sm text-left",
+            "transition-all duration-200 h-9 pl-9 pr-9",
+            "focus:outline-none focus:border-[#ffeb66]/50 focus:bg-white/[0.07] focus:ring-1 focus:ring-[#ffeb66]/40",
+            "disabled:opacity-40",
+            open ? "border-[#ffeb66]/50 bg-white/[0.07] ring-1 ring-[#ffeb66]/40" : "",
+          ].join(" ")}
+        >
+          <span className={`truncate block ${selected ? "text-white" : "text-white/30"}`}>
+            {loading ? "Cargando…" : selected ? selected.name : "Selecciona tu usuario"}
+          </span>
+        </button>
+
+        {/* Flecha derecha — misma posición que el ojo del campo contraseña */}
+        <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+          <ChevronDown
+            className="w-4 h-4 transition-transform duration-200 text-white/40"
+            style={{ transform: open ? "rotate(180deg)" : "rotate(0deg)", color: open ? "rgba(255,235,102,0.55)" : undefined }}
+          />
+        </div>
+
+        <span className="input-focus-bar" aria-hidden="true" />
+      </div>
+      {panel}
+    </div>
+  );
+}
 
 /* ── constants ──────────────────────────────────────────────────────────── */
 
@@ -32,9 +273,6 @@ function isNightHour() {
   return h >= 20 || h < 7;
 }
 
-function isEmailLike(v: string) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim());
-}
 
 /* ── sub-components ─────────────────────────────────────────────────────── */
 
@@ -327,7 +565,6 @@ export default function LoginPage() {
   const uiLight = theme === "light";
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
-  const emailInputRef = useRef<HTMLInputElement>(null);
 
   const [email, setEmail]               = useState("");
   const [password, setPassword]         = useState("");
@@ -341,13 +578,15 @@ export default function LoginPage() {
 
   /* Sprint 1 state */
   const [loginPhase, setLoginPhase]     = useState<LoginPhase>("idle");
-  const [emailTouched, setEmailTouched] = useState(false);
-  const [emailValid, setEmailValid]     = useState<boolean | null>(null);
   const [capsLock, setCapsLock]         = useState(false);
   const [isShaking, setIsShaking]       = useState(false);
   const [attempts, setAttempts]         = useState(0);
   const [lockCountdown, setLockCountdown] = useState(0);
   const [sessionMessage, setSessionMessage] = useState<string | null>(null);
+
+  /* Users list for picker */
+  const [loginUsers, setLoginUsers]     = useState<LoginUser[]>([]);
+  const [usersLoading, setUsersLoading] = useState(true);
 
   /* L5 — cursor parallax light */
   const cursorOverlayRef = useRef<HTMLDivElement>(null);
@@ -432,9 +671,16 @@ export default function LoginPage() {
     return () => window.removeEventListener("mousemove", onMouseMove);
   }, []);
 
-  /* L19 — autofocus email on mount */
+  /* Load users for picker */
   useEffect(() => {
-    emailInputRef.current?.focus();
+    void (async () => {
+      try {
+        const res = await fetch("/api/login-users");
+        if (res.ok) setLoginUsers(await res.json());
+      } catch { /* ignore */ } finally {
+        setUsersLoading(false);
+      }
+    })();
   }, []);
 
   /* L19 — focus trap inside form */
@@ -501,6 +747,12 @@ export default function LoginPage() {
     e.preventDefault();
     if (lockCountdown > 0) return;
 
+    if (!email) {
+      setError("Selecciona un usuario para continuar.");
+      triggerShake();
+      return;
+    }
+
     setLoginPhase("checking");
     setError(null);
     setSessionMessage(null);
@@ -530,7 +782,7 @@ export default function LoginPage() {
         setError(
           remaining === 1
             ? "Credenciales incorrectas. Este es tu último intento antes del bloqueo temporal."
-            : "Credenciales incorrectas. Verifica tu email y contraseña."
+            : "Contraseña incorrecta. Verifica e inténtalo de nuevo."
         );
       }
       return;
@@ -635,38 +887,14 @@ export default function LoginPage() {
           {/* Form */}
           <form ref={formRef} onSubmit={handleSubmit} className="space-y-4">
 
-            {/* Email — L1 stagger, L11 inline validation */}
+            {/* User picker */}
             <div className="login-field-enter" style={{ animationDelay: "150ms" }}>
-              <Input
-                ref={emailInputRef}
-                label="Email"
-                type="email"
+              <UserPicker
+                users={loginUsers}
                 value={email}
-                onChange={(e) => {
-                  setEmail(e.target.value);
-                  if (emailTouched) setEmailValid(isEmailLike(e.target.value));
-                }}
-                onBlur={() => {
-                  setEmailTouched(true);
-                  setEmailValid(isEmailLike(email));
-                }}
-                placeholder="usuario@ccgrancanaria.es"
-                icon={<Mail className="w-4 h-4" />}
-                suffix={
-                  emailTouched && email.length > 0 ? (
-                    emailValid
-                      ? <CheckCircle className="w-3.5 h-3.5 text-green-400" />
-                      : <AlertCircle className="w-3.5 h-3.5 text-red-400" />
-                  ) : undefined
-                }
-                error={
-                  emailTouched && !emailValid && email.length > 0
-                    ? "Introduce un email válido"
-                    : undefined
-                }
-                className="login-field"
-                required
-                autoComplete="email"
+                onChange={setEmail}
+                loading={usersLoading}
+                disabled={isLoading || isLocked}
               />
             </div>
 
