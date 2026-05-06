@@ -583,25 +583,6 @@ html:not([data-theme="light"]) .prose ul[data-type="taskList"] li[data-checked="
   margin-bottom: 0;
 }
 
-/* RichEditor: typography (.prose) mete márgenes en p/p+p; igualamos a la nota publicada. */
-[data-rich-editor] .ProseMirror.prose > p,
-[data-rich-editor] .ProseMirror.prose p {
-  margin-block: 0 !important;
-  margin: 0 !important;
-}
-[data-rich-editor] .ProseMirror.prose > p + p,
-[data-rich-editor] .ProseMirror.prose p + p {
-  margin-block-start: 0 !important;
-  margin-top: 0 !important;
-}
-[data-rich-editor] .ProseMirror.prose p:has(> br:only-child) {
-  display: block !important;
-  min-height: 1.2em !important;
-  margin-block: 0 !important;
-  margin: 0 !important;
-  line-height: 1.5;
-}
-
 /* Strikethrough */
 html:not([data-theme="light"]) .ProseMirror s {
   color: rgba(240, 244, 255, 0.4);
@@ -1796,27 +1777,62 @@ textarea:focus ~ .input-focus-bar {
 }
 
 /*
- * Bitácora (lectura): anular márgenes de `.prose` / typography en <p> y p+p.
- * — Un Enter → otro <p> pegado al anterior (como el editor tras las reglas de arriba).
- * — Doble Enter / línea en blanco → TipTap suele guardar <p><br></p> (min-height abajo).
+ * Bitácora — política compacta (editor = lectura = preview).
+ * Un Enter = nuevo <p> sin margen extra entre párrafos (--bitacora-p-gap: 0).
+ * Doble Enter / línea en blanco: TipTap → <p><br></p>; sanitize añade .bitacora-blank-line.
+ * El <br> decorativo ProseMirror-trailingBreak se oculta en editor y se quita al sanear.
  */
-[data-bitacora-html-body].prose > p,
-[data-bitacora-html-body].prose p {
-  margin-block: 0 !important;
-  margin: 0 !important;
+[data-bitacora-prose] {
+  --bitacora-p-gap: 0;
+  /* reservado por si en el futuro se calibra altura mínima de línea en blanco explícita */
+  --bitacora-blank-line-min-height: 1em;
 }
-[data-bitacora-html-body].prose > p + p,
-[data-bitacora-html-body].prose p + p {
-  margin-block-start: 0 !important;
-  margin-top: 0 !important;
+
+[data-bitacora-prose].prose > p,
+[data-bitacora-prose].prose p,
+[data-bitacora-prose] .ProseMirror.prose > p,
+[data-bitacora-prose] .ProseMirror.prose p {
+  margin-block-end: 0 !important;
+  margin-bottom: 0 !important;
 }
-[data-bitacora-html-body].prose p:empty {
+
+[data-bitacora-prose].prose > p + p,
+[data-bitacora-prose].prose p + p,
+[data-bitacora-prose] .ProseMirror.prose > p + p,
+[data-bitacora-prose] .ProseMirror.prose p + p {
+  margin-block-start: var(--bitacora-p-gap) !important;
+  margin-top: var(--bitacora-p-gap) !important;
+}
+
+[data-bitacora-prose].prose p:empty,
+[data-bitacora-prose] .ProseMirror.prose p:empty {
   display: none !important;
 }
-[data-bitacora-html-body].prose p:has(> br:only-child) {
+
+[data-bitacora-prose].prose .bitacora-blank-line,
+[data-bitacora-prose] .ProseMirror.prose p:has(> br:only-child) {
   display: block !important;
-  min-height: 1.2em !important;
+  /* El <br> ya genera una línea; min-height duplicaba hueco vs. lectura */
+  min-height: 0 !important;
   margin-block: 0 !important;
   margin: 0 !important;
-  line-height: 1.5;
+  padding: 0 !important;
+  line-height: 1.35;
+}
+
+/*
+ * ProseMirror añade al DOM (no siempre en getHTML) un <br> decorativo al final de bloques;
+ * si llega a serializarse o se copia HTML, ocultarlo en el editor evita “doble línea” por párrafo.
+ */
+[data-bitacora-prose] .ProseMirror br.ProseMirror-trailingBreak {
+  display: none !important;
+}
+
+/* Imágenes/vídeo como bloque: evita hueco de baseline (img inline dentro de <p>) */
+[data-bitacora-prose] img,
+[data-bitacora-prose] video {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin-block: 0 !important;
 }

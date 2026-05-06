@@ -21,6 +21,7 @@ import { sanitizeHtml } from "@/lib/sanitize-html";
 import { useAccentForUi } from "@/lib/hooks/useAccentForUi";
 import { useTheme } from "@/components/layout/ThemeProvider";
 import { bitacoraPreviewProseClass } from "@/lib/bitacora-html-prose";
+import { bitacoraProseRootProps } from "@/lib/bitacora-prose-constants";
 import type { PublishHint } from "@/lib/log-entry-publish-hints";
 import { PUBLISH_HINT_LABEL } from "@/lib/log-entry-publish-hints";
 
@@ -766,6 +767,7 @@ export function NewLogEntryForm({
             >
               {content ? (
                 <div
+                  {...bitacoraProseRootProps}
                   data-bitacora-html-body
                   className={bitacoraPreviewProseClass(theme)}
                   dangerouslySetInnerHTML={{ __html: sanitizeHtml(content) }}

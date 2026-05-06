@@ -1,9 +1,25 @@
 import DOMPurify from "isomorphic-dompurify";
 
+/** Párrafo que solo contiene `<br>` (doble Enter en TipTap). Sanitizer añade esta clase para CSS estable. */
+export const BITACORA_BLANK_LINE_CLASS = "bitacora-blank-line";
+
 /**
  * TipTap suele serializar saltos como `<p><br></p>`, `<p></p>` o `<p> &nbsp; </p>`.
  * En lectura (.prose) parecen líneas en blanco que el autor no puso.
  */
+/** Nodos de “hack” del DOM de ProseMirror; no deben persistir en HTML (línea fantasma / espacio extra). */
+function stripProseMirrorHackNodes(html: string): string {
+  return html
+    .replace(
+      /<br\b[^>]*\bclass\s*=\s*["'][^"']*ProseMirror-trailingBreak[^"']*["'][^>]*\/?>/gi,
+      ""
+    )
+    .replace(
+      /<img\b[^>]*\bclass\s*=\s*["'][^"']*ProseMirror-separator[^"']*["'][^>]*\/?>/gi,
+      ""
+    );
+}
+
 function decodeWsEntities(fragment: string): string {
   return fragment
     .replace(/&nbsp;/gi, " ")
@@ -36,6 +52,42 @@ function collapseConsecutiveBlankParagraphs(html: string): string {
     out = out.replace(re, "$1");
   } while (out !== prev);
   return out;
+}
+
+function appendClassToAttrs(attrs: string, cls: string): string {
+  const trimmed = attrs.trim();
+  const dq = /\bclass\s*=\s*"([^"]*)"/i.exec(trimmed);
+  if (dq) {
+    return trimmed.replace(/\bclass\s*=\s*"([^"]*)"/i, (_, c: string) => {
+      if (c.split(/\s+/).includes(cls)) return `class="${c}"`;
+      return `class="${`${c} ${cls}`.trim()}"`;
+    });
+  }
+  const sq = /\bclass\s*=\s*'([^']*)'/i.exec(trimmed);
+  if (sq) {
+    return trimmed.replace(/\bclass\s*=\s*'([^']*)'/i, (_, c: string) => {
+      if (c.split(/\s+/).includes(cls)) return `class='${c}'`;
+      return `class='${`${c} ${cls}`.trim()}'`;
+    });
+  }
+  return `${trimmed} class="${cls}"`.trim();
+}
+
+/** Solo espacio/saltos `<br>` (sin texto): línea en blanco explícita del usuario. */
+function isParagraphOnlyBrOrWhitespace(inner: string): boolean {
+  const trimmed = inner.trim();
+  if (!trimmed) return false;
+  return /<br\b/i.test(trimmed) && /^(?:\s|<br\b[^>]*\/?>)+$/i.test(trimmed);
+}
+
+/** Marca `<p>` que solo tienen `<br>` para estilar sin depender de :has en lectura. */
+function markBlankLineParagraphs(html: string): string {
+  return html.replace(/<p\b([^>]*)>([\s\S]*?)<\/p>/gi, (full, attrs: string, inner: string) => {
+    if (!isParagraphOnlyBrOrWhitespace(inner)) return full;
+    if (new RegExp(`\\b${BITACORA_BLANK_LINE_CLASS}\\b`).test(attrs)) return full;
+    const nextAttrs = appendClassToAttrs(attrs, BITACORA_BLANK_LINE_CLASS);
+    return `<p ${nextAttrs}>${inner}</p>`;
+  });
 }
 
 function stripSpuriousEmptyParagraphs(html: string): string {
@@ -85,7 +137,10 @@ function collapseSpaceBeforePunctuationInHtml(html: string): string {
 
 /** HTML seguro para renderizar en el cliente (bitácora, descripciones). */
 export function sanitizeHtml(dirty: string): string {
-  const clean = DOMPurify.sanitize(dirty, {
+  /* Antes y después de DOMPurify: si el purificador quita `class` del <br>, el segundo paso sigue limpiando el patrón completo. */
+  const pre = stripProseMirrorHackNodes(dirty);
+  const clean = stripProseMirrorHackNodes(
+    DOMPurify.sanitize(pre, {
     USE_PROFILES: { html: true },
     ADD_ATTR: [
       "target",
@@ -100,7 +155,9 @@ export function sanitizeHtml(dirty: string): string {
     ],
     ADD_TAGS: ["video"],
     FORBID_TAGS: ["script", "iframe", "object", "embed"],
-  });
+  })
+  );
   const stripped = stripSpuriousEmptyParagraphs(clean);
-  return collapseSpaceBeforePunctuationInHtml(stripped);
+  const marked = markBlankLineParagraphs(stripped);
+  return collapseSpaceBeforePunctuationInHtml(marked);
 }

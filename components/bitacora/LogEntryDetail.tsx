@@ -50,6 +50,7 @@ import { useAccentForUi } from "@/lib/hooks/useAccentForUi";
 import { BackgroundOrbs } from "@/components/layout/BackgroundOrbs";
 import { useTheme } from "@/components/layout/ThemeProvider";
 import { bitacoraReadingProseClass } from "@/lib/bitacora-html-prose";
+import { bitacoraProseRootProps } from "@/lib/bitacora-prose-constants";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -861,6 +862,7 @@ export function LogEntryDetail({
           {/* Content */}
           <div
             ref={contentRef}
+            {...bitacoraProseRootProps}
             data-bitacora-html-body
             className={bitacoraReadingProseClass(theme)}
             dangerouslySetInnerHTML={{ __html: tocHtml }}

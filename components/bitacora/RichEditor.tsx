@@ -29,6 +29,7 @@ import toast from "react-hot-toast";
 import { useTheme } from "@/components/layout/ThemeProvider";
 import { richEditorMention } from "./rich-editor-mention";
 import { richEditorBodyProseClass } from "@/lib/bitacora-html-prose";
+import { bitacoraProseRootProps } from "@/lib/bitacora-prose-constants";
 import { VideoExtension } from "./rich-editor-video";
 
 const VIDEO_FILE_MAX_BYTES = 200 * 1024 * 1024; // 200 MB
@@ -446,6 +447,7 @@ export function RichEditor({
 
   const editorShell = (
     <div
+      {...bitacoraProseRootProps}
       data-rich-editor
       className={cn(
         "rounded-lg border focus-within:border-[#ffeb66]/40 focus-within:ring-1 focus-within:ring-[#ffeb66]/15 transition-all duration-200",

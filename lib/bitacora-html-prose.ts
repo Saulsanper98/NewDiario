@@ -1,9 +1,9 @@
 import { cn } from "@/lib/utils";
 import type { ThemeMode } from "@/lib/theme";
 
-/* p/p+p: sin margen (tipografía prose); refuerzo en globals.css + editor [data-rich-editor]. */
+/* Márgenes entre párrafos: solo en globals.css --bitacora-p-gap ([data-bitacora-prose]). */
 const readingBase =
-  "prose prose-read-width mx-auto w-full text-sm leading-relaxed print:break-inside-avoid [&_p]:m-0 [&_p+p]:mt-0 [&_li:not([data-type=taskItem])]:my-1.5 [&_ul]:my-4 [&_ol]:my-4 [&_blockquote]:my-5 [&_hr]:my-8 [&_h2]:mt-10 [&_h2]:mb-3 [&_h3]:mt-8 [&_h3]:mb-2.5 [&_h4]:mt-6 [&_h4]:mb-2 [&_ul[data-type=taskList]]:my-4 [&_a]:underline [&_a]:underline-offset-2";
+  "prose prose-read-width mx-auto w-full text-sm leading-relaxed print:break-inside-avoid [&_li:not([data-type=taskItem])]:my-1.5 [&_ul]:my-4 [&_ol]:my-4 [&_blockquote]:my-5 [&_hr]:my-8 [&_h2]:mt-10 [&_h2]:mb-3 [&_h3]:mt-8 [&_h3]:mb-2.5 [&_h4]:mt-6 [&_h4]:mb-2 [&_ul[data-type=taskList]]:my-4 [&_a]:underline [&_a]:underline-offset-2";
 
 /** Cuerpo HTML de una entrada de bitácora (lectura). */
 export function bitacoraReadingProseClass(theme: ThemeMode) {
@@ -15,18 +15,18 @@ export function bitacoraReadingProseClass(theme: ThemeMode) {
   );
 }
 
-/** Previsualización HTML en formulario nueva/editar entrada. */
+/** Previsualización HTML en formulario nueva/editar entrada (mismas reglas que lectura vía data-bitacora-prose). */
 export function bitacoraPreviewProseClass(theme: ThemeMode) {
   return cn(
-    "prose max-w-none text-sm leading-relaxed",
+    "prose prose-read-width mx-auto w-full max-w-none text-sm leading-relaxed",
     theme === "light" ? "prose-zinc text-zinc-800" : "prose-invert text-white/75"
   );
 }
 
-/** Área editable TipTap (`RichEditor`). */
+/** Área editable TipTap (`RichEditor`). Sin prose-read-width: el bloque usa todo el ancho del formulario. */
 export function richEditorBodyProseClass(theme: ThemeMode) {
   return cn(
-    "prose max-w-none text-sm focus:outline-none min-h-[200px] p-4 [&_p]:m-0 [&_p+p]:mt-0",
+    "prose max-w-none text-sm focus:outline-none min-h-[200px] p-4 leading-relaxed",
     theme === "light" ? "prose-zinc text-zinc-800" : "prose-invert text-white/80"
   );
 }

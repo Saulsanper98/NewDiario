@@ -1176,38 +1176,36 @@ html[data-theme="light"] [data-login-page] label[for="remember"] {
   color: rgb(24 24 27 / 0.78) !important;
 }
 
-/* Bitácora: cuerpo HTML y editor TipTap en tema claro */
-html[data-theme="light"] [data-bitacora-html-body] span[data-type="mention"],
-html[data-theme="light"] [data-rich-editor] .ProseMirror span[data-type="mention"] {
+/* Bitácora: cuerpo HTML y editor TipTap en tema claro ([data-bitacora-prose] unifica lectura/editor) */
+html[data-theme="light"] [data-bitacora-prose] span[data-type="mention"] {
   color: #2563eb !important;
 }
-html[data-theme="light"] [data-bitacora-html-body] span[data-type="mention"]:hover,
-html[data-theme="light"] [data-rich-editor] .ProseMirror span[data-type="mention"]:hover {
+html[data-theme="light"] [data-bitacora-prose] span[data-type="mention"]:hover {
   color: #1d4ed8 !important;
 }
 
-html[data-theme="light"] [data-rich-editor] .ProseMirror td,
-html[data-theme="light"] [data-rich-editor] .ProseMirror th {
+html[data-theme="light"] [data-bitacora-prose] .ProseMirror td,
+html[data-theme="light"] [data-bitacora-prose] .ProseMirror th {
   border: 1px solid rgba(15, 23, 42, 0.12);
   padding: 6px 12px;
 }
-html[data-theme="light"] [data-rich-editor] .ProseMirror th {
+html[data-theme="light"] [data-bitacora-prose] .ProseMirror th {
   background: rgba(15, 23, 42, 0.04);
   font-weight: 600;
 }
-html[data-theme="light"] [data-rich-editor] .ProseMirror hr {
+html[data-theme="light"] [data-bitacora-prose] .ProseMirror hr {
   border: none;
   border-top: 1px solid rgba(15, 23, 42, 0.12);
   margin: 1rem 0;
 }
-html[data-theme="light"] [data-rich-editor] .ProseMirror mark {
+html[data-theme="light"] [data-bitacora-prose] .ProseMirror mark {
   background: rgba(var(--lt-yellow-rgb), 0.2);
   color: var(--lt-yellow-text);
   border-radius: 2px;
   padding: 0 2px;
 }
 
-html[data-theme="light"] [data-bitacora-html-body] ul[data-type="taskList"] li[data-checked="true"] > div {
+html[data-theme="light"] [data-bitacora-prose] ul[data-type="taskList"] li[data-checked="true"] > div {
   color: rgba(24, 24, 27, 0.45);
   text-decoration: line-through;
 }
@@ -1225,7 +1223,7 @@ html[data-theme="light"] .bitacora-back-to-top-fab:hover {
 }
 
 /* Editor notas: color de cuerpo forzado en claro (por si alguna regla legacy pisa prose-zinc) */
-html[data-theme="light"] [data-rich-editor] .ProseMirror {
+html[data-theme="light"] [data-bitacora-prose] .ProseMirror {
   color: #18181b;
 }
 
