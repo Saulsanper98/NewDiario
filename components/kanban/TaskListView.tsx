@@ -23,7 +23,7 @@ interface TaskListViewProps {
   columns: KanbanColumnShape[];
 }
 
-type SortKey = "title" | "priority" | "dueDate" | "assignee";
+type SortKey = "title" | "priority" | "dueDate" | "assignee" | "status";
 
 export function TaskListView({ columns }: TaskListViewProps) {
   const router = useRouter();
@@ -73,6 +73,9 @@ export function TaskListView({ columns }: TaskListViewProps) {
       case "assignee":
         cmp = (a.assignee?.name ?? "").localeCompare(b.assignee?.name ?? "");
         break;
+      case "status":
+        cmp = a.columnName.localeCompare(b.columnName);
+        break;
     }
     return sortDir === "asc" ? cmp : -cmp;
   });
@@ -109,7 +112,8 @@ export function TaskListView({ columns }: TaskListViewProps) {
   }
 
   return (
-    <div className="flex-1 min-h-0 overflow-auto p-4">
+    <div className="flex-1 min-h-0 relative">
+      <div className="absolute inset-0 overflow-auto p-4">
       <div className="glass rounded-xl overflow-hidden">
         <table className="w-full">
           <thead>
@@ -119,6 +123,7 @@ export function TaskListView({ columns }: TaskListViewProps) {
                 { key: "assignee" as SortKey, label: "Asignado" },
                 { key: "priority" as SortKey, label: "Prioridad" },
                 { key: "dueDate" as SortKey, label: "Fecha límite" },
+                { key: "status" as SortKey, label: "Estado" },
               ].map((col) => (
                 <th
                   key={col.key}
@@ -133,9 +138,6 @@ export function TaskListView({ columns }: TaskListViewProps) {
                   </span>
                 </th>
               ))}
-              <th scope="col" className="text-left px-4 py-3 text-xs font-medium text-white/40">
-                Estado
-              </th>
             </tr>
           </thead>
           <tbody>
@@ -224,6 +226,7 @@ export function TaskListView({ columns }: TaskListViewProps) {
             Sin tareas
           </div>
         )}
+      </div>
       </div>
     </div>
   );

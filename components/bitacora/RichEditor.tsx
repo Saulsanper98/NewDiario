@@ -19,6 +19,7 @@ import {
   AlignLeft, AlignCenter, AlignRight, Undo2, Redo2, Highlighter, ImageIcon,
   RemoveFormatting, Heading4, ChevronDown, Maximize2, Minimize2,
   MoreHorizontal, TableRowsSplit, Columns3, Trash2, ExternalLink, Film,
+  Link2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { sanitizeHtml } from "@/lib/sanitize-html";
@@ -70,6 +71,8 @@ export function RichEditor({
   const [isDragOver,   setIsDragOver]   = useState(false);
   const [linkDialogOpen, setLinkDialogOpen] = useState(false);
   const [linkDraft, setLinkDraft] = useState("https://");
+  const [mediaUrlDialogOpen, setMediaUrlDialogOpen] = useState(false);
+  const [mediaUrlDraft, setMediaUrlDraft] = useState("https://");
 
   const { theme } = useTheme();
 
@@ -210,6 +213,14 @@ export function RichEditor({
     });
   }, [editor, theme]);
 
+  // Mantener el contenido del editor sincronizado cuando el padre corrige texto en vivo.
+  useEffect(() => {
+    if (!editor) return;
+    const current = editor.getHTML();
+    if (current === content) return;
+    editor.commands.setContent(content, { emitUpdate: false });
+  }, [editor, content]);
+
   useEffect(() => {
     if (!focusMode) return;
     const prev = document.body.style.overflow;
@@ -237,6 +248,25 @@ export function RichEditor({
       window.removeEventListener("keydown", onKey);
     };
   }, [linkDialogOpen]);
+
+  useEffect(() => {
+    if (!mediaUrlDialogOpen) return;
+    const id = window.setTimeout(() => {
+      linkInputRef.current?.focus();
+      linkInputRef.current?.select();
+    }, 0);
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        setMediaUrlDialogOpen(false);
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => {
+      clearTimeout(id);
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [mediaUrlDialogOpen]);
 
   const openLinkDialog = useCallback(() => {
     if (!editor) return;
@@ -279,6 +309,41 @@ export function RichEditor({
   const insertVideoFromFile = useCallback(() => {
     videoFileInputRef.current?.click();
   }, []);
+
+  const openMediaUrlDialog = useCallback(() => {
+    setMediaUrlDraft("https://");
+    setMediaUrlDialogOpen(true);
+  }, []);
+
+  const submitMediaUrlFromDialog = useCallback(() => {
+    if (!editor) return;
+    const raw = mediaUrlDraft.trim();
+    if (!/^https?:\/\//i.test(raw)) {
+      toast.error("Introduce una URL válida con http:// o https://");
+      return;
+    }
+    let parsed: URL;
+    try {
+      parsed = new URL(raw);
+    } catch {
+      toast.error("La URL no es válida");
+      return;
+    }
+    const pathPart = parsed.pathname.toLowerCase();
+    const isVideo = /\.(mp4|webm|mov)(?:$|[?#])/i.test(pathPart);
+    const isImage = /\.(jpe?g|png|gif|webp)(?:$|[?#])/i.test(pathPart);
+    if (!isVideo && !isImage) {
+      toast.error("La URL debe terminar en JPG, PNG, GIF, WebP, MP4, WebM o MOV");
+      return;
+    }
+    if (isVideo) {
+      editor.chain().focus().setVideo({ src: raw }).run();
+    } else {
+      editor.chain().focus().setImage({ src: raw }).run();
+    }
+    setMediaUrlDialogOpen(false);
+    toast.success(isVideo ? "Vídeo añadido por URL" : "Imagen añadida por URL");
+  }, [editor, mediaUrlDraft]);
 
   const onImageFileSelected = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -514,6 +579,7 @@ export function RichEditor({
           {btn(false, () => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run(), "Insertar tabla",       <TableIcon className="w-3.5 h-3.5" />)}
           {btn(false, insertImageFromFile, "Insertar imagen / GIF desde el equipo", <ImageIcon className="w-3.5 h-3.5" />, uploadingMedia)}
           {btn(false, insertVideoFromFile, "Insertar vídeo desde el equipo", <Film className="w-3.5 h-3.5" />, uploadingMedia)}
+          {btn(false, openMediaUrlDialog, "Insertar imagen/vídeo por URL", <Link2 className="w-3.5 h-3.5" />)}
           {btn(false, () => editor.chain().focus().setHorizontalRule().run(), "Separador horizontal", <Minus className="w-3.5 h-3.5" />)}
 
           {sep()}
@@ -555,6 +621,7 @@ export function RichEditor({
             {btn(false, () => editor.chain().focus().undo().run(), "Deshacer", <Undo2 className="w-3.5 h-3.5" />, !canUndo)}
             {btn(false, insertImageFromFile, "Insertar imagen / GIF", <ImageIcon className="w-3.5 h-3.5" />, uploadingMedia)}
             {btn(false, insertVideoFromFile, "Insertar vídeo", <Film className="w-3.5 h-3.5" />, uploadingMedia)}
+            {btn(false, openMediaUrlDialog, "Insertar imagen/vídeo por URL", <Link2 className="w-3.5 h-3.5" />)}
           </div>
           <button
             type="button"
@@ -578,7 +645,14 @@ export function RichEditor({
         options={{ placement: "top" }}
         shouldShow={({ editor: e, from, to }) => from !== to && !e.isActive("image")}
       >
-        <div className="flex items-center gap-0.5 px-1.5 py-1 glass-3 rounded-lg border border-white/15 shadow-lg">
+        <div
+          className={cn(
+            "rich-editor-bubble-menu flex items-center gap-0.5 px-1.5 py-1 rounded-lg shadow-xl backdrop-blur-md",
+            theme === "light"
+              ? "border border-zinc-200/95 bg-white/98"
+              : "border border-white/18 bg-[#0d1324]/96 supports-[backdrop-filter]:bg-[#0d1324]/92"
+          )}
+        >
           {btn(editor.isActive("bold"),      () => editor.chain().focus().toggleBold().run(),      "Negrita",    <Bold          className="w-3.5 h-3.5" />)}
           {btn(editor.isActive("italic"),    () => editor.chain().focus().toggleItalic().run(),    "Cursiva",    <Italic        className="w-3.5 h-3.5" />)}
           {btn(editor.isActive("strike"),    () => editor.chain().focus().toggleStrike().run(),    "Tachado",    <Strikethrough className="w-3.5 h-3.5" />)}
@@ -741,6 +815,80 @@ export function RichEditor({
                 className="px-3 py-1.5 rounded-lg text-sm font-medium bg-[#ffeb66] text-[#0a0f1e] hover:bg-[#ffe033] transition-colors"
               >
                 Aceptar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {mediaUrlDialogOpen && (
+        <div
+          className="fixed inset-0 z-[220] flex items-center justify-center p-4 bg-black/55"
+          role="presentation"
+          onClick={() => setMediaUrlDialogOpen(false)}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="rich-editor-media-url-title"
+            className={cn(
+              "w-full max-w-md rounded-xl border p-4 shadow-xl",
+              theme === "light"
+                ? "border-zinc-200 bg-white text-zinc-900"
+                : "border-white/12 bg-[#0f1524] text-zinc-100"
+            )}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 id="rich-editor-media-url-title" className="text-sm font-semibold mb-1">
+              Insertar media por URL
+            </h2>
+            <p
+              className={cn(
+                "text-xs mb-3",
+                theme === "light" ? "text-zinc-500" : "text-white/45"
+              )}
+            >
+              Soporta enlaces directos a JPG, PNG, GIF, WebP, MP4, WebM o MOV.
+            </p>
+            <input
+              ref={linkInputRef}
+              type="url"
+              value={mediaUrlDraft}
+              onChange={(e) => setMediaUrlDraft(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  submitMediaUrlFromDialog();
+                }
+              }}
+              className={cn(
+                "w-full rounded-lg border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#ffeb66]/35",
+                theme === "light"
+                  ? "border-zinc-200 bg-white text-zinc-900"
+                  : "border-white/12 bg-[#060a12] text-white"
+              )}
+              placeholder="https://..."
+              autoComplete="url"
+            />
+            <div className="mt-4 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setMediaUrlDialogOpen(false)}
+                className={cn(
+                  "px-3 py-1.5 rounded-lg text-sm transition-colors",
+                  theme === "light"
+                    ? "text-zinc-700 hover:bg-zinc-100"
+                    : "text-white/70 hover:bg-white/8"
+                )}
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={submitMediaUrlFromDialog}
+                className="px-3 py-1.5 rounded-lg text-sm font-medium bg-[#ffeb66] text-[#0a0f1e] hover:bg-[#ffe033] transition-colors"
+              >
+                Insertar
               </button>
             </div>
           </div>

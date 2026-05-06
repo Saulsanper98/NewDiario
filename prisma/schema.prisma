@@ -87,6 +87,7 @@ model User {
   departments          UserDepartment[]
   logEntries           LogEntry[]
   logComments          LogComment[]
+  logReactions         LogReaction[]
   logEditHistory       LogEditHistory[]
   taskComments         TaskComment[]
   projectComments      ProjectComment[]
@@ -227,6 +228,7 @@ model LogEntry {
   attachments LogAttachment[]
   tags        LogTag[]
   shares           LogShare[]
+  reactions        LogReaction[]
   tasks            Task[]           @relation("TaskLinkedLog")
   editHistory      LogEditHistory[]
   outgoingLogLinks LogEntryLink[]   @relation("LogLinkFrom")
@@ -310,6 +312,22 @@ model LogShare {
   @@unique([logEntryId, departmentId])
   @@index([logEntryId])
   @@index([departmentId])
+}
+
+/** Reacciones de usuarios a entradas de bitácora (emoji compartido entre todos). */
+model LogReaction {
+  id         String   @id @default(cuid())
+  logEntryId String
+  userId     String
+  emoji      String   @db.VarChar(8)
+  createdAt  DateTime @default(now())
+
+  logEntry LogEntry @relation(fields: [logEntryId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([logEntryId, userId, emoji])
+  @@index([logEntryId])
+  @@index([userId])
 }
 
 /** Notas breves para el siguiente turno (semilla de continuidad). */

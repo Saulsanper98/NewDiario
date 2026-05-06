@@ -20,7 +20,7 @@ export async function GET() {
   const user = session.user as SessionUser;
   const [items, unread] = await Promise.all([
     prisma.notification.findMany({
-      where: { userId: user.id },
+      where: { userId: user.id, isRead: false },
       orderBy: { createdAt: "desc" },
       take: 40,
     }),

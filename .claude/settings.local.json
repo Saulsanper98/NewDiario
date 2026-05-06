@@ -70,7 +70,11 @@
       "Bash(Get-ChildItem -Path \"C:\\\\DEV CCMGC\\\\NewDiario\\\\NewDiario\" -Recurse -Filter \"*editor*\" -ErrorAction SilentlyContinue)",
       "Bash(Select-Object -ExpandProperty FullName)",
       "Bash(node -e \"const lr = require\\('./node_modules/lucide-react'\\); console.log\\('Film:', typeof lr.Film\\); console.log\\('ImageIcon:', typeof lr.ImageIcon\\);\")",
-      "Bash(node -e \"const tc = require\\('./node_modules/@tiptap/core'\\); console.log\\('Node:', typeof tc.Node\\); console.log\\('mergeAttributes:', typeof tc.mergeAttributes\\);\")"
+      "Bash(node -e \"const tc = require\\('./node_modules/@tiptap/core'\\); console.log\\('Node:', typeof tc.Node\\); console.log\\('mergeAttributes:', typeof tc.mergeAttributes\\);\")",
+      "Bash(Restart-Service CCOps)",
+      "Bash(Start-Sleep -Seconds 3)",
+      "Bash(Get-Service CCOps)",
+      "Bash(Select-Object Status, DisplayName)"
     ]
   }
 }

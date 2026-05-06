@@ -149,14 +149,14 @@ export function BoardSnapshotPanel({
 
   return (
     <>
-    <div className="shrink-0 border-b border-white/8 bg-white/[0.02] px-4 py-3 sm:px-6">
+    <div className="board-snapshot-panel shrink-0 border-b border-white/8 bg-white/[0.02] px-4 py-3 sm:px-6">
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="flex w-full items-center justify-between gap-2 text-left text-sm text-white/55 hover:text-white/75 transition-colors"
+        className="board-snapshot-toggle flex w-full items-center justify-between gap-2 text-left text-sm text-white/55 hover:text-white/75 transition-colors"
       >
         <span className="flex items-center gap-2 font-medium">
-          <Camera className="w-4 h-4 text-[#ffeb66]/75" />
+          <Camera className="w-4 h-4 text-[#ffeb66]/75 shrink-0" />
           Snapshots del tablero
         </span>
         {open ? (
@@ -170,7 +170,7 @@ export function BoardSnapshotPanel({
         <div className="mt-3 space-y-4">
           <div className="flex flex-col sm:flex-row gap-2 sm:items-end">
             <div className="flex-1 min-w-0">
-              <label className="block text-[10px] font-semibold uppercase tracking-wide text-white/35 mb-1">
+              <label className="board-snapshot-label block text-[10px] font-semibold uppercase tracking-wide text-white/35 mb-1">
                 Etiqueta (opcional)
               </label>
               <input
@@ -179,7 +179,7 @@ export function BoardSnapshotPanel({
                 onChange={(e) => setLabel(e.target.value)}
                 maxLength={200}
                 placeholder="Ej. Antes de la reunión con cliente"
-                className="w-full rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white placeholder:text-white/28 focus:border-[#ffeb66]/35 focus:outline-none focus:ring-1 focus:ring-[#ffeb66]/20"
+                className="board-snapshot-input w-full rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white placeholder:text-white/28 focus:border-[#ffeb66]/35 focus:outline-none focus:ring-1 focus:ring-[#ffeb66]/20"
               />
             </div>
             <Button
@@ -194,13 +194,13 @@ export function BoardSnapshotPanel({
               Congelar tablero ahora
             </Button>
           </div>
-          <p className="text-[11px] text-white/35 leading-relaxed">
+          <p className="board-snapshot-help text-[11px] text-white/35 leading-relaxed">
             Guarda el orden de columnas y de tareas tal como está ahora. Útil para
             auditorías o comparar después de cambios grandes.
           </p>
 
           {snapshots.length === 0 ? (
-            <p className="text-xs text-white/30">Aún no hay snapshots.</p>
+            <p className="board-snapshot-empty-msg text-xs">Aún no hay snapshots.</p>
           ) : (
             <ul className="space-y-1 max-h-52 overflow-y-auto pr-1">
               {snapshots.map((s) => {

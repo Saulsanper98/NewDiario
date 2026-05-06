@@ -30,6 +30,7 @@ import type { SessionUser } from "@/lib/auth/types";
 import type { ProjectDetail } from "@/lib/types/project-detail";
 import { useAccentForUi } from "@/lib/hooks/useAccentForUi";
 import { BoardSnapshotPanel } from "@/components/proyectos/BoardSnapshotPanel";
+import { useTheme } from "@/components/layout/ThemeProvider";
 
 type Tab = "kanban" | "list" | "timeline" | "activity" | "subprojects";
 type ProjectMemberRow = ProjectDetail["members"][number];
@@ -52,6 +53,8 @@ const PRIORITY_OPTIONS = Object.entries(PRIORITY_LABELS) as [keyof typeof PRIORI
 
 export function ProjectView({ project, allUsers }: ProjectViewProps) {
   const { accent } = useAccentForUi();
+  const { theme } = useTheme();
+  const isLight = theme === "light";
   const router = useRouter();
   const pathname = usePathname();
   const { data: session } = useSession();
@@ -285,7 +288,7 @@ export function ProjectView({ project, allUsers }: ProjectViewProps) {
     differenceInDays(new Date(projectEndDate), new Date()) <= 7;
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+    <div className="project-detail-root flex min-h-0 flex-1 flex-col overflow-hidden">
       {deleteProjectOpen && (
         <ConfirmModal
           title="Eliminar proyecto"
@@ -313,60 +316,13 @@ export function ProjectView({ project, allUsers }: ProjectViewProps) {
             {project.parent && (
               <Link
                 href={`/proyectos/${project.parent.id}`}
-                className="flex items-center gap-1 text-[10px] text-white/35 hover:text-[#ffeb66] transition-colors mb-1.5"
+                className="project-parent-link flex items-center gap-1 text-[10px] text-white/35 hover:text-[#ffeb66] transition-colors mb-1.5"
               >
                 <FolderTree className="w-3 h-3" />
                 {project.parent.name}
                 <span className="text-white/20">/</span>
               </Link>
             )}
-
-            {/* Badges row + edit button */}
-            <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-              <Badge className={getStatusColor(status)} size="md">
-                {STATUS_LABELS[status as keyof typeof STATUS_LABELS]}
-              </Badge>
-              <Badge className={getPriorityColor(priority)} size="sm">
-                {PRIORITY_LABELS[priority as keyof typeof PRIORITY_LABELS]}
-              </Badge>
-              <span className="text-xs text-white/30 flex items-center gap-1">
-                <span className="w-2 h-2 rounded-full inline-block"
-                  style={{ backgroundColor: accent(project.department.accentColor) }} />
-                {project.department.name}
-              </span>
-
-              {/* Edit popover: portal + fixed para no inflar flex/overflow del layout */}
-              <button
-                ref={editButtonRef}
-                type="button"
-                onClick={handleEditButtonClick}
-                className="p-1 rounded-md text-white/35 hover:text-white/80 hover:bg-white/6 transition-all duration-150"
-                aria-label="Editar estado del proyecto"
-              >
-                <Pencil className="w-3 h-3" />
-              </button>
-
-              {editOpen && editAnchor &&
-                createPortal(
-                  <EditPopover
-                    ref={editPopoverRef}
-                    anchor={editAnchor}
-                    status={status}
-                    priority={priority}
-                    endDate={projectEndDate ? new Date(projectEndDate).toISOString().slice(0, 10) : null}
-                    saving={saving}
-                    showDelete={canDeleteProject}
-                    onSave={saveEdit}
-                    onRequestDelete={() => {
-                      setEditOpen(false);
-                      setEditAnchor(null);
-                      setDeleteProjectOpen(true);
-                    }}
-                    onClose={() => { setEditOpen(false); setEditAnchor(null); }}
-                  />,
-                  document.body
-                )}
-            </div>
 
             {/* Project name — editable inline */}
             <div className="group/name flex items-center gap-1.5">
@@ -394,7 +350,7 @@ export function ProjectView({ project, allUsers }: ProjectViewProps) {
               ) : (
                 <>
                   <h1
-                    className="text-lg font-bold text-white cursor-text hover:text-white/90 transition-colors"
+                    className="project-title text-lg font-bold text-white cursor-text hover:text-white/90 transition-colors"
                     onClick={() => { setNameDraft(projectName); setEditingName(true); }}
                     title="Click para editar"
                   >
@@ -441,11 +397,11 @@ export function ProjectView({ project, allUsers }: ProjectViewProps) {
                   onClick={() => { setDescDraft(description); setEditingDesc(true); }}
                 >
                   {description ? (
-                    <p className="text-sm text-white/40 line-clamp-1 hover:text-white/55 transition-colors">
+                    <p className="project-desc text-sm text-white/40 line-clamp-1 hover:text-white/55 transition-colors">
                       {description}
                     </p>
                   ) : (
-                    <p className="text-xs text-white/20 italic group-hover/desc:text-white/35 transition-colors">
+                    <p className="project-desc-placeholder text-xs text-white/20 italic group-hover/desc:text-white/35 transition-colors">
                       Añadir descripción…
                     </p>
                   )}
@@ -459,13 +415,68 @@ export function ProjectView({ project, allUsers }: ProjectViewProps) {
                 </div>
               )}
             </div>
+
+            {/* Estado / prioridad / dept — debajo del título y descripción (jerarquía visual) */}
+            <div
+              className={cn(
+                "project-meta-row flex items-center gap-2 flex-wrap",
+                isLight
+                  ? "pt-3 mt-2 border-t border-black/[0.08]"
+                  : "pt-3 mt-2 border-t border-white/8"
+              )}
+            >
+              <Badge className={getStatusColor(status)} size="md">
+                {STATUS_LABELS[status as keyof typeof STATUS_LABELS]}
+              </Badge>
+              <Badge className={getPriorityColor(priority)} size="sm">
+                {PRIORITY_LABELS[priority as keyof typeof PRIORITY_LABELS]}
+              </Badge>
+              <span className="project-dept-meta text-xs text-white/30 flex items-center gap-1">
+                <span
+                  className="w-2 h-2 rounded-full inline-block"
+                  style={{ backgroundColor: accent(project.department.accentColor) }}
+                />
+                {project.department.name}
+              </span>
+
+              <button
+                ref={editButtonRef}
+                type="button"
+                onClick={handleEditButtonClick}
+                className="p-1 rounded-md text-white/35 hover:text-white/80 hover:bg-white/6 transition-all duration-150"
+                aria-label="Editar estado del proyecto"
+              >
+                <Pencil className="w-3 h-3" />
+              </button>
+
+              {editOpen && editAnchor &&
+                createPortal(
+                  <EditPopover
+                    ref={editPopoverRef}
+                    anchor={editAnchor}
+                    status={status}
+                    priority={priority}
+                    endDate={projectEndDate ? new Date(projectEndDate).toISOString().slice(0, 10) : null}
+                    saving={saving}
+                    showDelete={canDeleteProject}
+                    onSave={saveEdit}
+                    onRequestDelete={() => {
+                      setEditOpen(false);
+                      setEditAnchor(null);
+                      setDeleteProjectOpen(true);
+                    }}
+                    onClose={() => { setEditOpen(false); setEditAnchor(null); }}
+                  />,
+                  document.body
+                )}
+            </div>
           </div>
 
           {/* Progress & meta */}
           <div className="shrink-0 flex items-center gap-6">
             <div className="text-right">
               <div className="flex items-center gap-2 mb-1">
-                <div className="w-32 h-1.5 bg-white/6 rounded-full overflow-hidden">
+                <div className="project-progress-track w-32 h-1.5 bg-white/6 rounded-full overflow-hidden">
                   <div
                     className={cn(
                       "h-full rounded-full progress-bar",
@@ -478,7 +489,7 @@ export function ProjectView({ project, allUsers }: ProjectViewProps) {
                   {progress}%
                 </span>
               </div>
-              <p className="text-xs text-white/30">{completedTasks}/{totalTasks} tareas</p>
+              <p className="project-tasks-meta text-xs text-white/30">{completedTasks}/{totalTasks} tareas</p>
             </div>
 
             {/* Members: avatares solapados; +N fuera del grupo para no tapar al último */}
@@ -490,13 +501,13 @@ export function ProjectView({ project, allUsers }: ProjectViewProps) {
                     name={m.user.name}
                     image={m.user.image}
                     size="sm"
-                    className="border-2 border-[#0a0f1e] ring-0"
+                    className="project-member-avatar border-2 border-[#0a0f1e] ring-0"
                   />
                 ))}
               </div>
               {project.members.length > 4 && (
                 <div
-                  className="ml-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 border-[#0a0f1e] bg-white/10 text-xs text-white/70"
+                  className="project-member-more ml-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 border-[#0a0f1e] bg-white/10 text-xs text-white/70"
                   title={`${project.members.length - 4} miembro(s) más`}
                 >
                   +{project.members.length - 4}
@@ -507,9 +518,9 @@ export function ProjectView({ project, allUsers }: ProjectViewProps) {
             {/* End date */}
             {projectEndDate && (
               <div className="text-right">
-                <p className="text-xs text-white/30">Fecha límite</p>
+                <p className="project-meta-dim text-xs text-white/30">Fecha límite</p>
                 <p className={cn(
-                  "text-sm font-medium flex items-center gap-1",
+                  "project-end-date text-sm font-medium flex items-center gap-1",
                   endDateOverdue ? "text-red-400" : endDateSoon ? "text-amber-400" : "text-white/70"
                 )}>
                   {endDateOverdue && <AlertTriangle className="w-3.5 h-3.5" />}
@@ -521,9 +532,10 @@ export function ProjectView({ project, allUsers }: ProjectViewProps) {
           </div>
         </div>
 
-        {/* Tabs */}
-        <div className="flex items-center gap-1 mt-4 flex-wrap">
-          {TABS.filter((tab) => !(tab.id === "subprojects" && subCount === 0)).map((tab) => {
+        {/* Tabs — en claro, banda separada del bloque superior */}
+        <div className={cn(isLight && "project-tabs-shell")}>
+        <div className={cn("project-tabs flex items-center gap-1 flex-wrap", isLight ? "mt-0" : "mt-4")}>
+          {TABS.map((tab) => {
             const Icon = tab.icon;
             const label = tab.id === "subprojects"
               ? `Subproyectos (${subCount})`
@@ -534,10 +546,10 @@ export function ProjectView({ project, allUsers }: ProjectViewProps) {
                 type="button"
                 onClick={() => selectTab(tab.id)}
                 className={cn(
-                  "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200",
+                  "project-tab flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 border",
                   activeTab === tab.id
-                    ? "bg-[#ffeb66]/12 text-[#ffeb66] border border-[#ffeb66]/20"
-                    : "text-white/40 hover:text-white hover:bg-white/6 border border-transparent"
+                    ? "project-tab-active bg-[#ffeb66]/12 text-[#ffeb66] border-[#ffeb66]/20"
+                    : "text-white/40 hover:text-white hover:bg-white/6 border-transparent"
                 )}
               >
                 <Icon className="w-3.5 h-3.5" />
@@ -545,6 +557,7 @@ export function ProjectView({ project, allUsers }: ProjectViewProps) {
               </button>
             );
           })}
+        </div>
         </div>
       </div>
 

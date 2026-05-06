@@ -86,6 +86,9 @@ interface LogEntryDetailProps {
 const REACTION_EMOJIS = ["👍", "❤️", "😮", "⚠️", "✅"] as const;
 type ReactionEmoji = (typeof REACTION_EMOJIS)[number];
 
+type ReactionData = { count: number; hasReacted: boolean; users: { id: string; name: string }[] };
+type ReactionsState = Partial<Record<ReactionEmoji, ReactionData>>;
+
 const CHANGES_LABELS: Record<string, string> = {
   title: "Título",
   content: "Contenido",
@@ -175,13 +178,20 @@ function processHeadings(html: string): { toc: TocItem[]; html: string } {
   return { toc, html: processed };
 }
 
-function loadReactions(entryId: string): Partial<Record<ReactionEmoji, boolean>> {
-  try {
-    const raw = localStorage.getItem(`reactions:${entryId}`);
-    return raw ? JSON.parse(raw) : {};
-  } catch {
-    return {};
+function buildReactionsState(
+  raw: { emoji: string; userId: string; user: { id: string; name: string } }[],
+  currentUserId: string
+): ReactionsState {
+  const state: ReactionsState = {};
+  for (const r of raw) {
+    const emoji = r.emoji as ReactionEmoji;
+    if (!REACTION_EMOJIS.includes(emoji)) continue;
+    if (!state[emoji]) state[emoji] = { count: 0, hasReacted: false, users: [] };
+    state[emoji]!.count++;
+    state[emoji]!.users.push({ id: r.user.id, name: r.user.name });
+    if (r.userId === currentUserId) state[emoji]!.hasReacted = true;
   }
+  return state;
 }
 
 function parseChanges(raw: string): Record<string, unknown> {
@@ -285,7 +295,9 @@ export function LogEntryDetail({
   const [activeTocId, setActiveTocId] = useState<string | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
-  const [reactions, setReactions] = useState<Partial<Record<ReactionEmoji, boolean>>>({});
+  const [reactions, setReactions] = useState<ReactionsState>(() =>
+    buildReactionsState(entry.reactions, currentUser.id)
+  );
   const [replyTo, setReplyTo] = useState<{ id: string; name: string } | null>(null);
   const [mentionQuery, setMentionQuery] = useState("");
   const [showMentionDrop, setShowMentionDrop] = useState(false);
@@ -335,8 +347,8 @@ export function LogEntryDetail({
   // ── Effects ───────────────────────────────────────────────────────────────
 
   useEffect(() => {
-    setReactions(loadReactions(entry.id));
-  }, [entry.id]);
+    setReactions(buildReactionsState(entry.reactions, currentUser.id));
+  }, [entry.id, entry.reactions, currentUser.id]);
 
   // ESC exits fullscreen
   useEffect(() => {
@@ -475,12 +487,45 @@ export function LogEntryDetail({
     }, 50);
   }
 
-  function toggleReaction(emoji: ReactionEmoji) {
+  async function toggleReaction(emoji: ReactionEmoji) {
+    const hasReacted = reactions[emoji]?.hasReacted ?? false;
+    // Optimistic update
     setReactions((prev) => {
-      const next = { ...prev, [emoji]: !prev[emoji] };
-      try { localStorage.setItem(`reactions:${entry.id}`, JSON.stringify(next)); } catch { /* empty */ }
-      return next;
+      const cur = prev[emoji] ?? { count: 0, hasReacted: false, users: [] };
+      return {
+        ...prev,
+        [emoji]: {
+          count: Math.max(0, cur.count + (hasReacted ? -1 : 1)),
+          hasReacted: !hasReacted,
+          users: hasReacted
+            ? cur.users.filter((u) => u.id !== currentUser.id)
+            : [...cur.users, { id: currentUser.id, name: currentUser.name }],
+        },
+      };
     });
+    try {
+      const res = await fetch(`/api/log-entries/${entry.id}/reactions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ emoji }),
+      });
+      if (!res.ok) throw new Error();
+    } catch {
+      // Rollback
+      setReactions((prev) => {
+        const cur = prev[emoji];
+        if (!cur) return prev;
+        return {
+          ...prev,
+          [emoji]: {
+            count: Math.max(0, cur.count + (hasReacted ? 1 : -1)),
+            hasReacted,
+            users: cur.users,
+          },
+        };
+      });
+      toast.error("No se pudo guardar la reacción");
+    }
   }
 
   function handleCommentChange(e: React.ChangeEvent<HTMLTextAreaElement>) {
@@ -817,10 +862,7 @@ export function LogEntryDetail({
           <div
             ref={contentRef}
             data-bitacora-html-body
-            className={cn(
-              bitacoraReadingProseClass(theme),
-              "print:break-inside-avoid [&_p]:my-4 [&_li:not([data-type=taskItem])]:my-1.5 [&_ul]:my-4 [&_ol]:my-4 [&_blockquote]:my-5 [&_hr]:my-8 [&_h2]:mt-10 [&_h2]:mb-3 [&_h3]:mt-8 [&_h3]:mb-2.5 [&_h4]:mt-6 [&_h4]:mb-2 [&_ul[data-type=taskList]]:my-4 [&_a]:underline [&_a]:underline-offset-2"
-            )}
+            className={bitacoraReadingProseClass(theme)}
             dangerouslySetInnerHTML={{ __html: tocHtml }}
           />
 
@@ -845,26 +887,36 @@ export function LogEntryDetail({
             </div>
           )}
 
-          {/* B58: Emoji reactions */}
+          {/* Emoji reactions */}
           <div className="mt-7 pt-6 border-t border-white/8 print:hidden">
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-xs text-white/35 mr-1">Reaccionar:</span>
-              {REACTION_EMOJIS.map((emoji) => (
-                <button
-                  key={emoji}
-                  type="button"
-                  onClick={() => toggleReaction(emoji)}
-                  aria-pressed={!!reactions[emoji]}
-                  className={`reaction-btn text-base px-2.5 py-1.5 rounded-lg border transition-all duration-150 select-none
-                  ${
-                    reactions[emoji]
-                      ? "border-[#ffeb66]/40 bg-[#ffeb66]/8 scale-110 shadow-[0_0_8px_rgba(255,235,102,0.2)]"
-                      : "border-white/8 bg-white/4 hover:border-white/18 hover:bg-white/7 hover:scale-105"
-                  }`}
-                >
-                  {emoji}
-                </button>
-              ))}
+              {REACTION_EMOJIS.map((emoji) => {
+                const data = reactions[emoji];
+                const active = data?.hasReacted ?? false;
+                const count = data?.count ?? 0;
+                const names = data?.users.map((u) => u.name).join(", ") ?? "";
+                return (
+                  <button
+                    key={emoji}
+                    type="button"
+                    onClick={() => void toggleReaction(emoji)}
+                    aria-pressed={active}
+                    title={names || undefined}
+                    className={`reaction-btn flex items-center gap-1.5 text-base px-2.5 py-1.5 rounded-lg border transition-all duration-150 select-none
+                    ${
+                      active
+                        ? "border-[#ffeb66]/40 bg-[#ffeb66]/8 scale-110 shadow-[0_0_8px_rgba(255,235,102,0.2)]"
+                        : "border-white/8 bg-white/4 hover:border-white/18 hover:bg-white/7 hover:scale-105"
+                    }`}
+                  >
+                    <span>{emoji}</span>
+                    {count > 0 && (
+                      <span className="text-xs font-semibold tabular-nums text-white/60">{count}</span>
+                    )}
+                  </button>
+                );
+              })}
             </div>
           </div>
 

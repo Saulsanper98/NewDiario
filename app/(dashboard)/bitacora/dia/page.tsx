@@ -30,26 +30,43 @@ export default async function BitacoraDiaPage({
   const dateMatch = /^\d{4}-\d{2}-\d{2}$/.test(rawDate) ? rawDate : today;
   const dayStart = new Date(`${dateMatch}T00:00:00`);
   const dayEnd = new Date(`${dateMatch}T23:59:59.999`);
+  // Night shift spans 22:00 → 06:00 next day; entries created 00:00-05:59 belong to prior date
+  const nightShiftStart = new Date(`${dateMatch}T22:00:00`);
+  const nextDayNightEnd = new Date(dayStart);
+  nextDayNightEnd.setDate(nextDayNightEnd.getDate() + 1);
+  nextDayNightEnd.setHours(6, 0, 0, 0);
 
   const dept = await prisma.department.findUnique({
     where: { id: deptId },
     select: { name: true },
   });
 
+  const deptFilter = {
+    OR: [
+      { departmentId: deptId },
+      {
+        shares: {
+          some: {
+            departmentId: { in: user.departments.map((d) => d.id) },
+          },
+        },
+      },
+    ],
+  };
+
   const logs = await prisma.logEntry.findMany({
     where: {
       status: "PUBLISHED",
       deletedAt: null,
-      createdAt: { gte: dayStart, lte: dayEnd },
-      OR: [
-        { departmentId: deptId },
+      AND: [
         {
-          shares: {
-            some: {
-              departmentId: { in: user.departments.map((d) => d.id) },
-            },
-          },
+          OR: [
+            { shift: "MORNING",   createdAt: { gte: dayStart, lte: dayEnd } },
+            { shift: "AFTERNOON", createdAt: { gte: dayStart, lte: dayEnd } },
+            { shift: "NIGHT",     createdAt: { gte: nightShiftStart, lte: nextDayNightEnd } },
+          ],
         },
+        deptFilter,
       ],
     },
     include: bitacoraFeedInclude,
@@ -65,7 +82,7 @@ export default async function BitacoraDiaPage({
           { label: "Vista por día" },
         ]}
       />
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto print:bg-white">
         {/* View switch */}
         <div className="px-6 pt-4 flex items-center gap-1 border-b border-white/8 print:hidden">
           <div className="flex items-center gap-1.5 px-3 py-2 rounded-t-lg text-xs font-medium bg-[#ffeb66]/10 text-[#ffeb66] border border-b-0 border-[#ffeb66]/25 relative top-[1px]">

@@ -16,7 +16,8 @@ export async function GET(req: NextRequest) {
   const user = session.user as SessionUser;
   const { searchParams } = new URL(req.url);
   const q = (searchParams.get("q") ?? "").trim();
-  if (q.length < 2) {
+  const term = q.replace(/^#/, "").trim();
+  if (term.length < 2) {
     return NextResponse.json({
       logs: [],
       tasks: [],
@@ -30,8 +31,9 @@ export async function GET(req: NextRequest) {
   const baseLog = buildPublishedLogWhere(user, deptId, {});
   const contains = {
     OR: [
-      { title: { contains: q, mode: "insensitive" as const } },
-      { content: { contains: q, mode: "insensitive" as const } },
+      { title: { contains: term, mode: "insensitive" as const } },
+      { content: { contains: term, mode: "insensitive" as const } },
+      { tags: { some: { name: { contains: term, mode: "insensitive" as const } } } },
     ],
   };
 
@@ -56,6 +58,7 @@ export async function GET(req: NextRequest) {
         type: true,
         createdAt: true,
         department: { select: { name: true, accentColor: true } },
+        tags: { select: { name: true } },
       },
       orderBy: { createdAt: "desc" },
       take: MAX,
@@ -65,8 +68,9 @@ export async function GET(req: NextRequest) {
         deletedAt: null,
         project: { is: projectIs },
         OR: [
-          { title: { contains: q, mode: "insensitive" } },
-          { description: { contains: q, mode: "insensitive" } },
+          { title: { contains: term, mode: "insensitive" } },
+          { description: { contains: term, mode: "insensitive" } },
+          { tags: { some: { name: { contains: term, mode: "insensitive" } } } },
         ],
       },
       select: {
@@ -74,6 +78,7 @@ export async function GET(req: NextRequest) {
         title: true,
         projectId: true,
         project: { select: { name: true } },
+        tags: { select: { name: true } },
       },
       orderBy: { updatedAt: "desc" },
       take: MAX,
@@ -94,17 +99,33 @@ export async function GET(req: NextRequest) {
           },
           {
             OR: [
-              { name: { contains: q, mode: "insensitive" } },
-              { description: { contains: q, mode: "insensitive" } },
+              { name: { contains: term, mode: "insensitive" } },
+              { description: { contains: term, mode: "insensitive" } },
+              { tags: { some: { name: { contains: term, mode: "insensitive" } } } },
             ],
           },
         ],
       },
-      select: { id: true, name: true, departmentId: true },
+      select: { id: true, name: true, departmentId: true, tags: { select: { name: true } } },
       orderBy: { updatedAt: "desc" },
       take: MAX,
     }),
   ]);
 
-  return NextResponse.json({ logs, tasks, projects, q });
+  const lowerTerm = term.toLowerCase();
+  const withMatchedTags = <T extends { tags: { name: string }[] }>(rows: T[]) =>
+    rows.map((row) => ({
+      ...row,
+      matchedTags: row.tags
+        .map((t) => t.name)
+        .filter((name) => name.toLowerCase().includes(lowerTerm))
+        .slice(0, 3),
+    }));
+
+  return NextResponse.json({
+    logs: withMatchedTags(logs),
+    tasks: withMatchedTags(tasks),
+    projects: withMatchedTags(projects),
+    q,
+  });
 }

@@ -87,12 +87,15 @@ export function Header({ user, breadcrumb }: HeaderProps) {
   }, []);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     void refreshNotifications();
   }, [refreshNotifications]);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+    const interval = setInterval(() => { void refreshNotifications(); }, 30000);
+    return () => clearInterval(interval);
+  }, [refreshNotifications]);
+
+  useEffect(() => {
     if (notifOpen) void refreshNotifications();
   }, [notifOpen, refreshNotifications]);
 

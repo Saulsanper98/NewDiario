@@ -12,6 +12,10 @@ export const logEntryDetailPageInclude = {
     },
     orderBy: { createdAt: "asc" as const },
   },
+  reactions: {
+    include: { user: { select: { id: true, name: true, image: true } } },
+    orderBy: { createdAt: "asc" as const },
+  },
   shares: {
     include: {
       department: { select: { id: true, name: true, accentColor: true } },

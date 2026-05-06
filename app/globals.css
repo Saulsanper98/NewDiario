@@ -583,6 +583,25 @@ html:not([data-theme="light"]) .prose ul[data-type="taskList"] li[data-checked="
   margin-bottom: 0;
 }
 
+/* RichEditor: typography (.prose) mete márgenes en p/p+p; igualamos a la nota publicada. */
+[data-rich-editor] .ProseMirror.prose > p,
+[data-rich-editor] .ProseMirror.prose p {
+  margin-block: 0 !important;
+  margin: 0 !important;
+}
+[data-rich-editor] .ProseMirror.prose > p + p,
+[data-rich-editor] .ProseMirror.prose p + p {
+  margin-block-start: 0 !important;
+  margin-top: 0 !important;
+}
+[data-rich-editor] .ProseMirror.prose p:has(> br:only-child) {
+  display: block !important;
+  min-height: 1.2em !important;
+  margin-block: 0 !important;
+  margin: 0 !important;
+  line-height: 1.5;
+}
+
 /* Strikethrough */
 html:not([data-theme="light"]) .ProseMirror s {
   color: rgba(240, 244, 255, 0.4);
@@ -604,6 +623,24 @@ html:not([data-theme="light"]) .ProseMirror th {
   padding: 6px 12px;
 }
 html:not([data-theme="light"]) .ProseMirror th {
+  background: rgba(255, 255, 255, 0.05);
+  font-weight: 600;
+}
+
+/* Table in reading/prose view (mirrors ProseMirror table rules) */
+.prose table {
+  border-collapse: collapse;
+  display: block;
+  overflow-x: auto;
+  max-width: 100%;
+}
+html:not([data-theme="light"]) .prose td,
+html:not([data-theme="light"]) .prose th {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  padding: 6px 12px;
+  vertical-align: top;
+}
+html:not([data-theme="light"]) .prose th {
   background: rgba(255, 255, 255, 0.05);
   font-weight: 600;
 }
@@ -1536,6 +1573,18 @@ textarea:focus ~ .input-focus-bar {
 .kanban-scroll-hint {
   position: relative;
 }
+
+/* Scroll funcional sin barra visible (Kanban columnas). */
+.scrollbar-hidden {
+  -ms-overflow-style: none; /* IE y Edge Legacy */
+  scrollbar-width: none; /* Firefox */
+}
+.scrollbar-hidden::-webkit-scrollbar {
+  display: none; /* Chrome/Safari/Edge */
+  width: 0;
+  height: 0;
+}
+
 .kanban-scroll-hint::after {
   content: "";
   position: absolute;
@@ -1608,6 +1657,25 @@ textarea:focus ~ .input-focus-bar {
 }
 .badge-pop-animate {
   animation: badge-pop 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Kanban — textos que en tema claro no pueden depender solo de utilidades `text-white/xx`
+   (Tailwind puede generar selectores que no pisan bien con theme-light.css). */
+.kanban-empty-title {
+  color: rgba(255, 255, 255, 0.28);
+}
+.kanban-empty-sub {
+  color: rgba(255, 255, 255, 0.14);
+}
+.kanban-add-task-btn {
+  color: rgba(255, 255, 255, 0.34);
+}
+.kanban-add-task-btn:hover {
+  color: rgba(255, 255, 255, 0.62);
+  background: rgba(255, 255, 255, 0.05);
+}
+.board-snapshot-empty-msg {
+  color: rgba(255, 255, 255, 0.32);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1695,4 +1763,60 @@ textarea:focus ~ .input-focus-bar {
     min-height: 0 !important;
     max-height: none !important;
   }
+
+  /* Bitácora — vista por día: impresión en hoja clara (PDF / papel) */
+  html:has(.bitacora-day-print-root),
+  body:has(.bitacora-day-print-root) {
+    background: #fff !important;
+  }
+
+  body:has(.bitacora-day-print-root) #main-content {
+    background: #fff !important;
+  }
+
+  .bitacora-day-print-root a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  /* Evita que algunos navegadores impriman la URL tras cada enlace interno */
+  .bitacora-day-print-root a[href^="/"]:after {
+    content: none !important;
+  }
+
+  /* Informes bitácora (semana/mes): hoja limpia */
+  html:has(.bitacora-report-root),
+  body:has(.bitacora-report-root) {
+    background: #fff !important;
+  }
+
+  body:has(.bitacora-report-root) #main-content {
+    background: #fff !important;
+  }
+}
+
+/*
+ * Bitácora (lectura): anular márgenes de `.prose` / typography en <p> y p+p.
+ * — Un Enter → otro <p> pegado al anterior (como el editor tras las reglas de arriba).
+ * — Doble Enter / línea en blanco → TipTap suele guardar <p><br></p> (min-height abajo).
+ */
+[data-bitacora-html-body].prose > p,
+[data-bitacora-html-body].prose p {
+  margin-block: 0 !important;
+  margin: 0 !important;
+}
+[data-bitacora-html-body].prose > p + p,
+[data-bitacora-html-body].prose p + p {
+  margin-block-start: 0 !important;
+  margin-top: 0 !important;
+}
+[data-bitacora-html-body].prose p:empty {
+  display: none !important;
+}
+[data-bitacora-html-body].prose p:has(> br:only-child) {
+  display: block !important;
+  min-height: 1.2em !important;
+  margin-block: 0 !important;
+  margin: 0 !important;
+  line-height: 1.5;
 }

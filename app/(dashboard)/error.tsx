@@ -1,8 +1,20 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+
+function isChunkLoadFailure(error: Error & { digest?: string }): boolean {
+  const name = error.name ?? "";
+  const msg = error.message ?? "";
+  return (
+    name === "ChunkLoadError" ||
+    msg.includes("ChunkLoadError") ||
+    msg.includes("Failed to load chunk") ||
+    msg.includes("Loading chunk") ||
+    msg.includes("_next/static/chunks")
+  );
+}
 
 export default function DashboardError({
   error,
@@ -11,6 +23,8 @@ export default function DashboardError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const chunkFailed = useMemo(() => isChunkLoadFailure(error), [error]);
+
   useEffect(() => {
     console.error("[dashboard]", error);
   }, [error]);
@@ -23,11 +37,24 @@ export default function DashboardError({
         </div>
         <div>
           <h2 className="text-lg font-semibold text-white">
-            Algo salió mal en esta pantalla
+            {chunkFailed
+              ? "No se pudieron cargar los archivos de la página"
+              : "Algo salió mal en esta pantalla"}
           </h2>
           <p className="text-sm text-white/45 mt-2">
-            No se pudo cargar el contenido. Puedes reintentar o volver al
-            inicio.
+            {chunkFailed ? (
+              <>
+                Suele pasar después de reiniciar el servidor de desarrollo, de
+                un despliegue parcial (HTML y archivos JS desincronizados) o por
+                caché antigua del navegador. Pulsa primero «Recarga completa» antes
+                que reintentar solo esta vista.
+              </>
+            ) : (
+              <>
+                No se pudo cargar el contenido. Puedes reintentar o volver al
+                inicio.
+              </>
+            )}
           </p>
           {error.digest && (
             <p className="text-[10px] text-white/25 font-mono mt-2" title="Referencia para soporte">
@@ -36,7 +63,18 @@ export default function DashboardError({
           )}
         </div>
         <div className="flex flex-wrap gap-2 justify-center">
-          <Button type="button" variant="primary" onClick={() => reset()}>
+          {chunkFailed && (
+            <Button
+              type="button"
+              variant="primary"
+              onClick={() => {
+                window.location.reload();
+              }}
+            >
+              Recarga completa
+            </Button>
+          )}
+          <Button type="button" variant={chunkFailed ? "secondary" : "primary"} onClick={() => reset()}>
             Reintentar
           </Button>
           <Button

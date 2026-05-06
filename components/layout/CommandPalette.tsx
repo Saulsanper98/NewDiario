@@ -47,14 +47,16 @@ type SearchPayload = {
     title: string;
     type: string;
     department?: { name: string; accentColor: string };
+    matchedTags?: string[];
   }[];
   tasks: {
     id: string;
     title: string;
     projectId: string;
     project: { name: string };
+    matchedTags?: string[];
   }[];
-  projects: { id: string; name: string }[];
+  projects: { id: string; name: string; matchedTags?: string[] }[];
 };
 
 interface CommandPaletteProps {
@@ -370,6 +372,11 @@ export function CommandPalette({
                           {log.department?.name && (
                             <p className="text-[11px] text-white/30 truncate">{log.department.name}</p>
                           )}
+                          {!!log.matchedTags?.length && (
+                            <p className="text-[11px] text-[#ffeb66]/75 truncate">
+                              Etiqueta: {log.matchedTags.map((t) => `#${t}`).join(", ")}
+                            </p>
+                          )}
                         </div>
                       </Command.Item>
                     ))}
@@ -394,6 +401,11 @@ export function CommandPalette({
                           <p className="text-xs text-white/35 truncate">
                             {t.project.name}
                           </p>
+                          {!!t.matchedTags?.length && (
+                            <p className="text-[11px] text-[#ffeb66]/75 truncate">
+                              Etiqueta: {t.matchedTags.map((tag) => `#${tag}`).join(", ")}
+                            </p>
+                          )}
                         </div>
                       </Command.Item>
                     ))}
@@ -413,7 +425,14 @@ export function CommandPalette({
                         className="flex items-center gap-2 px-2 py-2 rounded-lg cursor-pointer text-sm text-white/80 data-[selected=true]:bg-white/10 data-[selected=true]:border-l-2 data-[selected=true]:border-[#ffeb66] data-[selected=true]:pl-[6px]"
                       >
                         <FolderKanban className="w-4 h-4 text-emerald-400/80 shrink-0" />
-                        <span className="truncate"><HighlightText text={p.name} query={query} /></span>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate"><HighlightText text={p.name} query={query} /></p>
+                          {!!p.matchedTags?.length && (
+                            <p className="text-[11px] text-[#ffeb66]/75 truncate">
+                              Etiqueta: {p.matchedTags.map((tag) => `#${tag}`).join(", ")}
+                            </p>
+                          )}
+                        </div>
                       </Command.Item>
                     ))}
                   </Command.Group>

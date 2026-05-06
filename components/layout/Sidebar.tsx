@@ -235,7 +235,7 @@ export function Sidebar({ user, isAdmin, pendingFollowups = 0 }: SidebarProps) {
           aria-label={collapsed ? "Cerrar sesión" : undefined}
           title={collapsed ? "Cerrar sesión" : undefined}
           className={cn(
-            "flex items-center gap-2 w-full rounded-lg text-xs text-white/35 hover:text-white/60 hover:bg-white/6 transition-all duration-200 disabled:opacity-50",
+            "flex items-center gap-2 w-full rounded-lg text-xs text-white/35 hover:text-red-300 hover:bg-red-500/10 hover:border-red-500/25 border border-transparent transition-all duration-200 disabled:opacity-50",
             collapsed ? "justify-center px-2 py-2" : "px-3 py-2"
           )}
         >

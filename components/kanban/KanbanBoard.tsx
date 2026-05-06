@@ -9,7 +9,7 @@ import {
   type DragStart,
   type DropResult,
 } from "@hello-pangea/dnd";
-import { Plus, GripVertical, ChevronLeft, ListChecks, FlaskConical, Loader2 } from "lucide-react";
+import { Plus, GripVertical, ChevronLeft, ListChecks, FlaskConical, Loader2, Archive, Trash2, X } from "lucide-react";
 import toast from "react-hot-toast";
 import { KanbanCard } from "./KanbanCard";
 import { TaskDetailPanel } from "./TaskDetailPanel";
@@ -83,6 +83,19 @@ function columnWipFull(col: KanbanColumnState): boolean {
   const lim = col.wipLimit;
   if (lim == null || lim <= 0) return false;
   return col.tasks.length >= lim;
+}
+
+function isCompletedColumnName(name: string): boolean {
+  const normalized = name
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .toLowerCase();
+  return (
+    normalized.includes("complet") ||
+    normalized.includes("done") ||
+    normalized.includes("cerrad") ||
+    normalized.includes("finaliz")
+  );
 }
 
 /** Índice de inserción en `full` equivalente al índice del DnD sobre la lista filtrada. */
@@ -169,6 +182,14 @@ export function KanbanBoard({ project, allUsers }: KanbanBoardProps) {
   const [taskPanelLayout, setTaskPanelLayout] = useState<"docked" | "overlay">(
     "docked"
   );
+  const [archiveOpen, setArchiveOpen] = useState(false);
+  const [loadingArchive, setLoadingArchive] = useState(false);
+  const [clearingCompleted, setClearingCompleted] = useState(false);
+  const [archivedCompleted, setArchivedCompleted] = useState<
+    { id: string; title: string; deletedAt: string | null; assignee: { id: string; name: string } | null; column: { id: string; name: string } }[]
+  >([]);
+  const boardRegionRef = useRef<HTMLDivElement>(null);
+  const [columnWellMaxHeight, setColumnWellMaxHeight] = useState<number>(420);
 
   useEffect(() => {
     const mq = window.matchMedia("(min-width: 768px)");
@@ -178,6 +199,97 @@ export function KanbanBoard({ project, allUsers }: KanbanBoardProps) {
     return () => mq.removeEventListener("change", apply);
   }, []);
 
+  useEffect(() => {
+    function recalcColumnMaxHeight() {
+      const region = boardRegionRef.current;
+      if (!region) return;
+      const rect = region.getBoundingClientRect();
+      const viewportBottom = window.innerHeight;
+      const available = Math.floor(viewportBottom - rect.top - 16);
+      const safe = Math.max(180, available - 52);
+      setColumnWellMaxHeight(safe);
+    }
+    recalcColumnMaxHeight();
+    window.addEventListener("resize", recalcColumnMaxHeight);
+    const observer = new ResizeObserver(() => recalcColumnMaxHeight());
+    if (boardRegionRef.current) observer.observe(boardRegionRef.current);
+    return () => {
+      window.removeEventListener("resize", recalcColumnMaxHeight);
+      observer.disconnect();
+    };
+  }, []);
+
+  const completedTasksInBoard = useMemo(() => {
+    const completedColumnIds = columns
+      .filter((col) => isCompletedColumnName(col.name))
+      .map((col) => col.id);
+    const targetIds =
+      completedColumnIds.length > 0
+        ? new Set(completedColumnIds)
+        : columns.length > 0
+          ? new Set([columns[columns.length - 1]!.id])
+          : new Set<string>();
+    return columns.reduce((acc, col) => {
+      if (!targetIds.has(col.id)) return acc;
+      return acc + col.tasks.length;
+    }, 0);
+  }, [columns]);
+
+  const loadArchivedCompleted = useCallback(async (opts?: { silent?: boolean }) => {
+    setLoadingArchive(true);
+    try {
+      const res = await fetch(`/api/projects/${project.id}/tasks`, {
+        method: "GET",
+        cache: "no-store",
+      });
+      if (!res.ok) throw new Error();
+      const data = (await res.json()) as {
+        archivedCompletedTasks?: {
+          id: string;
+          title: string;
+          deletedAt: string | null;
+          assignee: { id: string; name: string } | null;
+          column: { id: string; name: string };
+        }[];
+      };
+      setArchivedCompleted(data.archivedCompletedTasks ?? []);
+    } catch {
+      if (!opts?.silent) {
+        toast.error("No se pudo cargar el archivo de completadas");
+      }
+    } finally {
+      setLoadingArchive(false);
+    }
+  }, [project.id]);
+
+  useEffect(() => {
+    void loadArchivedCompleted({ silent: true });
+  }, [loadArchivedCompleted]);
+
+  async function clearCompletedColumn() {
+    if (clearingCompleted) return;
+    setClearingCompleted(true);
+    try {
+      const res = await fetch(`/api/projects/${project.id}/tasks`, {
+        method: "DELETE",
+      });
+      if (!res.ok) throw new Error();
+      const data = (await res.json()) as { archivedCount?: number };
+      const count = data.archivedCount ?? 0;
+      if (count > 0) {
+        toast.success(`Se archivaron ${count} tarea(s) completadas`);
+        await loadArchivedCompleted();
+        router.refresh();
+      } else {
+        toast("No hay tareas completadas para archivar", { icon: "ℹ️" });
+      }
+    } catch {
+      toast.error("No se pudo limpiar la columna de completadas");
+    } finally {
+      setClearingCompleted(false);
+    }
+  }
+
   const closeTaskPanel = useCallback(() => {
     setSelectedTask(null);
     queueMicrotask(() => {
@@ -186,15 +298,17 @@ export function KanbanBoard({ project, allUsers }: KanbanBoardProps) {
     });
   }, []);
 
-  /* Cerrar panel al clic fuera — solo en modo overlay (docked se cierra con X o Escape). */
+  /* Cerrar panel al clic fuera (funciona en overlay y docked). */
   useEffect(() => {
     if (!selectedTask) return;
-    if (taskPanelLayout === "docked") return;
+    let armed = false;
+    const arm = setTimeout(() => { armed = true; }, 150);
     function onPointerDownCapture(e: PointerEvent) {
+      if (!armed) return;
       const t = e.target;
       if (!(t instanceof Element)) return;
       if (t.closest("[data-app-confirm-modal]")) return;
-      /* Solo ignorar drag de tarjetas: el contenedor de columna también es Draggable (`col-…`). */
+      /* Ignorar drag de tarjetas (IDs no empiezan por "col-"); sí procesar columnas. */
       const taskDrag = t.closest("[data-rfd-draggable-id]");
       if (taskDrag) {
         const dragId = taskDrag.getAttribute("data-rfd-draggable-id") ?? "";
@@ -204,9 +318,11 @@ export function KanbanBoard({ project, allUsers }: KanbanBoardProps) {
       closeTaskPanel();
     }
     document.addEventListener("pointerdown", onPointerDownCapture, true);
-    return () =>
+    return () => {
+      clearTimeout(arm);
       document.removeEventListener("pointerdown", onPointerDownCapture, true);
-  }, [selectedTask, closeTaskPanel, taskPanelLayout]);
+    };
+  }, [selectedTask, closeTaskPanel]);
 
   /* Mantener el panel de detalle alineado con `columns` tras refresh (prioridad, título, etc.). */
   useEffect(() => {
@@ -497,6 +613,43 @@ export function KanbanBoard({ project, allUsers }: KanbanBoardProps) {
 
   return (
     <div className="kanban-board-root flex min-h-0 flex-1 flex-col overflow-hidden">
+      {archiveOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 px-4">
+          <div className="w-full max-w-2xl rounded-xl border border-white/12 bg-[#0c1325] p-4 shadow-2xl">
+            <div className="mb-3 flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-white/80">Archivo de tareas completadas</h3>
+              <button
+                type="button"
+                onClick={() => setArchiveOpen(false)}
+                className="rounded p-1 text-white/35 hover:text-white/70"
+                aria-label="Cerrar archivo"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="max-h-[60vh] overflow-y-auto rounded-lg border border-white/8 bg-white/[0.02]">
+              {loadingArchive ? (
+                <p className="p-4 text-xs text-white/45">Cargando archivo…</p>
+              ) : archivedCompleted.length === 0 ? (
+                <p className="p-4 text-xs text-white/35">Aun no hay tareas archivadas en completadas.</p>
+              ) : (
+                <ul className="divide-y divide-white/6">
+                  {archivedCompleted.map((task) => (
+                    <li key={task.id} className="px-3 py-2.5">
+                      <p className="text-sm text-white/80">{task.title}</p>
+                      <p className="mt-0.5 text-[11px] text-white/40">
+                        {task.column.name}
+                        {task.assignee?.name ? ` • ${task.assignee.name}` : ""}
+                        {task.deletedAt ? ` • Archivada ${new Date(task.deletedAt).toLocaleString("es-ES")}` : ""}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
       {whatIfOpen && (
         <KanbanWhatIfSimulator
           columns={columns}
@@ -542,6 +695,28 @@ export function KanbanBoard({ project, allUsers }: KanbanBoardProps) {
         )}
         <button
           type="button"
+          onClick={() => {
+            setArchiveOpen(true);
+            void loadArchivedCompleted();
+          }}
+          className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 text-xs text-white/55 hover:border-[#ffeb66]/30 hover:text-[#ffeb66]/90 transition-colors"
+          title="Ver historial de tareas archivadas en completadas"
+        >
+          <Archive className="w-3.5 h-3.5" />
+          Archivo ({archivedCompleted.length})
+        </button>
+        <button
+          type="button"
+          onClick={() => void clearCompletedColumn()}
+          disabled={clearingCompleted || completedTasksInBoard === 0}
+          className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 text-xs text-white/55 hover:border-red-400/30 hover:text-red-300/90 transition-colors disabled:opacity-50"
+          title="Vaciar columna de completadas y mover tareas al archivo"
+        >
+          <Trash2 className="w-3.5 h-3.5" />
+          {clearingCompleted ? "Limpiando…" : `Limpiar completadas (${completedTasksInBoard})`}
+        </button>
+        <button
+          type="button"
           onClick={() => setWhatIfOpen(true)}
           className="ml-auto flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 text-xs text-white/55 hover:border-[#ffeb66]/30 hover:text-[#ffeb66]/90 transition-colors"
           title="Simular carga del tablero sin guardar cambios"
@@ -554,9 +729,10 @@ export function KanbanBoard({ project, allUsers }: KanbanBoardProps) {
       {/* Board + panel lateral de tarea (flujo flex, no fixed sobre todo el viewport) */}
       <div className="flex h-full min-h-0 flex-1 items-stretch overflow-hidden">
       <div
+        ref={boardRegionRef}
         role="region"
         aria-label="Tablero Kanban"
-        className="min-h-0 min-w-0 flex-1 overflow-auto kanban-scroll-hint relative scroll-smooth sm:scroll-auto snap-x sm:snap-none snap-mandatory"
+        className="min-h-0 min-w-0 flex-1 overflow-x-auto overflow-y-auto kanban-scroll-hint relative"
       >
         <DragDropContext onDragStart={onDragStart} onDragEnd={onDragEnd}>
           <Droppable
@@ -568,7 +744,7 @@ export function KanbanBoard({ project, allUsers }: KanbanBoardProps) {
               <div
                 ref={provided.innerRef}
                 {...provided.droppableProps}
-                className="flex gap-3 h-full p-4 min-w-max"
+                className="flex items-start gap-3 p-4 min-w-max"
               >
                 {filteredColumns.map((col, colIndex) => {
                   const fullCol = columns.find((c) => c.id === col.id);
@@ -595,13 +771,13 @@ export function KanbanBoard({ project, allUsers }: KanbanBoardProps) {
                         ref={colDraggable.innerRef}
                         {...colDraggable.draggableProps}
                         className={cn(
-                          "flex flex-col shrink-0 transition-all duration-200 snap-start",
+                          "flex flex-col shrink-0 transition-all duration-200",
                           collapsedCols.has(col.id) ? "w-12" : "w-72"
                         )}
                       >
                         {/* Column header */}
                         <div className={cn(
-                          "flex items-center gap-2 mb-2 px-1 group/col",
+                          "kanban-column-head flex items-center gap-2 mb-2 px-1 group/col",
                           collapsedCols.has(col.id) ? "flex-col py-2" : ""
                         )}>
                           {!collapsedCols.has(col.id) && (
@@ -633,17 +809,17 @@ export function KanbanBoard({ project, allUsers }: KanbanBoardProps) {
                                 : "Tareas en la columna"
                             }
                             className={cn(
-                              "text-xs font-semibold tabular-nums px-2 py-0.5 rounded-full shrink-0",
+                              "kanban-col-count text-xs font-semibold tabular-nums px-2 py-0.5 rounded-full shrink-0",
                               taskCount === 0
-                                ? "text-white/20 bg-white/4"
+                                ? "kanban-col-count-empty text-white/20 bg-white/4"
                                 : wipFull
                                   ? "text-amber-200/90 bg-amber-500/15 border border-amber-500/25"
-                                  : "text-white/60 bg-white/8"
+                                  : "kanban-col-count-filled text-white/60 bg-white/8"
                             )}
                           >
                             {taskCount}
                             {wipLimit != null && wipLimit > 0 ? (
-                              <span className="text-white/35 font-normal">
+                              <span className="kanban-col-wip-suffix text-white/35 font-normal">
                                 {" "}
                                 /{wipLimit}
                               </span>
@@ -746,26 +922,27 @@ export function KanbanBoard({ project, allUsers }: KanbanBoardProps) {
                             <div
                               ref={taskDrop.innerRef}
                               {...taskDrop.droppableProps}
+                              style={{ maxHeight: `${columnWellMaxHeight}px` }}
                               className={cn(
-                                "kanban-column-well flex-1 flex flex-col gap-2 p-2 rounded-xl min-h-20 min-w-0 overflow-visible transition-all duration-200 border",
+                                "kanban-column-well scrollbar-hidden min-h-20 min-w-0 overflow-x-hidden overflow-y-auto flex flex-col gap-2 p-2 rounded-xl transition-all duration-200 border",
                                 collapsedCols.has(col.id) ? "hidden" : "",
                                 snapshot.isDraggingOver
                                   ? "kanban-column-well-drag border-[#ffeb66]/15"
                                   : colIndex === filteredColumns.length - 1
-                                    ? "border-emerald-500/12 bg-emerald-400/[0.025]"
+                                    ? "kanban-column-well-last border-emerald-500/12 bg-emerald-400/[0.025]"
                                     : "border-white/5"
                               )}
                             >
                               {col.tasks.length === 0 &&
                                 !snapshot.isDraggingOver &&
                                 addingColumnId !== col.id && (
-                                <div className="flex flex-col items-center gap-1 py-6 select-none">
-                                  <p className="text-[11px] text-white/25 text-center">
+                                <div className="kanban-column-empty flex flex-col items-center gap-1 py-6 select-none">
+                                  <p className="kanban-empty-title text-[11px] text-center">
                                     {fullCol.tasks.length > 0
                                       ? "Ninguna tarea coincide con el filtro"
                                       : "Sin tareas"}
                                   </p>
-                                  <p className="text-[10px] text-white/12 text-center">
+                                  <p className="kanban-empty-sub text-[10px] text-center">
                                     {fullCol.tasks.length > 0
                                       ? "Prueba a limpiar filtros arriba"
                                       : "Arrastra aquí o usa + Añadir"}
@@ -801,7 +978,7 @@ export function KanbanBoard({ project, allUsers }: KanbanBoardProps) {
 
                               {addingColumnId === col.id ? (
                                 <form
-                                  className="p-2 rounded-lg bg-white/5 border border-white/10 space-y-2"
+                                  className="kanban-inline-add-form p-2 rounded-lg bg-white/5 border border-white/10 space-y-2"
                                   onSubmit={(e) => {
                                     e.preventDefault();
                                     void createTask(col.id);
@@ -814,7 +991,7 @@ export function KanbanBoard({ project, allUsers }: KanbanBoardProps) {
                                     onChange={(e) => setDraftTitle(e.target.value)}
                                     placeholder="Título de la tarea"
                                     disabled={creatingTask}
-                                    className="w-full bg-white/5 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-white placeholder:text-white/25 focus:outline-none focus:border-[#ffeb66]/40"
+                                    className="kanban-inline-add-input w-full bg-white/5 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-white placeholder:text-white/25 focus:outline-none focus:border-[#ffeb66]/40"
                                   />
                                   <div className="flex gap-1">
                                     {(["HIGH", "MEDIUM", "LOW"] as const).map((p) => (
@@ -865,9 +1042,9 @@ export function KanbanBoard({ project, allUsers }: KanbanBoardProps) {
                                     setAddingColumnId(col.id);
                                     setDraftTitle("");
                                   }}
-                                  className="flex items-center gap-2 p-2 rounded-lg text-xs text-white/30 hover:text-white/60 hover:bg-white/4 transition-all duration-200 w-full"
+                                  className="kanban-add-task-btn flex items-center gap-2 p-2 rounded-lg text-xs transition-all duration-200 w-full"
                                 >
-                                  <Plus className="w-3.5 h-3.5" />
+                                  <Plus className="w-3.5 h-3.5 shrink-0" />
                                   Añadir tarea
                                 </button>
                               )}

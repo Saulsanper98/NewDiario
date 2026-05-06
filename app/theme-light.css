@@ -184,24 +184,367 @@ html[data-theme="light"] .kanban-scroll-hint::after {
   );
 }
 
-/* Área Kanban: carril ligeramente más profundo que el lienzo; columnas y tarjetas se separan */
+/* Área Kanban: lienzo algo más profundo que la barra de filtros (capas) */
 html[data-theme="light"] .kanban-board-root {
-  background: linear-gradient(180deg, var(--lt-canvas-mid) 0%, var(--lt-canvas) 100%);
-}
-
-html[data-theme="light"] .kanban-filters-bar {
-  background: rgba(255, 255, 255, 0.35);
-  border-color: var(--lt-border) !important;
-}
-
-html[data-theme="light"] .kanban-column-well {
-  background: rgba(15, 23, 42, 0.04) !important;
-  border-color: var(--lt-border) !important;
+  background: linear-gradient(180deg, #d8d9dd 0%, var(--lt-canvas) 48%, #e4e4e8 100%);
 }
 
 html[data-theme="light"] .kanban-column-well-drag {
   background: var(--lt-accent-bg) !important;
   border-color: var(--lt-accent-border) !important;
+}
+
+/* Columnas Kanban: carriles claros con relieve (no gris lavado) */
+html[data-theme="light"] .kanban-column-well:not(.kanban-column-well-drag):not(.kanban-column-well-last) {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(244, 244, 246, 1) 100%) !important;
+  border-color: rgba(15, 23, 42, 0.14) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    0 1px 4px rgba(15, 23, 42, 0.07);
+}
+
+html[data-theme="light"] .kanban-column-well-last:not(.kanban-column-well-drag) {
+  background: linear-gradient(180deg, rgba(236, 253, 245, 0.98) 0%, rgba(220, 252, 231, 0.62) 100%) !important;
+  border-color: rgba(5, 120, 85, 0.28) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.88),
+    0 1px 5px rgba(15, 118, 88, 0.1);
+}
+
+html[data-theme="light"] .kanban-filters-bar {
+  background: linear-gradient(180deg, #f6f6f8 0%, #e6e6ea 100%);
+  border-bottom: 1px solid rgba(15, 23, 42, 0.16) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    0 3px 12px rgba(15, 23, 42, 0.08);
+}
+
+html[data-theme="light"] .kanban-filters-bar select {
+  background-color: rgba(255, 255, 255, 0.85);
+  border-color: rgba(15, 23, 42, 0.12) !important;
+  color: #3f3f46 !important;
+}
+
+html[data-theme="light"] .kanban-filters-bar .text-white\/40,
+html[data-theme="light"] .kanban-filters-bar .text-white\/55 {
+  color: #52525b !important;
+}
+
+html[data-theme="light"] .kanban-filters-bar button.rounded-lg {
+  border-color: rgba(15, 23, 42, 0.1) !important;
+  background: rgba(255, 255, 255, 0.65) !important;
+  color: #3f3f46 !important;
+}
+
+html[data-theme="light"] .kanban-column-head h3 {
+  color: #3f3f46 !important;
+}
+
+html[data-theme="light"] .kanban-column-head .text-white\/15,
+html[data-theme="light"] .kanban-column-head .text-white\/20 {
+  color: #a1a1aa !important;
+}
+
+html[data-theme="light"] .kanban-column-head .text-white\/60 {
+  color: #52525b !important;
+}
+
+html[data-theme="light"] .kanban-column-head .rounded-full.text-white\/20 {
+  color: #71717a !important;
+  background: rgba(15, 23, 42, 0.06) !important;
+}
+
+html[data-theme="light"] .kanban-column-head .rounded-full.text-white\/60 {
+  color: #3f3f46 !important;
+  background: rgba(15, 23, 42, 0.07) !important;
+}
+
+html[data-theme="light"] .kanban-column-head .kanban-col-wip-suffix {
+  color: #71717a !important;
+}
+
+html[data-theme="light"] .kanban-empty-title {
+  color: #475569 !important;
+}
+
+html[data-theme="light"] .kanban-empty-sub {
+  color: #64748b !important;
+}
+
+html[data-theme="light"] .kanban-add-task-btn {
+  color: #52525b !important;
+}
+
+html[data-theme="light"] .kanban-add-task-btn:hover {
+  color: #18181b !important;
+  background: rgba(15, 23, 42, 0.07) !important;
+}
+
+html[data-theme="light"] .kanban-col-count-empty {
+  color: #52525b !important;
+  background: rgba(15, 23, 42, 0.07) !important;
+}
+
+html[data-theme="light"] .kanban-col-count-filled {
+  color: #3f3f46 !important;
+  background: rgba(15, 23, 42, 0.08) !important;
+}
+
+html[data-theme="light"] .kanban-inline-add-form {
+  background: rgba(255, 255, 255, 0.9) !important;
+  border-color: rgba(15, 23, 42, 0.12) !important;
+}
+
+html[data-theme="light"] .kanban-inline-add-input {
+  background: #ffffff !important;
+  border-color: rgba(15, 23, 42, 0.12) !important;
+  color: #18181b !important;
+}
+
+html[data-theme="light"] .kanban-inline-add-input::placeholder {
+  color: #64748b !important;
+  opacity: 1;
+}
+
+html[data-theme="light"] .board-snapshot-empty-msg {
+  color: #64748b !important;
+}
+
+/* Configuración — thead: en claro el texto pasa a zinc pero el fondo seguía oscuro → invisible */
+html[data-theme="light"] thead.config-table-thead {
+  background: linear-gradient(180deg, var(--lt-surface-raised) 0%, var(--lt-surface) 100%) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.8),
+    0 1px 0 var(--lt-border-strong);
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+html[data-theme="light"] thead.config-table-thead tr {
+  border-bottom-color: var(--lt-border-strong) !important;
+}
+
+html[data-theme="light"] thead.config-table-thead th {
+  color: #52525b !important;
+  vertical-align: middle;
+}
+
+/* Tarjetas tarea Kanban */
+html[data-theme="light"] .kanban-task-card {
+  border-color: rgba(15, 23, 42, 0.16) !important;
+  background: linear-gradient(165deg, #ffffff 0%, #f0f0f2 100%) !important;
+  box-shadow:
+    var(--lt-shadow-soft),
+    0 2px 14px rgba(15, 23, 42, 0.09);
+}
+
+html[data-theme="light"] .kanban-task-card:hover {
+  border-color: rgba(15, 23, 42, 0.18) !important;
+  box-shadow:
+    var(--lt-shadow-soft),
+    0 4px 16px rgba(15, 23, 42, 0.08);
+}
+
+html[data-theme="light"] .kanban-task-title {
+  color: #18181b !important;
+}
+
+html[data-theme="light"] .kanban-task-card:hover .kanban-task-title {
+  color: #09090b !important;
+}
+
+html[data-theme="light"] .kanban-task-tag {
+  background: rgba(15, 23, 42, 0.05) !important;
+  color: #52525b !important;
+  border-color: rgba(15, 23, 42, 0.1) !important;
+}
+
+html[data-theme="light"] .kanban-task-card .text-white\/35 {
+  color: #71717a !important;
+}
+
+html[data-theme="light"] .kanban-task-card .bg-white\/8 {
+  background: rgba(15, 23, 42, 0.06) !important;
+}
+
+html[data-theme="light"] .kanban-task-card .border-t-yellow-400\/80 {
+  border-top-color: rgba(202, 138, 4, 0.85) !important;
+}
+
+html[data-theme="light"] .kanban-task-card .border-t-green-400\/70 {
+  border-top-color: rgba(22, 163, 74, 0.75) !important;
+}
+
+html[data-theme="light"] .kanban-task-card .border-t-red-400\/90 {
+  border-top-color: rgba(220, 38, 38, 0.85) !important;
+}
+
+html[data-theme="light"] .kanban-task-card .bg-white\/8.rounded-full {
+  background: rgba(15, 23, 42, 0.08) !important;
+}
+
+/* Panel snapshots (antes casi invisible en claro) */
+html[data-theme="light"] .board-snapshot-panel {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.55) 0%, rgba(237, 237, 240, 0.75) 100%) !important;
+  border-bottom-color: var(--lt-border-strong) !important;
+}
+
+html[data-theme="light"] .board-snapshot-toggle {
+  color: #3f3f46 !important;
+}
+
+html[data-theme="light"] .board-snapshot-toggle:hover {
+  color: #18181b !important;
+}
+
+html[data-theme="light"] .board-snapshot-label {
+  color: #64748b !important;
+}
+
+html[data-theme="light"] .board-snapshot-input {
+  background: #ffffff !important;
+  border-color: rgba(15, 23, 42, 0.12) !important;
+  color: #18181b !important;
+}
+
+html[data-theme="light"] .board-snapshot-input::placeholder {
+  color: #64748b !important;
+  opacity: 1;
+}
+
+html[data-theme="light"] .board-snapshot-help {
+  color: #64748b !important;
+}
+
+html[data-theme="light"] .board-snapshot-panel .text-white\/30 {
+  color: #71717a !important;
+}
+
+html[data-theme="light"] .board-snapshot-panel li.rounded-lg {
+  border-color: rgba(15, 23, 42, 0.1) !important;
+  background: rgba(255, 255, 255, 0.82) !important;
+}
+
+html[data-theme="light"] .board-snapshot-panel li .text-white\/65 {
+  color: #3f3f46 !important;
+}
+
+html[data-theme="light"] .board-snapshot-panel li .text-white\/35,
+html[data-theme="light"] .board-snapshot-panel li .text-white\/25,
+html[data-theme="light"] .board-snapshot-panel li .text-white\/40 {
+  color: #71717a !important;
+}
+
+html[data-theme="light"] .board-snapshot-panel li .hover\:bg-white\/\[0\.04\]:hover,
+html[data-theme="light"] .board-snapshot-panel li button:hover {
+  background: rgba(15, 23, 42, 0.04) !important;
+}
+
+html[data-theme="light"] .board-snapshot-panel li .border-t.border-white\/6 {
+  border-top-color: rgba(15, 23, 42, 0.08) !important;
+}
+
+html[data-theme="light"] .board-snapshot-panel li .text-white\/45,
+html[data-theme="light"] .board-snapshot-panel li .text-white\/50,
+html[data-theme="light"] .board-snapshot-panel li .text-white\/55 {
+  color: #52525b !important;
+}
+
+/* Cabecera proyecto + pestañas */
+html[data-theme="light"] .project-detail-root .project-view-toolbar {
+  border-bottom-color: var(--lt-border-strong) !important;
+  box-shadow: var(--lt-shadow-soft);
+}
+
+html[data-theme="light"] .project-detail-root .project-title {
+  color: #18181b !important;
+}
+
+html[data-theme="light"] .project-detail-root .project-desc {
+  color: #52525b !important;
+}
+
+html[data-theme="light"] .project-detail-root .project-desc-placeholder {
+  color: #a1a1aa !important;
+}
+
+html[data-theme="light"] .project-detail-root .project-dept-meta {
+  color: #52525b !important;
+}
+
+html[data-theme="light"] .project-detail-root .project-tasks-meta,
+html[data-theme="light"] .project-detail-root .project-meta-dim {
+  color: #52525b !important;
+  font-weight: 500;
+}
+
+html[data-theme="light"] .project-detail-root .project-end-date {
+  color: #3f3f46 !important;
+}
+
+html[data-theme="light"] .project-detail-root .project-end-date.text-red-400 {
+  color: #b91c1c !important;
+}
+
+html[data-theme="light"] .project-detail-root .project-end-date.text-amber-400 {
+  color: #b45309 !important;
+}
+
+html[data-theme="light"] .project-detail-root .project-progress-track {
+  background: rgba(15, 23, 42, 0.1) !important;
+}
+
+html[data-theme="light"] .project-detail-root .project-member-avatar,
+html[data-theme="light"] .project-detail-root .project-member-more {
+  border-color: #e4e4e7 !important;
+}
+
+html[data-theme="light"] .project-detail-root .project-member-more {
+  background: rgba(244, 244, 245, 0.95) !important;
+  color: #52525b !important;
+}
+
+html[data-theme="light"] .project-detail-root .project-parent-link {
+  color: #71717a !important;
+}
+
+html[data-theme="light"] .project-detail-root .project-parent-link:hover {
+  color: var(--lt-yellow-text-soft) !important;
+}
+
+html[data-theme="light"] .project-detail-root .project-tab-active {
+  background: var(--lt-accent-bg-mid) !important;
+  color: var(--lt-yellow-text) !important;
+  border-color: var(--lt-accent-border-strong) !important;
+  font-weight: 600 !important;
+  box-shadow:
+    var(--lt-shadow-soft),
+    0 0 0 1px rgba(var(--lt-yellow-rgb), 0.18);
+}
+
+html[data-theme="light"] .project-detail-root .project-tabs-shell {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(15, 23, 42, 0.14);
+  background: linear-gradient(180deg, rgba(250, 250, 251, 0.65) 0%, transparent 100%);
+}
+
+html[data-theme="light"] .project-detail-root .project-meta-row {
+  border-top-color: rgba(15, 23, 42, 0.14) !important;
+  border-top-width: 1px !important;
+}
+
+html[data-theme="light"] .project-detail-root .project-tab:not(.project-tab-active) {
+  color: #71717a !important;
+}
+
+html[data-theme="light"] .project-detail-root .project-tab:not(.project-tab-active):hover {
+  color: #18181b !important;
+  background: rgba(15, 23, 42, 0.05) !important;
+}
+
+html[data-theme="light"] .project-view-body {
+  background: linear-gradient(180deg, var(--lt-canvas-mid) 0%, var(--lt-canvas) 100%);
 }
 
 html[data-theme="light"] .lt-progress-bar-fill {

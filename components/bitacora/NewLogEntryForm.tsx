@@ -9,7 +9,7 @@ import { z } from "zod";
 import toast from "react-hot-toast";
 import {
   X, AlertTriangle, AlertCircle, Info, Wrench, CheckCircle, Zap,
-  Sun, Sunset, Moon, Eye, EyeOff, Clock, Save, Loader2,
+  Sun, Sunset, Moon, Eye, EyeOff, Clock, Save, Loader2, SpellCheck2,
 } from "lucide-react";
 import { RichEditor } from "./RichEditor";
 import { Button } from "@/components/ui/Button";
@@ -281,6 +281,7 @@ export function NewLogEntryForm({
 
   /* B32 — confirm cancel dialog */
   const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [correctingSpelling, setCorrectingSpelling] = useState(false);
 
   /* last saved display */
   const [, forceUpdate] = useState(0);
@@ -487,6 +488,70 @@ export function NewLogEntryForm({
     clearDraft(draftKey);
     setShowCancelDialog(false);
     router.back();
+  }
+
+  async function spellcheckText(text: string): Promise<{ correctedText: string; corrections: number }> {
+    const res = await fetch("/api/spellcheck", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text, language: "es" }),
+    });
+    if (!res.ok) throw new Error();
+    return (await res.json()) as { correctedText: string; corrections: number };
+  }
+
+  async function fixSpellingBeforePublish() {
+    if (correctingSpelling) return;
+    setCorrectingSpelling(true);
+    try {
+      let totalCorrections = 0;
+
+      const currentTitle = titleValue ?? "";
+      if (currentTitle.trim().length > 0) {
+        const titleResult = await spellcheckText(currentTitle);
+        if (titleResult.correctedText !== currentTitle) {
+          setValue("title", titleResult.correctedText as FormData["title"], {
+            shouldDirty: true,
+            shouldValidate: true,
+          });
+        }
+        totalCorrections += titleResult.corrections;
+      }
+
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(content || "", "text/html");
+      const walker = doc.createTreeWalker(doc.body, NodeFilter.SHOW_TEXT);
+      const textNodes: Text[] = [];
+      let node = walker.nextNode();
+      while (node) {
+        if ((node.nodeValue ?? "").trim().length > 0) textNodes.push(node as Text);
+        node = walker.nextNode();
+      }
+
+      for (const textNode of textNodes) {
+        const original = textNode.nodeValue ?? "";
+        const result = await spellcheckText(original);
+        if (result.correctedText !== original) {
+          textNode.nodeValue = result.correctedText;
+        }
+        totalCorrections += result.corrections;
+      }
+
+      const newHtml = doc.body.innerHTML;
+      if (newHtml !== content) {
+        setContent(newHtml);
+      }
+
+      if (totalCorrections > 0) {
+        toast.success(`Ortografía revisada (${totalCorrections} correcciones)`);
+      } else {
+        toast("No se detectaron faltas", { icon: "✅" });
+      }
+    } catch {
+      toast.error("No se pudo revisar la ortografía ahora");
+    } finally {
+      setCorrectingSpelling(false);
+    }
   }
 
   const otherDepts = allDepartments.filter((d) => d.id !== deptForEntry);
@@ -983,6 +1048,19 @@ export function NewLogEntryForm({
             Guardar borrador
           </Button>
           <div className="flex items-center gap-3">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => void fixSpellingBeforePublish()}
+              disabled={isSubmitting || correctingSpelling}
+            >
+              {correctingSpelling ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <SpellCheck2 className="w-3.5 h-3.5" />
+              )}
+              Corregir ortografía
+            </Button>
             <Button type="button" variant="secondary" onClick={handleCancel}>
               Cancelar
             </Button>

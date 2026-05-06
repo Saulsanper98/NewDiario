@@ -26,6 +26,7 @@ export default async function DashboardLayout({
           status: "PUBLISHED",
           requiresFollowup: true,
           followupDone: false,
+          deletedAt: null,
         },
       })
     : 0;

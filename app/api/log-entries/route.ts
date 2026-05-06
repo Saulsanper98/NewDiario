@@ -63,10 +63,11 @@ export async function GET(req: NextRequest) {
       include: {
         author: { select: { id: true, name: true, image: true } },
         tags: true,
+        reactions: { select: { emoji: true } },
         shares: {
           include: { department: { select: { name: true, accentColor: true } } },
         },
-        _count: { select: { comments: true, attachments: true } },
+        _count: { select: { comments: true, attachments: true, reactions: true } },
       },
       orderBy: { createdAt: "desc" },
       skip,

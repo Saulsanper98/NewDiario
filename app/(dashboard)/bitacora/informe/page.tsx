@@ -60,13 +60,14 @@ export default async function BitacoraInformePage({
           { label: "Informe" },
         ]}
       />
-      <div className="flex-1 overflow-y-auto print:overflow-visible">
+      <div className="flex-1 overflow-y-auto print:overflow-visible print:bg-white">
         <BitacoraReportView
           logs={logs}
           rangeLabel={label}
           fromLabel={fromLabel}
           toLabel={toLabel}
           departmentName={departmentName}
+          reportPeriod={period}
         />
       </div>
     </div>

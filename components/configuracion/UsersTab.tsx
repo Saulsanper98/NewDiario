@@ -540,21 +540,33 @@ export function UsersTab({
         ) : (
           <div className="min-h-0 flex-1 overflow-auto">
           <table className="w-full">
-            <thead className="sticky top-0 z-10 bg-[#0a0f1e]/95 backdrop-blur-sm shadow-[0_1px_0_rgba(255,255,255,0.06)]">
+            <thead className="config-table-thead sticky top-0 z-10 bg-[#0a0f1e]/95 backdrop-blur-sm shadow-[0_1px_0_rgba(255,255,255,0.06)]">
               <tr className="border-b border-white/8">
-                <th className="text-left px-4 py-3 text-xs font-medium text-white/40">
+                <th
+                  scope="col"
+                  className="text-left px-4 py-2.5 align-middle text-xs font-medium text-white/40 leading-tight"
+                >
                   Usuario
                 </th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-white/40">
+                <th
+                  scope="col"
+                  className="text-left px-4 py-2.5 align-middle text-xs font-medium text-white/40 leading-tight"
+                >
                   Departamento(s)
                 </th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-white/40">
+                <th
+                  scope="col"
+                  className="text-left px-4 py-2.5 align-middle text-xs font-medium text-white/40 leading-tight"
+                >
                   Rol
                 </th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-white/40">
+                <th
+                  scope="col"
+                  className="text-left px-4 py-2.5 align-middle text-xs font-medium text-white/40 leading-tight"
+                >
                   Estado
                 </th>
-                <th className="px-4 py-3" />
+                <th scope="col" className="px-4 py-2.5 align-middle" aria-label="Acciones" />
               </tr>
             </thead>
             <tbody>
@@ -563,7 +575,7 @@ export function UsersTab({
                   key={user.id}
                   className="border-b border-white/4 hover:bg-white/2 transition-colors"
                 >
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-2.5 align-middle">
                     <div className="flex items-center gap-2.5">
                       <Avatar name={user.name} image={user.image} size="sm" />
                       <div>
@@ -574,8 +586,8 @@ export function UsersTab({
                       </div>
                     </div>
                   </td>
-                  <td className="px-4 py-3">
-                    <div className="flex flex-wrap gap-1">
+                  <td className="px-4 py-2.5 align-middle">
+                    <div className="flex flex-wrap gap-1 items-center">
                       {user.departments.slice(0, 2).map((ud) => (
                         <span
                           key={ud.id}
@@ -596,7 +608,7 @@ export function UsersTab({
                       )}
                     </div>
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-2.5 align-middle">
                     <div className="flex items-center gap-1.5">
                       {user.role === "SUPERADMIN" && (
                         <Shield className="w-3 h-3 text-[#ffeb66]" />
@@ -606,7 +618,7 @@ export function UsersTab({
                       </span>
                     </div>
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-2.5 align-middle">
                     <Badge
                       variant={user.isActive ? "success" : "error"}
                       size="sm"
@@ -619,7 +631,7 @@ export function UsersTab({
                       {user.isActive ? "Activo" : "Inactivo"}
                     </Badge>
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-2.5 align-middle">
                     <div className="flex items-center gap-2">
                       <Button
                         variant="ghost"

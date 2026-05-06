@@ -44,10 +44,14 @@ import {
 } from "date-fns";
 import { es } from "date-fns/locale";
 import type { BitacoraFeedLog } from "@/lib/types/bitacora";
+import { BitacoraDatePopover } from "@/components/bitacora/BitacoraDatePopover";
+import { useTheme } from "@/components/layout/ThemeProvider";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
 const SHIFT_ORDER = ["MORNING", "AFTERNOON", "NIGHT"] as const;
+
+type ShiftPaletteRow = { text: string; bg: string; border: string; time: string };
 
 const SHIFT_ICONS: Record<string, React.ElementType> = {
   MORNING: Sun,
@@ -55,18 +59,40 @@ const SHIFT_ICONS: Record<string, React.ElementType> = {
   NIGHT: Moon,
 };
 
-const SHIFT_STYLE: Record<string, { text: string; bg: string; border: string; time: string }> = {
+const SHIFT_STYLE_DARK: Record<string, ShiftPaletteRow> = {
   MORNING:   { text: "text-amber-300",  bg: "bg-amber-400/6",  border: "border-amber-400/18",  time: "06:00–14:00" },
   AFTERNOON: { text: "text-orange-300", bg: "bg-orange-400/6", border: "border-orange-400/18", time: "14:00–22:00" },
   NIGHT:     { text: "text-indigo-300", bg: "bg-indigo-400/6", border: "border-indigo-400/18", time: "22:00–06:00" },
 };
 
-const TYPE_COLORS_SHORT: Record<string, string> = {
+/** Cabeceras de turno en tema claro: fondos tintados suaves + texto oscuro legible */
+const SHIFT_STYLE_LIGHT: Record<string, ShiftPaletteRow> = {
+  MORNING:   { text: "text-amber-950/92", bg: "bg-amber-200/42", border: "border-amber-800/14", time: "06:00–14:00" },
+  AFTERNOON: { text: "text-orange-950/92", bg: "bg-orange-200/38", border: "border-orange-900/12", time: "14:00–22:00" },
+  NIGHT:     { text: "text-indigo-950/92", bg: "bg-indigo-200/36", border: "border-indigo-950/14", time: "22:00–06:00" },
+};
+
+/** Chips “Turnos” en resumen día (claro): neutro predominante para no cansar la vista */
+const SHIFT_CHIP_LIGHT: Record<string, string> = {
+  MORNING:   "text-slate-800 bg-slate-200/82 border-black/[0.07] [&_svg]:text-amber-900/82",
+  AFTERNOON: "text-slate-800 bg-slate-200/82 border-black/[0.07] [&_svg]:text-orange-900/75",
+  NIGHT:     "text-slate-800 bg-slate-200/82 border-black/[0.07] [&_svg]:text-indigo-900/80",
+};
+
+const TYPE_CHIP_DARK: Record<string, string> = {
   INCIDENCIA:    "text-orange-400 bg-orange-400/10 border-orange-400/25",
   INFORMATIVO:   "text-blue-400 bg-blue-400/10 border-blue-400/25",
   URGENTE:       "text-red-400 bg-red-400/10 border-red-400/25",
   MANTENIMIENTO: "text-purple-400 bg-purple-400/10 border-purple-400/25",
   SIN_NOVEDADES: "text-emerald-400 bg-emerald-400/10 border-emerald-400/25",
+};
+
+const TYPE_CHIP_LIGHT: Record<string, string> = {
+  INCIDENCIA:    "text-orange-950/95 bg-orange-100/92 border-orange-300/52",
+  INFORMATIVO:   "text-sky-950/95 bg-sky-100/88 border-sky-300/48",
+  URGENTE:       "text-red-950/95 bg-red-100/92 border-red-300/48",
+  MANTENIMIENTO: "text-violet-950/92 bg-violet-100/86 border-violet-300/45",
+  SIN_NOVEDADES: "text-emerald-950/94 bg-emerald-100/86 border-emerald-300/45",
 };
 
 type ViewMode = "list" | "columns" | "timeline";
@@ -100,26 +126,50 @@ function saveViewMode(mode: ViewMode) {
   try { localStorage.setItem("bitacora:dayview:mode", mode); } catch { /* empty */ }
 }
 
+function entryTypeBadgeClasses(type: string, isLight: boolean): string {
+  if (isLight) {
+    return (
+      TYPE_CHIP_LIGHT[type] ?? "text-zinc-800 bg-zinc-100/95 border-black/[0.08]"
+    );
+  }
+  return getTypeColor(type);
+}
+
 // ── Entry card (shared between list / columns / timeline) ─────────────────────
 
 function DayEntryCard({
   log,
   compact,
+  isLight,
   searchQuery = "",
 }: {
   log: BitacoraFeedLog;
   compact: boolean;
+  isLight: boolean;
   searchQuery?: string;
 }) {
+  const reactionSummary = Object.entries(
+    log.reactions.reduce<Record<string, number>>((acc, r) => {
+      acc[r.emoji] = (acc[r.emoji] ?? 0) + 1;
+      return acc;
+    }, {})
+  )
+    .map(([emoji, count]) => `${emoji} ${count}`)
+    .join(" ");
+
   return (
     <Link
       href={`/bitacora/${log.id}`}
-      className="block group break-inside-avoid-page rounded-xl focus-ring-inset focus:outline-none"
+      className="block group break-inside-avoid-page rounded-xl focus-ring-inset focus:outline-none print:no-underline"
     >
       <div
         className={cn(
-          "rounded-xl border border-white/8 bg-white/[0.025] hover:bg-white/[0.045] hover:border-white/14 transition-all duration-200",
-          compact ? "p-3" : "p-4"
+          "rounded-xl border transition-all duration-200",
+          isLight
+            ? "border-black/[0.07] bg-white/55 hover:bg-white/92 hover:border-black/[0.1] shadow-[var(--lt-shadow-soft)]"
+            : "border-white/8 bg-white/[0.025] hover:bg-white/[0.045] hover:border-white/14",
+          "print:border print:border-slate-300 print:bg-white print:shadow-none print:hover:bg-white",
+          compact ? "p-3 print:p-3" : "p-4 print:p-3"
         )}
       >
         <div className="flex items-start gap-3">
@@ -130,25 +180,53 @@ function DayEntryCard({
             <div className="flex items-center gap-2 flex-wrap mb-1">
               <span
                 className={cn(
-                  "font-semibold truncate group-hover:text-[#ffeb66] transition-colors",
-                  compact ? "text-xs" : "text-sm",
-                  log.type === "URGENTE" ? "text-red-300" : "text-white"
+                  "font-semibold truncate transition-colors",
+                  isLight
+                    ? cn(
+                        "group-hover:text-[color:var(--lt-yellow-text)]",
+                        log.type === "URGENTE"
+                          ? "text-red-700 print:text-red-700"
+                          : "text-zinc-900 print:text-slate-900"
+                      )
+                    : cn(
+                        "group-hover:text-[#ffeb66]",
+                        log.type === "URGENTE"
+                          ? "text-red-300 print:text-red-700"
+                          : "text-white print:text-slate-900"
+                      ),
+                  compact ? "text-xs print:text-xs" : "text-sm print:text-sm"
                 )}
               >
                 {truncate(log.title, compact ? 45 : 70)}
               </span>
-              <Badge className={getTypeColor(log.type)} size="sm">
+              <Badge
+                className={cn(
+                  entryTypeBadgeClasses(log.type, isLight),
+                  "print:border-slate-400 print:bg-slate-100 print:text-slate-900 print:[&_svg]:text-slate-800"
+                )}
+                size="sm"
+              >
                 {TYPE_LABELS[log.type as keyof typeof TYPE_LABELS]}
               </Badge>
               {log.requiresFollowup && !log.followupDone && (
-                <span className="flex items-center gap-0.5 text-[10px] text-amber-400">
+                <span
+                  className={cn(
+                    "flex items-center gap-0.5 text-[10px] print:text-amber-800",
+                    isLight ? "text-amber-800/95" : "text-amber-400"
+                  )}
+                >
                   <AlertTriangle className="w-2.5 h-2.5" />
                   Seg.
                 </span>
               )}
             </div>
             {!compact && (
-              <div className="flex items-center gap-2 text-xs text-white/35 mt-1 flex-wrap">
+              <div
+                className={cn(
+                  "flex items-center gap-2 text-xs mt-1 flex-wrap print:text-slate-600 print:[&_svg]:text-slate-600",
+                  isLight ? "text-zinc-600" : "text-white/35"
+                )}
+              >
                 <span>{log.author.name}</span>
                 <span>·</span>
                 <span>{formatDate(log.createdAt)}</span>
@@ -156,8 +234,21 @@ function DayEntryCard({
                   <>
                     <span>·</span>
                     <span className="flex items-center gap-0.5">
-                      <MessageSquare className="w-3 h-3" />
+                      <MessageSquare className="w-3 h-3 print:text-slate-600" />
                       {log._count.comments}
+                    </span>
+                  </>
+                )}
+                {reactionSummary.length > 0 && (
+                  <>
+                    <span>·</span>
+                    <span
+                      className={cn(
+                        "print:text-slate-800",
+                        isLight ? "text-zinc-800/95" : "text-[#ffeb66]/85"
+                      )}
+                    >
+                      {reactionSummary}
                     </span>
                   </>
                 )}
@@ -168,7 +259,12 @@ function DayEntryCard({
                 {log.tags.slice(0, 3).map((tag) => (
                   <span
                     key={tag.id}
-                    className="text-[10px] px-1.5 py-0.5 rounded bg-white/5 text-white/30 border border-white/8"
+                    className={cn(
+                      "text-[10px] px-1.5 py-0.5 rounded border print:bg-slate-100 print:text-slate-700 print:border-slate-300",
+                      isLight
+                        ? "bg-zinc-100/92 text-zinc-700 border-zinc-300/65"
+                        : "bg-white/5 text-white/30 border-white/8"
+                    )}
                   >
                     #{tag.name}
                   </span>
@@ -184,12 +280,15 @@ function DayEntryCard({
 
 // ── Empty shift placeholder (B25) ─────────────────────────────────────────────
 
-function EmptyShiftPlaceholder({ shift, compact }: { shift: string; compact: boolean }) {
-  const style = SHIFT_STYLE[shift];
+function EmptyShiftPlaceholder({ compact, isLight }: { compact: boolean; isLight: boolean }) {
   return (
     <div
       className={cn(
-        "rounded-xl border border-dashed border-white/6 flex items-center justify-center text-white/18 text-xs",
+        "rounded-xl border border-dashed flex items-center justify-center text-xs",
+        isLight
+          ? "border-slate-300/72 text-slate-500 bg-zinc-100/45"
+          : "border-white/6 text-white/18",
+        "print:border-slate-300 print:border-dashed print:bg-slate-50 print:text-slate-500",
         compact ? "py-4" : "py-8"
       )}
     >
@@ -200,24 +299,65 @@ function EmptyShiftPlaceholder({ shift, compact }: { shift: string; compact: boo
 
 // ── Shift column header ───────────────────────────────────────────────────────
 
-function ShiftHeader({ shift, count, compact }: { shift: string; count: number; compact: boolean }) {
-  const Icon  = SHIFT_ICONS[shift];
-  const style = SHIFT_STYLE[shift];
+function ShiftHeader({
+  shift,
+  count,
+  compact,
+  palette,
+  isLight,
+}: {
+  shift: string;
+  count: number;
+  compact: boolean;
+  palette: Record<string, ShiftPaletteRow>;
+  isLight: boolean;
+}) {
+  const Icon = SHIFT_ICONS[shift];
+  const style = palette[shift];
   return (
     <div
       className={cn(
         "flex items-center gap-2 rounded-xl border px-4 mb-4",
         style.bg,
         style.border,
-        compact ? "py-2" : "py-3"
+        "print:!bg-slate-100 print:!border-slate-300",
+        compact ? "py-2 print:py-2" : "py-3 print:py-2.5"
       )}
     >
-      <Icon className={cn("shrink-0", compact ? "w-3.5 h-3.5" : "w-4 h-4", style.text)} />
-      <span className={cn("font-semibold", compact ? "text-xs" : "text-sm", style.text)}>
+      <Icon
+        className={cn(
+          "shrink-0",
+          compact ? "w-3.5 h-3.5" : "w-4 h-4",
+          style.text,
+          "print:!text-slate-800"
+        )}
+      />
+      <span
+        className={cn(
+          "font-semibold",
+          compact ? "text-xs" : "text-sm",
+          style.text,
+          "print:!text-slate-900"
+        )}
+      >
         {SHIFT_LABELS[shift as keyof typeof SHIFT_LABELS]}
       </span>
-      <span className="text-[10px] text-white/30 ml-0.5">{style.time}</span>
-      <span className="ml-auto text-xs font-semibold text-white/40">{count}</span>
+      <span
+        className={cn(
+          "text-[10px] ml-0.5 print:text-slate-600",
+          isLight ? "text-slate-600" : "text-white/30"
+        )}
+      >
+        {style.time}
+      </span>
+      <span
+        className={cn(
+          "ml-auto text-xs font-semibold tabular-nums print:text-slate-800",
+          isLight ? "text-slate-600" : "text-white/40"
+        )}
+      >
+        {count}
+      </span>
     </div>
   );
 }
@@ -226,8 +366,10 @@ function ShiftHeader({ shift, count, compact }: { shift: string; count: number; 
 
 export function BitacoraDayView({ logs, selectedDate, departmentName }: BitacoraDayViewProps) {
   const router = useRouter();
+  const { theme } = useTheme();
+  const isLight = theme === "light";
+  const shiftPalette = isLight ? SHIFT_STYLE_LIGHT : SHIFT_STYLE_DARK;
   const [, startTransition] = useTransition();
-  const [inputDate, setInputDate]   = useState(selectedDate);
   const [viewMode, setViewMode]     = useState<ViewMode>("list");
   const [compact, setCompact]       = useState(false);
   const [weekOffset, setWeekOffset] = useState(0);
@@ -271,7 +413,6 @@ export function BitacoraDayView({ logs, selectedDate, departmentName }: Bitacora
 
   const navigate = useCallback(
     (dateStr: string) => {
-      setInputDate(dateStr);
       startTransition(() => {
         router.replace(`/bitacora/dia?date=${dateStr}`, { scroll: false });
       });
@@ -316,15 +457,17 @@ export function BitacoraDayView({ logs, selectedDate, departmentName }: Bitacora
   }
 
   return (
-    <div className="p-6 sm:p-8 max-w-5xl mx-auto space-y-6 pb-28 print:max-w-none print:p-4 print:space-y-4 print:pb-6">
+    <div className="bitacora-day-print-root p-6 sm:p-8 max-w-5xl mx-auto space-y-6 pb-28 print:max-w-none print:p-4 print:space-y-4 print:pb-6 print:bg-white print:text-slate-900">
 
-      <div className="hidden print:block mb-4 pb-3 border-b border-white/15 text-center">
-        <p className="text-base font-bold text-white tracking-tight">Bitácora — Vista por día</p>
-        <p className="text-xs text-white/55 mt-1">
+      <div className="hidden print:block mb-4 pb-3 border-b border-white/15 print:border-slate-300 text-center">
+        <p className="text-base font-bold text-white tracking-tight print:text-slate-900 print:text-lg">
+          Bitácora — Vista por día
+        </p>
+        <p className="text-xs text-white/55 mt-1 print:text-slate-600">
           {format(parsedDate, "EEEE d 'de' MMMM yyyy", { locale: es })}
         </p>
         {departmentName ? (
-          <p className="text-xs text-white/45 mt-0.5">Departamento: {departmentName}</p>
+          <p className="text-xs text-white/45 mt-0.5 print:text-slate-600">Departamento: {departmentName}</p>
         ) : null}
       </div>
 
@@ -335,7 +478,12 @@ export function BitacoraDayView({ logs, selectedDate, departmentName }: Bitacora
           <button
             type="button"
             onClick={() => setWeekOffset((o) => o - 1)}
-            className="p-1.5 rounded-lg text-white/40 hover:text-white hover:bg-white/6 transition-all duration-150"
+            className={cn(
+              "p-1.5 rounded-lg transition-all duration-150",
+              isLight
+                ? "text-zinc-500 hover:text-zinc-900 hover:bg-zinc-200/6"
+                : "text-white/40 hover:text-white hover:bg-white/6"
+            )}
             aria-label="Semana anterior"
           >
             <ChevronLeft className="w-3.5 h-3.5" />
@@ -354,17 +502,38 @@ export function BitacoraDayView({ logs, selectedDate, departmentName }: Bitacora
                   onClick={() => !isFuture && goTo(day)}
                   className={cn(
                     "flex-1 flex flex-col items-center py-2 px-1 rounded-xl text-center transition-all duration-150 disabled:opacity-30 disabled:cursor-not-allowed",
-                    isSelected
-                      ? "bg-[#ffeb66]/12 border border-[#ffeb66]/30 text-[#ffeb66]"
-                      : isTodayDay
-                      ? "border border-white/14 text-white hover:bg-white/6"
-                      : "border border-transparent text-white/45 hover:text-white/70 hover:bg-white/4"
+                    isSelected &&
+                      (isLight
+                        ? "bg-[color:var(--lt-accent-bg)] border border-[color:var(--lt-accent-border)] text-[color:var(--lt-yellow-text)] shadow-[var(--lt-shadow-soft)]"
+                        : "bg-[#ffeb66]/12 border border-[#ffeb66]/30 text-[#ffeb66]"),
+                    !isSelected &&
+                      isTodayDay &&
+                      (isLight
+                        ? "border border-black/[0.08] text-zinc-900 hover:bg-zinc-200/45"
+                        : "border border-white/14 text-white hover:bg-white/6"),
+                    !isSelected &&
+                      !isTodayDay &&
+                      (isLight
+                        ? "border border-transparent text-zinc-500 hover:text-zinc-800 hover:bg-zinc-200/4"
+                        : "border border-transparent text-white/45 hover:text-white/70 hover:bg-white/4")
                   )}
                 >
-                  <span className="text-[10px] uppercase tracking-wide opacity-60">
+                  <span
+                    className={cn(
+                      "text-[10px] uppercase tracking-wide opacity-60",
+                      isLight && !isSelected && "text-zinc-500",
+                      !isLight && !isSelected && "text-inherit"
+                    )}
+                  >
                     {format(day, "EEE", { locale: es }).slice(0, 2)}
                   </span>
-                  <span className={cn("text-sm font-semibold mt-0.5", isSelected && "text-[#ffeb66]")}>
+                  <span
+                    className={cn(
+                      "text-sm font-semibold mt-0.5",
+                      !isLight && isSelected && "text-[#ffeb66]",
+                      isLight && isSelected && "text-[color:var(--lt-yellow-text)]"
+                    )}
+                  >
                     {format(day, "d")}
                   </span>
                 </button>
@@ -375,7 +544,12 @@ export function BitacoraDayView({ logs, selectedDate, departmentName }: Bitacora
             type="button"
             onClick={() => setWeekOffset((o) => o + 1)}
             disabled={weekOffset >= 0}
-            className="p-1.5 rounded-lg text-white/40 hover:text-white hover:bg-white/6 disabled:opacity-30 disabled:cursor-not-allowed transition-all duration-150"
+            className={cn(
+              "p-1.5 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed transition-all duration-150",
+              isLight
+                ? "text-zinc-500 hover:text-zinc-900 hover:bg-zinc-200/6"
+                : "text-white/40 hover:text-white hover:bg-white/6"
+            )}
             aria-label="Semana siguiente"
           >
             <ChevronRight className="w-3.5 h-3.5" />
@@ -383,43 +557,72 @@ export function BitacoraDayView({ logs, selectedDate, departmentName }: Bitacora
         </div>
 
         {/* Date nav row */}
-        <div className="flex items-center gap-3 flex-wrap border-t border-white/6 pt-3">
+        <div
+          className={cn(
+            "flex items-center gap-3 flex-wrap border-t pt-3",
+            isLight ? "border-black/[0.06]" : "border-white/6"
+          )}
+        >
           <button
             type="button"
             onClick={() => goTo(subDays(parsedDate, 1))}
-            className="p-1.5 rounded-lg text-white/50 hover:text-white hover:bg-white/6 transition-all duration-150"
+            className={cn(
+              "p-1.5 rounded-lg transition-all duration-150",
+              isLight
+                ? "text-zinc-600 hover:text-zinc-950 hover:bg-zinc-200/6"
+                : "text-white/50 hover:text-white hover:bg-white/6"
+            )}
             aria-label="Día anterior"
           >
             <ChevronLeft className="w-4 h-4" />
           </button>
 
           <div className="flex items-center gap-2.5 flex-1 min-w-0">
-            <Calendar className="w-4 h-4 text-[#ffeb66]/70 shrink-0" />
-            <span className="text-sm font-semibold text-white capitalize">
+            <Calendar
+              className={cn(
+                "w-4 h-4 shrink-0",
+                isLight ? "text-[color:var(--lt-yellow-solid)]" : "text-[#ffeb66]/70"
+              )}
+            />
+            <span
+              className={cn(
+                "text-sm font-semibold capitalize",
+                isLight ? "text-zinc-900" : "text-white"
+              )}
+            >
               {dayLabel(parsedDate)},{" "}
               {format(parsedDate, "d 'de' MMMM yyyy", { locale: es })}
             </span>
             {isAtToday && (
-              <Badge className="text-[#ffeb66] bg-[#ffeb66]/10 border-[#ffeb66]/20" size="sm">
+              <Badge
+                className={
+                  isLight
+                    ? "text-[color:var(--lt-yellow-text)] bg-[color:var(--lt-accent-bg)] border-[color:var(--lt-accent-border)]"
+                    : "text-[#ffeb66] bg-[#ffeb66]/10 border-[#ffeb66]/20"
+                }
+                size="sm"
+              >
                 Hoy
               </Badge>
             )}
           </div>
 
-          <input
-            type="date"
-            value={inputDate}
-            max={format(today, "yyyy-MM-dd")}
-            onChange={(e) => { if (e.target.value) navigate(e.target.value); }}
-            className="bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-xs text-white/70 focus:outline-none focus:border-[#ffeb66]/40 cursor-pointer"
-            aria-label="Seleccionar fecha"
+          <BitacoraDatePopover
+            selectedIso={selectedDate}
+            maxIso={format(today, "yyyy-MM-dd")}
+            onSelect={(iso) => navigate(iso)}
           />
 
           <button
             type="button"
             onClick={() => goTo(addDays(parsedDate, 1))}
             disabled={isAtToday}
-            className="p-1.5 rounded-lg text-white/50 hover:text-white hover:bg-white/6 disabled:opacity-30 disabled:cursor-not-allowed transition-all duration-150"
+            className={cn(
+              "p-1.5 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed transition-all duration-150",
+              isLight
+                ? "text-zinc-600 hover:text-zinc-950 hover:bg-zinc-200/6"
+                : "text-white/50 hover:text-white hover:bg-white/6"
+            )}
             aria-label="Día siguiente"
           >
             <ChevronRight className="w-4 h-4" />
@@ -429,50 +632,98 @@ export function BitacoraDayView({ logs, selectedDate, departmentName }: Bitacora
             type="button"
             onClick={() => goTo(today)}
             disabled={isAtToday}
-            className="px-3 py-1.5 rounded-lg text-xs font-medium text-white/50 hover:text-white hover:bg-white/6 disabled:opacity-30 disabled:cursor-not-allowed transition-all duration-150"
+            className={cn(
+              "px-3 py-1.5 rounded-lg text-xs font-medium disabled:opacity-30 disabled:cursor-not-allowed transition-all duration-150",
+              isLight
+                ? "text-zinc-600 hover:text-zinc-950 hover:bg-zinc-200/6"
+                : "text-white/50 hover:text-white hover:bg-white/6"
+            )}
           >
             Hoy
           </button>
 
-          <span className="text-xs text-white/25 tabular-nums">
+          <span
+            className={cn(
+              "text-xs tabular-nums",
+              isLight ? "text-zinc-500" : "text-white/25"
+            )}
+          >
             {total} entrada{total !== 1 ? "s" : ""}
           </span>
         </div>
       </div>
       </div>
 
-      {/* B28: Day stats header */}
+      {/* B28: Day stats header — misma fila/ancho de etiqueta, sin contenedor extra en turnos */}
       {total > 0 && (
-        <div className="flex items-center gap-2 flex-wrap">
-          {Object.entries(typeCounts).map(([type, count]) => (
+        <div className="flex flex-col gap-2 print:gap-3 print:pb-2 print:border-b print:border-slate-200 print:mb-1">
+          <div className="flex gap-2.5 items-start">
             <span
-              key={type}
               className={cn(
-                "flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-xl border font-medium",
-                TYPE_COLORS_SHORT[type] ?? "text-white/40 bg-white/5 border-white/10"
+                "w-[4.5rem] shrink-0 text-[10px] font-semibold uppercase tracking-wider leading-snug pt-[7px] print:text-slate-600",
+                isLight ? "text-zinc-500" : "text-white/35"
               )}
             >
-              <span className="font-bold tabular-nums">{count}</span>
-              {TYPE_LABELS[type as keyof typeof TYPE_LABELS]}
+              Tipo
             </span>
-          ))}
-          {SHIFT_ORDER.filter((s) => grouped[s].length > 0).map((shift) => {
-            const Icon  = SHIFT_ICONS[shift];
-            const style = SHIFT_STYLE[shift];
-            return (
-              <span
-                key={shift}
-                className={cn(
-                  "flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-xl border",
-                  style.bg, style.border, style.text
-                )}
-              >
-                <Icon className="w-3.5 h-3.5" />
-                {SHIFT_LABELS[shift as keyof typeof SHIFT_LABELS]}
-                <span className="font-bold tabular-nums">{grouped[shift].length}</span>
-              </span>
-            );
-          })}
+            <div
+              className="flex flex-wrap items-center gap-2 min-w-0 flex-1"
+              role="group"
+              aria-label="Entradas por tipo"
+            >
+              {Object.entries(typeCounts).map(([type, count]) => (
+                <span
+                  key={type}
+                  className={cn(
+                    "flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-xl border font-medium",
+                    isLight
+                      ? TYPE_CHIP_LIGHT[type] ?? "text-zinc-700 bg-zinc-100 border-black/[0.08]"
+                      : TYPE_CHIP_DARK[type] ?? "text-white/40 bg-white/5 border-white/10",
+                    "print:bg-slate-50 print:text-slate-900 print:border-slate-400 print:shadow-none"
+                  )}
+                >
+                  <span className="font-bold tabular-nums">{count}</span>
+                  {TYPE_LABELS[type as keyof typeof TYPE_LABELS]}
+                </span>
+              ))}
+            </div>
+          </div>
+          <div className="flex gap-2.5 items-start">
+            <span
+              className={cn(
+                "w-[4.5rem] shrink-0 text-[10px] font-semibold uppercase tracking-wider leading-snug pt-[7px] print:text-slate-600",
+                isLight ? "text-zinc-500" : "text-white/35"
+              )}
+            >
+              Turnos
+            </span>
+            <div
+              className="flex flex-wrap items-center gap-2 min-w-0 flex-1"
+              role="group"
+              aria-label="Entradas por turno"
+            >
+              {SHIFT_ORDER.filter((s) => grouped[s].length > 0).map((shift) => {
+                const Icon  = SHIFT_ICONS[shift];
+                const style = shiftPalette[shift];
+                return (
+                  <span
+                    key={shift}
+                    className={cn(
+                      "flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-xl border",
+                      isLight
+                        ? SHIFT_CHIP_LIGHT[shift] ?? "text-slate-800 bg-slate-200/82 border-black/[0.07]"
+                        : cn(style.bg, style.border, style.text),
+                      "print:bg-slate-50 print:text-slate-900 print:border-slate-400 print:shadow-none print:[&_svg]:text-slate-800"
+                    )}
+                  >
+                    <Icon className="w-3.5 h-3.5" />
+                    {SHIFT_LABELS[shift as keyof typeof SHIFT_LABELS]}
+                    <span className="font-bold tabular-nums">{grouped[shift].length}</span>
+                  </span>
+                );
+              })}
+            </div>
+          </div>
         </div>
       )}
 
@@ -480,7 +731,14 @@ export function BitacoraDayView({ logs, selectedDate, departmentName }: Bitacora
       {total > 0 && (
         <div className="flex items-center gap-2 flex-wrap print:hidden">
           {/* B21/B22: view mode */}
-          <div className="flex items-center gap-1 p-1 rounded-xl bg-white/[0.03] border border-white/8">
+          <div
+            className={cn(
+              "flex items-center gap-1 p-1 rounded-xl border",
+              isLight
+                ? "bg-zinc-200/35 border-[color:var(--lt-border-strong)]"
+                : "bg-white/[0.03] border-white/8"
+            )}
+          >
             {(
               [
                 { mode: "list"     as ViewMode, icon: List,     label: "Lista"     },
@@ -496,8 +754,12 @@ export function BitacoraDayView({ logs, selectedDate, departmentName }: Bitacora
                 className={cn(
                   "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-150",
                   viewMode === mode
-                    ? "bg-white/10 text-white"
-                    : "text-white/40 hover:text-white/70"
+                    ? isLight
+                      ? "bg-[color:var(--lt-accent-bg-strong)] text-[color:var(--lt-yellow-text)] border border-[color:var(--lt-accent-border)] shadow-[var(--lt-shadow-soft)]"
+                      : "bg-white/10 text-white"
+                    : isLight
+                      ? "text-zinc-600 hover:text-zinc-950 hover:bg-zinc-300/42"
+                      : "text-white/40 hover:text-white/70"
                 )}
               >
                 <Icon className="w-3.5 h-3.5" />
@@ -514,8 +776,12 @@ export function BitacoraDayView({ logs, selectedDate, departmentName }: Bitacora
             className={cn(
               "flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium border transition-all duration-150",
               compact
-                ? "bg-[#ffeb66]/8 border-[#ffeb66]/25 text-[#ffeb66]"
-                : "bg-white/[0.03] border-white/8 text-white/45 hover:text-white/70"
+                ? isLight
+                  ? "bg-[color:var(--lt-accent-bg)] border-[color:var(--lt-accent-border)] text-[color:var(--lt-yellow-text)]"
+                  : "bg-[#ffeb66]/8 border-[#ffeb66]/25 text-[#ffeb66]"
+                : isLight
+                  ? "bg-transparent border-[color:var(--lt-border-strong)] text-zinc-600 hover:text-zinc-950 hover:bg-zinc-200/45"
+                  : "bg-white/[0.03] border-white/8 text-white/45 hover:text-white/70"
             )}
           >
             {compact ? <Maximize2 className="w-3.5 h-3.5" /> : <Minimize2 className="w-3.5 h-3.5" />}
@@ -527,16 +793,44 @@ export function BitacoraDayView({ logs, selectedDate, departmentName }: Bitacora
             type="button"
             onClick={handlePrint}
             title="Imprimir / Exportar PDF"
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium bg-white/[0.03] border border-white/8 text-white/45 hover:text-white/70 transition-all duration-150 ml-auto"
+            className={cn(
+              "flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium border transition-all duration-150 ml-auto",
+              isLight
+                ? "bg-transparent border-[color:var(--lt-border-strong)] text-zinc-600 hover:text-zinc-950 hover:bg-zinc-200/42"
+                : "bg-white/[0.03] border-white/8 text-white/45 hover:text-white/70"
+            )}
           >
             <Printer className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Imprimir</span>
           </button>
 
-          <p className="text-[10px] text-white/20 hidden lg:block">
-            <kbd className="px-1 py-0.5 rounded bg-white/6 border border-white/10 font-mono">←</kbd>
+          <p
+            className={cn(
+              "text-[10px] hidden lg:block",
+              isLight ? "text-zinc-400" : "text-white/20"
+            )}
+          >
+            <kbd
+              className={cn(
+                "px-1 py-0.5 rounded border font-mono",
+                isLight
+                  ? "bg-zinc-200/55 border-zinc-400/35 text-zinc-700"
+                  : "bg-white/6 border-white/10"
+              )}
+            >
+              ←
+            </kbd>
             {" / "}
-            <kbd className="px-1 py-0.5 rounded bg-white/6 border border-white/10 font-mono">→</kbd>
+            <kbd
+              className={cn(
+                "px-1 py-0.5 rounded border font-mono",
+                isLight
+                  ? "bg-zinc-200/55 border-zinc-400/35 text-zinc-700"
+                  : "bg-white/6 border-white/10"
+              )}
+            >
+              →
+            </kbd>
             {" navegación entre días"}
           </p>
         </div>
@@ -544,16 +838,38 @@ export function BitacoraDayView({ logs, selectedDate, departmentName }: Bitacora
 
       {/* ── Empty state ────────────────────────────────────────────────────── */}
       {total === 0 && (
-        <div className="glass rounded-2xl p-14 text-center space-y-4">
-          <BookOpen className="w-12 h-12 text-white/8 mx-auto" />
-          <p className="text-sm font-medium text-white/40">Sin entradas para este día</p>
-          <p className="text-xs text-white/25">
+        <div className="glass rounded-2xl p-14 text-center space-y-4 print:border print:border-slate-300 print:bg-white print:shadow-none">
+          <BookOpen
+            className={cn(
+              "w-12 h-12 mx-auto print:text-slate-300",
+              isLight ? "text-zinc-400/55" : "text-white/8"
+            )}
+          />
+          <p
+            className={cn(
+              "text-sm font-medium print:text-slate-800",
+              isLight ? "text-zinc-600" : "text-white/40"
+            )}
+          >
+            Sin entradas para este día
+          </p>
+          <p
+            className={cn(
+              "text-xs print:text-slate-600",
+              isLight ? "text-zinc-500" : "text-white/25"
+            )}
+          >
             No hay registros publicados para el{" "}
             {format(parsedDate, "d 'de' MMMM yyyy", { locale: es })}.
           </p>
           <Link
             href="/bitacora/nueva"
-            className="inline-flex items-center gap-2 mt-2 px-5 py-2.5 rounded-xl bg-[#ffeb66]/10 text-[#ffeb66] text-sm font-medium hover:bg-[#ffeb66]/18 transition-all duration-200 print:hidden"
+            className={cn(
+              "inline-flex items-center gap-2 mt-2 px-5 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 print:hidden border",
+              isLight
+                ? "bg-[color:var(--lt-accent-bg)] text-[color:var(--lt-yellow-text)] border-[color:var(--lt-accent-border)] hover:bg-[color:var(--lt-accent-bg-mid)]"
+                : "bg-[#ffeb66]/10 text-[#ffeb66] border-transparent hover:bg-[#ffeb66]/18"
+            )}
           >
             Crear entrada
           </Link>
@@ -567,12 +883,18 @@ export function BitacoraDayView({ logs, selectedDate, departmentName }: Bitacora
             const entries = grouped[shift];
             return (
               <div key={shift} className="space-y-3">
-                <ShiftHeader shift={shift} count={entries.length} compact={compact} />
+                <ShiftHeader
+                  shift={shift}
+                  count={entries.length}
+                  compact={compact}
+                  palette={shiftPalette}
+                  isLight={isLight}
+                />
                 {entries.length === 0 ? (
-                  <EmptyShiftPlaceholder shift={shift} compact={compact} />
+                  <EmptyShiftPlaceholder compact={compact} isLight={isLight} />
                 ) : (
                   entries.map((log) => (
-                    <DayEntryCard key={log.id} log={log} compact={compact} />
+                    <DayEntryCard key={log.id} log={log} compact={compact} isLight={isLight} />
                   ))
                 )}
               </div>
@@ -585,14 +907,19 @@ export function BitacoraDayView({ logs, selectedDate, departmentName }: Bitacora
       {total > 0 && viewMode === "timeline" && (
         <div className="relative">
           {/* Vertical line */}
-          <div className="absolute left-[5.5rem] top-0 bottom-0 w-px bg-white/8" />
+          <div
+            className={cn(
+              "absolute left-[5.5rem] top-0 bottom-0 w-px print:bg-slate-300",
+              isLight ? "bg-slate-300/75" : "bg-white/8"
+            )}
+          />
 
           <div className="space-y-4">
             {SHIFT_ORDER.map((shift) => {
               const entries = grouped[shift];
               if (entries.length === 0) return null;
               const Icon  = SHIFT_ICONS[shift];
-              const style = SHIFT_STYLE[shift];
+              const style = shiftPalette[shift];
               return (
                 <div key={shift}>
                   {/* Shift marker on the line */}
@@ -600,31 +927,50 @@ export function BitacoraDayView({ logs, selectedDate, departmentName }: Bitacora
                     <div
                       className={cn(
                         "w-24 flex items-center justify-end gap-1.5 text-xs font-semibold pr-3",
-                        style.text
+                        style.text,
+                        "print:!text-slate-900"
                       )}
                     >
-                      <Icon className="w-3.5 h-3.5" />
+                      <Icon className="w-3.5 h-3.5 print:text-slate-800" />
                       {SHIFT_LABELS[shift as keyof typeof SHIFT_LABELS]}
                     </div>
                     <div
                       className={cn(
                         "w-3 h-3 rounded-full border-2 border-current shrink-0 z-10",
-                        style.text
+                        style.text,
+                        "print:!border-slate-700 print:!bg-white"
                       )}
                     />
-                    <span className="text-xs text-white/30">{style.time}</span>
+                    <span
+                      className={cn(
+                        "text-xs print:text-slate-600",
+                        isLight ? "text-slate-600" : "text-white/30"
+                      )}
+                    >
+                      {style.time}
+                    </span>
                   </div>
 
                   {entries.map((log) => (
                     <div key={log.id} className="flex items-start gap-4 mb-3">
                       <div className="w-24 text-right pr-3 pt-1 flex-shrink-0">
-                        <span className="text-[10px] text-white/30 font-mono">
+                        <span
+                          className={cn(
+                            "text-[10px] font-mono print:text-slate-600",
+                            isLight ? "text-slate-500" : "text-white/30"
+                          )}
+                        >
                           {format(new Date(log.createdAt), "HH:mm")}
                         </span>
                       </div>
-                      <div className="w-2 h-2 rounded-full bg-white/20 mt-2.5 shrink-0 z-10" />
+                      <div
+                        className={cn(
+                          "w-2 h-2 rounded-full mt-2.5 shrink-0 z-10 print:bg-slate-500",
+                          isLight ? "bg-slate-400" : "bg-white/20"
+                        )}
+                      />
                       <div className="flex-1 min-w-0 pb-1">
-                        <DayEntryCard log={log} compact={compact} />
+                        <DayEntryCard log={log} compact={compact} isLight={isLight} />
                       </div>
                     </div>
                   ))}
@@ -642,13 +988,19 @@ export function BitacoraDayView({ logs, selectedDate, departmentName }: Bitacora
             const entries = grouped[shift];
             return (
               <div key={shift} className="break-inside-avoid-page">
-                <ShiftHeader shift={shift} count={entries.length} compact={compact} />
+                <ShiftHeader
+                  shift={shift}
+                  count={entries.length}
+                  compact={compact}
+                  palette={shiftPalette}
+                  isLight={isLight}
+                />
                 {entries.length === 0 ? (
-                  <EmptyShiftPlaceholder shift={shift} compact={compact} />
+                  <EmptyShiftPlaceholder compact={compact} isLight={isLight} />
                 ) : (
                   <div className={compact ? "space-y-2" : "space-y-3"}>
                     {entries.map((log) => (
-                      <DayEntryCard key={log.id} log={log} compact={compact} />
+                      <DayEntryCard key={log.id} log={log} compact={compact} isLight={isLight} />
                     ))}
                   </div>
                 )}

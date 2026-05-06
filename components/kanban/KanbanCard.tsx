@@ -56,7 +56,7 @@ export function KanbanCard({ task, onClick }: KanbanCardProps) {
         }
       }}
       className={cn(
-        "card-3d glass-hover glass rounded-xl p-3 cursor-pointer group",
+        "kanban-task-card card-3d glass-hover glass rounded-xl p-3 cursor-pointer group",
         "border border-white/6 hover:border-white/12 border-t-[3px]",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ffeb66]/50",
         PRIORITY_BORDER[task.priority] ?? "border-t-white/10"
@@ -78,7 +78,7 @@ export function KanbanCard({ task, onClick }: KanbanCardProps) {
       )}
 
       {/* Title */}
-      <p className="text-sm font-medium text-white/85 group-hover:text-white transition-colors leading-snug mb-2">
+      <p className="kanban-task-title text-sm font-medium text-white/85 group-hover:text-white transition-colors leading-snug mb-2">
         {task.title}
       </p>
 
@@ -88,7 +88,7 @@ export function KanbanCard({ task, onClick }: KanbanCardProps) {
           {task.tags.slice(0, 3).map((tag) => (
             <span
               key={tag.id}
-              className="text-[10px] px-1.5 py-0.5 rounded bg-white/5 text-white/35 border border-white/8"
+              className="kanban-task-tag text-[10px] px-1.5 py-0.5 rounded bg-white/5 text-white/35 border border-white/8"
             >
               #{tag.name}
             </span>

@@ -11,6 +11,19 @@ const createSchema = z.object({
   assigneeId: z.string().nullable().optional(),
 });
 
+function isCompletedColumnName(name: string): boolean {
+  const normalized = name
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .toLowerCase();
+  return (
+    normalized.includes("complet") ||
+    normalized.includes("done") ||
+    normalized.includes("cerrad") ||
+    normalized.includes("finaliz")
+  );
+}
+
 async function userCanAccessProject(user: SessionUser, projectId: string) {
   const project = await prisma.project.findFirst({
     where: { id: projectId, deletedAt: null },
@@ -26,6 +39,55 @@ async function userCanAccessProject(user: SessionUser, projectId: string) {
     project.shares.some((s) => user.departments.some((d) => d.id === s.departmentId));
   if (!hasAccess) return null;
   return project;
+}
+
+export async function GET(
+  _req: NextRequest,
+  { params }: { params: Promise<{ projectId: string }> }
+) {
+  const session = await auth();
+  if (!session?.user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  const user = session.user as SessionUser;
+  const { projectId } = await params;
+  const access = await userCanAccessProject(user, projectId);
+  if (!access) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const columns = await prisma.kanbanColumn.findMany({
+    where: { projectId, project: { deletedAt: null } },
+    select: { id: true, name: true, order: true },
+    orderBy: { order: "asc" },
+  });
+  if (columns.length === 0) {
+    return NextResponse.json({ archivedCompletedTasks: [] });
+  }
+  const completedCols = columns.filter((c) => isCompletedColumnName(c.name));
+  const fallbackLast = columns[columns.length - 1];
+  const targetColumnIds = (completedCols.length > 0 ? completedCols : [fallbackLast]).map(
+    (c) => c.id
+  );
+
+  const archivedCompletedTasks = await prisma.task.findMany({
+    where: {
+      projectId,
+      columnId: { in: targetColumnIds },
+      NOT: { deletedAt: null },
+    },
+    orderBy: { deletedAt: "desc" },
+    take: 150,
+    select: {
+      id: true,
+      title: true,
+      deletedAt: true,
+      assignee: { select: { id: true, name: true } },
+      column: { select: { id: true, name: true } },
+    },
+  });
+
+  return NextResponse.json({ archivedCompletedTasks });
 }
 
 export async function POST(
@@ -130,4 +192,63 @@ export async function POST(
   ]);
 
   return NextResponse.json(task, { status: 201 });
+}
+
+export async function DELETE(
+  _req: NextRequest,
+  { params }: { params: Promise<{ projectId: string }> }
+) {
+  const session = await auth();
+  if (!session?.user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  const user = session.user as SessionUser;
+  const { projectId } = await params;
+  const access = await userCanAccessProject(user, projectId);
+  if (!access) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const columns = await prisma.kanbanColumn.findMany({
+    where: { projectId, project: { deletedAt: null } },
+    select: { id: true, name: true, order: true },
+    orderBy: { order: "asc" },
+  });
+  if (columns.length === 0) {
+    return NextResponse.json({ archivedCount: 0 });
+  }
+  const completedCols = columns.filter((c) => isCompletedColumnName(c.name));
+  const fallbackLast = columns[columns.length - 1];
+  const targetColumns = completedCols.length > 0 ? completedCols : [fallbackLast];
+  const targetColumnIds = targetColumns.map((c) => c.id);
+
+  const activeCompleted = await prisma.task.findMany({
+    where: {
+      projectId,
+      columnId: { in: targetColumnIds },
+      deletedAt: null,
+    },
+    select: { id: true },
+  });
+  if (activeCompleted.length === 0) {
+    return NextResponse.json({ archivedCount: 0 });
+  }
+
+  const now = new Date();
+  const taskIds = activeCompleted.map((t) => t.id);
+  await prisma.$transaction([
+    prisma.task.updateMany({
+      where: { id: { in: taskIds } },
+      data: { deletedAt: now },
+    }),
+    prisma.projectActivity.create({
+      data: {
+        projectId,
+        userId: user.id,
+        description: `Se archivaron ${taskIds.length} tarea(s) de la columna de completadas`,
+      },
+    }),
+  ]);
+
+  return NextResponse.json({ archivedCount: taskIds.length });
 }

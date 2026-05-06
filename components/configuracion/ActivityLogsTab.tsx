@@ -100,18 +100,30 @@ export function ActivityLogsTab({ logs }: ActivityLogsTabProps) {
           <>
             <div className="min-h-0 flex-1 overflow-auto">
             <table className="w-full">
-              <thead className="sticky top-0 z-10 bg-[#0a0f1e]/95 backdrop-blur-sm shadow-[0_1px_0_rgba(255,255,255,0.06)]">
+              <thead className="config-table-thead sticky top-0 z-10 bg-[#0a0f1e]/95 backdrop-blur-sm shadow-[0_1px_0_rgba(255,255,255,0.06)]">
                 <tr className="border-b border-white/8">
-                  <th className="text-left px-4 py-3 text-xs font-medium text-white/40">
+                  <th
+                    scope="col"
+                    className="text-left px-4 py-2.5 align-middle text-xs font-medium text-white/40 leading-tight"
+                  >
                     Fecha
                   </th>
-                  <th className="text-left px-4 py-3 text-xs font-medium text-white/40">
+                  <th
+                    scope="col"
+                    className="text-left px-4 py-2.5 align-middle text-xs font-medium text-white/40 leading-tight"
+                  >
                     Usuario
                   </th>
-                  <th className="text-left px-4 py-3 text-xs font-medium text-white/40">
+                  <th
+                    scope="col"
+                    className="text-left px-4 py-2.5 align-middle text-xs font-medium text-white/40 leading-tight"
+                  >
                     Acción
                   </th>
-                  <th className="text-left px-4 py-3 text-xs font-medium text-white/40">
+                  <th
+                    scope="col"
+                    className="text-left px-4 py-2.5 align-middle text-xs font-medium text-white/40 leading-tight"
+                  >
                     Descripción
                   </th>
                 </tr>
@@ -122,18 +134,18 @@ export function ActivityLogsTab({ logs }: ActivityLogsTabProps) {
                     key={log.id}
                     className="border-b border-white/4 hover:bg-white/2 transition-colors"
                   >
-                    <td className="px-4 py-3 text-xs text-white/40 whitespace-nowrap">
+                    <td className="px-4 py-2.5 align-middle text-xs text-white/40 whitespace-nowrap">
                       {formatDate(log.createdAt)}
                     </td>
-                    <td className="px-4 py-3 text-xs text-white/60">
+                    <td className="px-4 py-2.5 align-middle text-xs text-white/60">
                       {log.user?.name ?? "Sistema"}
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-2.5 align-middle">
                       <span className="text-xs px-2 py-0.5 rounded-md bg-white/5 text-white/50 border border-white/8 font-mono">
                         {log.action}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-xs text-white/50 max-w-xs truncate">
+                    <td className="px-4 py-2.5 align-middle text-xs text-white/50 max-w-xs truncate">
                       {log.description}
                     </td>
                   </tr>

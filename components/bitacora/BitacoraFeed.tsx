@@ -262,7 +262,7 @@ export function BitacoraFeed({
     if (cur === qs) return;
     const t = setTimeout(() => {
       startTransition(() => {
-        router.replace(qs ? `/bitacora?${qs}` : "/bitacora", { scroll: false });
+        router.replace(qs ? `/bitacora/feed?${qs}` : "/bitacora/feed", { scroll: false });
         router.refresh();
       });
     }, 280);
@@ -339,7 +339,9 @@ export function BitacoraFeed({
   const groups = useMemo(() => {
     const map = new Map<string, { key: GroupKey; logs: BitacoraFeedLog[] }>();
     for (const log of filtered) {
-      const date = format(new Date(log.createdAt), "yyyy-MM-dd");
+      const d = new Date(log.createdAt);
+      if (log.shift === "NIGHT" && d.getHours() < 6) d.setDate(d.getDate() - 1);
+      const date = format(d, "yyyy-MM-dd");
       const key  = `${date}::${log.shift}`;
       if (!map.has(key)) map.set(key, { key: { date, shift: log.shift }, logs: [] });
       map.get(key)!.logs.push(log);
@@ -478,7 +480,7 @@ export function BitacoraFeed({
             </p>
             {!followupFilter ? (
               <Link
-                href="/bitacora?followup=1"
+                href="/bitacora/feed?followup=1"
                 className="shrink-0 rounded-lg border border-amber-400/40 bg-amber-400/10 px-2.5 py-1.5 text-[11px] font-medium text-amber-100 hover:bg-amber-400/20 text-center transition-colors"
               >
                 Ver solo esas
@@ -1033,6 +1035,14 @@ function LogCard({
     .slice(0, 160);
 
   const srcDeptColor = sharedFrom ? log.department.accentColor : null;
+  const reactionSummary = Object.entries(
+    log.reactions.reduce<Record<string, number>>((acc, r) => {
+      acc[r.emoji] = (acc[r.emoji] ?? 0) + 1;
+      return acc;
+    }, {})
+  )
+    .map(([emoji, count]) => `${emoji} ${count}`)
+    .join(" ");
 
   return (
     /* B14 — relative container for hover actions */
@@ -1076,6 +1086,11 @@ function LogCard({
                 <span className="flex items-center gap-0.5 text-[10px] text-white/25 shrink-0">
                   <MessageSquare className="w-3 h-3" />
                   {log._count.comments}
+                </span>
+              )}
+              {reactionSummary.length > 0 && (
+                <span className="text-[10px] text-[#ffeb66]/85 shrink-0">
+                  {reactionSummary}
                 </span>
               )}
             </div>
@@ -1160,6 +1175,12 @@ function LogCard({
                         <MessageSquare className="w-3 h-3" />
                         {log._count.comments}
                       </span>
+                    </>
+                  )}
+                  {reactionSummary.length > 0 && (
+                    <>
+                      <span>·</span>
+                      <span className="text-[#ffeb66]/85">{reactionSummary}</span>
                     </>
                   )}
                 </div>
