@@ -1076,6 +1076,7 @@ export function KanbanBoard({ project, allUsers }: KanbanBoardProps) {
           task={selectedTask}
           allUsers={allUsers}
           contractNotifyOptions={project.members.map((m) => m.user)}
+          mentionDepartmentId={project.department.id}
           onClose={closeTaskPanel}
           layout={taskPanelLayout}
         />

@@ -6,12 +6,7 @@ import { getActiveDepartmentId } from "@/lib/auth/permissions";
 import { buildPublishedLogWhere } from "@/lib/bitacora-where";
 import { computePublishHints } from "@/lib/log-entry-publish-hints";
 import type { SessionUser } from "@/lib/auth/types";
-
-function extractMentionIds(html: string): string[] {
-  const ids = new Set<string>();
-  for (const m of html.matchAll(/data-id="([^"]+)"/g)) ids.add(m[1]);
-  return [...ids];
-}
+import { resolveMentionNotificationUserIds } from "@/lib/bitacora-mentions";
 
 const createSchema = z.object({
   title: z.string().min(1),
@@ -167,7 +162,10 @@ export async function POST(req: NextRequest) {
       excludeEntryId: entry.id,
     });
 
-    const mentionedIds = extractMentionIds(content).filter((uid) => uid !== user.id);
+    const mentionedIds = await resolveMentionNotificationUserIds(prisma, content, {
+      departmentId,
+      excludeUserId: user.id,
+    });
     if (mentionedIds.length > 0) {
       await prisma.notification.createMany({
         data: mentionedIds.map((uid) => ({

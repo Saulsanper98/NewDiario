@@ -20,6 +20,8 @@ import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { sanitizeHtml } from "@/lib/sanitize-html";
 import { cn } from "@/lib/utils";
+import { useDeptMentionAutocomplete } from "@/hooks/use-dept-mention-autocomplete";
+import { commentHasStructuredMentions } from "@/lib/mention-html-snippet";
 import type { ProjectKanbanTask } from "@/lib/types/project-detail";
 
 type SubtaskRow     = NonNullable<ProjectKanbanTask["subtasks"]>[number];
@@ -33,6 +35,8 @@ interface TaskDetailPanelProps {
   allUsers: { id: string; name: string; image: string | null }[];
   /** Miembros del proyecto para «avisar si retraso»; por defecto se usa `allUsers`. */
   contractNotifyOptions?: { id: string; name: string; image: string | null }[];
+  /** Departamento del proyecto: autocompletado @ y @all en comentarios de tarea. */
+  mentionDepartmentId?: string;
   onClose: () => void;
   /** docked = columna lateral junto al tablero; overlay = modal pantalla completa (legacy) */
   layout?: "docked" | "overlay";
@@ -40,7 +44,7 @@ interface TaskDetailPanelProps {
 
 export const TaskDetailPanel = forwardRef<HTMLDivElement, TaskDetailPanelProps>(
   function TaskDetailPanel(
-    { task, allUsers, contractNotifyOptions, onClose, layout = "docked" },
+    { task, allUsers, contractNotifyOptions, mentionDepartmentId, onClose, layout = "docked" },
     ref
   ) {
   const router = useRouter();
@@ -82,6 +86,14 @@ export const TaskDetailPanel = forwardRef<HTMLDivElement, TaskDetailPanelProps>(
   const [addingSubtask, setAddingSubtask] = useState(false);
   const [showUnsavedWarning, setShowUnsavedWarning] = useState(false);
   const titleInputRef = useRef<HTMLInputElement>(null);
+  const taskCommentInputRef = useRef<HTMLTextAreaElement>(null);
+
+  const taskDeptMention = useDeptMentionAutocomplete({
+    value: comment,
+    onChange: (v) => setComment(v.slice(0, 2000)),
+    departmentId: mentionDepartmentId,
+    inputRef: taskCommentInputRef,
+  });
 
   const isContractDirty =
     contractNotifyUserId !== (task.contractNotifyUserId ?? null) ||
@@ -269,7 +281,8 @@ export const TaskDetailPanel = forwardRef<HTMLDivElement, TaskDetailPanelProps>(
 
   async function submitComment(e: React.FormEvent) {
     e.preventDefault();
-    if (!comment.trim()) return;
+    const textOnly = comment.replace(/<[^>]+>/g, "").trim();
+    if (!textOnly) return;
     setSubmitting(true);
     try {
       const res = await fetch(`/api/tasks/${task.id}/comments`, {
@@ -842,32 +855,86 @@ export const TaskDetailPanel = forwardRef<HTMLDivElement, TaskDetailPanelProps>(
                         {c.author?.name}{" "}
                         <span className="font-normal text-white/30">· {formatRelative(c.createdAt)}</span>
                       </p>
-                      <p className="text-xs text-white/55">{c.content}</p>
+                      {commentHasStructuredMentions(c.content) ? (
+                        <div
+                          className="text-xs text-white/55 [&_span[data-type=mention]]:text-[#4a9eff] [&_span[data-type=mention]]:font-medium"
+                          dangerouslySetInnerHTML={{
+                            __html: sanitizeHtml(c.content),
+                          }}
+                        />
+                      ) : (
+                        <p className="text-xs text-white/55">{c.content}</p>
+                      )}
                     </div>
                   </div>
                 ))}
               </div>
             )}
             <form onSubmit={submitComment} className="space-y-1.5">
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={comment}
-                  onChange={(e) => setComment(e.target.value.slice(0, 500))}
-                  placeholder="Añadir comentario..."
-                  maxLength={500}
-                  className="flex-1 bg-white/5 border border-white/8 rounded-lg px-3 py-1.5 text-xs text-white placeholder:text-white/25 focus:outline-none focus:border-[#ffeb66]/40"
-                />
-                <Button type="submit" variant="primary" size="sm" loading={submitting}>
+              <div className="flex gap-2 items-end">
+                <div className="flex-1 relative min-w-0">
+                  <textarea
+                    ref={taskCommentInputRef}
+                    value={comment}
+                    {...taskDeptMention.handlers}
+                    onKeyDown={(e) => {
+                      if (e.key === "Escape") {
+                        taskDeptMention.dismiss();
+                        return;
+                      }
+                      if (e.key === "Enter" && !e.shiftKey && !taskDeptMention.showMentionDrop) {
+                        e.preventDefault();
+                        submitComment(e);
+                      }
+                    }}
+                    placeholder={
+                      mentionDepartmentId
+                        ? "Comentario (@ + letra para mencionar, «all» todo el depto)…"
+                        : "Añadir comentario…"
+                    }
+                    rows={2}
+                    className="w-full bg-white/5 border border-white/8 rounded-lg px-3 py-1.5 text-xs text-white placeholder:text-white/25 focus:outline-none focus:border-[#ffeb66]/40 resize-y min-h-[2.5rem] max-h-32"
+                  />
+                  {taskDeptMention.showMentionDrop && (
+                    <div className="absolute bottom-full left-0 mb-1.5 w-[min(100%,18rem)] max-h-48 overflow-y-auto rounded-lg border border-white/12 bg-[#0a0f1e]/96 shadow-xl z-30">
+                      {taskDeptMention.mentionRows.map((row) => (
+                        <button
+                          key={row.kind === "dept-all" ? "dept-all" : row.id}
+                          type="button"
+                          onMouseDown={(ev) => {
+                            ev.preventDefault();
+                            taskDeptMention.pickMention(row);
+                          }}
+                          className="w-full flex items-center gap-2 px-2.5 py-1.5 text-left hover:bg-white/8 text-[11px]"
+                        >
+                          <span className="flex flex-col min-w-0">
+                            <span className="text-white/80 truncate">
+                              {row.kind === "dept-all" ? "@all" : `@${row.name}`}
+                            </span>
+                            {row.kind === "dept-all" ? (
+                              <span className="text-white/35 truncate text-[10px]">{row.name}</span>
+                            ) : row.email ? (
+                              <span className="text-white/35 truncate text-[10px]">{row.email}</span>
+                            ) : null}
+                          </span>
+                        </button>
+                      ))}
+                      {taskDeptMention.mentionRows.length === 0 && (
+                        <p className="px-2.5 py-2 text-[10px] text-white/30">Sin resultados</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+                <Button type="submit" variant="primary" size="sm" loading={submitting} className="shrink-0">
                   Enviar
                 </Button>
               </div>
               {comment.length > 0 && (
                 <p className={cn(
                   "text-[10px] text-right transition-colors",
-                  comment.length > 450 ? "text-amber-400" : "text-white/20"
+                  comment.length > 1800 ? "text-amber-400" : "text-white/20"
                 )}>
-                  {comment.length}/500
+                  {comment.length}/2000
                 </p>
               )}
             </form>

@@ -3,14 +3,28 @@ import type { Editor } from "@tiptap/core";
 import type { SuggestionProps } from "@tiptap/suggestion";
 import { exitSuggestion } from "@tiptap/suggestion";
 import { PluginKey } from "@tiptap/pm/state";
+import {
+  BITACORA_DEPT_ALL_MENTION_ID,
+  matchesDeptAllMentionQuery,
+} from "@/lib/bitacora-mentions";
 
-export type MentionListItem = { id: string; label: string; email?: string };
+export type MentionListItem = {
+  id: string;
+  label: string;
+  email?: string;
+  kind?: "user" | "dept-all";
+};
 
 /** Misma clave que en `Mention.configure` para poder cerrar el menú con `exitSuggestion`. */
 export const richEditorMentionPluginKey = new PluginKey("ccOpsRichMentionAt");
 
-async function fetchMentionItems(query: string): Promise<MentionListItem[]> {
-  const res = await fetch(`/api/users/mentions?q=${encodeURIComponent(query)}`, {
+async function fetchMentionItems(query: string, departmentId?: string): Promise<MentionListItem[]> {
+  const trimmed = query.trim();
+  if (trimmed.length < 1) return [];
+  const params = new URLSearchParams({ q: trimmed, namesOnly: "1" });
+  const d = departmentId?.trim();
+  if (d) params.set("departmentId", d);
+  const res = await fetch(`/api/users/mentions?${params.toString()}`, {
     credentials: "same-origin",
   });
   if (!res.ok) return [];
@@ -19,7 +33,25 @@ async function fetchMentionItems(query: string): Promise<MentionListItem[]> {
     id: u.id,
     label: u.name,
     email: u.email,
+    kind: "user",
   }));
+}
+
+async function fetchMentionItemsWithDeptOption(
+  query: string,
+  departmentIdForAll: string
+): Promise<MentionListItem[]> {
+  const trimmed = query.trim();
+  if (trimmed.length < 1) return [];
+  const d = departmentIdForAll.trim();
+  const users = await fetchMentionItems(trimmed, d || undefined);
+  if (!d || !matchesDeptAllMentionQuery(trimmed)) return users;
+  const deptRow: MentionListItem = {
+    id: BITACORA_DEPT_ALL_MENTION_ID,
+    label: "all",
+    kind: "dept-all",
+  };
+  return [deptRow, ...users];
 }
 
 function isLightTheme(): boolean {
@@ -106,13 +138,22 @@ function renderSuggestionList(
     btn.className = rowClass(index === selectedIndex);
     const main = document.createElement("span");
     main.className = "rich-editor-mention-name";
-    main.textContent = item.label;
-    btn.appendChild(main);
-    if (item.email) {
+    if (item.kind === "dept-all") {
+      main.textContent = "@all";
       const meta = document.createElement("span");
       meta.className = metaClass();
-      meta.textContent = item.email;
+      meta.textContent = "Todo el departamento";
+      btn.appendChild(main);
       btn.appendChild(meta);
+    } else {
+      main.textContent = item.label;
+      btn.appendChild(main);
+      if (item.email) {
+        const meta = document.createElement("span");
+        meta.className = metaClass();
+        meta.textContent = item.email;
+        btn.appendChild(meta);
+      }
     }
     btn.addEventListener("mouseenter", () => setSelected(index));
     btn.addEventListener("mousedown", (e) => {
@@ -214,15 +255,20 @@ function createMentionSuggestionRender() {
   };
 }
 
-export const richEditorMention = Mention.configure({
-  HTMLAttributes: {
-    class: "mention-node",
-  },
-  suggestion: {
-    pluginKey: richEditorMentionPluginKey,
-    char: "@",
-    allowSpaces: false,
-    items: async ({ query }) => fetchMentionItems(query),
-    render: () => createMentionSuggestionRender(),
-  },
-});
+/** Instancia Mention con soporte opcional `@all` (departamento de la entrada en edición). */
+export function createRichEditorMention(departmentIdForAll: string) {
+  return Mention.configure({
+    HTMLAttributes: {
+      class: "mention-node",
+    },
+    suggestion: {
+      pluginKey: richEditorMentionPluginKey,
+      char: "@",
+      allowSpaces: false,
+      shouldShow: ({ query }) => (query?.trim() ?? "").length >= 1,
+      items: async ({ query }) =>
+        fetchMentionItemsWithDeptOption(query, departmentIdForAll),
+      render: () => createMentionSuggestionRender(),
+    },
+  });
+}

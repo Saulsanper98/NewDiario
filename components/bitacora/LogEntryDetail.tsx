@@ -51,6 +51,8 @@ import { BackgroundOrbs } from "@/components/layout/BackgroundOrbs";
 import { useTheme } from "@/components/layout/ThemeProvider";
 import { bitacoraReadingProseClass } from "@/lib/bitacora-html-prose";
 import { bitacoraProseRootProps } from "@/lib/bitacora-prose-constants";
+import { useDeptMentionAutocomplete } from "@/hooks/use-dept-mention-autocomplete";
+import { commentHasStructuredMentions } from "@/lib/mention-html-snippet";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -204,13 +206,13 @@ function getReplyTarget(content: string): string | null {
   return m ? m[1] : null;
 }
 
-/** @usuario en azul si el nombre coincide con participantes conocidos (evita falsos positivos). */
+/** @usuario / @all en azul cuando coincide con participantes conocidos (evita falsos positivos). */
 function renderTextWithKnownMentions(text: string, knownNames: string[]): ReactNode {
   if (!text) return null;
   const sorted = [...new Set(knownNames.map((n) => n.trim()).filter(Boolean))].sort(
     (a, b) => b.length - a.length
   );
-  if (sorted.length === 0) return text;
+  const hasNames = sorted.length > 0;
 
   const parts: ReactNode[] = [];
   let i = 0;
@@ -223,6 +225,24 @@ function renderTextWithKnownMentions(text: string, knownNames: string[]): ReactN
       break;
     }
     if (at > i) parts.push(text.slice(i, at));
+
+    const afterAt = text.slice(at);
+    const allMatch = afterAt.match(/^@all\b/i);
+    if (allMatch) {
+      parts.push(
+        <span key={`mnt-${partKey++}-${at}`} className="text-[#4a9eff]/85 font-medium">
+          {allMatch[0]}
+        </span>
+      );
+      i = at + allMatch[0].length;
+      continue;
+    }
+
+    if (!hasNames) {
+      parts.push("@");
+      i = at + 1;
+      continue;
+    }
 
     let matched = false;
     for (const name of sorted) {
@@ -300,15 +320,19 @@ export function LogEntryDetail({
     buildReactionsState(entry.reactions, currentUser.id)
   );
   const [replyTo, setReplyTo] = useState<{ id: string; name: string } | null>(null);
-  const [mentionQuery, setMentionQuery] = useState("");
-  const [showMentionDrop, setShowMentionDrop] = useState(false);
-  const [mentionStart, setMentionStart] = useState(-1);
   const [deleteEntryOpen, setDeleteEntryOpen] = useState(false);
   const [deletingEntry, setDeletingEntry] = useState(false);
 
   // ── Refs ──────────────────────────────────────────────────────────────────
   const commentInputRef = useRef<HTMLTextAreaElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
+
+  const deptMention = useDeptMentionAutocomplete({
+    value: comment,
+    onChange: setComment,
+    departmentId: entry.departmentId,
+    inputRef: commentInputRef,
+  });
 
   // ── Mention candidates from existing comment authors ──────────────────────
   const mentionCandidates = useMemo(() => {
@@ -333,6 +357,21 @@ export function LogEntryDetail({
     s.add(currentUser.name.trim());
     return [...s];
   }, [mentionCandidates, currentUser.name]);
+
+  function commentBodyNode(body: string, asParagraph = true): ReactNode {
+    const mentionStyles =
+      "text-sm text-white/60 leading-relaxed [&_span[data-type=mention]]:text-[#4a9eff] [&_span[data-type=mention]]:font-medium";
+    if (commentHasStructuredMentions(body)) {
+      return (
+        <div
+          className={mentionStyles}
+          dangerouslySetInnerHTML={{ __html: sanitizeHtml(body) }}
+        />
+      );
+    }
+    const inner = renderTextWithKnownMentions(body, mentionHighlightNames);
+    return asParagraph ? <p className={mentionStyles}>{inner}</p> : inner;
+  }
 
   // ── Highlight own mentions in rich HTML body ──────────────────────────────
   useEffect(() => {
@@ -413,7 +452,8 @@ export function LogEntryDetail({
 
   async function submitComment(e: React.FormEvent) {
     e.preventDefault();
-    if (!comment.trim()) return;
+    const textOnly = comment.replace(/<[^>]+>/g, "").trim();
+    if (!textOnly) return;
     setSubmitting(true);
     try {
       const res = await fetch(`/api/log-entries/${entry.id}/comments`, {
@@ -527,41 +567,6 @@ export function LogEntryDetail({
       });
       toast.error("No se pudo guardar la reacción");
     }
-  }
-
-  function handleCommentChange(e: React.ChangeEvent<HTMLTextAreaElement>) {
-    const val = e.target.value;
-    setComment(val);
-    const pos = e.target.selectionStart ?? val.length;
-    const before = val.slice(0, pos);
-    const atIdx = before.lastIndexOf("@");
-    if (atIdx !== -1 && (atIdx === 0 || /\s/.test(before[atIdx - 1]))) {
-      const query = before.slice(atIdx + 1);
-      if (!query.includes(" ")) {
-        setMentionQuery(query);
-        setMentionStart(atIdx);
-        setShowMentionDrop(true);
-        return;
-      }
-    }
-    setShowMentionDrop(false);
-  }
-
-  function pickMention(name: string) {
-    if (mentionStart === -1) return;
-    const before = comment.slice(0, mentionStart);
-    const after = comment.slice(mentionStart + 1 + mentionQuery.length);
-    const next = `${before}@${name} ${after}`;
-    setComment(next);
-    setShowMentionDrop(false);
-    setTimeout(() => {
-      const el = commentInputRef.current;
-      if (el) {
-        el.focus();
-        const p = before.length + name.length + 2;
-        el.setSelectionRange(p, p);
-      }
-    }, 10);
   }
 
   function scrollToHeading(id: string) {
@@ -1169,18 +1174,16 @@ export function LogEntryDetail({
                         </div>
                       )}
 
-                      <p className="text-sm text-white/60 leading-relaxed">
-                        {replyTarget ? (
-                          <>
-                            <span className="text-[#4a9eff]/70 font-medium">
-                              @{replyTarget}:
-                            </span>{" "}
-                            {renderTextWithKnownMentions(bodyText, mentionHighlightNames)}
-                          </>
-                        ) : (
-                          renderTextWithKnownMentions(c.content, mentionHighlightNames)
-                        )}
-                      </p>
+                      {replyTarget ? (
+                        <div className="text-sm text-white/60 leading-relaxed">
+                          <span className="text-[#4a9eff]/70 font-medium">
+                            @{replyTarget}:
+                          </span>{" "}
+                          {commentBodyNode(bodyText, false)}
+                        </div>
+                      ) : (
+                        commentBodyNode(c.content, true)
+                      )}
                     </div>
                   </div>
                 );
@@ -1217,13 +1220,16 @@ export function LogEntryDetail({
                 <textarea
                   ref={commentInputRef}
                   value={comment}
-                  onChange={handleCommentChange}
+                  {...deptMention.handlers}
                   onKeyDown={(e) => {
-                    if (e.key === "Escape") { setShowMentionDrop(false); return; }
+                    if (e.key === "Escape") {
+                      deptMention.dismiss();
+                      return;
+                    }
                     if (
                       e.key === "Enter" &&
                       !e.shiftKey &&
-                      !showMentionDrop
+                      !deptMention.showMentionDrop
                     ) {
                       e.preventDefault();
                       submitComment(e as unknown as React.FormEvent);
@@ -1232,46 +1238,42 @@ export function LogEntryDetail({
                   placeholder={
                     replyTo
                       ? `Respondiendo a @${replyTo.name}…`
-                      : "Añadir comentario… (@ para mencionar, Enter para enviar)"
+                      : "Añadir comentario… (@ + texto para buscar, Enter para enviar)"
                   }
                   rows={2}
                   className="w-full bg-white/5 border border-white/8 rounded-xl px-3 py-2 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-[#ffeb66]/40 resize-none transition-colors duration-150"
                 />
 
-                {/* B60: Mention dropdown */}
-                {showMentionDrop && (
-                  <div className="absolute bottom-full left-0 mb-2 w-52 glass-3 rounded-xl border border-white/12 shadow-xl overflow-hidden z-20">
-                    {mentionCandidates
-                      .filter((u) =>
-                        u.name
-                          .toLowerCase()
-                          .includes(mentionQuery.toLowerCase())
-                      )
-                      .slice(0, 5)
-                      .map((u) => (
-                        <button
-                          key={u.id}
-                          type="button"
-                          onMouseDown={(e) => {
-                            e.preventDefault();
-                            pickMention(u.name);
-                          }}
-                          className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-white/8 text-left transition-colors duration-100"
-                        >
-                          <Avatar name={u.name} size="xs" />
-                          <span className="text-sm text-white/70">
-                            @{u.name}
+                {/* @menciones departamento (+ @all) vía API */}
+                {deptMention.showMentionDrop && (
+                  <div className="absolute bottom-full left-0 mb-2 w-[min(100%,20rem)] max-h-56 overflow-y-auto glass-3 rounded-xl border border-white/12 shadow-xl z-20">
+                    {deptMention.mentionRows.map((row) => (
+                      <button
+                        key={row.kind === "dept-all" ? "dept-all" : row.id}
+                        type="button"
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          deptMention.pickMention(row);
+                        }}
+                        className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-white/8 text-left transition-colors duration-100"
+                      >
+                        {row.kind === "user" && <Avatar name={row.name} size="xs" />}
+                        <span className="flex flex-col min-w-0">
+                          <span className="text-sm text-white/75 truncate">
+                            {row.kind === "dept-all" ? "@all" : `@${row.name}`}
                           </span>
-                        </button>
-                      ))}
-                    {mentionCandidates.filter((u) =>
-                      u.name
-                        .toLowerCase()
-                        .includes(mentionQuery.toLowerCase())
-                    ).length === 0 && (
-                      <p className="px-3 py-2 text-xs text-white/30">
-                        Sin resultados
-                      </p>
+                          {row.kind === "dept-all" ? (
+                            <span className="text-[10px] text-white/35 truncate">
+                              {row.name}
+                            </span>
+                          ) : row.email ? (
+                            <span className="text-[10px] text-white/35 truncate">{row.email}</span>
+                          ) : null}
+                        </span>
+                      </button>
+                    ))}
+                    {deptMention.mentionRows.length === 0 && (
+                      <p className="px-3 py-2 text-xs text-white/30">Sin resultados</p>
                     )}
                   </div>
                 )}
@@ -1280,7 +1282,7 @@ export function LogEntryDetail({
               <div className="flex items-center justify-between">
                 <p className="flex items-center gap-1 text-xs text-white/25">
                   <AtSign className="w-3 h-3" />
-                  Menciona usuarios · Shift+Enter = nueva línea
+                  @ y al menos una letra para buscar (@all = todo el depto). Shift+Enter = nueva línea
                 </p>
                 <Button
                   type="submit"

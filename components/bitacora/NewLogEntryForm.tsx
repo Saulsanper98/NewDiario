@@ -788,6 +788,7 @@ export function NewLogEntryForm({
               key={editingEntry?.id ?? "new"}
               content={content}
               onChange={setContent}
+              mentionDepartmentId={deptForEntry}
               placeholder="Describe la incidencia, novedad o información relevante..."
             />
           )}
@@ -898,10 +899,10 @@ export function NewLogEntryForm({
           <label className={formLabelClass(theme)}>Etiquetas</label>
           <div
             className={cn(
-              "flex flex-wrap gap-1.5 p-2 rounded-lg min-h-9 transition-colors",
+              "tags-composer-shell flex flex-wrap gap-1.5 p-2 rounded-lg min-h-9 transition-[border-color,box-shadow] duration-150",
               theme === "light"
                 ? "bg-white border border-zinc-200/90 shadow-sm focus-within:border-[#c4ae16]/55 focus-within:ring-2 focus-within:ring-[#d4bc1a]/20"
-                : "bg-white/3 border border-white/10 focus-within:border-[#ffeb66]/35"
+                : "bg-white/3 border border-white/10 focus-within:border-[#ffeb66]/38 focus-within:ring-2 focus-within:ring-[#ffeb66]/14"
             )}
           >
             {tags.map((tag) => (
@@ -934,7 +935,7 @@ export function NewLogEntryForm({
               onKeyDown={addTag}
               placeholder={tags.length === 0 ? "Añadir etiqueta (Enter)..." : ""}
               className={cn(
-                "bg-transparent text-sm focus:outline-none min-w-24 flex-1",
+                "bg-transparent text-sm min-w-24 flex-1 focus:outline-none focus-visible:outline-none",
                 theme === "light"
                   ? "text-zinc-800 placeholder:text-zinc-400"
                   : "text-white/70 placeholder:text-white/25"

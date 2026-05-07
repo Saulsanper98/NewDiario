@@ -362,6 +362,13 @@ select option {
   outline-offset: 0;
 }
 
+/* Compositor de etiquetas: borde/anillo en el contenedor (focus-within); el input es flex-shrink y solo un rectángulo pequeño con el outline global */
+.tags-composer-shell input:focus,
+.tags-composer-shell input:focus-visible {
+  outline: none;
+  outline-offset: 0;
+}
+
 /* Anillo de foco legible sobre fondos amarillos (CTA primario) */
 .focus-ring-on-accent:focus-visible {
   outline: 2px solid #0a0f1e;

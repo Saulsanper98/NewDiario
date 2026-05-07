@@ -27,7 +27,7 @@ import { useCallback, useRef, useState, useEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
 import toast from "react-hot-toast";
 import { useTheme } from "@/components/layout/ThemeProvider";
-import { richEditorMention } from "./rich-editor-mention";
+import { createRichEditorMention } from "./rich-editor-mention";
 import { richEditorBodyProseClass } from "@/lib/bitacora-html-prose";
 import { bitacoraProseRootProps } from "@/lib/bitacora-prose-constants";
 import { VideoExtension } from "./rich-editor-video";
@@ -48,16 +48,19 @@ async function uploadMedia(file: File): Promise<string> {
 }
 
 interface RichEditorProps {
-  content:      string;
-  onChange:     (html: string) => void;
-  placeholder?: string;
-  className?:   string;
-  maxLength?:   number;
+  content:              string;
+  onChange:             (html: string) => void;
+  /** Departamento de la nota — habilita @all para mencionar a todo el equipo (notificaciones al publicar). */
+  mentionDepartmentId?: string;
+  placeholder?:        string;
+  className?:          string;
+  maxLength?:           number;
 }
 
 export function RichEditor({
   content,
   onChange,
+  mentionDepartmentId = "",
   placeholder = "Escribe aquí...",
   className,
   maxLength = 50000,
@@ -107,9 +110,9 @@ export function RichEditor({
       TaskItem.configure({ nested: true }),
       TextAlign.configure({ types: ["heading", "paragraph"] }),
       CharacterCount.configure({ limit: maxLength }),
-      richEditorMention,
+      createRichEditorMention(mentionDepartmentId),
     ],
-    [maxLength, placeholder]
+    [maxLength, placeholder, mentionDepartmentId]
   );
 
   const editor = useEditor({
@@ -173,7 +176,7 @@ export function RichEditor({
         return false;
       },
     },
-  });
+  }, [extensions]);
 
   /* B49 — link hover detection */
   useEffect(() => {
