@@ -7,6 +7,7 @@ import { useSession } from "next-auth/react";
 import {
   Kanban, List, GitGraph, Activity, FolderTree, ArrowRight,
   TrendingUp, AlertTriangle, Clock, Pencil, Check, X, Trash2,
+  BookOpen, ChevronDown, ChevronUp, UserX, Timer, ShieldAlert, Crown,
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
@@ -30,9 +31,10 @@ import type { SessionUser } from "@/lib/auth/types";
 import type { ProjectDetail } from "@/lib/types/project-detail";
 import { useAccentForUi } from "@/lib/hooks/useAccentForUi";
 import { BoardSnapshotPanel } from "@/components/proyectos/BoardSnapshotPanel";
+import { ProjectDocs } from "@/components/proyectos/ProjectDocs";
 import { useTheme } from "@/components/layout/ThemeProvider";
 
-type Tab = "kanban" | "list" | "timeline" | "activity" | "subprojects";
+type Tab = "kanban" | "list" | "timeline" | "activity" | "subprojects" | "docs";
 type ProjectMemberRow = ProjectDetail["members"][number];
 
 interface ProjectViewProps {
@@ -41,11 +43,12 @@ interface ProjectViewProps {
 }
 
 const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
-  { id: "kanban",      label: "Kanban",      icon: Kanban },
-  { id: "list",        label: "Lista",        icon: List },
-  { id: "timeline",    label: "Timeline",     icon: GitGraph },
-  { id: "activity",    label: "Actividad",    icon: Activity },
-  { id: "subprojects", label: "Subproyectos", icon: FolderTree },
+  { id: "kanban",      label: "Kanban",        icon: Kanban },
+  { id: "list",        label: "Lista",          icon: List },
+  { id: "timeline",    label: "Timeline",       icon: GitGraph },
+  { id: "activity",    label: "Actividad",      icon: Activity },
+  { id: "docs",        label: "Docs",           icon: BookOpen },
+  { id: "subprojects", label: "Subproyectos",   icon: FolderTree },
 ];
 
 const STATUS_OPTIONS = Object.entries(STATUS_LABELS) as [keyof typeof STATUS_LABELS, string][];
@@ -96,12 +99,29 @@ export function ProjectView({ project, allUsers }: ProjectViewProps) {
   const [savingName,   setSavingName]   = useState(false);
   const [deleteProjectOpen, setDeleteProjectOpen] = useState(false);
   const [deletingProject, setDeletingProject] = useState(false);
+  const [statsOpen, setStatsOpen] = useState(false);
+  const [stats, setStats] = useState<{
+    unassignedCount: number;
+    staleCount: number;
+    reviewCount: number;
+    blockedCount: number;
+    avgHoursInProgress: number | null;
+    topAssignee: { id: string; name: string; image: string | null; count: number } | null;
+  } | null>(null);
   const nameInputRef = useRef<HTMLInputElement>(null);
   const descTextareaRef = useRef<HTMLTextAreaElement>(null);
   const editButtonRef = useRef<HTMLButtonElement>(null);
   const editPopoverRef = useRef<HTMLDivElement>(null);
 
   const subCount = project.subprojects.length;
+
+  useEffect(() => {
+    if (!statsOpen || stats) return;
+    fetch(`/api/projects/${project.id}/stats`)
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => { if (data) setStats(data); })
+      .catch(() => undefined);
+  }, [statsOpen, stats, project.id]);
 
   useEffect(() => {
     if (editingName) nameInputRef.current?.focus();
@@ -532,6 +552,81 @@ export function ProjectView({ project, allUsers }: ProjectViewProps) {
           </div>
         </div>
 
+        {/* Metrics row — collapsible */}
+        <div className="mt-3">
+          <button
+            type="button"
+            onClick={() => setStatsOpen((v) => !v)}
+            className="flex items-center gap-1 text-[10px] text-white/30 hover:text-white/55 transition-colors"
+          >
+            {statsOpen ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+            Métricas del equipo
+          </button>
+          {statsOpen && (
+            <div className="flex flex-wrap items-center gap-2 mt-2">
+              {!stats ? (
+                <span className="text-[10px] text-white/25 italic">Cargando…</span>
+              ) : (
+                <>
+                  <MetricPill
+                    icon={UserX}
+                    label="Sin asignar"
+                    value={stats.unassignedCount}
+                    green={stats.unassignedCount === 0}
+                    amber={stats.unassignedCount > 0 && stats.unassignedCount <= 3}
+                    red={stats.unassignedCount > 3}
+                  />
+                  <MetricPill
+                    icon={AlertTriangle}
+                    label="Inactivas >5d"
+                    value={stats.staleCount}
+                    green={stats.staleCount === 0}
+                    amber={stats.staleCount > 0 && stats.staleCount <= 2}
+                    red={stats.staleCount > 2}
+                  />
+                  <MetricPill
+                    icon={ShieldAlert}
+                    label="Bloqueadas"
+                    value={stats.blockedCount}
+                    green={stats.blockedCount === 0}
+                    amber={false}
+                    red={stats.blockedCount > 0}
+                  />
+                  <MetricPill
+                    icon={Activity}
+                    label="En revisión"
+                    value={stats.reviewCount}
+                    green={stats.reviewCount === 0}
+                    amber={stats.reviewCount > 0 && stats.reviewCount <= 3}
+                    red={false}
+                  />
+                  {stats.avgHoursInProgress !== null && (
+                    <MetricPill
+                      icon={Timer}
+                      label="Tiempo medio en progreso"
+                      value={`${stats.avgHoursInProgress < 24
+                        ? `${Math.round(stats.avgHoursInProgress)}h`
+                        : `${Math.round(stats.avgHoursInProgress / 24)}d`}`}
+                      green={stats.avgHoursInProgress < 24}
+                      amber={stats.avgHoursInProgress >= 24 && stats.avgHoursInProgress < 72}
+                      red={stats.avgHoursInProgress >= 72}
+                    />
+                  )}
+                  {stats.topAssignee && (
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-medium text-amber-300 border-amber-500/20 bg-amber-500/6">
+                      <Crown className="w-3 h-3" />
+                      <span className="text-white/60 font-normal">Top:</span>
+                      <Avatar name={stats.topAssignee.name} image={stats.topAssignee.image} size="xs" />
+                      <span className="max-w-[80px] truncate">{stats.topAssignee.name.split(" ")[0]}</span>
+                      <span className="text-amber-400/70">×{stats.topAssignee.count}</span>
+                    </span>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+        </div>
+
         {/* Tabs — en claro, banda separada del bloque superior */}
         <div className={cn(isLight && "project-tabs-shell")}>
         <div className={cn("project-tabs flex items-center gap-1 flex-wrap", isLight ? "mt-0" : "mt-4")}>
@@ -578,10 +673,44 @@ export function ProjectView({ project, allUsers }: ProjectViewProps) {
         )}
         {activeTab === "list"        && <TaskListView columns={project.kanbanColumns} />}
         {activeTab === "timeline"    && <ProjectTimeline columns={project.kanbanColumns} />}
-        {activeTab === "activity"    && <ProjectActivity activities={project.activityFeed} />}
+        {activeTab === "activity"    && <ProjectActivity activities={project.activityFeed} projectId={project.id} />}
+        {activeTab === "docs"        && <ProjectDocs projectId={project.id} />}
         {activeTab === "subprojects" && <SubprojectsTab project={project} />}
       </div>
     </div>
+  );
+}
+
+/* ── Metric pill ─────────────────────────────────────────────────────────── */
+
+function MetricPill({
+  icon: Icon,
+  label,
+  value,
+  green,
+  amber,
+  red,
+}: {
+  icon: React.ElementType;
+  label: string;
+  value: number | string;
+  green: boolean;
+  amber: boolean;
+  red: boolean;
+}) {
+  const color = red
+    ? "text-red-400 border-red-500/25 bg-red-500/8"
+    : amber
+    ? "text-amber-400 border-amber-500/25 bg-amber-500/8"
+    : green
+    ? "text-emerald-400 border-emerald-500/25 bg-emerald-500/8"
+    : "text-white/50 border-white/10 bg-white/4";
+  return (
+    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-medium ${color}`}>
+      <Icon className="w-3 h-3" />
+      <span className="text-white/60 font-normal">{label}:</span>
+      {value}
+    </span>
   );
 }
 

@@ -34,7 +34,7 @@ export function BoardSnapshotPanel({
   initialSnapshots,
 }: BoardSnapshotPanelProps) {
   const router = useRouter();
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false);
   const [snapshots, setSnapshots] = useState(initialSnapshots);
 
   useEffect(() => {

@@ -11,9 +11,12 @@ import {
   AlertCircle,
   Loader2,
   ChevronDown,
+  ChevronRight,
   Check,
   User,
   Search,
+  Building2,
+  ArrowLeft,
 } from "lucide-react";
 import { Logo } from "@/components/ui/Logo";
 import { Button } from "@/components/ui/Button";
@@ -29,6 +32,141 @@ interface LoginUser {
   name: string;
   email: string;
   image: string | null;
+}
+
+interface LoginDepartment {
+  id: string;
+  name: string;
+  slug: string;
+  accentColor: string;
+  memberCount: number;
+}
+
+/* ── DepartmentPicker ───────────────────────────────────────────────────── */
+
+function DepartmentPicker({
+  departments,
+  loading,
+  onSelect,
+}: {
+  departments: LoginDepartment[];
+  loading: boolean;
+  onSelect: (dept: LoginDepartment) => void;
+}) {
+  const [search, setSearch] = useState("");
+  const searchRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!loading && departments.length > 0) {
+      setTimeout(() => searchRef.current?.focus(), 80);
+    }
+  }, [loading, departments.length]);
+
+  const filtered = departments.filter((d) =>
+    d.name.toLowerCase().includes(search.toLowerCase())
+  );
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-10">
+        <Loader2 className="w-5 h-5 text-white/20 animate-spin" />
+      </div>
+    );
+  }
+
+  if (departments.length === 0) {
+    return (
+      <div className="py-10 text-center">
+        <Building2 className="w-8 h-8 text-white/15 mx-auto mb-3" />
+        <p className="text-sm text-white/30">Sin departamentos disponibles</p>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      {/* Search — solo si hay muchos depts */}
+      {departments.length > 4 && (
+        <div className="mb-3">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/30 pointer-events-none" />
+            <input
+              ref={searchRef}
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Buscar departamento…"
+              className="w-full bg-white/5 border border-white/10 rounded-lg text-sm text-white placeholder:text-white/30 h-9 pl-9 pr-3 focus:outline-none focus:border-white/20 transition-colors"
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Lista — sin panel wrapper, sobre el glass de la card */}
+      <ul>
+        {/* Label integrado como primer separador */}
+        <li
+          className="flex items-center gap-3 mb-1"
+          aria-hidden="true"
+        >
+          <div className="h-px flex-1" style={{ background: "rgba(255,255,255,0.07)" }} />
+          <span className="text-[10px] font-semibold uppercase tracking-[0.13em] text-white/25">
+            Departamento
+          </span>
+          <div className="h-px flex-1" style={{ background: "rgba(255,255,255,0.07)" }} />
+        </li>
+
+        {filtered.length === 0 ? (
+          <li className="py-6 text-center text-xs text-white/25">Sin resultados</li>
+        ) : (
+          filtered.map((dept, i) => {
+            const a = dept.accentColor;
+            return (
+              <li key={dept.id}>
+                {/* Separador entre items */}
+                {i > 0 && (
+                  <div className="h-px mx-1" style={{ background: "rgba(255,255,255,0.05)" }} />
+                )}
+                <button
+                  type="button"
+                  onClick={() => onSelect(dept)}
+                  className="group w-full flex items-center gap-4 px-1 py-3.5 cursor-pointer select-none transition-all duration-150 rounded-lg"
+                  onMouseEnter={(e) => {
+                    (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.04)";
+                  }}
+                  onMouseLeave={(e) => {
+                    (e.currentTarget as HTMLElement).style.background = "transparent";
+                  }}
+                >
+                  {/* Avatar con fondo sólido coloreado */}
+                  <div
+                    className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center text-[13px] font-bold select-none"
+                    style={{
+                      background: a,
+                      color: "#000",
+                      opacity: 0.9,
+                    }}
+                  >
+                    {dept.name.charAt(0).toUpperCase()}
+                  </div>
+
+                  {/* Nombre + miembros */}
+                  <div className="flex-1 min-w-0 text-left">
+                    <p className="text-sm font-semibold text-white/85 group-hover:text-white transition-colors truncate leading-tight">
+                      {dept.name}
+                    </p>
+                    <p className="text-[11px] text-white/30 mt-0.5">
+                      {dept.memberCount} miembro{dept.memberCount !== 1 ? "s" : ""}
+                    </p>
+                  </div>
+                </button>
+              </li>
+            );
+          })
+        )}
+      </ul>
+    </div>
+  );
 }
 
 /* ── UserPicker ─────────────────────────────────────────────────────────── */
@@ -206,14 +344,11 @@ function UserPicker({
 
   return (
     <div className="flex flex-col gap-1.5">
-      {/* Label idéntico al del componente Input */}
       <label className="text-xs font-medium text-white/60 uppercase tracking-wide">
         Usuario
       </label>
 
-      {/* Trigger — replica exacta del wrapper del Input */}
       <div className="relative overflow-hidden rounded-lg">
-        {/* Icono izquierda — misma posición que el Lock del campo contraseña */}
         <div className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40 pointer-events-none z-10">
           {loading ? (
             <Loader2 className="w-4 h-4 animate-spin" />
@@ -244,7 +379,6 @@ function UserPicker({
           </span>
         </button>
 
-        {/* Flecha derecha — misma posición que el ojo del campo contraseña */}
         <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
           <ChevronDown
             className="w-4 h-4 transition-transform duration-200 text-white/40"
@@ -584,9 +718,15 @@ export default function LoginPage() {
   const [lockCountdown, setLockCountdown] = useState(0);
   const [sessionMessage, setSessionMessage] = useState<string | null>(null);
 
-  /* Users list for picker */
+  /* Step 1 — department picker */
+  const [loginStep, setLoginStep]       = useState<"department" | "credentials">("department");
+  const [departments, setDepartments]   = useState<LoginDepartment[]>([]);
+  const [deptsLoading, setDeptsLoading] = useState(true);
+  const [selectedDept, setSelectedDept] = useState<LoginDepartment | null>(null);
+
+  /* Step 2 — users for selected department */
   const [loginUsers, setLoginUsers]     = useState<LoginUser[]>([]);
-  const [usersLoading, setUsersLoading] = useState(true);
+  const [usersLoading, setUsersLoading] = useState(false);
 
   /* L5 — cursor parallax light */
   const cursorOverlayRef = useRef<HTMLDivElement>(null);
@@ -671,14 +811,14 @@ export default function LoginPage() {
     return () => window.removeEventListener("mousemove", onMouseMove);
   }, []);
 
-  /* Load users for picker */
+  /* Load departments for step 1 */
   useEffect(() => {
     void (async () => {
       try {
-        const res = await fetch("/api/login-users");
-        if (res.ok) setLoginUsers(await res.json());
+        const res = await fetch("/api/login-departments");
+        if (res.ok) setDepartments(await res.json());
       } catch { /* ignore */ } finally {
-        setUsersLoading(false);
+        setDeptsLoading(false);
       }
     })();
   }, []);
@@ -809,6 +949,28 @@ export default function LoginPage() {
     setLoginPhase("idle");
   }
 
+  async function selectDepartment(dept: LoginDepartment) {
+    setSelectedDept(dept);
+    setLoginStep("credentials");
+    setEmail("");
+    setUsersLoading(true);
+    try {
+      const res = await fetch(`/api/login-users?departmentId=${dept.id}`);
+      if (res.ok) setLoginUsers(await res.json());
+    } catch { /* ignore */ } finally {
+      setUsersLoading(false);
+    }
+  }
+
+  function backToDepts() {
+    setLoginStep("department");
+    setSelectedDept(null);
+    setLoginUsers([]);
+    setEmail("");
+    setPassword("");
+    setError(null);
+  }
+
   const isLocked = lockCountdown > 0;
   const isLoading = loginPhase !== "idle";
 
@@ -872,155 +1034,190 @@ export default function LoginPage() {
             </div>
           </div>
 
-          {/* L20 — aria-live error region */}
-          {error && (
-            <div
-              role="alert"
-              aria-live="assertive"
-              className="mb-4 flex items-start gap-2.5 p-3 rounded-lg bg-red-500/8 border border-red-500/20 text-red-400 text-sm animate-in fade-in duration-200"
-            >
-              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-              <span>{error}</span>
+          {/* ── Step 1: Department selector ── */}
+          {loginStep === "department" && (
+            <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+              <DepartmentPicker
+                departments={departments}
+                loading={deptsLoading}
+                onSelect={(dept) => void selectDepartment(dept)}
+              />
             </div>
           )}
 
-          {/* Form */}
-          <form ref={formRef} onSubmit={handleSubmit} className="space-y-4">
+          {/* ── Step 2: Credentials ── */}
+          {loginStep === "credentials" && selectedDept && (
+            <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+              {/* Department back pill */}
+              <button
+                type="button"
+                onClick={backToDepts}
+                className="flex items-center gap-2 mb-5 group"
+              >
+                <ArrowLeft className="w-3.5 h-3.5 text-white/30 group-hover:text-white/60 transition-colors" />
+                <div
+                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-medium transition-all duration-150 group-hover:opacity-75"
+                  style={{
+                    background: `${selectedDept.accentColor}18`,
+                    borderColor: `${selectedDept.accentColor}35`,
+                    color: selectedDept.accentColor,
+                  }}
+                >
+                  <div
+                    className="w-1.5 h-1.5 rounded-full shrink-0"
+                    style={{ backgroundColor: selectedDept.accentColor }}
+                  />
+                  {selectedDept.name}
+                </div>
+              </button>
 
-            {/* User picker */}
-            <div className="login-field-enter" style={{ animationDelay: "150ms" }}>
-              <UserPicker
-                users={loginUsers}
-                value={email}
-                onChange={setEmail}
-                loading={usersLoading}
-                disabled={isLoading || isLocked}
-              />
-            </div>
+              {/* L20 — aria-live error region */}
+              {error && (
+                <div
+                  role="alert"
+                  aria-live="assertive"
+                  className="mb-4 flex items-start gap-2.5 p-3 rounded-lg bg-red-500/8 border border-red-500/20 text-red-400 text-sm animate-in fade-in duration-200"
+                >
+                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                  <span>{error}</span>
+                </div>
+              )}
 
-            {/* Password — L1 stagger, L12 CapsLock, L15 hint */}
-            <div className="login-field-enter" style={{ animationDelay: "220ms" }}>
-              <div className="flex flex-col gap-1">
-                <Input
-                  label="Contraseña"
-                  type={showPassword ? "text" : "password"}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  onKeyDown={(e) => setCapsLock(e.getModifierState("CapsLock"))}
-                  onKeyUp={(e)   => setCapsLock(e.getModifierState("CapsLock"))}
-                  placeholder="••••••••"
-                  icon={<Lock className="w-4 h-4" />}
-                  className="login-field"
-                  suffix={
+              {/* Form */}
+              <form ref={formRef} onSubmit={handleSubmit} className="space-y-4">
+
+                {/* User picker */}
+                <div className="login-field-enter" style={{ animationDelay: "80ms" }}>
+                  <UserPicker
+                    users={loginUsers}
+                    value={email}
+                    onChange={setEmail}
+                    loading={usersLoading}
+                    disabled={isLoading || isLocked}
+                  />
+                </div>
+
+                {/* Password */}
+                <div className="login-field-enter" style={{ animationDelay: "150ms" }}>
+                  <div className="flex flex-col gap-1">
+                    <Input
+                      label="Contraseña"
+                      type={showPassword ? "text" : "password"}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      onKeyDown={(e) => setCapsLock(e.getModifierState("CapsLock"))}
+                      onKeyUp={(e)   => setCapsLock(e.getModifierState("CapsLock"))}
+                      placeholder="••••••••"
+                      icon={<Lock className="w-4 h-4" />}
+                      className="login-field"
+                      suffix={
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="text-white/30 hover:text-white/60 transition-colors p-0.5 -m-0.5 rounded"
+                          aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                        >
+                          <span
+                            key={showPassword ? "show" : "hide"}
+                            className="block animate-in fade-in zoom-in-75 duration-150"
+                          >
+                            {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                          </span>
+                        </button>
+                      }
+                      required
+                      autoComplete="current-password"
+                    />
+
+                    {capsLock && (
+                      <p
+                        role="status"
+                        className="text-xs text-amber-400 flex items-center gap-1.5 animate-in fade-in duration-200 pt-0.5"
+                      >
+                        <AlertCircle className="w-3 h-3 shrink-0" />
+                        Mayúsculas activadas
+                      </p>
+                    )}
+
+                    <p className="text-[11px] text-white/30 mt-0.5">
+                      ¿No recuerdas la contraseña? Contacta con tu administrador.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Remember */}
+                <div className="login-field-enter" style={{ animationDelay: "220ms" }}>
+                  <div className="flex items-start gap-2.5">
+                    <input
+                      type="checkbox"
+                      id="remember"
+                      checked={remember}
+                      onChange={(e) => setRemember(e.target.checked)}
+                      className="login-remember size-4 shrink-0 rounded-[5px] border border-white/[0.16] bg-[rgba(5,8,18,0.55)] accent-[#ffeb66] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ffeb66]/45 focus-visible:ring-offset-2 focus-visible:ring-offset-[#070b14] mt-0.5"
+                    />
+                    <div>
+                      <label htmlFor="remember" className="text-sm text-white/[0.68] tracking-wide cursor-pointer">
+                        Recordar sesión
+                      </label>
+                      {remember && (
+                        <p className="text-[11px] text-white/40 animate-in fade-in duration-200 mt-0.5">
+                          Tu sesión se mantendrá activa 30 días
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Submit */}
+                <div className="login-field-enter" style={{ animationDelay: "280ms" }}>
+                  <Button
+                    type="submit"
+                    variant="primary"
+                    size="lg"
+                    disabled={isLoading || isLocked}
+                    className="w-full mt-2 h-11 rounded-[11px] font-semibold shadow-[0_10px_36px_rgba(0,0,0,0.42)] ring-1 ring-[#ffeb66]/[0.22]"
+                  >
+                    {isLoading && <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />}
+                    {loginPhase === "checking"
+                      ? "Verificando..."
+                      : loginPhase === "redirecting"
+                      ? "Redirigiendo..."
+                      : isLocked
+                      ? `Espera ${lockCountdown}s`
+                      : "Iniciar sesión"}
+                  </Button>
+                </div>
+
+                {/* Microsoft SSO */}
+                {microsoftLogin && (
+                  <div className="login-field-enter" style={{ animationDelay: "340ms" }}>
+                    <div className="relative my-4">
+                      <div className="absolute inset-0 flex items-center">
+                        <div className="w-full border-t border-white/8" />
+                      </div>
+                      <div className="relative flex justify-center text-xs text-white/30">
+                        <span className="px-2 bg-transparent">o continúa con</span>
+                      </div>
+                    </div>
                     <button
                       type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="text-white/30 hover:text-white/60 transition-colors p-0.5 -m-0.5 rounded"
-                      aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                      disabled={isLoading || isLocked}
+                      onClick={() => void handleMicrosoft()}
+                      className="w-full flex items-center justify-center gap-3 h-9 px-4 rounded-lg bg-white/8 border border-white/12 text-white text-sm hover:bg-white/12 transition-colors disabled:opacity-50"
                     >
-                      {/* L9 — eye icon animate-in on swap */}
-                      <span
-                        key={showPassword ? "show" : "hide"}
-                        className="block animate-in fade-in zoom-in-75 duration-150"
-                      >
-                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                      </span>
+                      <svg width="16" height="16" viewBox="0 0 21 21" fill="none">
+                        <rect x="1"  y="1"  width="9" height="9" fill="#F25022" />
+                        <rect x="11" y="1"  width="9" height="9" fill="#7FBA00" />
+                        <rect x="1"  y="11" width="9" height="9" fill="#00A4EF" />
+                        <rect x="11" y="11" width="9" height="9" fill="#FFB900" />
+                      </svg>
+                      Iniciar sesión con Microsoft
                     </button>
-                  }
-                  required
-                  autoComplete="current-password"
-                />
-
-                {/* L12 — CAPS LOCK warning */}
-                {capsLock && (
-                  <p
-                    role="status"
-                    className="text-xs text-amber-400 flex items-center gap-1.5 animate-in fade-in duration-200 pt-0.5"
-                  >
-                    <AlertCircle className="w-3 h-3 shrink-0" />
-                    Mayúsculas activadas
-                  </p>
+                  </div>
                 )}
-
-                {/* L15 — forgot password helper */}
-                <p className="text-[11px] text-white/30 mt-0.5">
-                  ¿No recuerdas la contraseña? Contacta con tu administrador.
-                </p>
-              </div>
+              </form>
             </div>
-
-            {/* Remember — L1 stagger, L18 session duration */}
-            <div className="login-field-enter" style={{ animationDelay: "290ms" }}>
-              <div className="flex items-start gap-2.5">
-                <input
-                  type="checkbox"
-                  id="remember"
-                  checked={remember}
-                  onChange={(e) => setRemember(e.target.checked)}
-                  className="login-remember size-4 shrink-0 rounded-[5px] border border-white/[0.16] bg-[rgba(5,8,18,0.55)] accent-[#ffeb66] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ffeb66]/45 focus-visible:ring-offset-2 focus-visible:ring-offset-[#070b14] mt-0.5"
-                />
-                <div>
-                  <label htmlFor="remember" className="text-sm text-white/[0.68] tracking-wide cursor-pointer">
-                    Recordar sesión
-                  </label>
-                  {/* L18 — duration info when checked */}
-                  {remember && (
-                    <p className="text-[11px] text-white/40 animate-in fade-in duration-200 mt-0.5">
-                      Tu sesión se mantendrá activa 30 días
-                    </p>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Submit — L1 stagger, L13 granular phases, L24 lockout countdown */}
-            <div className="login-field-enter" style={{ animationDelay: "350ms" }}>
-              <Button
-                type="submit"
-                variant="primary"
-                size="lg"
-                disabled={isLoading || isLocked}
-                className="w-full mt-2 h-11 rounded-[11px] font-semibold shadow-[0_10px_36px_rgba(0,0,0,0.42)] ring-1 ring-[#ffeb66]/[0.22]"
-              >
-                {isLoading && <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />}
-                {loginPhase === "checking"
-                  ? "Verificando..."
-                  : loginPhase === "redirecting"
-                  ? "Redirigiendo..."
-                  : isLocked
-                  ? `Espera ${lockCountdown}s`
-                  : "Iniciar sesión"}
-              </Button>
-            </div>
-
-            {/* Microsoft SSO */}
-            {microsoftLogin && (
-              <div className="login-field-enter" style={{ animationDelay: "410ms" }}>
-                <div className="relative my-4">
-                  <div className="absolute inset-0 flex items-center">
-                    <div className="w-full border-t border-white/8" />
-                  </div>
-                  <div className="relative flex justify-center text-xs text-white/30">
-                    <span className="px-2 bg-transparent">o continúa con</span>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  disabled={isLoading || isLocked}
-                  onClick={() => void handleMicrosoft()}
-                  className="w-full flex items-center justify-center gap-3 h-9 px-4 rounded-lg bg-white/8 border border-white/12 text-white text-sm hover:bg-white/12 transition-colors disabled:opacity-50"
-                >
-                  <svg width="16" height="16" viewBox="0 0 21 21" fill="none">
-                    <rect x="1"  y="1"  width="9" height="9" fill="#F25022" />
-                    <rect x="11" y="1"  width="9" height="9" fill="#7FBA00" />
-                    <rect x="1"  y="11" width="9" height="9" fill="#00A4EF" />
-                    <rect x="11" y="11" width="9" height="9" fill="#FFB900" />
-                  </svg>
-                  Iniciar sesión con Microsoft
-                </button>
-              </div>
-            )}
-          </form>
+          )}
         </div>
       </div>
 

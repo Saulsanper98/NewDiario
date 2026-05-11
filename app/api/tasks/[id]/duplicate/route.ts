@@ -63,6 +63,7 @@ export async function POST(
     data: {
       projectId: task.projectId,
       userId: user.id,
+      action: "TASK_DUPLICATED",
       description: `Tarea duplicada: "${duplicate.title}"`,
     },
   });

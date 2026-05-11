@@ -87,6 +87,7 @@ export async function PATCH(
     data: {
       projectId,
       userId: user.id,
+      action: "PROJECT_UPDATED",
       description: `Proyecto actualizado`,
     },
   });
@@ -128,6 +129,7 @@ export async function DELETE(
     data: {
       projectId,
       userId: user.id,
+      action: "PROJECT_DELETED",
       description: `Proyecto eliminado: ${project.name}`,
     },
   });

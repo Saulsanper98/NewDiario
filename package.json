@@ -17,7 +17,8 @@
     "db:seed": "prisma db seed",
     "db:studio": "prisma studio",
     "db:reset": "prisma migrate reset --force && npm run db:seed",
-    "setup": "npm run db:generate && npm run db:push && npm run db:seed"
+    "setup": "npm run db:generate && npm run db:push && npm run db:seed",
+    "electron": "electron electron/main.cjs"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.2",
@@ -74,6 +75,7 @@
     "tailwindcss": "^4",
     "tsx": "^4.21.0",
     "typescript": "^5",
-    "vitest": "^3.2.4"
+    "vitest": "^3.2.4",
+    "electron": "^35.7.5"
   }
 }

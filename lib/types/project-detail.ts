@@ -53,6 +53,20 @@ export const projectDetailInclude = {
             },
             orderBy: { createdAt: "asc" },
           },
+          attachments: {
+            orderBy: { createdAt: "asc" },
+          },
+          activities: {
+            orderBy: { createdAt: "desc" },
+            take: 15,
+            select: {
+              id: true,
+              type: true,
+              description: true,
+              createdAt: true,
+              userId: true,
+            },
+          },
           _count: { select: { comments: true } },
         },
       },
@@ -61,6 +75,9 @@ export const projectDetailInclude = {
   activityFeed: {
     orderBy: { createdAt: "desc" },
     take: 20,
+    include: {
+      user: { select: { id: true, name: true, image: true } },
+    },
   },
   boardSnapshots: {
     orderBy: { createdAt: "desc" },

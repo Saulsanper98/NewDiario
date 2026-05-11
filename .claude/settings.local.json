@@ -74,7 +74,18 @@
       "Bash(Restart-Service CCOps)",
       "Bash(Start-Sleep -Seconds 3)",
       "Bash(Get-Service CCOps)",
-      "Bash(Select-Object Status, DisplayName)"
+      "Bash(Select-Object Status, DisplayName)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Saul Web\\\\NewDiario\\\\NewDiario\" -Force)",
+      "Bash(New-Item -ItemType Directory -Force -Path \"C:\\\\Saul Web\\\\NewDiario\\\\NewDiario\\\\app\\\\api\\\\projects\\\\[projectId]\\\\docs\")",
+      "Bash(Out-Null)",
+      "Bash(New-Item -ItemType Directory -Force -Path \"C:\\\\Saul Web\\\\NewDiario\\\\NewDiario\\\\app\\\\api\\\\projects\\\\[projectId]\\\\docs\\\\[docId]\")",
+      "Bash(Write-Output \"OK\")",
+      "Bash(npx kill-port *)",
+      "Bash(Get-Process -Name \"node\" -ErrorAction SilentlyContinue)",
+      "Bash(Stop-Process -Force)",
+      "Bash(npm run *)",
+      "Bash(curl -s http://localhost:3000/api/login-departments)",
+      "Bash(curl -sv http://localhost:3000/api/login-departments)"
     ]
   }
 }

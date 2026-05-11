@@ -18,7 +18,8 @@ export const edgeAuthConfig: NextAuthConfig = {
       if (
         nextUrl.pathname === "/api/features" ||
         nextUrl.pathname === "/api/branding" ||
-        nextUrl.pathname === "/api/login-users"
+        nextUrl.pathname === "/api/login-users" ||
+        nextUrl.pathname === "/api/login-departments"
       ) return true;
 
       const isLoggedIn = !!auth?.user;

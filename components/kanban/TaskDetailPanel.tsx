@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import {
   X, Calendar, User, Tag, CheckSquare, MessageSquare,
   Clock, Zap, AlertTriangle, Pencil, Check, Trash2, Copy, Bell, Plus, Loader2,
+  Paperclip, History, ShieldAlert, Upload,
 } from "lucide-react";
 import { isPast } from "date-fns";
 import toast from "react-hot-toast";
@@ -84,6 +85,16 @@ export const TaskDetailPanel = forwardRef<HTMLDivElement, TaskDetailPanelProps>(
   const assigneeInputRef = useRef<HTMLInputElement>(null);
   const [newSubtaskDraft, setNewSubtaskDraft] = useState("");
   const [addingSubtask, setAddingSubtask] = useState(false);
+  const [actualHours, setActualHours] = useState<number | null>(task.actualHours ?? null);
+  const [editingActualHours, setEditingActualHours] = useState(false);
+  const [actualHoursDraft, setActualHoursDraft] = useState<string>((task.actualHours ?? "").toString());
+  const [blockedReason, setBlockedReason] = useState<string>(task.blockedReason ?? "");
+  const [editingBlocked, setEditingBlocked] = useState(false);
+  const [blockedDraft, setBlockedDraft] = useState<string>(task.blockedReason ?? "");
+  const [savingBlocked, setSavingBlocked] = useState(false);
+  const [attachments, setAttachments] = useState<NonNullable<ProjectKanbanTask["attachments"]>>(task.attachments ?? []);
+  const [uploadingFile, setUploadingFile] = useState(false);
+  const attachFileRef = useRef<HTMLInputElement>(null);
   const [showUnsavedWarning, setShowUnsavedWarning] = useState(false);
   const titleInputRef = useRef<HTMLInputElement>(null);
   const taskCommentInputRef = useRef<HTMLTextAreaElement>(null);
@@ -188,6 +199,11 @@ export const TaskDetailPanel = forwardRef<HTMLDivElement, TaskDetailPanelProps>(
     setContractSlaNote(task.contractSlaNote ?? "");
     setContractImpactNote(task.contractImpactNote ?? "");
     setLocalTags(task.tags ?? []);
+    setActualHours(task.actualHours ?? null);
+    setActualHoursDraft((task.actualHours ?? "").toString());
+    setBlockedReason(task.blockedReason ?? "");
+    setBlockedDraft(task.blockedReason ?? "");
+    setAttachments(task.attachments ?? []);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- leer `task` actual; comentarios/subtareas no suben `updatedAt` del Task
   }, [task.id, task.updatedAt, editingTitle, task.comments?.length, subtaskSig]);
 
@@ -422,6 +438,74 @@ export const TaskDetailPanel = forwardRef<HTMLDivElement, TaskDetailPanelProps>(
     }
   }
 
+  async function deleteComment(commentId: string) {
+    const res = await fetch(`/api/tasks/${task.id}/comments/${commentId}`, {
+      method: "DELETE",
+    });
+    if (!res.ok) { toast.error("No se pudo eliminar el comentario"); return; }
+    setComments((prev) => prev.filter((c) => c.id !== commentId));
+    toast.success("Comentario eliminado");
+  }
+
+  async function saveActualHours() {
+    const val = actualHoursDraft.trim() === "" ? null : parseFloat(actualHoursDraft);
+    if (val !== null && (isNaN(val) || val < 0)) {
+      toast.error("Horas reales no válidas"); setEditingActualHours(false); return;
+    }
+    setActualHours(val);
+    setEditingActualHours(false);
+    try {
+      await patch({ actualHours: val });
+    } catch {
+      setActualHours(task.actualHours ?? null);
+      toast.error("No se pudo guardar las horas reales");
+    }
+  }
+
+  async function saveBlockedReason() {
+    const trimmed = blockedDraft.trim();
+    if (trimmed === blockedReason) { setEditingBlocked(false); return; }
+    setSavingBlocked(true);
+    try {
+      await patch({ blockedReason: trimmed || null });
+      setBlockedReason(trimmed);
+      setEditingBlocked(false);
+    } catch {
+      toast.error("No se pudo guardar el motivo de bloqueo");
+    } finally {
+      setSavingBlocked(false);
+    }
+  }
+
+  async function uploadAttachment(file: File) {
+    if (uploadingFile) return;
+    setUploadingFile(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch(`/api/tasks/${task.id}/attachments`, { method: "POST", body: fd });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({})) as { error?: string };
+        toast.error(err.error ?? "Error al subir archivo");
+        return;
+      }
+      const att = await res.json() as NonNullable<ProjectKanbanTask["attachments"]>[number];
+      setAttachments((prev) => [...prev, att]);
+      router.refresh();
+    } catch {
+      toast.error("Error al subir archivo");
+    } finally {
+      setUploadingFile(false);
+    }
+  }
+
+  async function deleteAttachment(attachmentId: string) {
+    const res = await fetch(`/api/tasks/${task.id}/attachments/${attachmentId}`, { method: "DELETE" });
+    if (!res.ok) { toast.error("No se pudo eliminar el archivo"); return; }
+    setAttachments((prev) => prev.filter((a) => a.id !== attachmentId));
+    router.refresh();
+  }
+
   const completedSubtasks = subtasks.filter((s) => s.completed).length;
   const dueDateObj = dueDate ? new Date(dueDate) : null;
   const isOverdue  = dueDateObj ? isPast(dueDateObj) : false;
@@ -648,6 +732,42 @@ export const TaskDetailPanel = forwardRef<HTMLDivElement, TaskDetailPanelProps>(
               </div>
             )}
 
+            {/* Actual hours */}
+            <div className="flex items-center gap-2.5">
+              <Clock className="w-3.5 h-3.5 text-emerald-400/60 shrink-0" />
+              <span className="text-xs text-white/40">Horas reales</span>
+              <div className="ml-auto">
+                {editingActualHours ? (
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      type="number"
+                      min={0}
+                      step={0.5}
+                      value={actualHoursDraft}
+                      onChange={(e) => setActualHoursDraft(e.target.value)}
+                      onBlur={() => void saveActualHours()}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") void saveActualHours();
+                        if (e.key === "Escape") setEditingActualHours(false);
+                      }}
+                      autoFocus
+                      className="w-20 bg-white/5 border border-[#ffeb66]/40 rounded px-2 py-0.5 text-xs text-white focus:outline-none"
+                    />
+                    <button type="button" onClick={() => { setActualHoursDraft(""); void saveActualHours(); }}
+                      className="text-[10px] text-white/30 hover:text-red-400 transition-colors">Quitar</button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setEditingActualHours(true)}
+                    className="text-xs font-medium text-white/60 hover:text-white transition-colors"
+                  >
+                    {actualHours != null ? `${actualHours}h` : <span className="italic text-white/25">Añadir…</span>}
+                  </button>
+                )}
+              </div>
+            </div>
+
             {isOverdue && contractNotifyUserId && (
               <p className="text-[11px] text-amber-400/90 flex items-start gap-1.5 pt-1 border-t border-white/6">
                 <Bell className="w-3.5 h-3.5 shrink-0 mt-0.5" />
@@ -730,6 +850,108 @@ export const TaskDetailPanel = forwardRef<HTMLDivElement, TaskDetailPanelProps>(
             >
               Guardar contrato
             </Button>
+          </div>
+
+          {/* Blocked reason */}
+          <div className="space-y-2 p-3 rounded-xl bg-red-500/[0.05] border border-red-500/12">
+            <div className="flex items-center justify-between">
+              <p className="text-xs text-red-300/80 flex items-center gap-1.5 font-medium">
+                <ShieldAlert className="w-3.5 h-3.5 shrink-0" />
+                Motivo de bloqueo
+              </p>
+              {!editingBlocked && (
+                <button type="button" onClick={() => { setBlockedDraft(blockedReason); setEditingBlocked(true); }}
+                  className="p-0.5 rounded text-white/20 hover:text-white/60 transition-colors">
+                  <Pencil className="w-3 h-3" />
+                </button>
+              )}
+            </div>
+            {editingBlocked ? (
+              <div className="space-y-1.5">
+                <textarea
+                  value={blockedDraft}
+                  onChange={(e) => setBlockedDraft(e.target.value)}
+                  rows={2}
+                  maxLength={4000}
+                  placeholder="Describe por qué está bloqueada esta tarea…"
+                  className="w-full bg-white/5 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-white/70 placeholder:text-white/25 focus:outline-none focus:border-red-400/40 resize-y min-h-[2.5rem]"
+                  disabled={savingBlocked}
+                  autoFocus
+                />
+                <div className="flex gap-1.5">
+                  <button type="button" onClick={() => void saveBlockedReason()} disabled={savingBlocked}
+                    className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium bg-red-500/10 text-red-300 border border-red-500/20 hover:bg-red-500/18 disabled:opacity-50 transition-colors">
+                    <Check className="w-3 h-3" />
+                    {savingBlocked ? "Guardando…" : "Guardar"}
+                  </button>
+                  <button type="button" onClick={() => setEditingBlocked(false)}
+                    className="px-2 py-1 rounded-lg text-xs text-white/30 hover:text-white/60 transition-colors">
+                    Cancelar
+                  </button>
+                </div>
+              </div>
+            ) : blockedReason ? (
+              <p className="text-xs text-white/55 leading-relaxed whitespace-pre-wrap">{blockedReason}</p>
+            ) : (
+              <p className="text-[11px] text-white/25 italic">Sin motivo registrado. Haz clic en el lápiz para añadir.</p>
+            )}
+          </div>
+
+          {/* Attachments */}
+          <div>
+            <p className="text-xs text-white/40 mb-2 flex items-center gap-1.5">
+              <Paperclip className="w-3.5 h-3.5" />
+              Archivos adjuntos ({attachments.length})
+            </p>
+            {attachments.length > 0 && (
+              <div className="space-y-1.5 mb-2">
+                {attachments.map((att) => (
+                  <div key={att.id} className="group/att flex items-center gap-2 p-2 rounded-lg bg-white/4 border border-white/6 hover:border-white/12 transition-colors">
+                    <Paperclip className="w-3 h-3 text-white/30 shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <a
+                        href={att.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-white/70 hover:text-[#ffeb66] transition-colors truncate block"
+                      >
+                        {att.filename}
+                      </a>
+                      <span className="text-[10px] text-white/25">
+                        {att.size < 1024 * 1024 ? `${Math.round(att.size / 1024)} KB` : `${(att.size / 1024 / 1024).toFixed(1)} MB`}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => void deleteAttachment(att.id)}
+                      className="opacity-0 group-hover/att:opacity-100 p-0.5 rounded text-white/20 hover:text-red-400 transition-all duration-150 shrink-0"
+                      aria-label="Eliminar adjunto"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            <input
+              ref={attachFileRef}
+              type="file"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) void uploadAttachment(f);
+                e.target.value = "";
+              }}
+            />
+            <button
+              type="button"
+              disabled={uploadingFile}
+              onClick={() => attachFileRef.current?.click()}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-white/40 bg-white/4 border border-white/8 hover:text-white/70 hover:border-white/16 transition-all duration-150 disabled:opacity-40 w-full justify-center"
+            >
+              {uploadingFile ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
+              {uploadingFile ? "Subiendo…" : "Adjuntar archivo"}
+            </button>
           </div>
 
           <div className="h-px bg-white/6" />
@@ -839,6 +1061,29 @@ export const TaskDetailPanel = forwardRef<HTMLDivElement, TaskDetailPanelProps>(
 
           <div className="h-px bg-white/6" />
 
+          {/* Status history */}
+          {task.activities && task.activities.length > 0 && (
+            <div>
+              <p className="text-xs text-white/40 mb-2 flex items-center gap-1.5">
+                <History className="w-3.5 h-3.5" />
+                Historial de estado
+              </p>
+              <div className="space-y-1.5">
+                {task.activities.map((act) => (
+                  <div key={act.id} className="flex items-start gap-2">
+                    <div className="mt-1 w-1.5 h-1.5 rounded-full bg-white/20 shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[11px] text-white/55 leading-relaxed">{act.description}</p>
+                      <p className="text-[10px] text-white/25">{formatRelative(act.createdAt)}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="h-px bg-white/6" />
+
           {/* Comments */}
           <div>
             <p className="text-xs text-white/40 mb-3 flex items-center gap-1.5">
@@ -848,13 +1093,23 @@ export const TaskDetailPanel = forwardRef<HTMLDivElement, TaskDetailPanelProps>(
             {comments.length > 0 && (
               <div className="space-y-3 mb-3">
                 {comments.map((c: TaskCommentRow) => (
-                  <div key={c.id} className="flex gap-2">
+                  <div key={c.id} className="flex gap-2 group/comment">
                     <Avatar name={c.author?.name ?? "?"} image={c.author?.image} size="xs" />
                     <div className="flex-1 bg-white/4 rounded-lg p-2.5">
-                      <p className="text-xs font-medium text-white/60 mb-1">
-                        {c.author?.name}{" "}
-                        <span className="font-normal text-white/30">· {formatRelative(c.createdAt)}</span>
-                      </p>
+                      <div className="flex items-center justify-between mb-1">
+                        <p className="text-xs font-medium text-white/60">
+                          {c.author?.name}{" "}
+                          <span className="font-normal text-white/30">· {formatRelative(c.createdAt)}</span>
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => void deleteComment(c.id)}
+                          className="opacity-0 group-hover/comment:opacity-100 p-0.5 rounded text-white/20 hover:text-red-400 transition-all duration-150 shrink-0"
+                          aria-label="Eliminar comentario"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      </div>
                       {commentHasStructuredMentions(c.content) ? (
                         <div
                           className="text-xs text-white/55 [&_span[data-type=mention]]:text-[#4a9eff] [&_span[data-type=mention]]:font-medium"

@@ -23,7 +23,8 @@ export default auth((req) => {
     nextUrl.pathname.startsWith("/api/auth") ||
     nextUrl.pathname === "/api/features" ||
     nextUrl.pathname === "/api/branding" ||
-    nextUrl.pathname === "/api/login-users";
+    nextUrl.pathname === "/api/login-users" ||
+    nextUrl.pathname === "/api/login-departments";
 
   if (isPublicApi) return;
 

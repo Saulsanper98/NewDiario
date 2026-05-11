@@ -52,6 +52,13 @@ enum ProjectStatus {
   ARCHIVED
 }
 
+enum DocType {
+  SPEC
+  DECISION
+  LINK
+  FILE
+}
+
 enum TaskActivityType {
   CREATED
   STATUS_CHANGED
@@ -99,6 +106,8 @@ model User {
   logEntryLinksCreated    LogEntryLink[]
   contractNotifyTasks     Task[]           @relation("TaskContractNotify")
   boardSnapshotsAuthored ProjectBoardSnapshot[] @relation("BoardSnapshotAuthor")
+  projectDocs          ProjectDoc[]
+  projectActivities    ProjectActivity[]
   unavailabilities     UserUnavailability[]
   notifications        Notification[]
   activityLogs         ActivityLog[]
@@ -401,6 +410,7 @@ model Project {
   comments      ProjectComment[]
   activityFeed   ProjectActivity[]
   boardSnapshots ProjectBoardSnapshot[]
+  docs           ProjectDoc[]
 
   @@index([departmentId])
   @@index([status])
@@ -509,13 +519,18 @@ model ProjectActivity {
   id          String   @id @default(cuid())
   projectId   String
   userId      String?
+  action      String?  @db.VarChar(80)
   description String
+  metadata    String?  @db.Text
   createdAt   DateTime @default(now())
 
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user    User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@index([projectId])
   @@index([createdAt])
+  @@index([userId])
+  @@index([action])
 }
 
 model KanbanColumn {
@@ -549,6 +564,9 @@ model Task {
   projectId      String
   assigneeId     String?
   order          Int       @default(0)
+  columnEnteredAt DateTime?
+  actualHours   Float?
+  blockedReason String?   @db.Text
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
   deletedAt      DateTime?
@@ -651,6 +669,28 @@ model TaskTag {
 
   @@index([taskId])
   @@index([name])
+}
+
+model ProjectDoc {
+  id          String   @id @default(cuid())
+  projectId   String
+  title       String   @db.VarChar(300)
+  content     String?  @db.Text
+  type        DocType  @default(SPEC)
+  fileUrl     String?  @db.VarChar(1000)
+  fileName    String?  @db.VarChar(500)
+  fileType    String?  @db.VarChar(100)
+  fileSize    Int?
+  pinned      Boolean  @default(false)
+  createdById String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdBy User    @relation(fields: [createdById], references: [id])
+
+  @@index([projectId])
+  @@index([type])
 }
 
 // ─── Notifications ────────────────────────────────────────────────────────────

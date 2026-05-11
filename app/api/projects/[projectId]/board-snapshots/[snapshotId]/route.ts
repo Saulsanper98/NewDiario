@@ -114,6 +114,7 @@ export async function DELETE(
     data: {
       projectId,
       userId: user.id,
+      action: "SNAPSHOT_DELETED",
       description: "Snapshot del tablero eliminado",
     },
   });

@@ -186,6 +186,7 @@ export async function POST(
       data: {
         projectId,
         userId: user.id,
+        action: "TASK_CREATED",
         description: `Nueva tarea «${title.trim()}» en ${column.name}`,
       },
     }),
@@ -245,6 +246,7 @@ export async function DELETE(
       data: {
         projectId,
         userId: user.id,
+        action: "TASKS_ARCHIVED",
         description: `Se archivaron ${taskIds.length} tarea(s) de la columna de completadas`,
       },
     }),

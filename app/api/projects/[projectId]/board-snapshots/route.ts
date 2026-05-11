@@ -143,6 +143,7 @@ export async function POST(
     data: {
       projectId,
       userId: user.id,
+      action: "SNAPSHOT_CREATED",
       description: label
         ? `Snapshot del tablero: «${label}»`
         : "Snapshot del tablero guardado",

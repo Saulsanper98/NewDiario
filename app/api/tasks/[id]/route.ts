@@ -23,6 +23,8 @@ const patchTaskSchema = z
     contractNotifyUserId: z.string().nullable().optional(),
     contractSlaNote: z.string().max(8000).nullable().optional(),
     contractImpactNote: z.string().max(8000).nullable().optional(),
+    actualHours: z.number().nonnegative().nullable().optional(),
+    blockedReason: z.string().max(4000).nullable().optional(),
   })
   .strict();
 
@@ -166,6 +168,8 @@ export async function PATCH(
     data.contractSlaNote = b.contractSlaNote;
   if (b.contractImpactNote !== undefined)
     data.contractImpactNote = b.contractImpactNote;
+  if (b.actualHours !== undefined) data.actualHours = b.actualHours;
+  if (b.blockedReason !== undefined) data.blockedReason = b.blockedReason;
 
   if (b.dueDate !== undefined) {
     const d = parseOptDate(b.dueDate);
@@ -287,7 +291,10 @@ export async function PATCH(
 
     await tx.task.update({
       where: { id },
-      data: { columnId: targetColumnId },
+      data: {
+        columnId: targetColumnId,
+        ...(movedBetweenColumns ? { columnEnteredAt: new Date() } : {}),
+      },
     });
 
     for (let i = 0; i < ordered.length; i++) {
@@ -353,6 +360,7 @@ export async function PATCH(
         data: {
           projectId: task.projectId,
           userId: activityUserId,
+          action: "TASK_MOVED",
           description: `Tarea "${task.title}" movida a "${newCol?.name ?? "?"}"`,
         },
       });
