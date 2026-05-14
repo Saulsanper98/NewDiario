@@ -7,6 +7,11 @@ import { buildPublishedLogWhere } from "@/lib/bitacora-where";
 import { computePublishHints } from "@/lib/log-entry-publish-hints";
 import type { SessionUser } from "@/lib/auth/types";
 import { resolveMentionNotificationUserIds } from "@/lib/bitacora-mentions";
+import {
+  createdAtForBackdatedShift,
+  isValidYyyyMmDd,
+  todayYyyyMmDd,
+} from "@/lib/bitacora-entry-date";
 
 const createSchema = z.object({
   title: z.string().min(1),
@@ -28,6 +33,8 @@ const createSchema = z.object({
   metricAnchorLabel: z.string().max(160).optional(),
   metricAnchorValue: z.string().max(120).optional(),
   metricAnchorTrend: z.enum(["UP", "DOWN", "FLAT"]).optional(),
+  /** Día calendario (YYYY-MM-DD) para registrar la entrada en un día pasado (vista por día). */
+  forDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
 });
 
 export async function GET(req: NextRequest) {
@@ -107,11 +114,29 @@ export async function POST(req: NextRequest) {
     metricAnchorLabel: rawMetricLabel,
     metricAnchorValue: rawMetricValue,
     metricAnchorTrend: rawMetricTrend,
+    forDate: rawForDate,
   } = parsed.data;
 
   const metricAnchorLabel = rawMetricLabel?.trim() || null;
   const metricAnchorValue = rawMetricValue?.trim() || null;
   const metricAnchorTrend = rawMetricTrend ?? null;
+
+  let backdatedCreatedAt: Date | undefined;
+  if (rawForDate) {
+    if (!isValidYyyyMmDd(rawForDate)) {
+      return NextResponse.json({ error: "Fecha inválida" }, { status: 400 });
+    }
+    const todayStr = todayYyyyMmDd();
+    if (rawForDate > todayStr) {
+      return NextResponse.json(
+        { error: "No se puede registrar una entrada con fecha futura" },
+        { status: 400 }
+      );
+    }
+    if (rawForDate < todayStr) {
+      backdatedCreatedAt = createdAtForBackdatedShift(rawForDate, shift);
+    }
+  }
 
   // Verify user has access to department
   const hasDept =
@@ -134,6 +159,7 @@ export async function POST(req: NextRequest) {
       metricAnchorTrend,
       authorId: user.id,
       departmentId,
+      ...(backdatedCreatedAt && { createdAt: backdatedCreatedAt }),
       tags: {
         createMany: { data: tags.map((name) => ({ name })) },
       },

@@ -1,9 +1,9 @@
 import type { ReactNode } from "react";
 
-/** Misma idea que `extractPlainAtMentionUserIds`: fin de `@Nombre` en texto plano. */
+/** Misma idea que `extractPlainAtMentionUserIds`: fin de `@Nombre` en texto plano (incl. Markdown). */
 function isPlainMentionBoundary(ch: string | undefined): boolean {
   if (ch === undefined) return true;
-  return /\s|[.,;:!?'"()[\]{}]/.test(ch);
+  return /\s|[.,;:!?'"()[\]{}*_`]/.test(ch);
 }
 
 /**
@@ -36,7 +36,11 @@ export function renderPlainTextWithMentions(
     const allMatch = afterAt.match(/^@all\b/i);
     if (allMatch) {
       parts.push(
-        <span key={`mnt-${partKey++}-${at}`} className="text-[#4a9eff]/85 font-medium">
+        <span
+          key={`mnt-${partKey++}-${at}`}
+          data-plain-mention="1"
+          className="text-[#4a9eff]/85 font-medium"
+        >
           {allMatch[0]}
         </span>
       );
@@ -59,7 +63,11 @@ export function renderPlainTextWithMentions(
       const end = at + needle.length;
       if (!isPlainMentionBoundary(text[end])) continue;
       parts.push(
-        <span key={`mnt-${partKey++}-${at}`} className="text-[#4a9eff]/85 font-medium">
+        <span
+          key={`mnt-${partKey++}-${at}`}
+          data-plain-mention="1"
+          className="text-[#4a9eff]/85 font-medium"
+        >
           @{name}
         </span>
       );

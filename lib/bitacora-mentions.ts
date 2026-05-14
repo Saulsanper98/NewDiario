@@ -63,7 +63,10 @@ export function extractPlainAtMentionUserIds(
     let matched = false;
     for (const u of sorted) {
       const esc = escapeRegex(u.name);
-      const re = new RegExp(`^${esc}(?=\\s|[.,;:!?'")\]}]|$)`, "i");
+      const re = new RegExp(
+        "^" + esc + "(?=\\s|[.,;:!?\\'\"()\\[\\]{}*_\\u0060]|$)",
+        "i"
+      );
       if (!re.test(tail)) continue;
       found.add(u.id);
       i = at + 1 + u.name.length;

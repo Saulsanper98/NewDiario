@@ -39,6 +39,11 @@ describe("bitacora-mentions", () => {
     expect(extractPlainAtMentionUserIds("hey @Saul Ramos tú", users)).toEqual(["b"]);
     expect(extractPlainAtMentionUserIds("@Saul ", users)).toEqual(["a"]);
     expect(extractPlainAtMentionUserIds("@all @Saul", users)).toEqual(["a"]);
+    expect(
+      extractPlainAtMentionUserIds("**@Daniel Mendoza** en negrita", [
+        { id: "dm", name: "Daniel Mendoza" },
+      ])
+    ).toEqual(["dm"]);
   });
 
   it("parseLeadingReplyMention: solo @Nombre: exacto; no hasta IP:", () => {

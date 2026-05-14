@@ -9,6 +9,7 @@ import type { SessionUser } from "@/lib/auth/types";
 import { format } from "date-fns";
 import Link from "next/link";
 import { Plus, List } from "lucide-react";
+import { localDayBoundsForDateMatch } from "@/lib/bitacora-entry-date";
 
 export default async function BitacoraDiaPage({
   searchParams,
@@ -28,13 +29,8 @@ export default async function BitacoraDiaPage({
 
   /* Validate format */
   const dateMatch = /^\d{4}-\d{2}-\d{2}$/.test(rawDate) ? rawDate : today;
-  const dayStart = new Date(`${dateMatch}T00:00:00`);
-  const dayEnd = new Date(`${dateMatch}T23:59:59.999`);
-  // Night shift spans 22:00 → 06:00 next day; entries created 00:00-05:59 belong to prior date
-  const nightShiftStart = new Date(`${dateMatch}T22:00:00`);
-  const nextDayNightEnd = new Date(dayStart);
-  nextDayNightEnd.setDate(nextDayNightEnd.getDate() + 1);
-  nextDayNightEnd.setHours(6, 0, 0, 0);
+  const { dayStart, dayEnd, nightShiftStart, nextDayNightEnd } =
+    localDayBoundsForDateMatch(dateMatch);
 
   const dept = await prisma.department.findUnique({
     where: { id: deptId },
@@ -109,7 +105,7 @@ export default async function BitacoraDiaPage({
         />
       </div>
       <Link
-        href="/bitacora/nueva"
+        href={`/bitacora/nueva?date=${encodeURIComponent(dateMatch)}`}
         className="fixed z-30 flex items-center gap-2 bg-[#ffeb66] text-[#0a0f1e] px-4 py-3 min-h-[48px] rounded-full font-semibold text-sm shadow-lg shadow-[#ffeb66]/20 lt-elev-fab hover:bg-[#ffe033] transition-all duration-200 hover:scale-105 safe-fab-br print:hidden"
       >
         <Plus className="w-4 h-4" />

@@ -317,6 +317,20 @@ html[data-aurora] .app-sidebar-shell {
     );
 }
 
+/*
+ * Menú «Automático» expandido encima del contenido: el cristal deja ver pestañas/cabeceras
+ * detrás (p. ej. Bitácora «Por día» / «Feed»). Fondo casi opaco solo en ese estado.
+ */
+.app-sidebar-shell.sidebar-expanded-solid {
+  background: linear-gradient(
+    180deg,
+    rgba(11, 16, 32, 0.97) 0%,
+    rgba(8, 11, 22, 0.985) 100%
+  ) !important;
+  backdrop-filter: blur(14px) saturate(1.06) !important;
+  -webkit-backdrop-filter: blur(14px) saturate(1.06) !important;
+}
+
 .app-sidebar-shell::after {
   content: "";
   position: absolute;
@@ -626,6 +640,12 @@ html:not([data-theme="light"]) .ProseMirror mark {
 .ProseMirror span[data-type="mention"]:hover,
 .prose span[data-type="mention"]:hover {
   color: #93c5fd !important;
+}
+
+/* Menciones en texto plano (p. ej. comentarios sin HTML TipTap) — gana a .text-white/60 del párrafo */
+span[data-plain-mention="1"] {
+  color: #60a5fa !important;
+  font-weight: 500 !important;
 }
 
 /* Own-mention highlight — added via JS in LogEntryDetail */

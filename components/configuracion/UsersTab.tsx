@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, Fragment } from "react";
 import { useRouter } from "next/navigation";
 import {
   Search,
@@ -121,11 +121,45 @@ export function UsersTab({
     });
   }
 
-  const filtered = users.filter(
-    (u) =>
-      u.name.toLowerCase().includes(search.toLowerCase()) ||
-      u.email.toLowerCase().includes(search.toLowerCase())
+  const filtered = useMemo(
+    () =>
+      users.filter(
+        (u) =>
+          u.name.toLowerCase().includes(search.toLowerCase()) ||
+          u.email.toLowerCase().includes(search.toLowerCase())
+      ),
+    [users, search]
   );
+
+  const { usersByDepartmentSections, usersWithoutDepartment } = useMemo(() => {
+    const nameSort = (a: ConfigPageUser, b: ConfigPageUser) =>
+      a.name.localeCompare(b.name, "es", { sensitivity: "base" });
+
+    const sections = departments
+      .map((dept) => ({
+        department: dept,
+        users: filtered
+          .filter((u) => u.departments.some((ud) => ud.department.id === dept.id))
+          .slice()
+          .sort(nameSort),
+      }))
+      .filter((s) => s.users.length > 0);
+
+    const withoutDept = filtered
+      .filter((u) => u.departments.length === 0)
+      .slice()
+      .sort(nameSort);
+
+    return {
+      usersByDepartmentSections: sections,
+      usersWithoutDepartment: withoutDept,
+    };
+  }, [filtered, departments]);
+
+  const groupedBodyEmpty =
+    filtered.length > 0 &&
+    usersByDepartmentSections.length === 0 &&
+    usersWithoutDepartment.length === 0;
 
   function openEdit(user: (typeof users)[number]) {
     setEditId(user.id);
@@ -285,6 +319,99 @@ export function UsersTab({
     a.download = `usuarios_${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
     URL.revokeObjectURL(url);
+  }
+
+  function renderUserTableRow(user: ConfigPageUser, rowKey: string) {
+    return (
+      <tr
+        key={rowKey}
+        className="border-b border-white/4 hover:bg-white/2 transition-colors"
+      >
+        <td className="px-4 py-2.5 align-middle">
+          <div className="flex items-center gap-2.5">
+            <Avatar name={user.name} image={user.image} size="sm" />
+            <div>
+              <p className="text-sm font-medium text-white">{user.name}</p>
+              <p className="text-xs text-white/40">{user.email}</p>
+            </div>
+          </div>
+        </td>
+        <td className="px-4 py-2.5 align-middle">
+          <div className="flex flex-wrap gap-1 items-center">
+            {user.departments.slice(0, 2).map((ud) => (
+              <span
+                key={ud.id}
+                className="text-xs px-1.5 py-0.5 rounded border"
+                style={{
+                  borderColor: withAlpha(ud.department.accentColor, "30"),
+                  color: accent(ud.department.accentColor),
+                  backgroundColor: withAlpha(ud.department.accentColor, "10"),
+                }}
+              >
+                {ud.department.name}
+              </span>
+            ))}
+            {user.departments.length > 2 && (
+              <span className="text-xs text-white/30">
+                +{user.departments.length - 2}
+              </span>
+            )}
+          </div>
+        </td>
+        <td className="px-4 py-2.5 align-middle">
+          <div className="flex items-center gap-1.5">
+            {user.role === "SUPERADMIN" && (
+              <Shield className="w-3 h-3 text-[#ffeb66]" />
+            )}
+            <span className="text-xs text-white/60">
+              {ROLE_LABELS[user.role as keyof typeof ROLE_LABELS]}
+            </span>
+          </div>
+        </td>
+        <td className="px-4 py-2.5 align-middle">
+          <Badge variant={user.isActive ? "success" : "error"} size="sm">
+            {user.isActive ? (
+              <CheckCircle className="w-3 h-3" />
+            ) : (
+              <XCircle className="w-3 h-3" />
+            )}
+            {user.isActive ? "Activo" : "Inactivo"}
+          </Badge>
+        </td>
+        <td className="px-4 py-2.5 align-middle">
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="sm" type="button" onClick={() => openEdit(user)}>
+              Editar
+            </Button>
+            {user.id !== currentUser.id && (
+              <Button
+                variant="danger"
+                size="sm"
+                type="button"
+                onClick={() => toggleActive(user.id, user.isActive)}
+              >
+                {user.isActive ? "Desactivar" : "Activar"}
+              </Button>
+            )}
+            {isSuperAdmin && user.id !== currentUser.id && (
+              <Button
+                variant="ghost"
+                size="sm"
+                type="button"
+                onClick={() => {
+                  setDeleteTarget(user);
+                  setDeleteConfirmName("");
+                }}
+                title="Eliminar usuario"
+                className="text-red-400/60 hover:text-red-400"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </Button>
+            )}
+          </div>
+        </td>
+      </tr>
+    );
   }
 
   return (
@@ -570,103 +697,62 @@ export function UsersTab({
               </tr>
             </thead>
             <tbody>
-              {filtered.map((user) => (
-                <tr
-                  key={user.id}
-                  className="border-b border-white/4 hover:bg-white/2 transition-colors"
-                >
-                  <td className="px-4 py-2.5 align-middle">
-                    <div className="flex items-center gap-2.5">
-                      <Avatar name={user.name} image={user.image} size="sm" />
-                      <div>
-                        <p className="text-sm font-medium text-white">
-                          {user.name}
-                        </p>
-                        <p className="text-xs text-white/40">{user.email}</p>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-4 py-2.5 align-middle">
-                    <div className="flex flex-wrap gap-1 items-center">
-                      {user.departments.slice(0, 2).map((ud) => (
-                        <span
-                          key={ud.id}
-                          className="text-xs px-1.5 py-0.5 rounded border"
-                          style={{
-                            borderColor: withAlpha(ud.department.accentColor, "30"),
-                            color: accent(ud.department.accentColor),
-                            backgroundColor: withAlpha(ud.department.accentColor, "10"),
-                          }}
-                        >
-                          {ud.department.name}
-                        </span>
-                      ))}
-                      {user.departments.length > 2 && (
-                        <span className="text-xs text-white/30">
-                          +{user.departments.length - 2}
-                        </span>
+              {groupedBodyEmpty ? (
+                filtered.map((user) => renderUserTableRow(user, user.id))
+              ) : (
+                <>
+                  {usersByDepartmentSections.map(({ department, users: list }) => (
+                    <Fragment key={department.id}>
+                      <tr className="border-b border-white/8 bg-white/[0.045]">
+                        <td colSpan={5} className="px-4 py-2 align-middle">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span
+                              className="w-2 h-2 rounded-full shrink-0"
+                              style={{ backgroundColor: accent(department.accentColor) }}
+                            />
+                            <span className="text-xs font-semibold text-white/85 tracking-wide">
+                              {department.name}
+                            </span>
+                            <span className="text-[10px] text-white/35 font-medium tabular-nums">
+                              {list.length} {list.length === 1 ? "usuario" : "usuarios"}
+                            </span>
+                            <span className="text-[10px] text-white/25">
+                              ·{" "}
+                              {department._count.members === 1
+                                ? "1 miembro activo"
+                                : `${department._count.members} miembros activos`}{" "}
+                              en el departamento
+                            </span>
+                          </div>
+                        </td>
+                      </tr>
+                      {list.map((user) =>
+                        renderUserTableRow(user, `${department.id}:${user.id}`)
                       )}
-                    </div>
-                  </td>
-                  <td className="px-4 py-2.5 align-middle">
-                    <div className="flex items-center gap-1.5">
-                      {user.role === "SUPERADMIN" && (
-                        <Shield className="w-3 h-3 text-[#ffeb66]" />
+                    </Fragment>
+                  ))}
+                  {usersWithoutDepartment.length > 0 && (
+                    <Fragment key="__sin-depto">
+                      <tr className="border-b border-white/8 bg-amber-500/[0.07]">
+                        <td colSpan={5} className="px-4 py-2 align-middle">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-semibold text-amber-200/90 tracking-wide">
+                              Sin departamento asignado
+                            </span>
+                            <span className="text-[10px] text-white/35 font-medium tabular-nums">
+                              {usersWithoutDepartment.length}{" "}
+                              {usersWithoutDepartment.length === 1 ? "usuario" : "usuarios"}
+                            </span>
+                          </div>
+                        </td>
+                      </tr>
+                      {usersWithoutDepartment.map((user) =>
+                        renderUserTableRow(user, `__sin-depto:${user.id}`)
                       )}
-                      <span className="text-xs text-white/60">
-                        {ROLE_LABELS[user.role as keyof typeof ROLE_LABELS]}
-                      </span>
-                    </div>
-                  </td>
-                  <td className="px-4 py-2.5 align-middle">
-                    <Badge
-                      variant={user.isActive ? "success" : "error"}
-                      size="sm"
-                    >
-                      {user.isActive ? (
-                        <CheckCircle className="w-3 h-3" />
-                      ) : (
-                        <XCircle className="w-3 h-3" />
-                      )}
-                      {user.isActive ? "Activo" : "Inactivo"}
-                    </Badge>
-                  </td>
-                  <td className="px-4 py-2.5 align-middle">
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        type="button"
-                        onClick={() => openEdit(user)}
-                      >
-                        Editar
-                      </Button>
-                      {user.id !== currentUser.id && (
-                        <Button
-                          variant="danger"
-                          size="sm"
-                          type="button"
-                          onClick={() => toggleActive(user.id, user.isActive)}
-                        >
-                          {user.isActive ? "Desactivar" : "Activar"}
-                        </Button>
-                      )}
-                      {isSuperAdmin && user.id !== currentUser.id && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          type="button"
-                          onClick={() => { setDeleteTarget(user); setDeleteConfirmName(""); }}
-                          title="Eliminar usuario"
-                          className="text-red-400/60 hover:text-red-400"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </Button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                    </Fragment>
+                  )}
+                </>
+              )}
             </tbody>
           </table>
           </div>

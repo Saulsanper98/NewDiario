@@ -1058,29 +1058,55 @@ export function LogEntryDetail({
           </div>
 
           {comments.length > 0 && (
-            <div className="space-y-4 mb-5">
+            <div className="space-y-3 mb-5">
               {comments.map((c: LogCommentRow) => {
+                const plainForReply = c.content
+                  .replace(/<[^>]+>/g, "")
+                  .replace(/\u00a0/g, " ")
+                  .trim();
                 const replyParsed = parseLeadingReplyMention(
-                  c.content,
+                  plainForReply,
                   mentionHighlightNames
                 );
                 const replyTarget = replyParsed?.replyTarget ?? null;
                 const bodyText = replyParsed?.bodyText ?? c.content;
+                const isReply = Boolean(replyTarget);
+                const structured = commentHasStructuredMentions(c.content);
                 return (
-                  <div key={c.id} className="flex gap-3 group/comment">
+                  <div
+                    key={c.id}
+                    className={cn(
+                      "flex gap-3 group/comment",
+                      isReply &&
+                        "relative pl-4 sm:pl-5 ml-0.5 border-l-[3px] border-[#4a9eff]/45 rounded-l-md"
+                    )}
+                  >
                     <Avatar
                       name={c.author.name}
                       image={c.author.image}
                       size="sm"
+                      className={cn(isReply && "ring-1 ring-[#4a9eff]/25")}
                     />
-                    <div className="flex-1 bg-white/4 rounded-xl p-4">
-                      <div className="flex items-center gap-2 mb-2">
+                    <div
+                      className={cn(
+                        "flex-1 min-w-0 rounded-xl p-4",
+                        isReply
+                          ? "bg-[#4a9eff]/[0.08] border border-[#4a9eff]/22 shadow-[inset_0_1px_0_rgba(74,158,255,0.07)]"
+                          : "bg-white/4 border border-white/6"
+                      )}
+                    >
+                      <div className="flex items-center gap-2 mb-2 flex-wrap">
                         <span className="text-xs font-semibold text-white/70">
                           {c.author.name}
                         </span>
                         <span className="text-xs text-white/30">
                           {formatRelative(c.createdAt)}
                         </span>
+                        {isReply && (
+                          <span className="text-[10px] font-medium uppercase tracking-wide text-[#4a9eff]/55 px-1.5 py-0.5 rounded-md bg-[#4a9eff]/10 border border-[#4a9eff]/20">
+                            Respuesta
+                          </span>
+                        )}
                         {/* Hover actions */}
                         <div className="ml-auto flex items-center gap-1 opacity-0 group-hover/comment:opacity-100 transition-opacity duration-150 print:hidden">
                           <button
@@ -1104,8 +1130,7 @@ export function LogEntryDetail({
                         </div>
                       </div>
 
-                      {/* B59: Reply indicator */}
-                      {replyTarget && (
+                      {replyTarget && !structured && (
                         <div className="flex items-center gap-1 mb-1.5 text-xs text-white/30">
                           <CornerDownLeft className="w-3 h-3 shrink-0" />
                           Respondiendo a
@@ -1115,7 +1140,9 @@ export function LogEntryDetail({
                         </div>
                       )}
 
-                      {replyTarget ? (
+                      {structured && replyTarget ? (
+                        commentBodyNode(c.content, true)
+                      ) : replyTarget ? (
                         <div className="text-sm text-white/60 leading-relaxed">
                           <span className="text-[#4a9eff]/70 font-medium">
                             @{replyTarget}:

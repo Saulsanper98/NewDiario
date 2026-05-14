@@ -11,7 +11,15 @@ export async function GET() {
         name: true,
         slug: true,
         accentColor: true,
-        _count: { select: { members: true } },
+        _count: {
+          select: {
+            members: {
+              where: {
+                user: { deletedAt: null, isActive: true },
+              },
+            },
+          },
+        },
       },
     });
 

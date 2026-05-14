@@ -863,7 +863,7 @@ export function BitacoraDayView({ logs, selectedDate, departmentName }: Bitacora
             {format(parsedDate, "d 'de' MMMM yyyy", { locale: es })}.
           </p>
           <Link
-            href="/bitacora/nueva"
+            href={`/bitacora/nueva?date=${encodeURIComponent(selectedDate)}`}
             className={cn(
               "inline-flex items-center gap-2 mt-2 px-5 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 print:hidden border",
               isLight

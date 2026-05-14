@@ -13,7 +13,15 @@ export type ConfigPageUser = Prisma.UserGetPayload<{
 }>;
 
 export const configPageDepartmentInclude = {
-  _count: { select: { members: true } },
+  _count: {
+    select: {
+      members: {
+        where: {
+          user: { deletedAt: null, isActive: true },
+        },
+      },
+    },
+  },
 } satisfies Prisma.DepartmentInclude;
 
 export type ConfigPageDepartment = Prisma.DepartmentGetPayload<{

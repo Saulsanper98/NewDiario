@@ -204,8 +204,11 @@ export function Sidebar({ user, isAdmin, pendingFollowups = 0 }: SidebarProps) {
         isOverlayMode ? "!absolute inset-y-0 left-0" : "shrink-0",
         "transition-[width] duration-200 ease-out",
         isExpanded ? "w-60" : "w-16",
+        isOverlayMode && isExpanded && "sidebar-expanded-solid",
         isOverlayMode && isExpanded
-          ? "shadow-[4px_0_40px_rgba(0,0,0,0.55)]"
+          ? isLight
+            ? "shadow-[4px_0_28px_rgba(15,23,42,0.1)]"
+            : "shadow-[4px_0_40px_rgba(0,0,0,0.55)]"
           : ""
       )}
     >

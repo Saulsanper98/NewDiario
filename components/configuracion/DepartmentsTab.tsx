@@ -169,8 +169,9 @@ export function DepartmentsTab({ departments, isSuperAdmin }: DepartmentsTabProp
                 <div className="flex items-center gap-1.5 mt-0.5">
                   <Users className="w-3 h-3 text-white/30" />
                   <span className="text-xs text-white/40">
-                    {dept._count.members} miembro
-                    {dept._count.members !== 1 ? "s" : ""}
+                    {dept._count.members === 1
+                      ? "1 miembro activo"
+                      : `${dept._count.members} miembros activos`}
                   </span>
                 </div>
               </div>

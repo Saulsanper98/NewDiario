@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import {
   X, Calendar, User, Tag, CheckSquare, MessageSquare,
   Clock, Zap, AlertTriangle, Pencil, Check, Trash2, Copy, Bell, Plus, Loader2,
-  Paperclip, History, ShieldAlert, Upload,
+  Paperclip, History, ShieldAlert, Upload, ChevronDown, CornerDownLeft,
 } from "lucide-react";
 import { isPast } from "date-fns";
 import toast from "react-hot-toast";
@@ -25,6 +25,7 @@ import { useDeptMentionAutocomplete } from "@/hooks/use-dept-mention-autocomplet
 import { commentHasStructuredMentions } from "@/lib/mention-html-snippet";
 import { renderPlainTextWithMentions } from "@/components/ui/PlainTextWithMentions";
 import type { ProjectKanbanTask } from "@/lib/types/project-detail";
+import { parseLeadingReplyMention } from "@/lib/bitacora-mentions";
 
 type SubtaskRow     = NonNullable<ProjectKanbanTask["subtasks"]>[number];
 type TaskCommentRow = NonNullable<ProjectKanbanTask["comments"]>[number];
@@ -51,6 +52,7 @@ export const TaskDetailPanel = forwardRef<HTMLDivElement, TaskDetailPanelProps>(
   ) {
   const router = useRouter();
   const [comment,        setComment]        = useState("");
+  const [replyTo,       setReplyTo]        = useState<{ name: string } | null>(null);
   const [comments,       setComments]       = useState(task.comments ?? []);
   const [subtasks,       setSubtasks]       = useState<SubtaskRow[]>(task.subtasks ?? []);
   const [submitting,     setSubmitting]     = useState(false);
@@ -78,6 +80,7 @@ export const TaskDetailPanel = forwardRef<HTMLDivElement, TaskDetailPanelProps>(
     task.contractImpactNote ?? ""
   );
   const [savingContract, setSavingContract] = useState(false);
+  const [contractOpen, setContractOpen] = useState(false);
   const [localTags, setLocalTags] = useState<{ id: string; name: string }[]>(task.tags ?? []);
   const [newTagDraft, setNewTagDraft] = useState("");
   const [addingTag, setAddingTag] = useState(false);
@@ -104,6 +107,13 @@ export const TaskDetailPanel = forwardRef<HTMLDivElement, TaskDetailPanelProps>(
     () => [...new Set(allUsers.map((u) => u.name.trim()).filter(Boolean))],
     [allUsers]
   );
+
+  const taskReplyParseNames = useMemo(() => {
+    const fromComments = (comments ?? [])
+      .map((c) => c.author?.name?.trim())
+      .filter((n): n is string => Boolean(n));
+    return [...new Set([...taskMentionHighlightNames, ...fromComments])];
+  }, [taskMentionHighlightNames, comments]);
 
   const taskDeptMention = useDeptMentionAutocomplete({
     value: comment,
@@ -152,6 +162,18 @@ export const TaskDetailPanel = forwardRef<HTMLDivElement, TaskDetailPanelProps>(
   }, [layout]);
 
   const notifyUserChoices = contractNotifyOptions ?? allUsers;
+
+  const contractCollapsedSummary = useMemo(() => {
+    const bits: string[] = [];
+    if (contractNotifyUserId) {
+      const n = notifyUserChoices.find((u) => u.id === contractNotifyUserId)?.name;
+      bits.push(n ? `Aviso: ${n}` : "Aviso configurado");
+    }
+    if (contractSlaNote.trim()) bits.push("Notas SLA");
+    if (contractImpactNote.trim()) bits.push("Impacto");
+    return bits.length ? bits.join(" · ") : null;
+  }, [contractNotifyUserId, contractSlaNote, contractImpactNote, notifyUserChoices]);
+
   const safeDescription = useMemo(
     () => sanitizeHtml(task.description ?? ""),
     [task.description]
@@ -168,6 +190,10 @@ export const TaskDetailPanel = forwardRef<HTMLDivElement, TaskDetailPanelProps>(
   useEffect(() => {
     if (editingTitle) titleInputRef.current?.focus();
   }, [editingTitle]);
+
+  useEffect(() => {
+    setContractOpen(false);
+  }, [task.id]);
 
   useEffect(() => {
     function handleKey(e: KeyboardEvent) {
@@ -316,12 +342,26 @@ export const TaskDetailPanel = forwardRef<HTMLDivElement, TaskDetailPanelProps>(
       const newComment = await res.json();
       setComments([...comments, newComment]);
       setComment("");
+      setReplyTo(null);
       router.refresh();
     } catch {
       toast.error("Error al añadir comentario");
     } finally {
       setSubmitting(false);
     }
+  }
+
+  function startReply(authorName: string) {
+    const name = authorName.trim() || "Usuario";
+    setReplyTo({ name });
+    setComment(`@${name}: `);
+    setTimeout(() => {
+      const el = taskCommentInputRef.current;
+      if (el) {
+        el.focus();
+        el.setSelectionRange(el.value.length, el.value.length);
+      }
+    }, 50);
   }
 
   async function toggleSubtask(subtaskId: string, completed: boolean) {
@@ -790,72 +830,104 @@ export const TaskDetailPanel = forwardRef<HTMLDivElement, TaskDetailPanelProps>(
             )}
           </div>
 
-          {/* Contrato / SLA (aviso si retraso) */}
-          <div className="space-y-2.5 p-3 rounded-xl bg-amber-500/[0.06] border border-amber-500/15">
-            <p className="text-xs text-amber-200/85 flex items-center gap-1.5 font-medium">
-              <Bell className="w-3.5 h-3.5 shrink-0" />
-              Contrato · aviso si retraso
-            </p>
-            <p className="text-[10px] text-white/35 leading-relaxed">
-              Indica quién debe ser informado si la tarea se retrasa y deja notas de SLA o impacto
-              para el equipo.
-            </p>
-            <div>
-              <label className="block text-[10px] font-semibold uppercase tracking-wide text-white/35 mb-1">
-                Avisar a (miembro del proyecto)
-              </label>
-              <select
-                value={contractNotifyUserId ?? ""}
-                onChange={(e) =>
-                  setContractNotifyUserId(e.target.value || null)
-                }
-                className="h-8 w-full bg-white/5 border border-white/10 rounded-lg px-2.5 text-xs text-white/70 focus:outline-none focus:border-amber-400/40 focus:bg-white/7"
-                aria-label="Usuario aviso por retraso"
-              >
-                <option value="">Nadie</option>
-                {notifyUserChoices.map((u) => (
-                  <option key={u.id} value={u.id}>
-                    {u.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-[10px] font-semibold uppercase tracking-wide text-white/35 mb-1">
-                Nota SLA / plazos
-              </label>
-              <textarea
-                value={contractSlaNote}
-                onChange={(e) => setContractSlaNote(e.target.value)}
-                rows={2}
-                maxLength={8000}
-                placeholder="Ej. Entrega crítica para el viernes; escalar a PM si +2 días."
-                className="w-full bg-white/5 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-white/70 placeholder:text-white/25 focus:outline-none focus:border-amber-400/40 resize-y min-h-[2.5rem]"
-              />
-            </div>
-            <div>
-              <label className="block text-[10px] font-semibold uppercase tracking-wide text-white/35 mb-1">
-                Impacto si falla o se retrasa
-              </label>
-              <textarea
-                value={contractImpactNote}
-                onChange={(e) => setContractImpactNote(e.target.value)}
-                rows={2}
-                maxLength={8000}
-                placeholder="Ej. Bloquea el despliegue del módulo X."
-                className="w-full bg-white/5 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-white/70 placeholder:text-white/25 focus:outline-none focus:border-amber-400/40 resize-y min-h-[2.5rem]"
-              />
-            </div>
-            <Button
+          {/* Contrato / SLA (aviso si retraso) — colapsable para ahorrar espacio */}
+          <div className="rounded-xl bg-amber-500/[0.06] border border-amber-500/15 overflow-hidden">
+            <button
               type="button"
-              variant="secondary"
-              size="sm"
-              className="w-full"
-              loading={savingContract}
-              onClick={() => void saveContract()}
+              onClick={() => setContractOpen((o) => !o)}
+              aria-expanded={contractOpen}
+              className="w-full flex items-center gap-2 p-3 text-left hover:bg-amber-500/[0.04] transition-colors"
             >
-              Guardar contrato
-            </Button>
+              <Bell className="w-3.5 h-3.5 shrink-0 text-amber-200/85" />
+              <span className="flex-1 min-w-0">
+                <span className="flex items-center gap-2 flex-wrap">
+                  <span className="text-xs text-amber-200/85 font-medium">
+                    Contrato · aviso si retraso
+                  </span>
+                  {!contractOpen && isContractDirty && (
+                    <span className="text-[10px] font-medium text-amber-300/90 rounded px-1.5 py-0.5 bg-amber-400/15 border border-amber-400/25">
+                      Sin guardar
+                    </span>
+                  )}
+                </span>
+                {!contractOpen && contractCollapsedSummary && (
+                  <span className="block text-[10px] text-white/40 mt-0.5 truncate">
+                    {contractCollapsedSummary}
+                  </span>
+                )}
+              </span>
+              <ChevronDown
+                className={cn(
+                  "w-4 h-4 shrink-0 text-white/35 transition-transform duration-200",
+                  contractOpen && "rotate-180"
+                )}
+                aria-hidden
+              />
+            </button>
+            {contractOpen && (
+              <div className="px-3 pb-3 pt-0 space-y-2.5 border-t border-amber-500/10">
+                <p className="text-[10px] text-white/35 leading-relaxed">
+                  Indica quién debe ser informado si la tarea se retrasa y deja notas de SLA o impacto
+                  para el equipo.
+                </p>
+                <div>
+                  <label className="block text-[10px] font-semibold uppercase tracking-wide text-white/35 mb-1">
+                    Avisar a (miembro del proyecto)
+                  </label>
+                  <select
+                    value={contractNotifyUserId ?? ""}
+                    onChange={(e) =>
+                      setContractNotifyUserId(e.target.value || null)
+                    }
+                    className="h-8 w-full bg-white/5 border border-white/10 rounded-lg px-2.5 text-xs text-white/70 focus:outline-none focus:border-amber-400/40 focus:bg-white/7"
+                    aria-label="Usuario aviso por retraso"
+                  >
+                    <option value="">Nadie</option>
+                    {notifyUserChoices.map((u) => (
+                      <option key={u.id} value={u.id}>
+                        {u.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[10px] font-semibold uppercase tracking-wide text-white/35 mb-1">
+                    Nota SLA / plazos
+                  </label>
+                  <textarea
+                    value={contractSlaNote}
+                    onChange={(e) => setContractSlaNote(e.target.value)}
+                    rows={2}
+                    maxLength={8000}
+                    placeholder="Ej. Entrega crítica para el viernes; escalar a PM si +2 días."
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-white/70 placeholder:text-white/25 focus:outline-none focus:border-amber-400/40 resize-y min-h-[2.5rem]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-semibold uppercase tracking-wide text-white/35 mb-1">
+                    Impacto si falla o se retrasa
+                  </label>
+                  <textarea
+                    value={contractImpactNote}
+                    onChange={(e) => setContractImpactNote(e.target.value)}
+                    rows={2}
+                    maxLength={8000}
+                    placeholder="Ej. Bloquea el despliegue del módulo X."
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-white/70 placeholder:text-white/25 focus:outline-none focus:border-amber-400/40 resize-y min-h-[2.5rem]"
+                  />
+                </div>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  className="w-full"
+                  loading={savingContract}
+                  onClick={() => void saveContract()}
+                >
+                  Guardar contrato
+                </Button>
+              </div>
+            )}
           </div>
 
           {/* Blocked reason */}
@@ -1098,24 +1170,77 @@ export const TaskDetailPanel = forwardRef<HTMLDivElement, TaskDetailPanelProps>(
             </p>
             {comments.length > 0 && (
               <div className="space-y-3 mb-3">
-                {comments.map((c: TaskCommentRow) => (
-                  <div key={c.id} className="flex gap-2 group/comment">
-                    <Avatar name={c.author?.name ?? "?"} image={c.author?.image} size="xs" />
-                    <div className="flex-1 bg-white/4 rounded-lg p-2.5">
-                      <div className="flex items-center justify-between mb-1">
-                        <p className="text-xs font-medium text-white/60">
-                          {c.author?.name}{" "}
-                          <span className="font-normal text-white/30">· {formatRelative(c.createdAt)}</span>
+                {comments.map((c: TaskCommentRow) => {
+                  const plainForReply = c.content.replace(/<[^>]+>/g, "").replace(/\u00a0/g, " ").trim();
+                  const replyParsed = parseLeadingReplyMention(
+                    plainForReply,
+                    taskReplyParseNames
+                  );
+                  const replyTarget = replyParsed?.replyTarget ?? null;
+                  const bodyText = replyParsed?.bodyText ?? plainForReply;
+                  const isReply = Boolean(replyTarget);
+                  return (
+                  <div
+                    key={c.id}
+                    className={cn(
+                      "flex gap-2 group/comment",
+                      isReply &&
+                        "relative pl-3 sm:pl-4 ml-0.5 border-l-[3px] border-[#4a9eff]/45 rounded-l-md"
+                    )}
+                  >
+                    <Avatar
+                      name={c.author?.name ?? "?"}
+                      image={c.author?.image}
+                      size="xs"
+                      className={cn(isReply && "ring-1 ring-[#4a9eff]/30")}
+                    />
+                    <div
+                      className={cn(
+                        "flex-1 rounded-lg p-2.5 min-w-0",
+                        isReply
+                          ? "bg-[#4a9eff]/[0.08] border border-[#4a9eff]/22 shadow-[inset_0_1px_0_rgba(74,158,255,0.07)]"
+                          : "bg-white/4 border border-white/6"
+                      )}
+                    >
+                      <div className="flex items-center justify-between gap-2 mb-1">
+                        <p className="text-xs font-medium text-white/60 min-w-0 truncate flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                          <span>
+                            {c.author?.name}{" "}
+                            <span className="font-normal text-white/30">· {formatRelative(c.createdAt)}</span>
+                          </span>
+                          {isReply && (
+                            <span className="text-[9px] font-semibold uppercase tracking-wide text-[#4a9eff]/55 px-1.5 py-0.5 rounded-md bg-[#4a9eff]/10 border border-[#4a9eff]/20 shrink-0">
+                              Respuesta
+                            </span>
+                          )}
                         </p>
-                        <button
-                          type="button"
-                          onClick={() => void deleteComment(c.id)}
-                          className="opacity-0 group-hover/comment:opacity-100 p-0.5 rounded text-white/20 hover:text-red-400 transition-all duration-150 shrink-0"
-                          aria-label="Eliminar comentario"
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </button>
+                        <div className="flex items-center gap-0.5 shrink-0 opacity-0 group-hover/comment:opacity-100 transition-opacity duration-150">
+                          <button
+                            type="button"
+                            onClick={() => startReply(c.author?.name ?? "Usuario")}
+                            className="p-0.5 rounded text-white/25 hover:text-[#4a9eff]/80 transition-colors"
+                            aria-label="Responder"
+                            title="Responder"
+                          >
+                            <CornerDownLeft className="w-3 h-3" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => void deleteComment(c.id)}
+                            className="p-0.5 rounded text-white/20 hover:text-red-400 transition-all duration-150"
+                            aria-label="Eliminar comentario"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        </div>
                       </div>
+                      {replyTarget && !commentHasStructuredMentions(c.content) && (
+                        <div className="flex items-center gap-1 mb-1.5 text-[10px] text-white/35">
+                          <CornerDownLeft className="w-3 h-3 shrink-0 text-[#4a9eff]/50" />
+                          <span>Respondiendo a</span>
+                          <span className="text-[#4a9eff]/75 font-medium">@{replyTarget}</span>
+                        </div>
+                      )}
                       {commentHasStructuredMentions(c.content) ? (
                         <div
                           className="text-xs text-white/55 [&_span[data-type=mention]]:text-[#4a9eff] [&_span[data-type=mention]]:font-medium"
@@ -1123,6 +1248,11 @@ export const TaskDetailPanel = forwardRef<HTMLDivElement, TaskDetailPanelProps>(
                             __html: sanitizeHtml(c.content),
                           }}
                         />
+                      ) : replyTarget ? (
+                        <div className="text-xs text-white/55 leading-relaxed">
+                          <span className="text-[#4a9eff]/80 font-medium">@{replyTarget}:</span>{" "}
+                          {renderPlainTextWithMentions(bodyText, taskMentionHighlightNames)}
+                        </div>
                       ) : (
                         <p className="text-xs text-white/55 leading-relaxed">
                           {renderPlainTextWithMentions(c.content, taskMentionHighlightNames)}
@@ -1130,7 +1260,27 @@ export const TaskDetailPanel = forwardRef<HTMLDivElement, TaskDetailPanelProps>(
                       )}
                     </div>
                   </div>
-                ))}
+                  );
+                })}
+              </div>
+            )}
+            {replyTo && (
+              <div className="flex items-center gap-2 mb-2 px-2.5 py-1.5 rounded-lg bg-[#4a9eff]/[0.08] border border-[#4a9eff]/22 text-[11px] text-[#4a9eff]/80">
+                <CornerDownLeft className="w-3.5 h-3.5 shrink-0" />
+                <span>
+                  Respondiendo a <strong className="font-semibold">{replyTo.name}</strong>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setReplyTo(null);
+                    setComment("");
+                  }}
+                  className="ml-auto p-0.5 rounded text-white/35 hover:text-white/70 transition-colors"
+                  aria-label="Cancelar respuesta"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
               </div>
             )}
             <form onSubmit={submitComment} className="space-y-1.5">
@@ -1151,9 +1301,11 @@ export const TaskDetailPanel = forwardRef<HTMLDivElement, TaskDetailPanelProps>(
                       }
                     }}
                     placeholder={
-                      mentionDepartmentId
-                        ? "Comentario (@ + letra para mencionar, «all» todo el depto)…"
-                        : "Añadir comentario…"
+                      replyTo
+                        ? `Respondiendo a @${replyTo.name}…`
+                        : mentionDepartmentId
+                          ? "Comentario (@ + letra para mencionar, «all» todo el depto)…"
+                          : "Añadir comentario…"
                     }
                     rows={2}
                     className="w-full bg-white/5 border border-white/8 rounded-lg px-3 py-1.5 text-xs text-white placeholder:text-white/25 focus:outline-none focus:border-[#ffeb66]/40 resize-y min-h-[2.5rem] max-h-32"

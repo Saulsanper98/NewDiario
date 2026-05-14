@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
@@ -24,6 +24,9 @@ import { bitacoraPreviewProseClass } from "@/lib/bitacora-html-prose";
 import { bitacoraProseRootProps } from "@/lib/bitacora-prose-constants";
 import type { PublishHint } from "@/lib/log-entry-publish-hints";
 import { PUBLISH_HINT_LABEL } from "@/lib/log-entry-publish-hints";
+import { format, parseISO } from "date-fns";
+import { es } from "date-fns/locale";
+import { isValidYyyyMmDd, todayYyyyMmDd } from "@/lib/bitacora-entry-date";
 
 function notifyPublishHints(hints: PublishHint[] | undefined) {
   if (!hints?.length) return;
@@ -129,8 +132,11 @@ type DraftData = {
   requiresFollowup: boolean; tags: string[]; savedAt: string;
 };
 
-function getDraftKey(editingId?: string) {
-  return editingId ? null : "bitacora:draft:new";
+function getDraftKey(editingId?: string, initialDate?: string | null) {
+  if (editingId) return null;
+  const scope =
+    initialDate && isValidYyyyMmDd(initialDate) ? initialDate : "default";
+  return `bitacora:draft:new:${scope}`;
 }
 
 function saveDraftToStorage(key: string | null, data: Omit<DraftData, "savedAt">) {
@@ -283,6 +289,8 @@ interface NewLogEntryFormProps {
   departmentId:   string;
   allDepartments: { id: string; name: string; accentColor: string }[];
   editingEntry?:  EditingLogEntry;
+  /** YYYY-MM-DD: registrar la entrada en ese día (vista por día / retardo). */
+  initialDate?: string | null;
 }
 
 /* ── main component ─────────────────────────────────────────────────────── */
@@ -291,11 +299,33 @@ export function NewLogEntryForm({
   departmentId,
   allDepartments,
   editingEntry,
+  initialDate = null,
 }: NewLogEntryFormProps) {
   const { accent, withAlpha } = useAccentForUi();
   const { theme } = useTheme();
   const router = useRouter();
-  const draftKey = getDraftKey(editingEntry?.id);
+
+  const backdateForApi = useMemo(() => {
+    if (editingEntry) return undefined;
+    if (!initialDate || !isValidYyyyMmDd(initialDate)) return undefined;
+    const today = todayYyyyMmDd();
+    if (initialDate > today) return undefined;
+    if (initialDate < today) return initialDate;
+    return undefined;
+  }, [editingEntry, initialDate]);
+
+  const backdateBannerLabel = useMemo(() => {
+    if (!backdateForApi) return null;
+    try {
+      return format(parseISO(`${backdateForApi}T12:00:00`), "d 'de' MMMM yyyy", {
+        locale: es,
+      });
+    } catch {
+      return backdateForApi;
+    }
+  }, [backdateForApi]);
+
+  const draftKey = getDraftKey(editingEntry?.id, initialDate);
 
   const [content,    setContent]    = useState(editingEntry?.content ?? "");
   const [tags,       setTags]       = useState<string[]>(editingEntry?.tags.map((t) => t.name) ?? []);
@@ -493,6 +523,7 @@ export function NewLogEntryForm({
           ...(metricLabel.trim() && { metricAnchorLabel: metricLabel.trim() }),
           ...(metricValue.trim() && { metricAnchorValue: metricValue.trim() }),
           ...(metricTrend && { metricAnchorTrend: metricTrend }),
+          ...(backdateForApi && { forDate: backdateForApi }),
         }),
       });
       if (!res.ok) {
@@ -504,7 +535,11 @@ export function NewLogEntryForm({
       clearDraft(draftKey);
       toast.success(data.status === "DRAFT" ? "Borrador guardado" : "Entrada publicada");
       if (data.status === "PUBLISHED") notifyPublishHints(entry.publishHints);
-      router.push(`/bitacora/${entry.id}`);
+      if (data.status === "PUBLISHED" && backdateForApi) {
+        router.push(`/bitacora/dia?date=${encodeURIComponent(backdateForApi)}`);
+      } else {
+        router.push(`/bitacora/${entry.id}`);
+      }
     } catch {
       toast.error("Error al guardar la entrada");
     }
@@ -606,6 +641,22 @@ export function NewLogEntryForm({
           : "space-y-5 p-4 sm:p-6"
       )}
     >
+      {backdateBannerLabel && (
+        <div
+          className={cn(
+            "rounded-xl border px-3.5 py-2.5 text-sm",
+            theme === "light"
+              ? "border-amber-300/50 bg-amber-50/90 text-amber-950/90"
+              : "border-amber-400/25 bg-amber-400/10 text-amber-100/90"
+          )}
+        >
+          <p className="font-medium">Fecha de la entrada</p>
+          <p className={cn("text-xs mt-0.5", theme === "light" ? "text-amber-900/75" : "text-amber-100/65")}>
+            Se guardará con registro del día <strong>{backdateBannerLabel}</strong> (turno
+            seleccionado). La hora mostrada en listados corresponde a ese día.
+          </p>
+        </div>
+      )}
       {/* Header row */}
       <div className="flex items-center justify-between gap-4">
         <h1
