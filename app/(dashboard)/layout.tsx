@@ -5,6 +5,7 @@ import { Sidebar } from "@/components/layout/Sidebar";
 import { KeyboardShortcuts } from "@/components/layout/KeyboardShortcuts";
 import { SkipToMain } from "@/components/layout/SkipToMain";
 import { MobileNav } from "@/components/layout/MobileNav";
+import { PageTransition } from "@/components/layout/PageTransition";
 import { isAdminOrAbove, getActiveDepartmentId } from "@/lib/auth/permissions";
 import type { SessionUser } from "@/lib/auth/types";
 
@@ -40,7 +41,9 @@ export default async function DashboardLayout({
         className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-transparent relative z-10 print:h-auto print:min-h-0 print:overflow-visible"
         tabIndex={-1}
       >
-        {children}
+        <PageTransition>
+          {children}
+        </PageTransition>
       </main>
       <KeyboardShortcuts />
       <MobileNav

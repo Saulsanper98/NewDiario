@@ -213,7 +213,7 @@ export function ShiftHandoffPanel({
               onChange={(e) =>
                 setShift(e.target.value as "MORNING" | "AFTERNOON" | "NIGHT")
               }
-              className="w-full rounded-lg border border-white/12 bg-[#060912] px-3 py-2 text-sm text-white"
+              className="h-9 w-full rounded-lg border border-white/12 bg-[#060912] px-3 text-sm text-white focus:outline-none focus:border-[#ffeb66]/45 focus:bg-[#08101f]"
             >
               {(Object.keys(SHIFT_LABELS) as (keyof typeof SHIFT_LABELS)[]).map(
                 (k) => (

@@ -358,7 +358,7 @@ export function UsersTab({
             <select
               value={role}
               onChange={(e) => setRole(e.target.value as Role)}
-              className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#ffeb66]/50"
+              className="h-9 bg-white/5 border border-white/10 rounded-lg px-3 text-sm text-white focus:outline-none focus:border-[#ffeb66]/50 focus:bg-white/7"
             >
               {roleOptions.map((r) => (
                 <option key={r} value={r}>
@@ -454,7 +454,7 @@ export function UsersTab({
             <select
               value={editRole}
               onChange={(e) => setEditRole(e.target.value as Role)}
-              className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#ffeb66]/50"
+              className="h-9 bg-white/5 border border-white/10 rounded-lg px-3 text-sm text-white focus:outline-none focus:border-[#ffeb66]/50 focus:bg-white/7"
             >
               {roleOptions.map((r) => (
                 <option key={r} value={r}>

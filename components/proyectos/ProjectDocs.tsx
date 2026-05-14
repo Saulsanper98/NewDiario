@@ -14,6 +14,7 @@ import { formatRelative } from "@/lib/utils";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { cn } from "@/lib/utils";
 import toast from "react-hot-toast";
+import { useTheme } from "@/components/layout/ThemeProvider";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -63,6 +64,28 @@ const NOTE_TYPE_META: Record<Exclude<DocType, "FILE">, {
   },
 };
 
+/** Variante legible en tema claro (títulos y pastillas sobre fondos pastel / cristal) */
+const NOTE_TYPE_META_LIGHT: Record<Exclude<DocType, "FILE">, {
+  label: string; icon: React.ElementType;
+  color: string; bg: string; border: string; activeBg: string; activeBorder: string;
+}> = {
+  SPEC:     {
+    label: "Especificación", icon: FileText,
+    color: "text-sky-800", bg: "bg-sky-100/90", border: "border-sky-200/90",
+    activeBg: "bg-sky-200/80", activeBorder: "border-sky-400/70",
+  },
+  DECISION: {
+    label: "Decisión", icon: Lightbulb,
+    color: "text-amber-900", bg: "bg-amber-100/90", border: "border-amber-200/90",
+    activeBg: "bg-amber-200/75", activeBorder: "border-amber-400/70",
+  },
+  LINK:     {
+    label: "Enlace", icon: Link2,
+    color: "text-violet-900", bg: "bg-violet-100/90", border: "border-violet-200/90",
+    activeBg: "bg-violet-200/75", activeBorder: "border-violet-400/70",
+  },
+};
+
 const NOTE_TYPES: Exclude<DocType, "FILE">[] = ["SPEC", "DECISION", "LINK"];
 const GROUP_ORDER: DocType[] = ["FILE", "SPEC", "DECISION", "LINK"];
 const GROUP_LABELS: Record<DocType, string> = {
@@ -75,6 +98,13 @@ const GROUP_META: Record<DocType, { color: string; icon: React.ElementType }> = 
   LINK:     { color: "text-purple-400",  icon: Link2     },
 };
 
+const GROUP_META_LIGHT: Record<DocType, { color: string; icon: React.ElementType }> = {
+  FILE:     { color: "text-emerald-800", icon: File      },
+  SPEC:     { color: "text-sky-800",     icon: FileText  },
+  DECISION: { color: "text-amber-900",   icon: Lightbulb },
+  LINK:     { color: "text-violet-800",  icon: Link2     },
+};
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function formatBytes(bytes: number): string {
@@ -83,25 +113,55 @@ function formatBytes(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function getMimeIcon(mimeType: string | null): { icon: React.ElementType; color: string; bg: string } {
-  if (!mimeType) return { icon: File, color: "text-white/40", bg: "bg-white/5" };
-  if (mimeType === "application/pdf")
-    return { icon: FileText, color: "text-red-400", bg: "bg-red-500/10" };
-  if (mimeType.startsWith("image/"))
-    return { icon: FileImage, color: "text-sky-400", bg: "bg-sky-500/10" };
-  if (mimeType.startsWith("video/"))
-    return { icon: FileVideo, color: "text-violet-400", bg: "bg-violet-500/10" };
-  if (mimeType.startsWith("audio/"))
-    return { icon: FileAudio, color: "text-pink-400", bg: "bg-pink-500/10" };
-  if (mimeType.startsWith("text/"))
-    return { icon: FileCode, color: "text-white/55", bg: "bg-white/5" };
-  if (mimeType.includes("spreadsheet") || mimeType.includes("excel") || mimeType === "text/csv")
-    return { icon: FileSpreadsheet, color: "text-emerald-400", bg: "bg-emerald-500/10" };
-  if (mimeType.includes("word") || mimeType.includes("document"))
-    return { icon: FileText, color: "text-blue-400", bg: "bg-blue-500/10" };
-  if (mimeType.includes("zip") || mimeType.includes("compressed") || mimeType.includes("archive"))
-    return { icon: File, color: "text-amber-400", bg: "bg-amber-500/10" };
-  return { icon: File, color: "text-white/40", bg: "bg-white/5" };
+function getMimeIcon(mimeType: string | null, light = false): { icon: React.ElementType; color: string; bg: string } {
+  if (!mimeType) {
+    return light
+      ? { icon: File, color: "text-zinc-600", bg: "bg-zinc-100/90" }
+      : { icon: File, color: "text-white/40", bg: "bg-white/5" };
+  }
+  if (mimeType === "application/pdf") {
+    return light
+      ? { icon: FileText, color: "text-red-700", bg: "bg-red-100/95" }
+      : { icon: FileText, color: "text-red-400", bg: "bg-red-500/10" };
+  }
+  if (mimeType.startsWith("image/")) {
+    return light
+      ? { icon: FileImage, color: "text-sky-800", bg: "bg-sky-100/95" }
+      : { icon: FileImage, color: "text-sky-400", bg: "bg-sky-500/10" };
+  }
+  if (mimeType.startsWith("video/")) {
+    return light
+      ? { icon: FileVideo, color: "text-violet-800", bg: "bg-violet-100/95" }
+      : { icon: FileVideo, color: "text-violet-400", bg: "bg-violet-500/10" };
+  }
+  if (mimeType.startsWith("audio/")) {
+    return light
+      ? { icon: FileAudio, color: "text-pink-800", bg: "bg-pink-100/95" }
+      : { icon: FileAudio, color: "text-pink-400", bg: "bg-pink-500/10" };
+  }
+  if (mimeType.startsWith("text/")) {
+    return light
+      ? { icon: FileCode, color: "text-zinc-700", bg: "bg-zinc-100/95" }
+      : { icon: FileCode, color: "text-white/55", bg: "bg-white/5" };
+  }
+  if (mimeType.includes("spreadsheet") || mimeType.includes("excel") || mimeType === "text/csv") {
+    return light
+      ? { icon: FileSpreadsheet, color: "text-emerald-800", bg: "bg-emerald-100/95" }
+      : { icon: FileSpreadsheet, color: "text-emerald-400", bg: "bg-emerald-500/10" };
+  }
+  if (mimeType.includes("word") || mimeType.includes("document")) {
+    return light
+      ? { icon: FileText, color: "text-blue-800", bg: "bg-blue-100/95" }
+      : { icon: FileText, color: "text-blue-400", bg: "bg-blue-500/10" };
+  }
+  if (mimeType.includes("zip") || mimeType.includes("compressed") || mimeType.includes("archive")) {
+    return light
+      ? { icon: File, color: "text-amber-900", bg: "bg-amber-100/95" }
+      : { icon: File, color: "text-amber-400", bg: "bg-amber-500/10" };
+  }
+  return light
+    ? { icon: File, color: "text-zinc-600", bg: "bg-zinc-100/90" }
+    : { icon: File, color: "text-white/40", bg: "bg-white/5" };
 }
 
 function sortDocs(docs: ProjectDoc[], order: SortOrder): ProjectDoc[] {
@@ -141,22 +201,41 @@ function saveCollapsed(projectId: string, next: Set<DocType>) {
 
 // ─── Empty state ──────────────────────────────────────────────────────────────
 
-function EmptyState({ onNew }: { onNew: () => void }) {
+function EmptyState({ onNew, isLight }: { onNew: () => void; isLight: boolean }) {
   return (
     <div className="flex flex-col items-center justify-center py-20 gap-5 text-center">
-      <div className="w-16 h-16 rounded-2xl bg-white/4 border border-white/8 flex items-center justify-center">
-        <BookOpen className="w-7 h-7 text-white/20" />
+      <div
+        className={cn(
+          "w-16 h-16 rounded-2xl border flex items-center justify-center",
+          isLight
+            ? "border-white/55 bg-white/45 backdrop-blur-md shadow-[inset_0_1px_0_rgba(255,255,255,0.75),0_4px_18px_rgba(15,23,42,0.06)]"
+            : "bg-white/4 border border-white/8"
+        )}
+      >
+        <BookOpen className={cn("w-7 h-7", isLight ? "text-zinc-400" : "text-white/20")} />
       </div>
       <div className="space-y-1.5">
-        <p className="text-sm font-semibold text-white/50">Sin documentación aún</p>
-        <p className="text-xs text-white/25 max-w-[240px] leading-relaxed">
+        <p className={cn("text-sm font-semibold", isLight ? "text-zinc-800" : "text-white/50")}>
+          Sin documentación aún
+        </p>
+        <p
+          className={cn(
+            "text-xs max-w-[240px] leading-relaxed",
+            isLight ? "text-zinc-600" : "text-white/25"
+          )}
+        >
           Sube archivos o añade notas, especificaciones y decisiones para el equipo.
         </p>
       </div>
       <button
         type="button"
         onClick={onNew}
-        className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#ffeb66]/10 text-[#ffeb66] text-sm font-medium hover:bg-[#ffeb66]/18 border border-[#ffeb66]/20 transition-all duration-200"
+        className={cn(
+          "inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium border transition-all duration-200",
+          isLight
+            ? "bg-[rgba(212,188,26,0.18)] text-[#5c5210] border-[rgba(165,145,20,0.38)] hover:bg-[rgba(212,188,26,0.26)] shadow-sm"
+            : "bg-[#ffeb66]/10 text-[#ffeb66] hover:bg-[#ffeb66]/18 border border-[#ffeb66]/20"
+        )}
       >
         <Plus className="w-4 h-4" />
         Añadir documento
@@ -694,12 +773,14 @@ function NoPreview({ doc }: { doc: ProjectDoc }) {
 
 function DocCard({
   doc,
+  isLight,
   onDelete,
   onEdit,
   onPreview,
   onPin,
 }: {
   doc: ProjectDoc;
+  isLight: boolean;
   onDelete: (id: string) => void;
   onEdit: (doc: ProjectDoc) => void;
   onPreview: (doc: ProjectDoc) => void;
@@ -709,68 +790,130 @@ function DocCard({
   const isFile = doc.type === "FILE" && doc.fileUrl;
 
   const { icon: Icon, color, bg } = isFile
-    ? getMimeIcon(doc.fileType)
+    ? getMimeIcon(doc.fileType, isLight)
     : (() => {
         const m = NOTE_TYPE_META[doc.type as Exclude<DocType, "FILE">];
         return m ? { icon: m.icon, color: m.color, bg: m.bg } : { icon: File, color: "text-white/40", bg: "bg-white/5" };
       })();
+
+  const cardShell = isLight
+    ? "border border-white/55 bg-white/45 backdrop-blur-lg shadow-[inset_0_1px_0_rgba(255,255,255,0.78),0_4px_22px_rgba(15,23,42,0.07)] ring-1 ring-zinc-200/35 hover:border-zinc-200/90 hover:shadow-[0_8px_28px_rgba(15,23,42,0.08)]"
+    : "border border-white/8 hover:border-white/15 hover:shadow-[0_4px_24px_rgba(0,0,0,0.25)]";
 
   /* ── FILE card ── */
   if (isFile) {
     const canPreview = getPreviewKind(doc.fileType) !== "none";
     const ext = doc.fileName?.split(".").pop()?.toUpperCase() ?? "";
     return (
-      <div className={cn(
-        "group relative glass rounded-2xl border border-white/8 overflow-hidden transition-all duration-250",
-        "hover:border-white/15 hover:shadow-[0_4px_24px_rgba(0,0,0,0.25)]"
-      )}>
-        <div className={`h-0.5 w-full bg-gradient-to-r ${color.replace("text-", "from-").replace("-400", "-500/50")} via-transparent to-transparent`} />
+      <div
+        className={cn(
+          "group relative glass rounded-2xl overflow-hidden transition-all duration-250",
+          cardShell
+        )}
+      >
+        <div
+          className={cn(
+            "h-0.5 w-full bg-gradient-to-r via-transparent to-transparent",
+            isLight ? "from-zinc-300/50 from-10%" : `${color.replace("text-", "from-").replace("-400", "-500/50")}`
+          )}
+        />
         <div className="flex items-stretch gap-0">
-          <button type="button" onClick={() => onPreview(doc)}
-            className={cn("flex flex-col items-center justify-center gap-2 px-5 py-5 shrink-0 border-r border-white/[0.06]",
-              "hover:bg-white/[0.03] transition-colors", canPreview ? "cursor-pointer" : "cursor-default")}
-            aria-label="Vista previa" tabIndex={canPreview ? 0 : -1}>
+          <button
+            type="button"
+            onClick={() => onPreview(doc)}
+            className={cn(
+              "flex flex-col items-center justify-center gap-2 px-5 py-5 shrink-0 border-r transition-colors",
+              isLight ? "border-zinc-200/70 hover:bg-white/55" : "border-white/[0.06] hover:bg-white/[0.03]",
+              canPreview ? "cursor-pointer" : "cursor-default"
+            )}
+            aria-label="Vista previa"
+            tabIndex={canPreview ? 0 : -1}
+          >
             <div className={`w-12 h-12 rounded-2xl ${bg} flex items-center justify-center`}>
               <Icon className={`w-6 h-6 ${color}`} />
             </div>
-            {ext && <span className={`text-[9px] font-bold uppercase tracking-widest ${color} opacity-70`}>{ext}</span>}
+            {ext && (
+              <span className={`text-[9px] font-bold uppercase tracking-widest ${color} opacity-70`}>{ext}</span>
+            )}
           </button>
 
           <div className="flex-1 min-w-0 flex flex-col justify-between p-4 gap-2.5">
             <div className="flex items-start justify-between gap-3">
               <button type="button" onClick={() => onPreview(doc)} className="flex-1 min-w-0 text-left group/title">
-                <h3 className="text-sm font-semibold text-white/85 group-hover/title:text-white leading-snug transition-colors truncate pr-2">
+                <h3
+                  className={cn(
+                    "text-sm font-semibold leading-snug transition-colors truncate pr-2",
+                    isLight
+                      ? "text-zinc-900 group-hover/title:text-zinc-950"
+                      : "text-white/85 group-hover/title:text-white"
+                  )}
+                >
                   {doc.title}
                 </h3>
                 {doc.fileName && doc.fileName !== doc.title && (
-                  <p className="text-[11px] text-white/30 mt-0.5 truncate">{doc.fileName}</p>
+                  <p className={cn("text-[11px] mt-0.5 truncate", isLight ? "text-zinc-500" : "text-white/30")}>
+                    {doc.fileName}
+                  </p>
                 )}
               </button>
               <div className="flex items-center gap-0.5 shrink-0">
-                <button type="button" onClick={() => onPin(doc.id, !doc.pinned)}
-                  className={cn("p-1.5 rounded-lg transition-all duration-150",
+                <button
+                  type="button"
+                  onClick={() => onPin(doc.id, !doc.pinned)}
+                  className={cn(
+                    "p-1.5 rounded-lg transition-all duration-150",
                     doc.pinned
-                      ? "text-[#ffeb66] bg-[#ffeb66]/10"
-                      : "text-white/20 hover:text-[#ffeb66]/60 hover:bg-[#ffeb66]/8 opacity-0 group-hover:opacity-100"
+                      ? isLight
+                        ? "text-[#b29e12] bg-[rgba(212,188,26,0.18)]"
+                        : "text-[#ffeb66] bg-[#ffeb66]/10"
+                      : isLight
+                        ? "text-zinc-400 hover:text-[#9a8810] hover:bg-[rgba(212,188,26,0.12)] opacity-0 group-hover:opacity-100"
+                        : "text-white/20 hover:text-[#ffeb66]/60 hover:bg-[#ffeb66]/8 opacity-0 group-hover:opacity-100"
                   )}
-                  title={doc.pinned ? "Quitar de destacados" : "Destacar"}>
+                  title={doc.pinned ? "Quitar de destacados" : "Destacar"}
+                >
                   <Star className="w-3.5 h-3.5" fill={doc.pinned ? "currentColor" : "none"} />
                 </button>
                 {canPreview && (
-                  <button type="button" onClick={() => onPreview(doc)}
-                    className="p-1.5 rounded-lg text-white/20 hover:text-[#ffeb66] hover:bg-[#ffeb66]/10 transition-all duration-150"
-                    title="Vista previa">
+                  <button
+                    type="button"
+                    onClick={() => onPreview(doc)}
+                    className={cn(
+                      "p-1.5 rounded-lg transition-all duration-150",
+                      isLight
+                        ? "text-zinc-500 hover:text-[#7a6d0f] hover:bg-[rgba(212,188,26,0.14)]"
+                        : "text-white/20 hover:text-[#ffeb66] hover:bg-[#ffeb66]/10"
+                    )}
+                    title="Vista previa"
+                  >
                     <Eye className="w-3.5 h-3.5" />
                   </button>
                 )}
-                <a href={doc.fileUrl!} download={doc.fileName ?? doc.title}
-                  className="p-1.5 rounded-lg text-white/20 hover:text-emerald-400 hover:bg-emerald-500/10 transition-all duration-150"
-                  title="Descargar" onClick={(e) => e.stopPropagation()}>
+                <a
+                  href={doc.fileUrl!}
+                  download={doc.fileName ?? doc.title}
+                  className={cn(
+                    "p-1.5 rounded-lg transition-all duration-150",
+                    isLight
+                      ? "text-zinc-500 hover:text-emerald-700 hover:bg-emerald-100/80"
+                      : "text-white/20 hover:text-emerald-400 hover:bg-emerald-500/10"
+                  )}
+                  title="Descargar"
+                  onClick={(e) => e.stopPropagation()}
+                >
                   <Download className="w-3.5 h-3.5" />
                 </a>
-                <button type="button" onClick={() => onDelete(doc.id)}
-                  className="p-1.5 rounded-lg text-white/20 hover:text-red-400 hover:bg-red-500/10 transition-all duration-150 opacity-0 group-hover:opacity-100"
-                  title="Eliminar">
+                <button
+                  type="button"
+                  onClick={() => onDelete(doc.id)}
+                  className={cn(
+                    "p-1.5 rounded-lg transition-all duration-150 opacity-0 group-hover:opacity-100",
+                    isLight
+                      ? "text-zinc-400 hover:text-red-600 hover:bg-red-50"
+                      : "text-white/20 hover:text-red-400 hover:bg-red-500/10"
+                  )}
+                  title="Eliminar"
+                >
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>
               </div>
@@ -779,17 +922,36 @@ function DocCard({
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-2">
                 {doc.fileSize != null && (
-                  <span className="text-[10px] px-2 py-0.5 rounded-md bg-white/5 border border-white/8 text-white/35 font-mono tabular-nums">
+                  <span
+                    className={cn(
+                      "text-[10px] px-2 py-0.5 rounded-md border font-mono tabular-nums",
+                      isLight
+                        ? "bg-zinc-100/90 border-zinc-200/80 text-zinc-600"
+                        : "bg-white/5 border border-white/8 text-white/35"
+                    )}
+                  >
                     {formatBytes(doc.fileSize)}
                   </span>
                 )}
                 {canPreview && (
-                  <span className="text-[10px] px-2 py-0.5 rounded-md bg-[#ffeb66]/8 border border-[#ffeb66]/15 text-[#ffeb66]/70 flex items-center gap-1">
+                  <span
+                    className={cn(
+                      "text-[10px] px-2 py-0.5 rounded-md border flex items-center gap-1",
+                      isLight
+                        ? "bg-[rgba(212,188,26,0.14)] border-[rgba(165,145,20,0.35)] text-[#5c5210]"
+                        : "bg-[#ffeb66]/8 border border-[#ffeb66]/15 text-[#ffeb66]/70"
+                    )}
+                  >
                     <Eye className="w-2.5 h-2.5" /> Vista previa
                   </span>
                 )}
               </div>
-              <div className="flex items-center gap-1.5 text-[11px] text-white/30 shrink-0">
+              <div
+                className={cn(
+                  "flex items-center gap-1.5 text-[11px] shrink-0",
+                  isLight ? "text-zinc-600" : "text-white/30"
+                )}
+              >
                 <Avatar name={doc.createdBy.name} image={doc.createdBy.image} size="xs" />
                 <span className="hidden sm:inline">{doc.createdBy.name} ·</span>
                 <span>{formatRelative(doc.updatedAt)}</span>
@@ -802,24 +964,46 @@ function DocCard({
   }
 
   /* ── NOTE card ── */
-  const meta = NOTE_TYPE_META[doc.type as Exclude<DocType, "FILE">];
-  const noteAccentColor = ({
-    SPEC:     "rgba(96,165,250,0.35)",
-    DECISION: "rgba(251,191,36,0.35)",
-    LINK:     "rgba(192,132,252,0.35)",
-  } as Record<string, string>)[doc.type] ?? "rgba(255,255,255,0.08)";
+  const metaBase = NOTE_TYPE_META[doc.type as Exclude<DocType, "FILE">];
+  const meta = isLight
+    ? NOTE_TYPE_META_LIGHT[doc.type as Exclude<DocType, "FILE">] ?? metaBase
+    : metaBase;
+  const noteAccentColor = isLight
+    ? ({
+        SPEC: "rgba(14,165,233,0.55)",
+        DECISION: "rgba(217,119,6,0.55)",
+        LINK: "rgba(139,92,246,0.5)",
+      } as Record<string, string>)[doc.type] ?? "rgba(15,23,42,0.12)"
+    : ({
+        SPEC: "rgba(96,165,250,0.35)",
+        DECISION: "rgba(251,191,36,0.35)",
+        LINK: "rgba(192,132,252,0.35)",
+      } as Record<string, string>)[doc.type] ?? "rgba(255,255,255,0.08)";
 
-  const noteShadowColor = ({
-    SPEC:     "rgba(59,130,246,0.06)",
-    DECISION: "rgba(245,158,11,0.06)",
-    LINK:     "rgba(168,85,247,0.06)",
-  } as Record<string, string>)[doc.type] ?? "transparent";
+  const noteShadowColor = isLight
+    ? ({
+        SPEC: "rgba(59,130,246,0.12)",
+        DECISION: "rgba(245,158,11,0.12)",
+        LINK: "rgba(168,85,247,0.12)",
+      } as Record<string, string>)[doc.type] ?? "rgba(15,23,42,0.06)"
+    : ({
+        SPEC: "rgba(59,130,246,0.06)",
+        DECISION: "rgba(245,158,11,0.06)",
+        LINK: "rgba(168,85,247,0.06)",
+      } as Record<string, string>)[doc.type] ?? "transparent";
 
   return (
     <div
-      className={cn("group relative glass rounded-2xl border border-white/8 overflow-hidden transition-all duration-250 hover:border-white/14")}
-      style={{ borderLeftColor: noteAccentColor, borderLeftWidth: "3px",
-        boxShadow: expanded ? `0 4px 24px ${noteShadowColor}` : undefined }}
+      className={cn(
+        "group relative glass rounded-2xl overflow-hidden transition-all duration-250",
+        cardShell,
+        !isLight && "hover:border-white/14"
+      )}
+      style={{
+        borderLeftColor: noteAccentColor,
+        borderLeftWidth: "3px",
+        boxShadow: expanded ? `0 4px 24px ${noteShadowColor}` : undefined,
+      }}
     >
       <div className="p-4 pb-3">
         <div className="flex items-start justify-between gap-3 mb-3">
@@ -828,32 +1012,63 @@ function DocCard({
               <Icon className={`w-3.5 h-3.5 ${meta.color}`} />
             </div>
             <h3
-              className={cn("text-sm font-semibold text-white/88 leading-snug flex-1 min-w-0",
-                doc.content && "cursor-pointer hover:text-white transition-colors")}
+              className={cn(
+                "text-sm font-semibold leading-snug flex-1 min-w-0",
+                isLight ? "text-zinc-900" : "text-white/88",
+                doc.content && "cursor-pointer transition-colors",
+                !isLight && doc.content && "hover:text-white",
+                isLight && doc.content && "hover:text-zinc-950"
+              )}
               onClick={() => doc.content && setExpanded((v) => !v)}
             >
               {doc.title}
             </h3>
           </div>
           <div className="flex items-center gap-0.5 shrink-0">
-            <span className={`text-[10px] px-2 py-0.5 rounded-full ${meta.bg} border ${meta.border} ${meta.color} font-medium hidden sm:inline-flex`}>
+            <span
+              className={`text-[10px] px-2 py-0.5 rounded-full ${meta.bg} border ${meta.border} ${meta.color} font-medium hidden sm:inline-flex`}
+            >
               {meta.label}
             </span>
-            <button type="button" onClick={() => onPin(doc.id, !doc.pinned)}
-              className={cn("p-1.5 rounded-lg transition-all duration-150",
+            <button
+              type="button"
+              onClick={() => onPin(doc.id, !doc.pinned)}
+              className={cn(
+                "p-1.5 rounded-lg transition-all duration-150",
                 doc.pinned
-                  ? "text-[#ffeb66] bg-[#ffeb66]/10"
-                  : "text-white/20 hover:text-[#ffeb66]/60 hover:bg-[#ffeb66]/8 opacity-0 group-hover:opacity-100"
+                  ? isLight
+                    ? "text-[#b29e12] bg-[rgba(212,188,26,0.18)]"
+                    : "text-[#ffeb66] bg-[#ffeb66]/10"
+                  : isLight
+                    ? "text-zinc-400 hover:text-[#9a8810] hover:bg-[rgba(212,188,26,0.12)] opacity-0 group-hover:opacity-100"
+                    : "text-white/20 hover:text-[#ffeb66]/60 hover:bg-[#ffeb66]/8 opacity-0 group-hover:opacity-100"
               )}
-              title={doc.pinned ? "Quitar de destacados" : "Destacar"}>
+              title={doc.pinned ? "Quitar de destacados" : "Destacar"}
+            >
               <Star className="w-3 h-3" fill={doc.pinned ? "currentColor" : "none"} />
             </button>
-            <button type="button" onClick={() => onEdit(doc)}
-              className="p-1.5 rounded-lg text-white/20 hover:text-[#ffeb66] hover:bg-[#ffeb66]/10 transition-colors opacity-0 group-hover:opacity-100">
+            <button
+              type="button"
+              onClick={() => onEdit(doc)}
+              className={cn(
+                "p-1.5 rounded-lg transition-colors opacity-0 group-hover:opacity-100",
+                isLight
+                  ? "text-zinc-500 hover:text-[#7a6d0f] hover:bg-[rgba(212,188,26,0.14)]"
+                  : "text-white/20 hover:text-[#ffeb66] hover:bg-[#ffeb66]/10"
+              )}
+            >
               <Pencil className="w-3.5 h-3.5" />
             </button>
-            <button type="button" onClick={() => onDelete(doc.id)}
-              className="p-1.5 rounded-lg text-white/20 hover:text-red-400 hover:bg-red-500/10 transition-colors opacity-0 group-hover:opacity-100">
+            <button
+              type="button"
+              onClick={() => onDelete(doc.id)}
+              className={cn(
+                "p-1.5 rounded-lg transition-colors opacity-0 group-hover:opacity-100",
+                isLight
+                  ? "text-zinc-400 hover:text-red-600 hover:bg-red-50"
+                  : "text-white/20 hover:text-red-400 hover:bg-red-500/10"
+              )}
+            >
               <Trash2 className="w-3.5 h-3.5" />
             </button>
           </div>
@@ -863,19 +1078,46 @@ function DocCard({
           <div className="pl-[2.375rem]">
             {expanded ? (
               <>
-                <pre className="text-sm text-white/60 whitespace-pre-wrap font-sans leading-relaxed">{doc.content}</pre>
-                <button type="button" onClick={() => setExpanded(false)}
-                  className="mt-2.5 inline-flex items-center gap-1 text-[11px] text-white/25 hover:text-white/50 transition-colors">
+                <pre
+                  className={cn(
+                    "text-sm whitespace-pre-wrap font-sans leading-relaxed",
+                    isLight ? "text-zinc-700" : "text-white/60"
+                  )}
+                >
+                  {doc.content}
+                </pre>
+                <button
+                  type="button"
+                  onClick={() => setExpanded(false)}
+                  className={cn(
+                    "mt-2.5 inline-flex items-center gap-1 text-[11px] transition-colors",
+                    isLight ? "text-zinc-500 hover:text-zinc-800" : "text-white/25 hover:text-white/50"
+                  )}
+                >
                   <ChevronUp className="w-3 h-3" /> Colapsar
                 </button>
               </>
             ) : (
               <button type="button" onClick={() => setExpanded(true)} className="w-full text-left group/expand">
-                <p className="text-sm text-white/50 line-clamp-3 leading-relaxed group-hover/expand:text-white/65 transition-colors">
+                <p
+                  className={cn(
+                    "text-sm line-clamp-3 leading-relaxed transition-colors",
+                    isLight
+                      ? "text-zinc-600 group-hover/expand:text-zinc-800"
+                      : "text-white/50 group-hover/expand:text-white/65"
+                  )}
+                >
                   {doc.content}
                 </p>
                 {doc.content.length > 120 && (
-                  <span className="mt-1.5 inline-flex items-center gap-1 text-[11px] text-white/25 group-hover/expand:text-white/45 transition-colors">
+                  <span
+                    className={cn(
+                      "mt-1.5 inline-flex items-center gap-1 text-[11px] transition-colors",
+                      isLight
+                        ? "text-zinc-500 group-hover/expand:text-zinc-700"
+                        : "text-white/25 group-hover/expand:text-white/45"
+                    )}
+                  >
                     <ChevronDown className="w-3 h-3" /> Ver completo
                   </span>
                 )}
@@ -883,15 +1125,29 @@ function DocCard({
             )}
           </div>
         ) : (
-          <p className="pl-[2.375rem] text-xs text-white/20 italic">Sin contenido</p>
+          <p
+            className={cn(
+              "pl-[2.375rem] text-xs italic",
+              isLight ? "text-zinc-500" : "text-white/20"
+            )}
+          >
+            Sin contenido
+          </p>
         )}
       </div>
 
-      <div className="flex items-center gap-1.5 px-4 py-2.5 border-t border-white/[0.05] bg-white/[0.015]">
+      <div
+        className={cn(
+          "flex items-center gap-1.5 px-4 py-2.5 border-t",
+          isLight ? "border-zinc-200/70 bg-white/35" : "border-white/[0.05] bg-white/[0.015]"
+        )}
+      >
         <Avatar name={doc.createdBy.name} image={doc.createdBy.image} size="xs" />
-        <span className="text-[11px] text-white/35">{doc.createdBy.name}</span>
-        <span className="text-white/15 text-[11px]">·</span>
-        <span className="text-[11px] text-white/25">{formatRelative(doc.updatedAt)}</span>
+        <span className={cn("text-[11px]", isLight ? "text-zinc-700" : "text-white/35")}>{doc.createdBy.name}</span>
+        <span className={cn("text-[11px]", isLight ? "text-zinc-400" : "text-white/15")}>·</span>
+        <span className={cn("text-[11px]", isLight ? "text-zinc-500" : "text-white/25")}>
+          {formatRelative(doc.updatedAt)}
+        </span>
       </div>
     </div>
   );
@@ -900,34 +1156,52 @@ function DocCard({
 // ─── SectionHeader ────────────────────────────────────────────────────────────
 
 function SectionHeader({
-  type, count, collapsed, onToggle, sort, onSort,
+  type, count, collapsed, onToggle, sort, onSort, isLight,
 }: {
   type: DocType; count: number; collapsed: boolean;
   onToggle: () => void; sort: SortOrder; onSort: (s: SortOrder) => void;
+  isLight: boolean;
 }) {
-  const meta = GROUP_META[type];
+  const meta = (isLight ? GROUP_META_LIGHT : GROUP_META)[type];
   const Icon = meta.icon;
   return (
     <div className="flex items-center gap-2">
       <button type="button" onClick={onToggle} className="flex items-center gap-2 flex-1 min-w-0 group py-1">
-        <ChevronRight className={cn(
-          "w-3.5 h-3.5 text-white/25 transition-transform duration-200 shrink-0",
-          !collapsed && "rotate-90"
-        )} />
+        <ChevronRight
+          className={cn(
+            "w-3.5 h-3.5 transition-transform duration-200 shrink-0",
+            isLight ? "text-zinc-400" : "text-white/25",
+            !collapsed && "rotate-90"
+          )}
+        />
         <div className={cn("flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider", meta.color)}>
           <Icon className="w-3.5 h-3.5" />
           {GROUP_LABELS[type]}
         </div>
-        <span className="text-[10px] text-white/25 font-normal">({count})</span>
-        <div className="flex-1 h-px bg-white/[0.05]" />
+        <span className={cn("text-[10px] font-normal", isLight ? "text-zinc-500" : "text-white/25")}>
+          ({count})
+        </span>
+        <div className={cn("flex-1 h-px", isLight ? "bg-zinc-200/80" : "bg-white/[0.05]")} />
       </button>
 
       {!collapsed && (
         <div className="flex items-center gap-0.5 shrink-0">
           {(["newest", "oldest", "az"] as SortOrder[]).map((s) => (
-            <button key={s} type="button" onClick={() => onSort(s)}
-              className={cn("px-2 py-0.5 rounded text-[10px] font-medium transition-colors",
-                sort === s ? "bg-white/8 text-white/60" : "text-white/20 hover:text-white/40")}>
+            <button
+              key={s}
+              type="button"
+              onClick={() => onSort(s)}
+              className={cn(
+                "px-2 py-0.5 rounded text-[10px] font-medium transition-colors",
+                sort === s
+                  ? isLight
+                    ? "bg-zinc-200/90 text-zinc-900 shadow-sm"
+                    : "bg-white/8 text-white/60"
+                  : isLight
+                    ? "text-zinc-500 hover:text-zinc-800 hover:bg-zinc-100/90"
+                    : "text-white/20 hover:text-white/40"
+              )}
+            >
               {s === "newest" ? "Reciente" : s === "oldest" ? "Antiguo" : "A-Z"}
             </button>
           ))}
@@ -940,12 +1214,13 @@ function SectionHeader({
 // ─── DocSidebar ───────────────────────────────────────────────────────────────
 
 function DocSidebar({
-  docs, activeCategory, onCategoryChange, onAdd,
+  docs, activeCategory, onCategoryChange, onAdd, isLight,
 }: {
   docs: ProjectDoc[];
   activeCategory: ActiveCategory;
   onCategoryChange: (cat: ActiveCategory) => void;
   onAdd: () => void;
+  isLight: boolean;
 }) {
   const counts: Record<string, number> = {
     all:      docs.length,
@@ -965,26 +1240,59 @@ function DocSidebar({
   ];
 
   return (
-    <div className="w-44 shrink-0 flex flex-col border-r border-white/[0.06] overflow-y-auto">
+    <div
+      className={cn(
+        "w-44 shrink-0 flex flex-col overflow-y-auto",
+        isLight ? "border-r border-zinc-200/80 bg-white/30 backdrop-blur-md" : "border-r border-white/[0.06]"
+      )}
+    >
       <div className="flex-1 p-2.5 space-y-0.5">
         {navItems.map((item) => {
           const active = activeCategory === item.id;
           const count = counts[item.id] ?? 0;
           const Icon = item.icon;
           return (
-            <button key={item.id} type="button" onClick={() => onCategoryChange(item.id)}
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => onCategoryChange(item.id)}
               className={cn(
                 "flex items-center gap-2.5 w-full px-3 py-2 rounded-xl text-sm font-medium transition-all duration-150 text-left",
-                active ? "bg-white/8 text-white/90" : "text-white/40 hover:text-white/70 hover:bg-white/4"
-              )}>
-              <Icon className={cn("w-3.5 h-3.5 shrink-0",
-                active ? (item.color ?? "text-[#ffeb66]") : (item.color ?? "text-white/30"))} />
+                active
+                  ? isLight
+                    ? "bg-white/75 text-zinc-900 shadow-sm ring-1 ring-zinc-200/60"
+                    : "bg-white/8 text-white/90"
+                  : isLight
+                    ? "text-zinc-600 hover:text-zinc-900 hover:bg-white/50"
+                    : "text-white/40 hover:text-white/70 hover:bg-white/4"
+              )}
+            >
+              <Icon
+                className={cn(
+                  "w-3.5 h-3.5 shrink-0",
+                  active
+                    ? isLight
+                      ? item.color?.replace("-400", "-700") ?? "text-[#9a8810]"
+                      : item.color ?? "text-[#ffeb66]"
+                    : isLight
+                      ? item.color?.replace("-400", "-600") ?? "text-zinc-400"
+                      : item.color ?? "text-white/30"
+                )}
+              />
               <span className="flex-1 min-w-0 truncate text-[13px]">{item.label}</span>
               {count > 0 && (
-                <span className={cn(
-                  "text-[10px] font-medium px-1.5 py-px rounded-full min-w-[18px] text-center tabular-nums",
-                  active ? "bg-white/10 text-white/60" : "bg-white/5 text-white/25"
-                )}>
+                <span
+                  className={cn(
+                    "text-[10px] font-medium px-1.5 py-px rounded-full min-w-[18px] text-center tabular-nums",
+                    active
+                      ? isLight
+                        ? "bg-zinc-200/90 text-zinc-800"
+                        : "bg-white/10 text-white/60"
+                      : isLight
+                        ? "bg-zinc-100/90 text-zinc-600"
+                        : "bg-white/5 text-white/25"
+                  )}
+                >
                   {count}
                 </span>
               )}
@@ -993,21 +1301,36 @@ function DocSidebar({
         })}
 
         {/* Destacados — siempre visible, especial */}
-        <div className="h-px bg-white/[0.05] mx-1 my-1.5" />
-        <button type="button" onClick={() => onCategoryChange("starred")}
+        <div className={cn("h-px mx-1 my-1.5", isLight ? "bg-zinc-200/70" : "bg-white/[0.05]")} />
+        <button
+          type="button"
+          onClick={() => onCategoryChange("starred")}
           className={cn(
             "flex items-center gap-2.5 w-full px-3 py-2 rounded-xl text-sm font-medium transition-all duration-150 text-left",
             activeCategory === "starred"
-              ? "bg-[#ffeb66]/10 text-[#ffeb66]"
-              : "text-white/35 hover:text-[#ffeb66]/60 hover:bg-[#ffeb66]/6"
-          )}>
+              ? isLight
+                ? "bg-[rgba(212,188,26,0.2)] text-[#5c5210] ring-1 ring-[rgba(165,145,20,0.35)]"
+                : "bg-[#ffeb66]/10 text-[#ffeb66]"
+              : isLight
+                ? "text-zinc-600 hover:text-[#7a6d0f] hover:bg-[rgba(212,188,26,0.12)]"
+                : "text-white/35 hover:text-[#ffeb66]/60 hover:bg-[#ffeb66]/6"
+          )}
+        >
           <Star className="w-3.5 h-3.5 shrink-0" fill={activeCategory === "starred" ? "currentColor" : "none"} />
           <span className="flex-1 min-w-0 truncate text-[13px]">Destacados</span>
           {counts.starred > 0 && (
-            <span className={cn(
-              "text-[10px] font-medium px-1.5 py-px rounded-full min-w-[18px] text-center tabular-nums",
-              activeCategory === "starred" ? "bg-[#ffeb66]/15 text-[#ffeb66]" : "bg-white/5 text-white/25"
-            )}>
+            <span
+              className={cn(
+                "text-[10px] font-medium px-1.5 py-px rounded-full min-w-[18px] text-center tabular-nums",
+                activeCategory === "starred"
+                  ? isLight
+                    ? "bg-[rgba(212,188,26,0.28)] text-[#4a4208]"
+                    : "bg-[#ffeb66]/15 text-[#ffeb66]"
+                  : isLight
+                    ? "bg-zinc-100/90 text-zinc-600"
+                    : "bg-white/5 text-white/25"
+              )}
+            >
               {counts.starred}
             </span>
           )}
@@ -1015,9 +1338,17 @@ function DocSidebar({
       </div>
 
       {/* Add button */}
-      <div className="p-2.5 border-t border-white/[0.05] shrink-0">
-        <button type="button" onClick={onAdd}
-          className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium text-[#ffeb66] bg-[#ffeb66]/8 hover:bg-[#ffeb66]/15 border border-[#ffeb66]/15 hover:border-[#ffeb66]/25 transition-all duration-150">
+      <div className={cn("p-2.5 shrink-0 border-t", isLight ? "border-zinc-200/70" : "border-white/[0.05]")}>
+        <button
+          type="button"
+          onClick={onAdd}
+          className={cn(
+            "w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium border transition-all duration-150",
+            isLight
+              ? "text-[#5c5210] bg-[rgba(212,188,26,0.16)] border-[rgba(165,145,20,0.38)] hover:bg-[rgba(212,188,26,0.24)] shadow-sm"
+              : "text-[#ffeb66] bg-[#ffeb66]/8 hover:bg-[#ffeb66]/15 border border-[#ffeb66]/15 hover:border-[#ffeb66]/25"
+          )}
+        >
           <Plus className="w-3.5 h-3.5" />
           Añadir
         </button>
@@ -1028,13 +1359,25 @@ function DocSidebar({
 
 // ─── Sort bar (single category view) ─────────────────────────────────────────
 
-function SortBar({ sort, onSort }: { sort: SortOrder; onSort: (s: SortOrder) => void }) {
+function SortBar({ sort, onSort, isLight }: { sort: SortOrder; onSort: (s: SortOrder) => void; isLight: boolean }) {
   return (
     <div className="flex items-center justify-end gap-0.5 mb-3">
       {(["newest", "oldest", "az"] as SortOrder[]).map((s) => (
-        <button key={s} type="button" onClick={() => onSort(s)}
-          className={cn("px-2.5 py-1 rounded-lg text-[11px] font-medium transition-colors",
-            sort === s ? "bg-white/8 text-white/60" : "text-white/20 hover:text-white/40")}>
+        <button
+          key={s}
+          type="button"
+          onClick={() => onSort(s)}
+          className={cn(
+            "px-2.5 py-1 rounded-lg text-[11px] font-medium transition-colors",
+            sort === s
+              ? isLight
+                ? "bg-zinc-200/90 text-zinc-900 shadow-sm"
+                : "bg-white/8 text-white/60"
+              : isLight
+                ? "text-zinc-500 hover:text-zinc-800 hover:bg-zinc-100/80"
+                : "text-white/20 hover:text-white/40"
+          )}
+        >
           {s === "newest" ? "Reciente" : s === "oldest" ? "Antiguo" : "A-Z"}
         </button>
       ))}
@@ -1045,6 +1388,8 @@ function SortBar({ sort, onSort }: { sort: SortOrder; onSort: (s: SortOrder) => 
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export function ProjectDocs({ projectId }: ProjectDocsProps) {
+  const { theme } = useTheme();
+  const isLight = theme === "light";
   const [docs, setDocs]               = useState<ProjectDoc[]>([]);
   const [loading, setLoading]         = useState(true);
   const [showModal, setShowModal]     = useState(false);
@@ -1145,6 +1490,7 @@ export function ProjectDocs({ projectId }: ProjectDocsProps) {
 
   const sharedCardProps = (doc: ProjectDoc) => ({
     doc,
+    isLight,
     onDelete: (id: string) => setDeletingId(id),
     onEdit: (d: ProjectDoc) => { setEditingDoc(d); setShowModal(false); },
     onPreview: (d: ProjectDoc) => setPreviewDoc(d),
@@ -1164,7 +1510,9 @@ export function ProjectDocs({ projectId }: ProjectDocsProps) {
     if (loading) {
       return (
         <div className="flex items-center justify-center py-24">
-          <Loader2 className="w-6 h-6 text-white/20 animate-spin" />
+          <Loader2
+            className={cn("w-6 h-6 animate-spin", isLight ? "text-zinc-400" : "text-white/20")}
+          />
         </div>
       );
     }
@@ -1173,12 +1521,15 @@ export function ProjectDocs({ projectId }: ProjectDocsProps) {
       if (searchQuery) {
         return (
           <div className="flex flex-col items-center justify-center py-20 gap-3 text-center">
-            <Search className="w-8 h-8 text-white/15" />
-            <p className="text-sm text-white/30">Sin resultados para <span className="text-white/50">"{searchQuery}"</span></p>
+            <Search className={cn("w-8 h-8", isLight ? "text-zinc-300" : "text-white/15")} />
+            <p className={cn("text-sm", isLight ? "text-zinc-600" : "text-white/30")}>
+              Sin resultados para{" "}
+              <span className={isLight ? "text-zinc-900 font-medium" : "text-white/50"}>&quot;{searchQuery}&quot;</span>
+            </p>
           </div>
         );
       }
-      return <EmptyState onNew={() => setShowModal(true)} />;
+      return <EmptyState onNew={() => setShowModal(true)} isLight={isLight} />;
     }
 
     /* ── ALL view ── */
@@ -1201,9 +1552,13 @@ export function ProjectDocs({ projectId }: ProjectDocsProps) {
             return (
               <div key={type} className="space-y-2">
                 <SectionHeader
-                  type={type} count={group.length} collapsed={collapsed}
+                  type={type}
+                  count={group.length}
+                  collapsed={collapsed}
                   onToggle={() => toggleCollapse(type)}
-                  sort={getSortFor(sortKey)} onSort={(s) => setSortFor(sortKey, s)}
+                  sort={getSortFor(sortKey)}
+                  onSort={(s) => setSortFor(sortKey, s)}
+                  isLight={isLight}
                 />
                 {!collapsed && (
                   <div className={isFile ? "space-y-2" : "grid grid-cols-2 gap-2"}>
@@ -1251,7 +1606,7 @@ export function ProjectDocs({ projectId }: ProjectDocsProps) {
     const isFile = activeCategory === "FILE";
     return (
       <div>
-        <SortBar sort={getSortFor(activeCategory)} onSort={(s) => setSortFor(activeCategory, s)} />
+        <SortBar sort={getSortFor(activeCategory)} onSort={(s) => setSortFor(activeCategory, s)} isLight={isLight} />
         <div className={isFile ? "space-y-2" : "grid grid-cols-2 gap-2"}>
           {sorted.map((doc) =>
             editingDoc?.id === doc.id ? null : (
@@ -1291,24 +1646,46 @@ export function ProjectDocs({ projectId }: ProjectDocsProps) {
         activeCategory={activeCategory}
         onCategoryChange={setActiveCategory}
         onAdd={() => setShowModal(true)}
+        isLight={isLight}
       />
 
       {/* Content */}
       <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
         {/* Search bar */}
-        <div className="px-5 py-3 border-b border-white/[0.05] shrink-0">
+        <div
+          className={cn(
+            "px-5 py-3 shrink-0 border-b",
+            isLight ? "border-zinc-200/80 bg-white/25 backdrop-blur-sm" : "border-white/[0.05]"
+          )}
+        >
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/25 pointer-events-none" />
+            <Search
+              className={cn(
+                "absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 pointer-events-none",
+                isLight ? "text-zinc-400" : "text-white/25"
+              )}
+            />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Buscar en la documentación…"
-              className="w-full bg-white/4 border border-white/8 rounded-xl h-8 pl-9 pr-8 text-sm text-white/80 placeholder:text-white/25 focus:outline-none focus:border-white/15 focus:bg-white/[0.06] transition-colors"
+              className={cn(
+                "w-full rounded-xl h-8 pl-9 pr-8 text-sm transition-colors focus:outline-none",
+                isLight
+                  ? "bg-white/70 border border-zinc-200/90 text-zinc-900 placeholder:text-zinc-400 shadow-sm focus:border-[#c4ae16]/55 focus:ring-2 focus:ring-[#d4bc1a]/15"
+                  : "bg-white/4 border border-white/8 text-white/80 placeholder:text-white/25 focus:border-white/15 focus:bg-white/[0.06]"
+              )}
             />
             {searchQuery && (
-              <button type="button" onClick={() => setSearchQuery("")}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 rounded text-white/25 hover:text-white/60 transition-colors">
+              <button
+                type="button"
+                onClick={() => setSearchQuery("")}
+                className={cn(
+                  "absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 rounded transition-colors",
+                  isLight ? "text-zinc-400 hover:text-zinc-700" : "text-white/25 hover:text-white/60"
+                )}
+              >
                 <X className="w-3.5 h-3.5" />
               </button>
             )}
@@ -1316,7 +1693,12 @@ export function ProjectDocs({ projectId }: ProjectDocsProps) {
         </div>
 
         {/* Scrollable content */}
-        <div className="flex-1 overflow-y-auto p-5">
+        <div
+          className={cn(
+            "flex-1 overflow-y-auto p-5",
+            isLight && "bg-gradient-to-b from-transparent to-zinc-100/20"
+          )}
+        >
           <div className="space-y-4">
             {editingDoc && (
               <NoteForm

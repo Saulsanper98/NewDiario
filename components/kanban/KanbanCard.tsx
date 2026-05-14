@@ -20,6 +20,13 @@ const PRIORITY_BORDER: Record<string, string> = {
   LOW:    "border-t-green-400/70",
 };
 
+/* mejora 29 — subtle priority background tint */
+const PRIORITY_BG: Record<string, string> = {
+  HIGH:   "bg-red-500/[0.04]",
+  MEDIUM: "bg-yellow-400/[0.03]",
+  LOW:    "bg-green-400/[0.02]",
+};
+
 const PRIORITY_DOT: Record<string, string> = {
   HIGH:   "bg-red-400",
   MEDIUM: "bg-yellow-400",
@@ -42,6 +49,11 @@ export function KanbanCard({ task, onClick }: KanbanCardProps) {
       : `Fecha límite ${format(new Date(task.dueDate), "d MMMM yyyy", { locale: es })}`
     : "Sin fecha límite";
 
+  /* mejora 33 — description preview tooltip */
+  const descPreview = task.description
+    ? task.description.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 120)
+    : null;
+
   return (
     <div
       role="button"
@@ -55,11 +67,13 @@ export function KanbanCard({ task, onClick }: KanbanCardProps) {
           onClick();
         }
       }}
+      title={descPreview ?? undefined}
       className={cn(
         "kanban-task-card card-3d glass-hover glass rounded-xl p-3 cursor-pointer group",
         "border border-white/6 hover:border-white/12 border-t-[3px]",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ffeb66]/50",
-        PRIORITY_BORDER[task.priority] ?? "border-t-white/10"
+        PRIORITY_BORDER[task.priority] ?? "border-t-white/10",
+        PRIORITY_BG[task.priority] ?? ""
       )}
     >
       <span id={summaryId} className="sr-only">

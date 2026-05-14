@@ -88,21 +88,29 @@ const SHIFT_BTN = {
 };
 
 const SHIFT_BTN_LIGHT_ACTIVE: Record<string, string> = {
-  MORNING:   "border-amber-300 bg-amber-50 text-amber-950 shadow-sm",
-  AFTERNOON: "border-orange-300 bg-orange-50 text-orange-950 shadow-sm",
-  NIGHT:     "border-indigo-300 bg-indigo-50 text-indigo-950 shadow-sm",
+  MORNING:
+    "border-amber-300/90 bg-amber-50/85 text-amber-950 shadow-md backdrop-blur-sm ring-1 ring-inset ring-amber-950/[0.06]",
+  AFTERNOON:
+    "border-orange-300/90 bg-orange-50/85 text-orange-950 shadow-md backdrop-blur-sm ring-1 ring-inset ring-orange-950/[0.06]",
+  NIGHT:
+    "border-indigo-300/90 bg-indigo-50/85 text-indigo-950 shadow-md backdrop-blur-sm ring-1 ring-inset ring-indigo-950/[0.06]",
 };
 
 const TYPE_ACTIVE_LIGHT: Record<string, string> = {
-  INCIDENCIA:    "border-orange-300 bg-orange-50 text-orange-950 shadow-sm",
-  INFORMATIVO:   "border-sky-300 bg-sky-50 text-sky-950 shadow-sm",
-  URGENTE:       "border-red-300 bg-red-50 text-red-950 shadow-sm",
-  MANTENIMIENTO: "border-violet-300 bg-violet-50 text-violet-950 shadow-sm",
-  SIN_NOVEDADES: "border-emerald-300 bg-emerald-50 text-emerald-950 shadow-sm",
+  INCIDENCIA:
+    "border-orange-300/90 bg-orange-50/85 text-orange-950 shadow-md backdrop-blur-sm ring-1 ring-inset ring-orange-950/[0.06]",
+  INFORMATIVO:
+    "border-sky-300/90 bg-sky-50/85 text-sky-950 shadow-md backdrop-blur-sm ring-1 ring-inset ring-sky-950/[0.06]",
+  URGENTE:
+    "border-red-300/90 bg-red-50/85 text-red-950 shadow-md backdrop-blur-sm ring-1 ring-inset ring-red-950/[0.06]",
+  MANTENIMIENTO:
+    "border-violet-300/90 bg-violet-50/85 text-violet-950 shadow-md backdrop-blur-sm ring-1 ring-inset ring-violet-950/[0.06]",
+  SIN_NOVEDADES:
+    "border-emerald-300/90 bg-emerald-50/85 text-emerald-950 shadow-md backdrop-blur-sm ring-1 ring-inset ring-emerald-950/[0.06]",
 };
 
 const TYPE_SHIFT_INACTIVE_LIGHT =
-  "border-zinc-200/90 bg-white text-zinc-600 shadow-sm hover:bg-zinc-50 hover:border-zinc-300 hover:text-zinc-900";
+  "border border-white/55 bg-white/42 text-zinc-600 shadow-[inset_0_1px_0_rgba(255,255,255,0.65),0_1px_3px_rgba(15,23,42,0.05)] backdrop-blur-md hover:bg-white/58 hover:border-zinc-200/90 hover:text-zinc-900";
 
 /* ── title placeholder by type (B37) ────────────────────────────────────── */
 
@@ -173,17 +181,48 @@ function ConfirmCancelDialog({
   onDiscard:   () => void;
   onContinue:  () => void;
 }) {
+  const { theme } = useTheme();
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop">
-      <div className="glass-4 rounded-2xl p-6 max-w-sm w-full space-y-4 animate-in fade-in zoom-in-95 duration-200">
+      <div
+        className={cn(
+          "rounded-2xl p-6 max-w-sm w-full space-y-4 animate-in fade-in zoom-in-95 duration-200",
+          theme === "light"
+            ? "glass-3 border border-white/55"
+            : "glass-4"
+        )}
+      >
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-full bg-amber-500/15 border border-amber-500/25 flex items-center justify-center shrink-0">
-            <AlertTriangle className="w-4 h-4 text-amber-400" />
+          <div
+            className={cn(
+              "w-9 h-9 rounded-full border flex items-center justify-center shrink-0",
+              theme === "light"
+                ? "bg-amber-100/90 border-amber-300/60"
+                : "bg-amber-500/15 border-amber-500/25"
+            )}
+          >
+            <AlertTriangle
+              className={cn("w-4 h-4", theme === "light" ? "text-amber-700" : "text-amber-400")}
+            />
           </div>
           <div>
-            <p className="text-sm font-semibold text-white">¿Descartar cambios?</p>
-            <p className="text-xs text-white/45 mt-0.5">Tienes cambios sin guardar.</p>
+            <p
+              className={cn(
+                "text-sm font-semibold",
+                theme === "light" ? "text-zinc-900" : "text-white"
+              )}
+            >
+              ¿Descartar cambios?
+            </p>
+            <p
+              className={cn(
+                "text-xs mt-0.5",
+                theme === "light" ? "text-zinc-500" : "text-white/45"
+              )}
+            >
+              Tienes cambios sin guardar.
+            </p>
           </div>
         </div>
         <div className="flex flex-col gap-2 pt-1">
@@ -214,12 +253,12 @@ function titleCounterColor(len: number, t: ThemeMode): string {
 
 function formLabelClass(t: ThemeMode): string {
   return t === "light"
-    ? "text-xs font-medium text-zinc-600 uppercase tracking-wide"
+    ? "text-[11px] font-semibold text-zinc-500 uppercase tracking-[0.14em]"
     : "text-xs font-medium text-white/60 uppercase tracking-wide";
 }
 
 const lightTitleInputClass =
-  "bg-white border-zinc-200 text-zinc-900 placeholder:text-zinc-400 focus:border-[#c4ae16]/70 focus:bg-white focus:ring-[#d4bc1a]/35 shadow-sm";
+  "border border-zinc-200/75 bg-white/70 text-zinc-900 shadow-[inset_0_1px_0_rgba(255,255,255,0.75),0_1px_2px_rgba(15,23,42,0.04)] backdrop-blur-md placeholder:text-zinc-400/90 focus:border-[#c4ae16]/72 focus:bg-white/88 focus:ring-2 focus:ring-[#d4bc1a]/22";
 
 /* ── types ──────────────────────────────────────────────────────────────── */
 
@@ -561,16 +600,20 @@ export function NewLogEntryForm({
     <div
       data-bitacora-entry-form
       className={cn(
-        "p-4 sm:p-6 max-w-3xl mx-auto space-y-5",
-        theme === "light" && "rounded-2xl sm:rounded-3xl border border-zinc-200/80 bg-gradient-to-b from-white to-zinc-50/95 shadow-[0_1px_0_rgba(255,255,255,0.9)_inset,0_12px_40px_rgba(15,23,42,0.06)]"
+        "max-w-3xl mx-auto",
+        theme === "light"
+          ? "space-y-6 p-5 sm:p-8 sm:space-y-7 rounded-2xl sm:rounded-3xl border border-white/55 bg-gradient-to-br from-white/78 via-white/52 to-zinc-100/35 backdrop-blur-2xl shadow-[0_14px_48px_-10px_rgba(15,23,42,0.11),0_4px_18px_-4px_rgba(15,23,42,0.07),inset_0_1px_0_rgba(255,255,255,0.92)] ring-1 ring-white/35"
+          : "space-y-5 p-4 sm:p-6"
       )}
     >
       {/* Header row */}
       <div className="flex items-center justify-between gap-4">
         <h1
           className={cn(
-            "text-xl font-semibold tracking-tight",
-            theme === "light" ? "text-zinc-900" : "text-white"
+            "font-semibold tracking-tight",
+            theme === "light"
+              ? "text-2xl sm:text-[1.65rem] text-zinc-900 [text-shadow:0_1px_0_rgba(255,255,255,0.6)]"
+              : "text-xl text-white"
           )}
         >
           {editingEntry ? "Editar entrada" : "Nueva entrada de bitácora"}
@@ -610,7 +653,7 @@ export function NewLogEntryForm({
           className={cn(
             "rounded-xl p-4 border flex items-center gap-4",
             theme === "light"
-              ? "bg-amber-50/90 border-amber-200/80 shadow-sm"
+              ? "bg-amber-50/75 border-amber-200/70 backdrop-blur-md shadow-[0_4px_22px_rgba(245,158,11,0.09)]"
               : "glass border-amber-500/20"
           )}
         >
@@ -647,7 +690,10 @@ export function NewLogEntryForm({
         </div>
       )}
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+      <form
+        onSubmit={handleSubmit(onSubmit)}
+        className={cn(theme === "light" ? "space-y-6 sm:space-y-7" : "space-y-5")}
+      >
 
         {/* Title — B34, B37, B40 */}
         <div>
@@ -685,6 +731,7 @@ export function NewLogEntryForm({
                   onClick={() => setValue("type", type as FormData["type"], { shouldValidate: true })}
                   className={cn(
                     "flex flex-col items-center gap-1.5 px-3 py-2.5 rounded-xl border transition-all duration-200 text-center",
+                    theme === "light" && "shadow-[inset_0_1px_0_rgba(255,255,255,0.55)]",
                     isActive
                       ? theme === "light"
                         ? TYPE_ACTIVE_LIGHT[type] ?? `${cfg.activeBg} ${cfg.activeBorder} ${cfg.activeText}`
@@ -719,6 +766,7 @@ export function NewLogEntryForm({
                   onClick={() => setValue("shift", shift, { shouldValidate: true })}
                   className={cn(
                     "flex flex-col items-center gap-1 px-3 py-2.5 rounded-xl border transition-all duration-200",
+                    theme === "light" && "shadow-[inset_0_1px_0_rgba(255,255,255,0.55)]",
                     isActive
                       ? theme === "light"
                         ? SHIFT_BTN_LIGHT_ACTIVE[shift]
@@ -759,9 +807,9 @@ export function NewLogEntryForm({
           {showPreview ? (
             <div
               className={cn(
-                "border rounded-lg p-4 min-h-[200px]",
+                "border rounded-xl p-4 min-h-[200px]",
                 theme === "light"
-                  ? "border-zinc-200/90 bg-white/90"
+                  ? "border-white/55 bg-white/45 backdrop-blur-md shadow-[inset_0_1px_0_rgba(255,255,255,0.75),0_2px_12px_rgba(15,23,42,0.05)]"
                   : "border-white/10 bg-white/3"
               )}
             >
@@ -797,9 +845,9 @@ export function NewLogEntryForm({
         {/* Ancla métrica (opcional): una fila en sm+ (etiqueta | valor | tendencia), misma altura de controles */}
         <div
           className={cn(
-            "rounded-xl border p-4 sm:p-5",
+            "rounded-2xl border p-4 sm:p-5",
             theme === "light"
-              ? "border-zinc-200/90 bg-white/90 shadow-sm"
+              ? "border-white/50 bg-white/42 backdrop-blur-xl shadow-[0_4px_28px_rgba(15,23,42,0.06),inset_0_1px_0_rgba(255,255,255,0.8)]"
               : "border-white/10 bg-white/[0.03]"
           )}
         >
@@ -881,7 +929,7 @@ export function NewLogEntryForm({
                 className={cn(
                   "h-9 w-full shrink-0 rounded-lg border px-3 text-sm transition-colors focus:outline-none focus:ring-2",
                   theme === "light"
-                    ? "border-zinc-200 bg-white text-zinc-900 focus:border-[#c4ae16]/70 focus:ring-[#d4bc1a]/25"
+                    ? "border-zinc-200/80 bg-white/75 text-zinc-900 backdrop-blur-md shadow-[inset_0_1px_0_rgba(255,255,255,0.85)] focus:border-[#c4ae16]/72 focus:ring-[#d4bc1a]/22"
                     : "border-white/10 bg-white/5 text-white/85 focus:border-[#ffeb66]/35 focus:ring-[#ffeb66]/15"
                 )}
               >
@@ -899,9 +947,9 @@ export function NewLogEntryForm({
           <label className={formLabelClass(theme)}>Etiquetas</label>
           <div
             className={cn(
-              "tags-composer-shell flex flex-wrap gap-1.5 p-2 rounded-lg min-h-9 transition-[border-color,box-shadow] duration-150",
+              "tags-composer-shell flex flex-wrap gap-1.5 p-2.5 rounded-xl min-h-9 transition-[border-color,box-shadow] duration-150",
               theme === "light"
-                ? "bg-white border border-zinc-200/90 shadow-sm focus-within:border-[#c4ae16]/55 focus-within:ring-2 focus-within:ring-[#d4bc1a]/20"
+                ? "border border-white/55 bg-white/45 backdrop-blur-md shadow-[inset_0_1px_0_rgba(255,255,255,0.75),0_1px_3px_rgba(15,23,42,0.04)] focus-within:border-[#c4ae16]/55 focus-within:ring-2 focus-within:ring-[#d4bc1a]/18"
                 : "bg-white/3 border border-white/10 focus-within:border-[#ffeb66]/38 focus-within:ring-2 focus-within:ring-[#ffeb66]/14"
             )}
           >
@@ -911,7 +959,7 @@ export function NewLogEntryForm({
                 className={cn(
                   "flex items-center gap-1 text-xs px-2 py-0.5 rounded-md border",
                   theme === "light"
-                    ? "bg-zinc-100 text-zinc-700 border-zinc-200"
+                    ? "bg-white/70 text-zinc-800 border-zinc-200/70 backdrop-blur-sm shadow-sm"
                     : "bg-white/8 text-white/60 border-white/10"
                 )}
               >
@@ -955,8 +1003,9 @@ export function NewLogEntryForm({
         {/* Requires followup */}
         <Card
           className={cn(
-            "p-4",
-            theme === "light" && "border-zinc-200/90 bg-white/90 shadow-sm"
+            "p-4 sm:p-5",
+            theme === "light" &&
+              "border border-amber-200/45 bg-gradient-to-br from-amber-50/55 via-white/40 to-white/30 backdrop-blur-lg shadow-[inset_0_1px_0_rgba(255,255,255,0.75),0_4px_20px_rgba(245,158,11,0.08)]"
           )}
         >
           <label className="flex items-center gap-3 cursor-pointer group">
@@ -1021,7 +1070,7 @@ export function NewLogEntryForm({
                       shared
                         ? ""
                         : theme === "light"
-                          ? "border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300 hover:bg-zinc-50 shadow-sm"
+                          ? "border border-white/55 bg-white/45 text-zinc-600 backdrop-blur-md shadow-[inset_0_1px_0_rgba(255,255,255,0.65)] hover:border-zinc-200/90 hover:bg-white/60 hover:text-zinc-900"
                           : "border-white/10 bg-white/4 text-white/50 hover:border-white/20 hover:text-white/70"
                     )}
                   >

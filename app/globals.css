@@ -29,11 +29,91 @@
   --shell-canvas-bottom: #04070f;
   /* Altura del header de app (h-16) — alinear sticky toolbars */
   --header-h: 4rem;
+
+  /* ── Border radius scale (3 tiers + extras) ───────────────────────────────
+     xs  → chips, tags, badge pills
+     sm  → botones, inputs, elementos pequeños
+     md  → cards, paneles, dropdowns
+     lg  → modales, drawers, overlays grandes */
+  --radius-xs: 6px;
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 16px;
-  --shadow-elevated: 0 12px 48px rgba(0, 0, 0, 0.42);
-  --transition-ui: 180ms ease;
+  --radius-xl: 20px;
+  --radius-full: 9999px;
+
+  /* ── Transition durations — scale unificada ───────────────────────────────
+     fast   → hover states, cambios de color de icono
+     normal → elementos interactivos, botones, inputs
+     slow   → modales, paneles deslizantes, page transitions
+     xslow  → animaciones de entrada de página, orbes */
+  --duration-fast: 120ms;
+  --duration-normal: 180ms;
+  --duration-slow: 300ms;
+  --duration-xslow: 500ms;
+
+  /* Easing functions */
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-decelerate: cubic-bezier(0, 0, 0.2, 1);
+  --ease-spring: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* ── Elevation shadow scale (z0 → z5) ────────────────────────────────────
+     z0 = canvas (sin sombra)
+     z1 = surface raised (badge, avatar)
+     z2 = card base (glass-1)
+     z3 = panel elevado (glass-2, dropdown)
+     z4 = modal / overlay (glass-3)
+     z5 = topmost dialog (glass-4) */
+  --shadow-z0: none;
+  --shadow-z1: 0 1px 3px rgba(0, 0, 0, 0.22), 0 1px 2px rgba(0, 0, 0, 0.16);
+  --shadow-z2: 0 4px 24px rgba(0, 0, 0, 0.35);
+  --shadow-z3: 0 8px 40px rgba(0, 0, 0, 0.45);
+  --shadow-z4: 0 12px 48px rgba(0, 0, 0, 0.52), 0 4px 16px rgba(0, 0, 0, 0.28);
+  --shadow-z5: 0 24px 64px rgba(0, 0, 0, 0.65), 0 8px 24px rgba(0, 0, 0, 0.38);
+  --shadow-elevated: var(--shadow-z4);
+
+  /* ── Semantic state color tokens ─────────────────────────────────────────
+     Usados en badges, alertas, bordes de error, indicadores de estado.
+     El tema claro sobreescribe estos en theme-light.css. */
+  --color-error: #ef4444;
+  --color-error-bg: rgba(239, 68, 68, 0.10);
+  --color-error-bg-hover: rgba(239, 68, 68, 0.18);
+  --color-error-border: rgba(239, 68, 68, 0.24);
+  --color-error-text: #f87171;
+
+  --color-warning: #f59e0b;
+  --color-warning-bg: rgba(245, 158, 11, 0.10);
+  --color-warning-bg-hover: rgba(245, 158, 11, 0.18);
+  --color-warning-border: rgba(245, 158, 11, 0.24);
+  --color-warning-text: #fbbf24;
+
+  --color-success: #10b981;
+  --color-success-bg: rgba(16, 185, 129, 0.10);
+  --color-success-bg-hover: rgba(16, 185, 129, 0.18);
+  --color-success-border: rgba(16, 185, 129, 0.24);
+  --color-success-text: #34d399;
+
+  --color-info: #3b82f6;
+  --color-info-bg: rgba(59, 130, 246, 0.10);
+  --color-info-bg-hover: rgba(59, 130, 246, 0.18);
+  --color-info-border: rgba(59, 130, 246, 0.24);
+  --color-info-text: #60a5fa;
+
+  /* ── Spacing scale (4pt grid) ────────────────────────────────────────────
+     Referencia para mantener ritmo consistente. Los componentes usan clases
+     Tailwind (p-3, gap-4…) que mapean a estos valores. */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* Legacy — se mantiene para compatibilidad */
+  --transition-ui: var(--duration-normal) ease;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -141,7 +221,7 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.11);
   box-shadow:
     var(--glass-edge),
-    0 4px 24px rgba(0, 0, 0, 0.35);
+    var(--shadow-z2);
 }
 
 /* Toolbar proyecto: sin borde superior (evita doble línea con .app-top-header). */
@@ -164,7 +244,7 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.13);
   box-shadow:
     var(--glass-edge),
-    0 8px 40px rgba(0, 0, 0, 0.45);
+    var(--shadow-z3);
 }
 
 /* Bitácora — barra de filtros sticky: capa base casi opaca para que el scroll no “mancha” el texto */
@@ -267,7 +347,7 @@ html[data-aurora] .app-sidebar-shell {
   border: 1px solid rgba(255, 255, 255, 0.15);
   box-shadow:
     var(--glass-edge),
-    0 12px 48px rgba(0, 0, 0, 0.5),
+    var(--shadow-z4),
     0 0 0 1px rgba(255, 235, 102, 0.04);
 }
 
@@ -283,15 +363,15 @@ html[data-aurora] .app-sidebar-shell {
   border: 1px solid rgba(255, 255, 255, 0.16);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.18),
-    0 24px 64px rgba(0, 0, 0, 0.65);
+    var(--shadow-z5);
 }
 
 .glass-hover {
   transition:
-    background 220ms ease,
-    border-color 220ms ease,
-    box-shadow 220ms ease,
-    transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+    background var(--duration-normal) ease,
+    border-color var(--duration-normal) ease,
+    box-shadow var(--duration-normal) ease,
+    transform var(--duration-normal) var(--ease-spring);
 }
 
 .glass-hover:hover {
@@ -382,10 +462,18 @@ select option {
   color: #f0f4ff;
 }
 
+/* Botones: transición unificada vía CSS (sobrescribe la clase Tailwind duration-200) */
+button, [role="button"] {
+  transition-duration: var(--duration-normal);
+}
+
 /* Transitions */
 .transition-glass {
-  transition: background 200ms ease, border-color 200ms ease,
-    box-shadow 200ms ease, transform 200ms ease;
+  transition:
+    background var(--duration-normal) ease,
+    border-color var(--duration-normal) ease,
+    box-shadow var(--duration-normal) ease,
+    transform var(--duration-normal) ease;
 }
 
 /* Modal backdrop */
@@ -398,6 +486,24 @@ select option {
 html[data-aurora] .modal-backdrop {
   background: rgba(6, 10, 20, 0.48);
   backdrop-filter: blur(10px);
+}
+
+/* Modal exit animation */
+@keyframes modal-dialog-fade-out {
+  from { opacity: 1; transform: scale(1); }
+  to   { opacity: 0; transform: scale(0.95); }
+}
+@keyframes modal-backdrop-fade-out {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+.modal-dialog-closing {
+  animation: modal-dialog-fade-out 150ms ease forwards;
+  pointer-events: none;
+}
+.modal-backdrop-closing {
+  animation: modal-backdrop-fade-out 150ms ease forwards;
+  pointer-events: none;
 }
 
 /* Kanban card drag */
@@ -723,6 +829,14 @@ html:not([data-theme="light"]) .ProseMirror hr {
   background: rgba(255, 255, 255, 0.1);
 }
 
+/* ── Rich editor toolbar — dim when unfocused (mejora 23) ───────────────── */
+[data-rich-editor] .rich-editor-toolbar {
+  transition: opacity var(--duration-normal) ease;
+}
+[data-rich-editor]:not(:focus-within) .rich-editor-toolbar {
+  opacity: 0.55;
+}
+
 /* ── Progress bar (animated entry) ──────────────────────────────────────── */
 @keyframes progress-fill {
   from { width: 0%; }
@@ -741,9 +855,18 @@ html:not([data-theme="light"]) .ProseMirror hr {
   animation: pulse-dot 2s ease-in-out infinite;
 }
 
+/* mejora 38 — status badge change animation */
+@keyframes badge-pop-in {
+  from { transform: scale(0.82); opacity: 0; }
+  to   { transform: scale(1);    opacity: 1; }
+}
+.badge-status-anim {
+  animation: badge-pop-in var(--duration-slow) var(--ease-spring) both;
+}
+
 /* ── Card 3D hover (MI-1) + specular highlight (GL-4) ────────────────────── */
 .card-3d {
-  transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 220ms ease;
+  transition: transform var(--duration-normal) var(--ease-spring), box-shadow var(--duration-normal) ease;
   will-change: transform;
   position: relative;
   --spec-x: 50%;
@@ -813,7 +936,7 @@ html:not([data-theme="light"]) .ProseMirror hr {
   background: #ffeb66;
   transform-origin: bottom;
   transform: scaleY(0);
-  transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition: transform var(--duration-normal) var(--ease-spring);
   pointer-events: none;
 }
 input:focus ~ .input-focus-bar,
@@ -1627,6 +1750,73 @@ textarea:focus ~ .input-focus-bar {
   }
 }
 
+/* ── Page transition (mejora 10) ─────────────────────────────────────────── */
+@keyframes page-fade-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.page-enter {
+  animation: page-fade-in var(--duration-slow) var(--ease-out-expo) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .page-enter {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ── Scroll progress bar (mejora 11) ─────────────────────────────────────── */
+.scroll-progress-bar {
+  position: sticky;
+  top: 0;
+  left: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #ffeb66 0%, rgba(255, 235, 102, 0.6) 100%);
+  transform-origin: left;
+  z-index: 10;
+  pointer-events: none;
+  margin-bottom: -2px;
+  opacity: 0.65;
+  transition: width 60ms linear;
+}
+
+/* ── Sidebar active indicator bar (mejora 6) ─────────────────────────────── */
+@keyframes sidebar-bar-in {
+  from { transform: scaleY(0); }
+  to   { transform: scaleY(1); }
+}
+.sidebar-active-bar {
+  position: absolute;
+  left: 0;
+  top: 6px;
+  bottom: 6px;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: #ffeb66;
+  transform-origin: center;
+  animation: sidebar-bar-in 150ms var(--ease-spring) both;
+  pointer-events: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .sidebar-active-bar { animation: none; }
+}
+
+/* ── Mobile bottom nav tap feedback (mejora 12) ──────────────────────────── */
+.mobile-nav-link {
+  -webkit-tap-highlight-color: transparent;
+}
+.mobile-nav-link:active {
+  transform: scale(0.9);
+  background-color: rgba(255, 235, 102, 0.12);
+  border-radius: 10px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .mobile-nav-link:active {
+    transform: none;
+  }
+}
+
 /* ── Widget fade-in stagger (Dashboard) ──────────────────────────────────── */
 @keyframes widget-fade-up {
   from { opacity: 0; transform: translateY(10px); }
@@ -1664,6 +1854,29 @@ textarea:focus ~ .input-focus-bar {
 }
 .board-snapshot-empty-msg {
   color: rgba(255, 255, 255, 0.32);
+}
+
+/* ── Kanban enhancements (mejoras 27–30) ─────────────────────────────────── */
+/* mejora 27: column overflow gradient — sticky ::after at scroll bottom */
+.kanban-column-well::after {
+  content: '';
+  display: block;
+  position: sticky;
+  bottom: 0;
+  height: 36px;
+  margin-top: -36px;
+  flex-shrink: 0;
+  pointer-events: none;
+  background: linear-gradient(to top, rgba(10, 15, 30, 0.88) 0%, transparent 100%);
+  border-radius: 0 0 0.75rem 0.75rem;
+}
+/* mejora 28: drag placeholder — dashed yellow border */
+[data-rfd-placeholder-context-id] {
+  border: 2px dashed rgba(255, 235, 102, 0.22) !important;
+  border-radius: 0.75rem !important;
+  background: rgba(255, 235, 102, 0.03) !important;
+  min-height: 56px !important;
+  transition: all 150ms ease !important;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1709,10 +1922,11 @@ textarea:focus ~ .input-focus-bar {
     backdrop-filter: none !important;
   }
   .text-white { color: #111 !important; }
-  .text-white\/40, .text-white\/45, .text-white\/50, .text-white\/55, .text-white\/60 {
+  .text-white\/40, .text-white\/45, .text-white\/50, .text-white\/55, .text-white\/60, .text-white\/65 {
     color: #555 !important;
   }
   .text-white\/30, .text-white\/25 { color: #777 !important; }
+  .text-white\/35, .text-white\/38 { color: #666 !important; }
   .border-white\/8, .border-white\/10, .border-white\/12, .border-white\/14 {
     border-color: #e5e5e5 !important;
   }
@@ -1781,6 +1995,242 @@ textarea:focus ~ .input-focus-bar {
   body:has(.bitacora-report-root) #main-content {
     background: #fff !important;
   }
+
+  /* Traspaso (Aurora / oscuro / claro): una sola hoja editorial, sin bloque negro ni orbes */
+  html:has(.traspaso-print-root),
+  body:has(.traspaso-print-root) {
+    background: #fff !important;
+  }
+
+  body:has(.traspaso-print-root) #main-content {
+    background: #fff !important;
+  }
+
+  .traspaso-print-skip {
+    display: none !important;
+  }
+
+  .traspaso-print-root {
+    max-width: 100% !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+
+  .traspaso-print-hero {
+    background: linear-gradient(180deg, #fafafa 0%, #eceef1 100%) !important;
+    background-image: none !important;
+    border: 1px solid #b8bcc4 !important;
+    border-radius: 12px !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    --tw-ring-offset-shadow: 0 0 #0000 !important;
+    --tw-ring-shadow: 0 0 #0000 !important;
+  }
+
+  .traspaso-print-hero .traspaso-print-header {
+    border-bottom: 1px solid #cbd5e1 !important;
+    padding-bottom: 12px !important;
+    margin-bottom: 4px !important;
+  }
+
+  .traspaso-print-hero h1 {
+    color: #0f172a !important;
+    -webkit-text-fill-color: #0f172a !important;
+  }
+
+  .traspaso-print-hero .traspaso-print-header > p:first-of-type {
+    color: #5c4f08 !important;
+    -webkit-text-fill-color: #5c4f08 !important;
+  }
+
+  .traspaso-print-hero .traspaso-print-header > p:not(:first-of-type) {
+    color: #3f3f46 !important;
+    -webkit-text-fill-color: #3f3f46 !important;
+  }
+
+  /* Contadores de turno: papel claro, sin anillos ni sombras de pantalla */
+  .traspaso-print-root .traspaso-print-shift {
+    background: #f6f7f9 !important;
+    background-image: none !important;
+    border: 1px solid #c5cad3 !important;
+    box-shadow: none !important;
+    --tw-ring-shadow: 0 0 #0000 !important;
+    --tw-ring-offset-shadow: 0 0 #0000 !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  .traspaso-print-root a[href^="/"]::after {
+    content: none !important;
+  }
+}
+
+/* ── Phase 7 / mejora 43: color-scheme dark para pickers nativos ─────────── */
+/* Evita el fondo blanco del calendario/selector nativo en modo oscuro         */
+select,
+input[type="date"],
+input[type="datetime-local"],
+input[type="time"],
+input[type="month"],
+input[type="week"],
+input[type="number"],
+input[type="color"] {
+  color-scheme: dark;
+}
+
+/* ── Phase 7 / mejora 44: autofill dark glass (campos no-login) ──────────── */
+/* Chrome pinta el input de amarillo al autocompletar — lo neutralizamos       */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+textarea:-webkit-autofill,
+select:-webkit-autofill {
+  -webkit-box-shadow: 0 0 0 1000px rgba(12, 17, 38, 0.98) inset !important;
+  -webkit-text-fill-color: #f0f4ff !important;
+  caret-color: #ffeb66;
+  transition: background-color 99999s ease-out 0s;
+}
+
+/* ── Phase 7 / mejora 45: select focus ring — coincide con Input ─────────── */
+/* Las clases Tailwind focus:outline-none están en @layer utilities;            */
+/* el CSS desinlayerado tiene prioridad de cascada más alta.                   */
+select:focus-visible {
+  outline: none;
+  border-color: rgba(255, 235, 102, 0.5);
+  box-shadow: 0 0 0 3px rgba(255, 235, 102, 0.1), 0 0 0 1px rgba(255, 235, 102, 0.28);
+}
+select {
+  transition: border-color var(--duration-normal) ease, box-shadow var(--duration-normal) ease;
+}
+
+/* ── Phase 7 / mejora 46: calendar / time picker icon dark tint ──────────── */
+input[type="datetime-local"]::-webkit-calendar-picker-indicator,
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="time"]::-webkit-calendar-picker-indicator {
+  filter: invert(1) opacity(0.38);
+  cursor: pointer;
+  border-radius: 3px;
+  transition: opacity var(--duration-fast) ease;
+}
+input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover,
+input[type="date"]::-webkit-calendar-picker-indicator:hover,
+input[type="time"]::-webkit-calendar-picker-indicator:hover {
+  filter: invert(1) opacity(0.65);
+}
+
+/* ── Phase 7 / mejora 47: toast max-width constraint ─────────────────────── */
+.cc-hot-toaster > div {
+  max-width: min(380px, calc(100vw - 2rem)) !important;
+}
+
+/* ── Phase 8 / mejora 56: reduced-motion — cobertura extendida ───────────── */
+@media (prefers-reduced-motion: reduce) {
+  .badge-status-anim,
+  .login-logo-power-on,
+  .login-field-enter,
+  .check-draw,
+  .btn-ripple,
+  .progress-bar,
+  .card-3d,
+  .reaction-btn[aria-pressed="true"] {
+    animation: none !important;
+    transition: none !important;
+  }
+  /* Preserve spinners — essential loading feedback */
+  .animate-spin {
+    animation-duration: 750ms !important;
+    animation-iteration-count: infinite !important;
+    animation-timing-function: linear !important;
+  }
+}
+
+/* ── Phase 8 / mejora 57: EmptyState icon glow (via CSS, no JSX change) ──── */
+.empty-state-icon-wrap {
+  box-shadow: 0 0 24px rgba(255, 235, 102, 0.07);
+  transition: box-shadow var(--duration-slow) ease;
+}
+.empty-state-icon-wrap:hover {
+  box-shadow: 0 0 32px rgba(255, 235, 102, 0.12);
+}
+
+/* ── Phase 8 / mejora 58: print — hide chrome, make content readable ─────── */
+@media print {
+  .app-sidebar-shell,
+  .app-top-header,
+  .mobile-bottom-nav,
+  .cc-hot-toaster {
+    display: none !important;
+  }
+  body {
+    background: #fff !important;
+    color: #111 !important;
+  }
+  .glass, .glass-1, .glass-2, .glass-3, .glass-4 {
+    background: #fff !important;
+    border-color: #e0e0e0 !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+  }
+}
+
+/* ── Phase 8 / mejora 59: textarea — resize vertical only ───────────────── */
+/* Evita el redimensionamiento horizontal que rompe layouts de columnas */
+textarea {
+  resize: vertical;
+}
+
+/* ── Phase 8 / mejora 60: number input — ocultar spinner nativo (Chrome) ─── */
+/* No usamos number inputs para contadores controlados — el spinner nativo es ruido visual */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+/* ── Phase 8 / mejora 61: scroll behavior suave (no-preference) ─────────── */
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+/* ── Phase 8 / mejora 62: text selection in glass panels ─────────────────── */
+/* El color global ya cubre esto; aquí forzamos en glass para el modo claro */
+.glass ::selection,
+.glass-2 ::selection,
+.glass-3 ::selection {
+  background: rgba(255, 235, 102, 0.22);
+  color: #f0f4ff;
+}
+
+/* ── Phase 8 / mejora 63: ::placeholder consistency across browsers ─────── */
+input::placeholder,
+textarea::placeholder {
+  opacity: 1;
+}
+
+/* ── Phase 8 / mejora 64: focus-visible on sidebar links ─────────────────── */
+/* La nav tiene overflow-x:hidden que recortaría el outline global;             */
+/* sustituimos por box-shadow que no desborda */
+.app-sidebar-shell a:focus-visible,
+.app-sidebar-shell button:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(255, 235, 102, 0.65);
+}
+
+/* ── Phase 8 / mejora 65: card hover micro-elevation ─────────────────────── */
+/* Sólo añade translateY; glass-hover ya tiene la transition de transform y box-shadow */
+.project-card-hover:hover {
+  transform: translateY(-1px);
+}
+@media (prefers-reduced-motion: reduce) {
+  .project-card-hover:hover {
+    transform: none;
+  }
 }
 
 /*
@@ -1842,4 +2292,45 @@ textarea:focus ~ .input-focus-bar {
   max-width: 100%;
   height: auto;
   margin-block: 0 !important;
+}
+
+/* ── #66: Login clouds — reduce opacity on landscape tablets ─────────────── */
+@media (orientation: landscape) and (max-width: 1024px) {
+  .login-clouds,
+  .login-clouds::after {
+    opacity: 0.18;
+  }
+}
+
+/* ── #72: Sidebar nav stagger entrance animation ─────────────────────────── */
+@keyframes sidebar-item-enter {
+  from { opacity: 0; transform: translateX(-4px); }
+  to   { opacity: 1; transform: translateX(0);    }
+}
+.sidebar-nav-enter {
+  animation: sidebar-item-enter 0.25s ease-out both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .sidebar-nav-enter { animation: none; opacity: 1; }
+}
+
+/* ── #74: Kanban — cursor default on interactive elements inside task cards ─ */
+.kanban-task-card button,
+.kanban-task-card a,
+.kanban-task-card [role="button"] {
+  cursor: pointer;
+}
+
+/* ── #71: Density — compact mode (reduces card padding by 25%) ───────────── */
+[data-density="compact"] .glass.rounded-xl.p-4 {
+  padding: 0.75rem;
+}
+[data-density="compact"] .kanban-task-card {
+  padding: 0.5rem;
+}
+[data-density="compact"] .kanban-column-well {
+  gap: 0.375rem;
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-density="compact"] { transition: none; }
 }

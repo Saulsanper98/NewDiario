@@ -26,6 +26,7 @@ import { cn } from "@/lib/utils";
 import { Logo } from "@/components/ui/Logo";
 import { Avatar } from "@/components/ui/Avatar";
 import type { SessionUser } from "@/lib/auth/types";
+import { useTheme } from "@/components/layout/ThemeProvider";
 
 type SidebarMode = "smart" | "expanded" | "collapsed";
 
@@ -79,13 +80,17 @@ interface SidebarProps {
 }
 
 export function Sidebar({ user, isAdmin, pendingFollowups = 0 }: SidebarProps) {
+  const { theme } = useTheme();
+  const isLight = theme === "light";
   const pathname = usePathname();
   const [mode, setMode] = useState<SidebarMode>("smart");
   const [hovered, setHovered] = useState(false);
   const [hydrated, setHydrated] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const [modePickerOpen, setModePickerOpen] = useState(false);
+  const [navStagger, setNavStagger] = useState(false);
   const modePickerRef = useRef<HTMLDivElement>(null);
+  const hoverTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   /* Leer modo antes del primer pintado para evitar flash y reservar bien el ancho (expanded/collapsed). */
   useLayoutEffect(() => {
@@ -100,6 +105,14 @@ export function Sidebar({ user, isAdmin, pendingFollowups = 0 }: SidebarProps) {
     }
     setHydrated(true);
     /* eslint-enable react-hooks/set-state-in-effect */
+  }, []);
+
+  /* #72 — stagger sidebar nav items on first page load only */
+  useEffect(() => {
+    if (!sessionStorage.getItem("cc-ops-sidebar-animated")) {
+      setNavStagger(true);
+      sessionStorage.setItem("cc-ops-sidebar-animated", "1");
+    }
   }, []);
 
   /* Misma pestaña no dispara "storage"; otras pestañas sí. */
@@ -176,13 +189,14 @@ export function Sidebar({ user, isAdmin, pendingFollowups = 0 }: SidebarProps) {
     <aside
       aria-label="Navegación principal"
       onMouseEnter={() => {
-        if (isOverlayMode) setHovered(true);
+        if (!isOverlayMode) return;
+        hoverTimerRef.current = setTimeout(() => setHovered(true), 200);
       }}
       onMouseLeave={() => {
-        if (isOverlayMode) {
-          setHovered(false);
-          setModePickerOpen(false);
-        }
+        if (!isOverlayMode) return;
+        if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
+        setHovered(false);
+        setModePickerOpen(false);
       }}
       className={cn(
         "app-sidebar-shell flex flex-col h-full z-20 print:hidden",
@@ -214,7 +228,7 @@ export function Sidebar({ user, isAdmin, pendingFollowups = 0 }: SidebarProps) {
         className="flex-1 p-2 space-y-0.5 overflow-y-auto overflow-x-hidden"
         aria-label="Secciones"
       >
-        {navItems.map((item) => {
+        {navItems.map((item, i) => {
           const Icon = item.icon;
           const active = isActive(item);
           const badge =
@@ -229,6 +243,7 @@ export function Sidebar({ user, isAdmin, pendingFollowups = 0 }: SidebarProps) {
             <Link
               key={item.href}
               href={item.href}
+              style={navStagger ? { animationDelay: `${(i + 1) * 40}ms` } : undefined}
               aria-label={
                 !isExpanded
                   ? badge > 0
@@ -244,15 +259,17 @@ export function Sidebar({ user, isAdmin, pendingFollowups = 0 }: SidebarProps) {
                   : bitacoraHint
               }
               className={cn(
-                "relative flex items-center rounded-lg text-sm font-medium transition-all duration-200 w-full",
+                "relative flex items-center rounded-lg text-sm font-medium transition-all w-full overflow-hidden",
                 isExpanded ? "gap-3 px-3 py-2.5" : "justify-center gap-0 px-0 py-2.5",
                 active
                   ? isExpanded
                     ? "bg-[#ffeb66]/12 text-[#ffeb66] border border-[#ffeb66]/20"
                     : "bg-[#ffeb66]/12 text-[#ffeb66] ring-2 ring-[#ffeb66]/25 ring-inset border border-transparent"
-                  : "text-white/55 hover:text-white hover:bg-white/6 border border-transparent"
+                  : "text-white/55 hover:text-white hover:bg-white/6 border border-transparent",
+                navStagger && "sidebar-nav-enter"
               )}
             >
+              {active && <span className="sidebar-active-bar" aria-hidden />}
               <span className="relative shrink-0 flex items-center justify-center">
                 <Icon className="w-4 h-4" />
                 {badge > 0 && (
@@ -284,7 +301,7 @@ export function Sidebar({ user, isAdmin, pendingFollowups = 0 }: SidebarProps) {
             aria-label={!isExpanded ? "Configuración" : undefined}
             title={!isExpanded ? "Configuración" : undefined}
             className={cn(
-              "flex items-center rounded-lg text-sm font-medium transition-all duration-200 w-full",
+              "relative flex items-center rounded-lg text-sm font-medium transition-all w-full overflow-hidden",
               isExpanded ? "gap-3 px-3 py-2.5" : "justify-center gap-0 px-0 py-2.5",
               pathname.startsWith("/configuracion")
                 ? isExpanded
@@ -293,6 +310,7 @@ export function Sidebar({ user, isAdmin, pendingFollowups = 0 }: SidebarProps) {
                 : "text-white/55 hover:text-white hover:bg-white/6 border border-transparent"
             )}
           >
+            {pathname.startsWith("/configuracion") && <span className="sidebar-active-bar" aria-hidden />}
             <Settings className="w-4 h-4 shrink-0" />
             {isExpanded && (
               <span className="overflow-hidden whitespace-nowrap">Configuración</span>
@@ -360,8 +378,20 @@ export function Sidebar({ user, isAdmin, pendingFollowups = 0 }: SidebarProps) {
           </button>
 
           {modePickerOpen && (
-            <div className="absolute bottom-full left-0 mb-2 w-60 rounded-xl border border-white/10 bg-[#0d1427]/95 backdrop-blur-md shadow-2xl z-50 p-1.5">
-              <p className="px-2.5 pt-1 pb-1.5 text-[10px] font-semibold uppercase tracking-wider text-white/30">
+            <div
+              className={cn(
+                "absolute bottom-full left-0 mb-2 w-60 rounded-xl backdrop-blur-md shadow-2xl z-50 p-1.5",
+                isLight
+                  ? "border border-zinc-200/90 bg-gradient-to-b from-zinc-50 to-zinc-100/95 shadow-[inset_0_1px_0_rgba(255,255,255,0.85),0_12px_40px_rgba(15,23,42,0.12)]"
+                  : "border border-white/10 bg-[#0d1427]/95"
+              )}
+            >
+              <p
+                className={cn(
+                  "px-2.5 pt-1 pb-1.5 text-[10px] font-semibold uppercase tracking-wider",
+                  isLight ? "text-zinc-500" : "text-white/30"
+                )}
+              >
                 Menú lateral
               </p>
               {MODES.map((m) => {
@@ -374,9 +404,13 @@ export function Sidebar({ user, isAdmin, pendingFollowups = 0 }: SidebarProps) {
                     onClick={() => selectMode(m.value)}
                     className={cn(
                       "flex items-center gap-3 w-full rounded-lg px-2.5 py-2.5 text-left transition-colors",
-                      isCurrent
-                        ? "bg-[#ffeb66]/10 text-[#ffeb66]"
-                        : "text-white/55 hover:text-white hover:bg-white/6"
+                      isLight
+                        ? isCurrent
+                          ? "bg-amber-50 text-zinc-900 ring-1 ring-amber-200/70 shadow-sm"
+                          : "text-zinc-700 hover:bg-zinc-900/[0.06] hover:text-zinc-900"
+                        : isCurrent
+                          ? "bg-[#ffeb66]/10 text-[#ffeb66]"
+                          : "text-white/55 hover:text-white hover:bg-white/6"
                     )}
                   >
                     <Icon className="w-4 h-4 shrink-0" />
@@ -384,12 +418,26 @@ export function Sidebar({ user, isAdmin, pendingFollowups = 0 }: SidebarProps) {
                       <p className="text-xs font-semibold leading-none">
                         {m.label}
                       </p>
-                      <p className="text-[11px] text-white/35 mt-1 leading-snug">
+                      <p
+                        className={cn(
+                          "text-[11px] mt-1 leading-snug",
+                          isLight
+                            ? isCurrent
+                              ? "text-zinc-600"
+                              : "text-zinc-500"
+                            : "text-white/35"
+                        )}
+                      >
                         {m.description}
                       </p>
                     </div>
                     {isCurrent && (
-                      <span className="ml-auto w-1.5 h-1.5 rounded-full bg-[#ffeb66] shrink-0" />
+                      <span
+                        className={cn(
+                          "ml-auto w-1.5 h-1.5 rounded-full shrink-0",
+                          isLight ? "bg-amber-500" : "bg-[#ffeb66]"
+                        )}
+                      />
                     )}
                   </button>
                 );

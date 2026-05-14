@@ -51,13 +51,20 @@ interface DashboardContentProps {
   stats: DashboardStats;
 }
 
-/* ── Animated counter hook ───────────────────────────────────────────────── */
-function useAnimatedCounter(target: number, duration = 650): number {
-  const [count, setCount] = useState(target);
-  const prevRef = useRef(target);
+/* ── Animated counter hook (mejora 13: cachea el último valor conocido) ──── */
+function useAnimatedCounter(target: number, cacheKey?: string, duration = 650): number {
+  const getInitial = () => {
+    if (!cacheKey || typeof window === "undefined") return target;
+    const cached = Number(localStorage.getItem(`cc-stat-${cacheKey}`));
+    return isNaN(cached) ? target : cached;
+  };
+  const [count, setCount] = useState<number>(getInitial);
+  const prevRef = useRef<number>(getInitial());
+
   useEffect(() => {
     const from = prevRef.current;
     prevRef.current = target;
+    if (cacheKey) localStorage.setItem(`cc-stat-${cacheKey}`, String(target));
     if (from === target) return;
     const reduced = typeof window !== "undefined"
       && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -73,8 +80,31 @@ function useAnimatedCounter(target: number, duration = 650): number {
     };
     rafId = requestAnimationFrame(step);
     return () => cancelAnimationFrame(rafId);
-  }, [target, duration]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [target, cacheKey, duration]);
   return count;
+}
+
+/* ── "Updated X min ago" timestamp (mejora 14) ───────────────────────────── */
+function UpdatedTimestamp({ fetchedAt }: { fetchedAt: Date }) {
+  const [label, setLabel] = useState("");
+  useEffect(() => {
+    const update = () => {
+      const diff = Math.floor((Date.now() - fetchedAt.getTime()) / 1000);
+      if (diff < 60) setLabel("Actualizado ahora");
+      else if (diff < 3600) setLabel(`Actualizado hace ${Math.floor(diff / 60)} min`);
+      else setLabel(`Actualizado hace ${Math.floor(diff / 3600)}h`);
+    };
+    update();
+    const id = setInterval(update, 30_000);
+    return () => clearInterval(id);
+  }, [fetchedAt]);
+  return (
+    <span className="inline-flex items-center gap-1 text-[10px] text-white/25 tabular-nums">
+      <span className="w-1 h-1 rounded-full bg-emerald-400/70 animate-pulse shrink-0" />
+      {label}
+    </span>
+  );
 }
 
 /* ── Shift progress bar ──────────────────────────────────────────────────── */
@@ -116,11 +146,23 @@ function ShiftProgressBar({ shift }: { shift: "MORNING" | "AFTERNOON" | "NIGHT" 
           {rh > 0 ? `${rh}h ` : ""}{rm}min restantes
         </span>
       </div>
-      <div className="h-1.5 bg-white/6 rounded-full overflow-hidden">
+      {/* Barra con hitos a 25%, 50%, 75% (mejora 15) */}
+      <div className="relative h-1.5 bg-white/6 rounded-full overflow-hidden">
         <div
           className="h-full rounded-full transition-all duration-1000"
           style={{ width: `${progress}%`, backgroundColor: barColor }}
         />
+        {[25, 50, 75].map((pct) => (
+          <span
+            key={pct}
+            className="absolute top-0 bottom-0 w-px bg-black/20"
+            style={{ left: `${pct}%` }}
+            aria-hidden
+          />
+        ))}
+      </div>
+      <div className="flex justify-between text-[9px] text-white/15 px-0.5">
+        <span>0%</span><span>25%</span><span>50%</span><span>75%</span><span>100%</span>
       </div>
     </div>
   );
@@ -194,6 +236,12 @@ export function DashboardContent({
 
   /* Urgent entries from today in visible logs */
   const urgentToday = recentLogs.filter(l => l.type === "URGENTE");
+
+  /* "Todo en orden" — sin incidencias activas (mejora 18) */
+  const allGood = urgentToday.length === 0 && stats.pendingFollowups === 0 && overdueTasks.length === 0;
+
+  /* Fecha de carga (para timestamp de actualización - mejora 14) */
+  const fetchedAt = useRef(new Date()).current;
 
   return (
     <div className="p-6 space-y-5 max-w-7xl mx-auto">
@@ -276,6 +324,21 @@ export function DashboardContent({
         </div>
       )}
 
+      {/* ── Estado "todo en orden" (mejora 18) ──────────────────────── */}
+      {allGood && (
+        <div className="widget-appear" style={{ animationDelay: "130ms" }}>
+          <div className="flex items-center gap-3 rounded-xl border border-emerald-500/20 bg-emerald-500/6 px-4 py-3">
+            <div className="w-8 h-8 rounded-full bg-emerald-500/15 flex items-center justify-center shrink-0">
+              <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-emerald-300">Sin incidencias activas</p>
+              <p className="text-xs text-emerald-400/60 mt-0.5">Turno en orden · Sin urgentes, seguimientos ni tareas vencidas</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── Stats bar ───────────────────────────────────────────────── */}
       <div className="widget-appear" style={{ animationDelay: "160ms" }}>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -286,6 +349,7 @@ export function DashboardContent({
             color="text-[#ffeb66]"
             bg="bg-[#ffeb66]/8"
             href={`/bitacora/dia?date=${format(now, "yyyy-MM-dd")}`}
+            cacheKey="entries-today"
           />
           <StatCard
             label="Seguimientos pendientes"
@@ -295,6 +359,7 @@ export function DashboardContent({
             bg="bg-amber-400/8"
             href="/bitacora?followup=1"
             alert={stats.pendingFollowups > 0}
+            cacheKey="pending-followups"
           />
           <StatCard
             label="Mis tareas activas"
@@ -303,6 +368,7 @@ export function DashboardContent({
             color="text-[#4a9eff]"
             bg="bg-[#4a9eff]/8"
             href="/proyectos"
+            cacheKey="my-tasks"
           />
           <StatCard
             label="Tareas vencidas"
@@ -312,6 +378,7 @@ export function DashboardContent({
             bg={overdueTasks.length > 0 ? "bg-red-400/8" : "bg-emerald-400/8"}
             href={overdueTasks.length > 0 ? "/proyectos?overdue=1" : "/proyectos"}
             alert={overdueTasks.length > 0}
+            cacheKey="overdue-tasks"
           />
         </div>
       </div>
@@ -322,11 +389,14 @@ export function DashboardContent({
           {/* Recent log entries */}
           <Card className="lg:col-span-2">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <BookOpen className="w-4 h-4 text-[#ffeb66]" />
-                Últimas entradas de bitácora
-              </CardTitle>
-              <Link href="/bitacora" className="text-xs text-[#4a9eff] hover:underline flex items-center gap-1">
+              <div className="flex flex-col gap-0.5 min-w-0">
+                <CardTitle className="flex items-center gap-2">
+                  <BookOpen className="w-4 h-4 text-[#ffeb66]" />
+                  Últimas entradas de bitácora
+                </CardTitle>
+                <UpdatedTimestamp fetchedAt={fetchedAt} />
+              </div>
+              <Link href="/bitacora" className="text-xs text-[#4a9eff] hover:underline flex items-center gap-1 shrink-0">
                 Ver todas <ArrowRight className="w-3 h-3" />
               </Link>
             </CardHeader>
@@ -445,36 +515,8 @@ export function DashboardContent({
                   action={{ label: "Ver proyectos", href: "/proyectos" }}
                 />
               ) : (
-                <div className="space-y-1">
-                  {myTasks.slice(0, 6).map((task) => (
-                    <Link key={task.id} href={`/proyectos/${task.project.id}`}>
-                      <div className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-white/4 transition-all duration-200 group">
-                        <div className={cn(
-                          "w-1.5 h-1.5 rounded-full shrink-0",
-                          task.priority === "HIGH" ? "bg-red-400" : task.priority === "MEDIUM" ? "bg-amber-400" : "bg-emerald-400"
-                        )} />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm text-white/80 truncate group-hover:text-white transition-colors">{task.title}</p>
-                          <p className="text-xs text-white/30 truncate">{task.project.name} · {task.column.name}</p>
-                        </div>
-                        {task.dueDate && (
-                          <span
-                            className={cn("text-xs shrink-0", new Date(task.dueDate) < new Date() ? "text-red-400 font-medium" : "text-white/30")}
-                            title={new Date(task.dueDate).toLocaleString("es-ES", { dateStyle: "full" })}
-                          >
-                            {format(new Date(task.dueDate), "d MMM", { locale: es })}
-                          </span>
-                        )}
-                        <ExternalLink className="w-3 h-3 text-white/15 group-hover:text-white/40 transition-colors shrink-0" />
-                      </div>
-                    </Link>
-                  ))}
-                  {myTasks.length > 6 && (
-                    <p className="text-xs text-white/25 text-center pt-1">
-                      +{myTasks.length - 6} más
-                    </p>
-                  )}
-                </div>
+                /* Mejora 17: agrupación por prioridad */
+                <TaskListGrouped tasks={myTasks.slice(0, 8)} />
               )}
             </CardContent>
           </Card>
@@ -564,28 +606,29 @@ export function DashboardContent({
                   );
                   const done = getCompletedColumnCount(project.kanbanColumns);
                   const progress = total > 0 ? Math.round((done / total) * 100) : 0;
+                  const isComplete = progress === 100;
 
                   return (
                     <Link key={project.id} href={`/proyectos/${project.id}`}>
-                      <div className="glass-hover p-3.5 rounded-xl border border-white/8 hover:border-white/14 transition-all duration-200 group">
-                        <div className="flex items-start justify-between gap-2 mb-3">
-                          <p className="text-sm font-semibold text-white group-hover:text-[#ffeb66] transition-colors truncate">
+                      <div className="glass-hover project-card-hover p-4 rounded-xl border border-white/8 hover:border-white/14 transition-all group flex flex-col gap-2.5">
+                        <div className="flex items-start justify-between gap-2">
+                          <p className="text-sm font-semibold text-white group-hover:text-[#ffeb66] transition-colors leading-snug">
                             {truncate(project.name, 32)}
                           </p>
                           <ArrowRight className="w-3.5 h-3.5 text-white/20 shrink-0 mt-0.5" />
                         </div>
-                        <div className="flex items-center gap-2 mb-1.5">
-                          <div className="flex-1 h-2 bg-white/6 rounded-full overflow-hidden">
-                            <div
-                              className={cn("h-full rounded-full progress-bar", progress === 100 ? "bg-emerald-400" : "bg-[#ffeb66]")}
-                              style={{ width: `${progress}%` }}
-                            />
-                          </div>
-                          <span className="text-xs text-white/40 shrink-0 tabular-nums">{progress}%</span>
+                        <div className="flex items-end justify-between gap-3">
+                          <span className={cn("text-3xl font-bold tabular-nums leading-none", isComplete ? "text-emerald-400" : "text-white")}>
+                            {progress}<span className="text-base font-medium ml-0.5 opacity-50">%</span>
+                          </span>
+                          <span className="text-[10px] text-white/30 tabular-nums mb-0.5">{done}/{total} hechas</span>
                         </div>
-                        <p className="text-[10px] text-white/25 tabular-nums">
-                          {done}/{total} tareas completadas
-                        </p>
+                        <div className="h-1.5 bg-white/6 rounded-full overflow-hidden">
+                          <div
+                            className={cn("h-full rounded-full progress-bar", isComplete ? "bg-emerald-400" : "bg-[#ffeb66]")}
+                            style={{ width: `${progress}%` }}
+                          />
+                        </div>
                       </div>
                     </Link>
                   );
@@ -595,6 +638,53 @@ export function DashboardContent({
           </CardContent>
         </Card>
       </div>
+    </div>
+  );
+}
+
+/* ── Task list grouped by priority (mejora 17) ───────────────────────────── */
+const PRIORITY_GROUPS = [
+  { key: "HIGH",   label: "Alta",  dot: "bg-red-400" },
+  { key: "MEDIUM", label: "Media", dot: "bg-amber-400" },
+  { key: "LOW",    label: "Baja",  dot: "bg-emerald-400" },
+] as const;
+
+function TaskListGrouped({ tasks }: { tasks: DashboardMyTask[] }) {
+  const now = new Date();
+  return (
+    <div className="space-y-3">
+      {PRIORITY_GROUPS.map(({ key, label, dot }) => {
+        const group = tasks.filter(t => t.priority === key);
+        if (group.length === 0) return null;
+        return (
+          <div key={key}>
+            <div className="flex items-center gap-2 mb-1 px-1">
+              <span className={`w-1.5 h-1.5 rounded-full ${dot} shrink-0`} />
+              <span className="text-[9px] font-semibold uppercase tracking-widest text-white/30">{label}</span>
+              <div className="flex-1 h-px bg-white/5" />
+            </div>
+            {group.map((task) => (
+              <Link key={task.id} href={`/proyectos/${task.project.id}`}>
+                <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-white/4 transition-all group">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-white/80 truncate group-hover:text-white transition-colors">{task.title}</p>
+                    <p className="text-xs text-white/30 truncate">{task.project.name} · {task.column.name}</p>
+                  </div>
+                  {task.dueDate && (
+                    <span
+                      className={cn("text-xs shrink-0", new Date(task.dueDate) < now ? "text-red-400 font-medium" : "text-white/30")}
+                      title={new Date(task.dueDate).toLocaleString("es-ES", { dateStyle: "full" })}
+                    >
+                      {format(new Date(task.dueDate), "d MMM", { locale: es })}
+                    </span>
+                  )}
+                  <ExternalLink className="w-3 h-3 text-white/15 group-hover:text-white/40 transition-colors shrink-0" />
+                </div>
+              </Link>
+            ))}
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -609,6 +699,7 @@ function StatCard({
   bg,
   href,
   alert,
+  cacheKey,
 }: {
   label: string;
   value: number;
@@ -617,8 +708,9 @@ function StatCard({
   bg: string;
   href: string;
   alert?: boolean;
+  cacheKey?: string;
 }) {
-  const animated = useAnimatedCounter(value);
+  const animated = useAnimatedCounter(value, cacheKey);
 
   return (
     <Link href={href}>

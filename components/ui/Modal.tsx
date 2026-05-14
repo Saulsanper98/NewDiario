@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { useFocusTrap } from "@/lib/hooks/useFocusTrap";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -34,13 +34,40 @@ export function Modal({
 }: ModalProps) {
   const overlayRef = useRef<HTMLDivElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
+  const [mounted, setMounted] = useState(false);
+  const [closing, setClosing] = useState(false);
 
-  useFocusTrap(open, dialogRef);
+  /* Track mount state to drive enter animation */
+  useEffect(() => {
+    if (open) {
+      setClosing(false);
+      setMounted(true);
+    }
+  }, [open]);
+
+  /* Trigger close sequence: animate out, then unmount */
+  const triggerClose = useCallback(() => {
+    const reduced = typeof window !== "undefined"
+      && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduced) { onClose(); return; }
+    setClosing(true);
+  }, [onClose]);
+
+  /* After exit animation completes, fire onClose and unmount */
+  const handleAnimationEnd = useCallback((e: React.AnimationEvent) => {
+    if (closing && e.animationName.includes("fade-out")) {
+      setMounted(false);
+      setClosing(false);
+      onClose();
+    }
+  }, [closing, onClose]);
+
+  useFocusTrap(mounted, dialogRef);
 
   useEffect(() => {
-    if (!open) return;
+    if (!mounted) return;
     const handleKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") triggerClose();
     };
     document.addEventListener("keydown", handleKey);
     document.body.style.overflow = "hidden";
@@ -48,26 +75,28 @@ export function Modal({
       document.removeEventListener("keydown", handleKey);
       document.body.style.overflow = "";
     };
-  }, [open, onClose]);
+  }, [mounted, triggerClose]);
 
-  if (!open) return null;
+  if (!mounted) return null;
 
   return (
     <div
       ref={overlayRef}
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
       onClick={(e) => {
-        if (e.currentTarget === overlayRef.current && e.target === overlayRef.current) onClose();
+        if (e.currentTarget === overlayRef.current && e.target === overlayRef.current) triggerClose();
       }}
     >
-      <div className="fixed inset-0 modal-backdrop" />
+      <div className={cn("fixed inset-0 modal-backdrop", closing && "modal-backdrop-closing")} />
       <div
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby={title ? "modal-title" : undefined}
+        onAnimationEnd={handleAnimationEnd}
         className={cn(
           "app-modal-dialog relative flex max-h-[min(90vh,calc(100dvh-2rem))] w-full flex-col rounded-2xl border border-white/12 bg-[#0a0f1e] shadow-2xl animate-in fade-in zoom-in-95 duration-200",
+          closing && "modal-dialog-closing",
           sizes[size],
           className
         )}
@@ -84,7 +113,7 @@ export function Modal({
         )}
         <button
           type="button"
-          onClick={onClose}
+          onClick={triggerClose}
           aria-label="Cerrar"
           className="absolute top-4 right-4 z-[1] p-1.5 rounded-lg text-white/40 hover:text-white hover:bg-white/8 transition-all duration-200"
         >

@@ -4,6 +4,7 @@ import {
   extractMentionDataIds,
   extractPlainAtMentionUserIds,
   matchesDeptAllMentionQuery,
+  parseLeadingReplyMention,
   plainTextContainsDeptAllMention,
 } from "./bitacora-mentions";
 
@@ -38,5 +39,20 @@ describe("bitacora-mentions", () => {
     expect(extractPlainAtMentionUserIds("hey @Saul Ramos tú", users)).toEqual(["b"]);
     expect(extractPlainAtMentionUserIds("@Saul ", users)).toEqual(["a"]);
     expect(extractPlainAtMentionUserIds("@all @Saul", users)).toEqual(["a"]);
+  });
+
+  it("parseLeadingReplyMention: solo @Nombre: exacto; no hasta IP:", () => {
+    const names = ["Saul", "Saul Ramos"];
+    expect(parseLeadingReplyMention("@Saul: hola", names)).toEqual({
+      replyTarget: "Saul",
+      bodyText: "hola",
+    });
+    expect(parseLeadingReplyMention("@Saul Ramos: ok", names)).toEqual({
+      replyTarget: "Saul Ramos",
+      bodyText: "ok",
+    });
+    const long =
+      "@Saul Esperamos a que pase X. Pon IP: 192.168.1.1";
+    expect(parseLeadingReplyMention(long, names)).toBeNull();
   });
 });

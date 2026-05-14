@@ -62,7 +62,7 @@ export function EmptyState({
     >
       <div
         className={cn(
-          "rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-[#ffeb66]/80",
+          "empty-state-icon-wrap rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-[#ffeb66]/80",
           compact ? "w-11 h-11" : "w-14 h-14"
         )}
       >

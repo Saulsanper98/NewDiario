@@ -42,7 +42,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     );
 
     const base =
-      "inline-flex items-center justify-center gap-2 font-medium rounded-lg transition-all duration-200 focus-visible:outline-none disabled:opacity-50 disabled:cursor-not-allowed select-none";
+      "inline-flex items-center justify-center gap-2 font-medium rounded-lg transition-all focus-visible:outline-none disabled:opacity-50 disabled:cursor-not-allowed select-none";
 
     const variants = {
       primary:

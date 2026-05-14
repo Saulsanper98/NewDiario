@@ -1,8 +1,46 @@
-/* Tema claro: zinc neutro + amarillo más cargado que #ffeb66 (legible en claro, sin dorado/marrón).
-   Variables solo en html[data-theme="light"]. */
+/* Tema claro — «cristal premium»: mismo lenguaje que Aurora (blur + capas), sobre lienzo con malla suave. */
 
 html[data-theme="light"] {
   color-scheme: light;
+
+  /* Desenfoque cristal (alineado con --blur-glass del shell oscuro) */
+  --lt-glass-blur: 18px;
+  --lt-glass-blur-lg: 24px;
+
+  /* ── Semantic state tokens — light theme overrides ───────────────────────
+     Colores más saturados y oscuros para legibilidad sobre fondos claros */
+  --color-error: #dc2626;
+  --color-error-bg: rgba(220, 38, 38, 0.08);
+  --color-error-bg-hover: rgba(220, 38, 38, 0.14);
+  --color-error-border: rgba(220, 38, 38, 0.28);
+  --color-error-text: #b91c1c;
+
+  --color-warning: #d97706;
+  --color-warning-bg: rgba(217, 119, 6, 0.08);
+  --color-warning-bg-hover: rgba(217, 119, 6, 0.14);
+  --color-warning-border: rgba(217, 119, 6, 0.28);
+  --color-warning-text: #b45309;
+
+  --color-success: #059669;
+  --color-success-bg: rgba(5, 150, 105, 0.08);
+  --color-success-bg-hover: rgba(5, 150, 105, 0.14);
+  --color-success-border: rgba(5, 150, 105, 0.28);
+  --color-success-text: #047857;
+
+  --color-info: #2563eb;
+  --color-info-bg: rgba(37, 99, 235, 0.08);
+  --color-info-bg-hover: rgba(37, 99, 235, 0.14);
+  --color-info-border: rgba(37, 99, 235, 0.28);
+  --color-info-text: #1d4ed8;
+
+  /* Sombras — más sutiles para el fondo claro */
+  --shadow-z1: 0 1px 3px rgba(15, 23, 42, 0.08), 0 1px 2px rgba(15, 23, 42, 0.06);
+  --shadow-z2: 0 4px 16px rgba(15, 23, 42, 0.10), 0 1px 4px rgba(15, 23, 42, 0.06);
+  --shadow-z3: 0 8px 32px rgba(15, 23, 42, 0.12), 0 2px 8px rgba(15, 23, 42, 0.07);
+  --shadow-z4: 0 12px 40px rgba(15, 23, 42, 0.14), 0 4px 12px rgba(15, 23, 42, 0.08);
+  --shadow-z5: 0 20px 56px rgba(15, 23, 42, 0.18), 0 6px 16px rgba(15, 23, 42, 0.10);
+  --shadow-elevated: var(--shadow-z4);
+
   --lt-canvas: #e8e8eb;
   --lt-canvas-mid: #e2e2e6;
   --lt-surface: #efeff1;
@@ -14,6 +52,11 @@ html[data-theme="light"] {
   --lt-shadow-soft:
     inset 0 1px 0 rgba(255, 255, 255, 0.65),
     0 1px 4px rgba(15, 23, 42, 0.06);
+  /* Sombra tipo «panel flotante» para capas glass */
+  --lt-shadow-glass:
+    inset 0 1px 0 rgba(255, 255, 255, 0.78),
+    0 4px 22px rgba(15, 23, 42, 0.075),
+    0 1px 3px rgba(15, 23, 42, 0.045);
   /* Acento amarillo (RGB base ≈ #d4bc1a) — más saturado que #ffeb66, no pastel */
   --lt-yellow-rgb: 212, 188, 26;
   --lt-yellow-solid: #d4bc1a;
@@ -35,13 +78,19 @@ html[data-theme="light"] {
 }
 
 html[data-theme="light"] body {
-  background-color: var(--lt-canvas) !important;
-  background-image: linear-gradient(180deg, #eaeaed 0%, #e4e4e8 100%) !important;
+  background-color: #e2e2ea !important;
+  /* Malla suave (azul / violeta / acento) visible bajo el blur — equivalente «claro» a los orbes Aurora */
+  background-image:
+    radial-gradient(ellipse 120% 75% at 8% -5%, rgba(59, 130, 246, 0.16), transparent 55%),
+    radial-gradient(ellipse 95% 65% at 102% 8%, rgba(139, 92, 246, 0.12), transparent 50%),
+    radial-gradient(ellipse 85% 50% at 50% 108%, rgba(var(--lt-yellow-rgb), 0.1), transparent 58%),
+    linear-gradient(188deg, #ebebf0 0%, #e4e4ec 48%, #dedee6 100%) !important;
+  background-attachment: fixed;
   color: #18181b !important;
 }
 
 html[data-theme="light"] #main-content {
-  background-color: var(--lt-canvas);
+  background-color: transparent;
 }
 
 html[data-theme="light"] .bg-orb-1 {
@@ -65,67 +114,128 @@ html[data-theme="light"] .app-dashboard-root {
 
 html[data-theme="light"] .app-sidebar-shell,
 html[data-theme="light"] .app-top-header {
-  background: linear-gradient(180deg, rgb(var(--shell-chrome-a)) 0%, rgb(var(--shell-chrome-b)) 100%);
-  box-shadow: none;
+  background:
+    linear-gradient(
+      165deg,
+      rgba(255, 255, 255, 0.52) 0%,
+      rgba(255, 255, 255, 0.28) 42%,
+      rgba(248, 248, 251, 0.16) 100%
+    );
+  backdrop-filter: blur(20px) saturate(1.1);
+  -webkit-backdrop-filter: blur(20px) saturate(1.1);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.58);
 }
 
 html[data-theme="light"] .app-top-header {
   border-bottom: 1px solid var(--lt-border-strong);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.62),
+    0 6px 28px rgba(15, 23, 42, 0.06);
 }
 
 html[data-theme="light"] .app-sidebar-shell {
   border-right: 1px solid var(--lt-border-strong);
 }
 
-/* Tarjetas: superficie elevada, nunca #fff puro */
+/* Tarjetas y paneles: cristal (blur + translucidez), no chapas opacas */
 html[data-theme="light"] .glass,
 html[data-theme="light"] .glass-1 {
-  background: linear-gradient(180deg, var(--lt-surface-raised) 0%, var(--lt-surface) 100%);
-  border-color: var(--lt-border-strong);
-  box-shadow: var(--lt-shadow-soft);
+  background:
+    linear-gradient(
+      155deg,
+      rgba(255, 255, 255, 0.7) 0%,
+      rgba(255, 255, 255, 0.4) 45%,
+      rgba(248, 248, 250, 0.28) 100%
+    );
+  backdrop-filter: blur(var(--lt-glass-blur)) saturate(1.12);
+  -webkit-backdrop-filter: blur(var(--lt-glass-blur)) saturate(1.12);
+  border: 1px solid rgba(255, 255, 255, 0.58);
+  box-shadow: var(--lt-shadow-glass);
 }
 
 html[data-theme="light"] .glass-2 {
-  background: linear-gradient(180deg, #f8f8f9 0%, #f0f0f2 100%);
-  border-color: var(--lt-border-strong);
-  box-shadow: var(--lt-shadow-soft);
+  background:
+    linear-gradient(
+      155deg,
+      rgba(255, 255, 255, 0.78) 0%,
+      rgba(255, 255, 255, 0.46) 48%,
+      rgba(246, 246, 249, 0.34) 100%
+    );
+  backdrop-filter: blur(20px) saturate(1.12);
+  -webkit-backdrop-filter: blur(20px) saturate(1.12);
+  border: 1px solid rgba(255, 255, 255, 0.62);
+  box-shadow: var(--lt-shadow-glass);
 }
 
 html[data-theme="light"] .glass-opaque-bitacora {
-  background: linear-gradient(180deg, rgba(250, 250, 251, 0.98) 0%, rgba(238, 238, 241, 0.99) 100%);
-  border-color: var(--lt-border-strong);
-  box-shadow: var(--lt-shadow-soft);
+  background:
+    linear-gradient(
+      155deg,
+      rgba(255, 255, 255, 0.88) 0%,
+      rgba(252, 252, 253, 0.62) 100%
+    );
+  backdrop-filter: blur(var(--lt-glass-blur-lg)) saturate(1.08);
+  -webkit-backdrop-filter: blur(var(--lt-glass-blur-lg)) saturate(1.08);
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  box-shadow: var(--lt-shadow-glass);
 }
 
 html[data-theme="light"] .glass-3 {
-  background: linear-gradient(180deg, #fafafa 0%, #ececed 100%);
-  border-color: var(--lt-border-strong);
-  box-shadow: var(--lt-shadow-soft);
+  background:
+    linear-gradient(
+      160deg,
+      rgba(255, 255, 255, 0.86) 0%,
+      rgba(248, 248, 250, 0.58) 100%
+    );
+  backdrop-filter: blur(var(--lt-glass-blur-lg)) saturate(1.1);
+  -webkit-backdrop-filter: blur(var(--lt-glass-blur-lg)) saturate(1.1);
+  border: 1px solid rgba(255, 255, 255, 0.52);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.75),
+    0 10px 40px rgba(15, 23, 42, 0.1),
+    0 2px 8px rgba(15, 23, 42, 0.05);
 }
 
 html[data-theme="light"] .glass-4 {
-  background: linear-gradient(180deg, #fcfcfc 0%, #f0f0f1 100%);
-  border-color: var(--lt-border-strong);
-  box-shadow: var(--lt-shadow-soft);
+  background:
+    linear-gradient(
+      162deg,
+      rgba(255, 255, 255, 0.92) 0%,
+      rgba(250, 250, 252, 0.72) 100%
+    );
+  backdrop-filter: blur(26px) saturate(1.08);
+  -webkit-backdrop-filter: blur(26px) saturate(1.08);
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.82),
+    0 14px 48px rgba(15, 23, 42, 0.12);
 }
 
 html[data-theme="light"] .glass-hover:hover {
-  background: linear-gradient(180deg, #ffffff 0%, #f3f3f4 100%);
-  border-color: rgba(15, 23, 42, 0.14);
-  box-shadow: var(--lt-shadow-soft);
+  background:
+    linear-gradient(
+      155deg,
+      rgba(255, 255, 255, 0.84) 0%,
+      rgba(255, 255, 255, 0.52) 48%,
+      rgba(252, 252, 254, 0.38) 100%
+    );
+  border-color: rgba(15, 23, 42, 0.1);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.88),
+    0 8px 32px rgba(15, 23, 42, 0.09),
+    0 1px 3px rgba(15, 23, 42, 0.05);
 }
 
-/* Textura ::after (z-index:-1): en claro puede verse como borde/capa bajo la superficie */
+/* Textura noise muy suave (misma capa que Aurora; en claro casi imperceptible) */
 html[data-theme="light"] .glass::after,
 html[data-theme="light"] .glass-1::after,
 html[data-theme="light"] .glass-2::after {
-  opacity: 0 !important;
+  opacity: 0.0045 !important;
 }
 
 html[data-theme="light"] .app-top-header::after,
 html[data-theme="light"] .app-sidebar-shell::after {
-  opacity: 0 !important;
+  opacity: 0.004 !important;
 }
 
 html[data-theme="light"] .card-3d {
@@ -139,14 +249,20 @@ html[data-theme="light"] .modal-backdrop {
 }
 
 html[data-theme="light"] .detail-fullscreen-bg {
-  background-color: var(--lt-canvas);
-  background-image: linear-gradient(180deg, #eaeaed 0%, #e4e4e8 100%);
+  background-color: #e2e2ea;
+  background-image:
+    radial-gradient(ellipse 120% 75% at 8% -5%, rgba(59, 130, 246, 0.12), transparent 55%),
+    radial-gradient(ellipse 95% 65% at 102% 8%, rgba(139, 92, 246, 0.09), transparent 50%),
+    linear-gradient(188deg, #ebebf0 0%, #e4e4ec 100%);
 }
 
 html[data-theme="light"] .toast-glass {
-  background: rgba(250, 250, 251, 0.97) !important;
-  border: 1px solid var(--lt-border-strong) !important;
+  background: rgba(255, 255, 255, 0.82) !important;
+  backdrop-filter: blur(16px) saturate(1.08);
+  -webkit-backdrop-filter: blur(16px) saturate(1.08);
+  border: 1px solid rgba(255, 255, 255, 0.55) !important;
   color: #18181b !important;
+  box-shadow: var(--lt-shadow-glass) !important;
 }
 
 html[data-theme="light"] .skeleton {
@@ -186,7 +302,10 @@ html[data-theme="light"] .kanban-scroll-hint::after {
 
 /* Área Kanban: lienzo algo más profundo que la barra de filtros (capas) */
 html[data-theme="light"] .kanban-board-root {
-  background: linear-gradient(180deg, #d8d9dd 0%, var(--lt-canvas) 48%, #e4e4e8 100%);
+  background:
+    radial-gradient(ellipse 70% 45% at 18% 12%, rgba(59, 130, 246, 0.06), transparent 52%),
+    radial-gradient(ellipse 60% 40% at 88% 22%, rgba(167, 139, 250, 0.05), transparent 48%),
+    linear-gradient(180deg, #d8d9dd 0%, var(--lt-canvas) 48%, #e4e4e8 100%);
 }
 
 html[data-theme="light"] .kanban-column-well-drag {
@@ -196,27 +315,48 @@ html[data-theme="light"] .kanban-column-well-drag {
 
 /* Columnas Kanban: carriles claros con relieve (no gris lavado) */
 html[data-theme="light"] .kanban-column-well:not(.kanban-column-well-drag):not(.kanban-column-well-last) {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(244, 244, 246, 1) 100%) !important;
-  border-color: rgba(15, 23, 42, 0.14) !important;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.55) 0%,
+      rgba(248, 248, 250, 0.38) 100%
+    ) !important;
+  border-color: rgba(255, 255, 255, 0.5) !important;
+  backdrop-filter: blur(12px) saturate(1.06);
+  -webkit-backdrop-filter: blur(12px) saturate(1.06);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.95),
-    0 1px 4px rgba(15, 23, 42, 0.07);
+    inset 0 1px 0 rgba(255, 255, 255, 0.75),
+    0 2px 12px rgba(15, 23, 42, 0.06);
 }
 
 html[data-theme="light"] .kanban-column-well-last:not(.kanban-column-well-drag) {
-  background: linear-gradient(180deg, rgba(236, 253, 245, 0.98) 0%, rgba(220, 252, 231, 0.62) 100%) !important;
-  border-color: rgba(5, 120, 85, 0.28) !important;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(236, 253, 245, 0.72) 0%,
+      rgba(220, 252, 231, 0.45) 100%
+    ) !important;
+  border-color: rgba(5, 120, 85, 0.22) !important;
+  backdrop-filter: blur(12px) saturate(1.05);
+  -webkit-backdrop-filter: blur(12px) saturate(1.05);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.88),
-    0 1px 5px rgba(15, 118, 88, 0.1);
+    inset 0 1px 0 rgba(255, 255, 255, 0.8),
+    0 2px 12px rgba(15, 118, 88, 0.08);
 }
 
 html[data-theme="light"] .kanban-filters-bar {
-  background: linear-gradient(180deg, #f6f6f8 0%, #e6e6ea 100%);
-  border-bottom: 1px solid rgba(15, 23, 42, 0.16) !important;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.72) 0%,
+      rgba(244, 244, 247, 0.52) 100%
+    );
+  backdrop-filter: blur(14px) saturate(1.06);
+  -webkit-backdrop-filter: blur(14px) saturate(1.06);
+  border-bottom: 1px solid rgba(15, 23, 42, 0.12) !important;
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.95),
-    0 3px 12px rgba(15, 23, 42, 0.08);
+    inset 0 1px 0 rgba(255, 255, 255, 0.75),
+    0 3px 14px rgba(15, 23, 42, 0.07);
 }
 
 html[data-theme="light"] .kanban-filters-bar select {
@@ -306,6 +446,16 @@ html[data-theme="light"] .kanban-inline-add-input::placeholder {
   opacity: 1;
 }
 
+/* Fin de columna Kanban: en oscuro es un velo negro; en claro debe ser cristal claro */
+html[data-theme="light"] .kanban-column-well::after {
+  background: linear-gradient(
+    to top,
+    rgba(252, 252, 254, 0.92) 0%,
+    rgba(248, 250, 252, 0.45) 55%,
+    transparent 100%
+  ) !important;
+}
+
 html[data-theme="light"] .board-snapshot-empty-msg {
   color: #64748b !important;
 }
@@ -331,11 +481,20 @@ html[data-theme="light"] thead.config-table-thead th {
 
 /* Tarjetas tarea Kanban */
 html[data-theme="light"] .kanban-task-card {
-  border-color: rgba(15, 23, 42, 0.16) !important;
-  background: linear-gradient(165deg, #ffffff 0%, #f0f0f2 100%) !important;
+  border-color: rgba(255, 255, 255, 0.55) !important;
+  background:
+    linear-gradient(
+      165deg,
+      rgba(255, 255, 255, 0.78) 0%,
+      rgba(255, 255, 255, 0.42) 48%,
+      rgba(246, 246, 249, 0.32) 100%
+    ) !important;
+  backdrop-filter: blur(14px) saturate(1.08);
+  -webkit-backdrop-filter: blur(14px) saturate(1.08);
   box-shadow:
-    var(--lt-shadow-soft),
-    0 2px 14px rgba(15, 23, 42, 0.09);
+    inset 0 1px 0 rgba(255, 255, 255, 0.82),
+    0 4px 20px rgba(15, 23, 42, 0.08),
+    0 1px 2px rgba(15, 23, 42, 0.04);
 }
 
 html[data-theme="light"] .kanban-task-card:hover {
@@ -1230,6 +1389,17 @@ html[data-theme="light"] [data-bitacora-prose] .ProseMirror {
 /* Formulario entrada: la barra amarilla izquierda del Input choca con bordes redondeados en claro */
 html[data-theme="light"] [data-bitacora-entry-form] .input-focus-bar {
   display: none;
+}
+
+/* Nueva entrada: área de escritura TipTap alineada con el panel cristal */
+html[data-theme="light"] [data-bitacora-entry-form] [data-rich-editor] .ProseMirror {
+  min-height: 12.5rem;
+  padding: 0.75rem 1rem 1rem;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.42) 0%,
+    rgba(255, 255, 255, 0.18) 100%
+  );
 }
 
 /* Feed bitácora: botón «Filtros» en tema claro */

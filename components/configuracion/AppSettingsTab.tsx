@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Sun, Sunset, Moon, Loader2, Upload, Undo2, ImageOff } from "lucide-react";
+import { Sun, Sunset, Moon, Loader2, Upload, Undo2, ImageOff, LayoutGrid } from "lucide-react";
+import { useDensity } from "@/lib/hooks/useDensity";
 import toast from "react-hot-toast";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
@@ -13,6 +14,7 @@ const LOGO_MAX_BYTES = 280_000;
 export function AppSettingsTab() {
   const fileRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(true);
+  const { compact, toggle: toggleDensity } = useDensity();
   const [saving, setSaving] = useState(false);
   const [appName, setAppName] = useState(APP_NAME);
   const [shifts, setShifts] = useState({
@@ -293,6 +295,41 @@ export function AppSettingsTab() {
           <p className="text-[11px] text-white/35 leading-relaxed sm:max-w-md sm:pt-0.5">
             Aplica el nombre, horarios de turno y, si has elegido o quitado un logo, esa decisión al pulsar el botón.
           </p>
+        </div>
+      </Card>
+
+      <Card className="space-y-4">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex items-start gap-3 min-w-0">
+            <LayoutGrid className="w-4 h-4 text-white/50 shrink-0 mt-0.5" />
+            <div className="min-w-0">
+              <h3 className="text-sm font-semibold text-white">Vista compacta</h3>
+              <p className="text-xs text-white/40 mt-0.5 leading-relaxed">
+                Reduce el padding de las tarjetas en un 25% para mostrar más contenido en pantalla. No cambia el tamaño del texto.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={compact}
+            onClick={toggleDensity}
+            className={[
+              "relative shrink-0 w-10 h-[22px] rounded-full border transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ffeb66]/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a0f1e]",
+              compact
+                ? "bg-[#ffeb66]/20 border-[#ffeb66]/40"
+                : "bg-white/5 border-white/12 hover:border-white/20",
+            ].join(" ")}
+          >
+            <span
+              className={[
+                "absolute top-0.5 w-4 h-4 rounded-full shadow transition-all duration-200",
+                compact
+                  ? "left-5 bg-[#ffeb66]"
+                  : "left-0.5 bg-white/40",
+              ].join(" ")}
+            />
+          </button>
         </div>
       </Card>
 

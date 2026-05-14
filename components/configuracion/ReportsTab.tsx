@@ -75,7 +75,7 @@ export function ReportsTab() {
               type="date"
               value={from}
               onChange={(e) => setFrom(e.target.value)}
-              className="rounded-lg border border-white/12 bg-white/5 px-3 py-2 text-sm text-white"
+              className="h-9 rounded-lg border border-white/12 bg-white/5 px-3 text-sm text-white focus:outline-none focus:border-[#ffeb66]/45 focus:bg-white/7 transition-all duration-200"
             />
           </label>
           <label className="flex flex-col gap-1 text-xs text-white/40">
@@ -84,7 +84,7 @@ export function ReportsTab() {
               type="date"
               value={to}
               onChange={(e) => setTo(e.target.value)}
-              className="rounded-lg border border-white/12 bg-white/5 px-3 py-2 text-sm text-white"
+              className="h-9 rounded-lg border border-white/12 bg-white/5 px-3 text-sm text-white focus:outline-none focus:border-[#ffeb66]/45 focus:bg-white/7 transition-all duration-200"
             />
           </label>
           {customHref ? (

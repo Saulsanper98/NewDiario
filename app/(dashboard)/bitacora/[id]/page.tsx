@@ -71,6 +71,17 @@ export default async function LogEntryPage({
     select: { id: true, title: true, type: true, createdAt: true },
   });
 
+  const deptMembers = await prisma.userDepartment.findMany({
+    where: {
+      departmentId: entry.departmentId,
+      user: { deletedAt: null, isActive: true },
+    },
+    select: { user: { select: { name: true } } },
+  });
+  const departmentMemberNames = [
+    ...new Set(deptMembers.map((r) => r.user.name).filter(Boolean)),
+  ];
+
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
       <Header
@@ -87,6 +98,7 @@ export default async function LogEntryPage({
           prevEntry={prevEntry}
           nextEntry={nextEntry}
           relatedEntries={relatedEntries}
+          departmentMemberNames={departmentMemberNames}
         />
       </div>
     </div>

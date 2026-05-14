@@ -4,18 +4,26 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
 import toast from "react-hot-toast";
-import { Bell, ChevronDown, Check, X, Loader2, WifiOff } from "lucide-react";
+import { Bell, ChevronDown, ChevronRight, Check, X, Loader2, WifiOff, Sun, Sunset, Moon } from "lucide-react";
 import Link from "next/link";
 import { Avatar } from "@/components/ui/Avatar";
 import { CommandPalette } from "@/components/layout/CommandPalette";
 import { ThemeSelector } from "@/components/layout/ThemeSelector";
+import { useTheme } from "@/components/layout/ThemeProvider";
 import type { SessionUser } from "@/lib/auth/types";
 import { useAccentForUi } from "@/lib/hooks/useAccentForUi";
 import { cn } from "@/lib/utils";
 
+interface BreadcrumbItem {
+  label: string;
+  href?: string;
+  /** Optional badge rendered inline next to the label (e.g. project status). */
+  badge?: { label: string; className: string };
+}
+
 interface HeaderProps {
   user: SessionUser;
-  breadcrumb?: { label: string; href?: string }[];
+  breadcrumb?: BreadcrumbItem[];
 }
 
 type NotifItem = {
@@ -36,6 +44,15 @@ function isInternalLink(link: string): boolean {
   }
 }
 
+type ShiftInfo = { label: string; Icon: typeof Sun; color: string; bg: string };
+
+function getCurrentShift(): ShiftInfo {
+  const h = new Date().getHours();
+  if (h >= 6 && h < 14) return { label: "Mañana", Icon: Sun, color: "text-amber-400", bg: "bg-amber-400/10 border-amber-400/20" };
+  if (h >= 14 && h < 22) return { label: "Tarde", Icon: Sunset, color: "text-orange-400", bg: "bg-orange-400/10 border-orange-400/20" };
+  return { label: "Noche", Icon: Moon, color: "text-blue-400", bg: "bg-blue-400/10 border-blue-400/20" };
+}
+
 const ROUTE_FALLBACK_TITLE: Record<string, string> = {
   "/dashboard": "Dashboard",
   "/bitacora": "Bitácora",
@@ -47,9 +64,13 @@ const ROUTE_FALLBACK_TITLE: Record<string, string> = {
 };
 
 export function Header({ user, breadcrumb }: HeaderProps) {
+  const { theme } = useTheme();
+  const isLight = theme === "light";
   const { accent } = useAccentForUi();
   const router = useRouter();
   const pathname = usePathname();
+  const shift = getCurrentShift();
+  const ShiftIcon = shift.Icon;
   const { update } = useSession();
   const [notifOpen, setNotifOpen] = useState(false);
   const [deptOpen, setDeptOpen] = useState(false);
@@ -185,37 +206,54 @@ export function Header({ user, breadcrumb }: HeaderProps) {
         isOffline ? "mt-7" : ""
       )}
     >
-      <nav className="flex-1 flex items-center gap-2 min-w-0" aria-label="Migas de pan">
+      <nav className="flex-1 flex items-center gap-1.5 min-w-0" aria-label="Migas de pan">
         {crumbs ? (
-          crumbs.map((item, i) => (
-            <span key={`${item.label}-${i}`} className="flex items-center gap-2 min-w-0">
-              {i > 0 && (
-                <span className="text-white/20 shrink-0" aria-hidden>
-                  /
-                </span>
-              )}
-              {item.href ? (
-                <Link
-                  href={item.href}
-                  className="text-sm text-white/50 hover:text-white transition-colors truncate"
-                >
-                  {item.label}
-                </Link>
-              ) : (
-                <span
-                  className="text-sm font-medium text-white truncate"
-                  aria-current={item === lastCrumb ? "page" : undefined}
-                >
-                  {item.label}
-                </span>
-              )}
-            </span>
-          ))
+          crumbs.map((item, i) => {
+            const isLast = i === crumbs.length - 1;
+            return (
+              <span key={`${item.label}-${i}`} className="flex items-center gap-1.5 min-w-0">
+                {i > 0 && (
+                  <ChevronRight className="w-3 h-3 text-white/25 shrink-0" aria-hidden />
+                )}
+                {item.href ? (
+                  <Link
+                    href={item.href}
+                    className="text-sm text-white/45 hover:text-white/80 transition-colors truncate"
+                  >
+                    {item.label}
+                  </Link>
+                ) : (
+                  <span className="flex items-center gap-1.5 min-w-0">
+                    <span
+                      className={`text-sm truncate ${isLast ? "font-semibold text-white" : "font-medium text-white/70"}`}
+                      aria-current={isLast ? "page" : undefined}
+                    >
+                      {item.label}
+                    </span>
+                    {item.badge && (
+                      <span className={cn("hidden sm:inline text-[10px] font-medium px-1.5 py-0.5 rounded border shrink-0", item.badge.className)}>
+                        {item.badge.label}
+                      </span>
+                    )}
+                  </span>
+                )}
+              </span>
+            );
+          })
         ) : (
-          <span className="text-sm font-medium text-white truncate">
+          <span className="text-sm font-semibold text-white truncate">
             {ROUTE_FALLBACK_TITLE[pathname] ?? "CC Ops"}
           </span>
         )}
+
+        {/* Chip de turno activo — visible en pantallas ≥ 1280px */}
+        <span
+          className={`hidden xl:inline-flex items-center gap-1 ml-2 px-2 py-0.5 rounded-full border text-[11px] font-medium ${shift.color} ${shift.bg}`}
+          title={`Turno actual: ${shift.label}`}
+        >
+          <ShiftIcon className="w-3 h-3" />
+          {shift.label}
+        </span>
       </nav>
 
       <CommandPalette activeDepartmentId={user.activeDepartmentId} />
@@ -248,14 +286,25 @@ export function Header({ user, breadcrumb }: HeaderProps) {
 
           {deptOpen && (
             <div
-              className="app-dropdown-panel top-full mt-2 right-0 z-50 min-w-[180px] animate-in fade-in slide-in-from-top-2 duration-200 rounded-xl border border-white/14 p-1.5 shadow-xl backdrop-blur-xl"
+              className={cn(
+                "app-dropdown-panel top-full mt-2 right-0 z-50 min-w-[180px] animate-in fade-in slide-in-from-top-2 duration-200 rounded-xl p-1.5 shadow-xl",
+                isLight
+                  ? "border border-zinc-200/90 bg-white/75 backdrop-blur-xl"
+                  : "border border-white/14 backdrop-blur-xl"
+              )}
               style={{
                 position: "absolute",
-                background:
-                  "linear-gradient(155deg, rgba(13, 20, 40, 0.98) 0%, rgba(10, 15, 28, 0.96) 100%)",
+                background: isLight
+                  ? "linear-gradient(180deg, rgba(255,255,255,0.95) 0%, rgba(248,248,250,0.88) 100%)"
+                  : "linear-gradient(155deg, rgba(13, 20, 40, 0.98) 0%, rgba(10, 15, 28, 0.96) 100%)",
               }}
             >
-              <p className="px-3 py-1 text-[10px] text-white/30 uppercase tracking-wider font-medium">
+              <p
+                className={cn(
+                  "px-3 py-1 text-[10px] uppercase tracking-wider font-medium",
+                  isLight ? "text-zinc-500" : "text-white/30"
+                )}
+              >
                 Departamentos
               </p>
               {user.departments.map((dept) => (
@@ -263,7 +312,12 @@ export function Header({ user, breadcrumb }: HeaderProps) {
                   key={dept.id}
                   type="button"
                   disabled={deptLoading}
-                  className="flex items-center gap-2.5 w-full px-3 py-2 rounded-lg text-sm text-white/70 hover:bg-white/6 hover:text-white transition-all duration-200 disabled:opacity-50"
+                  className={cn(
+                    "flex items-center gap-2.5 w-full px-3 py-2 rounded-lg text-sm transition-all duration-200 disabled:opacity-50",
+                    isLight
+                      ? "text-zinc-700 hover:bg-zinc-100 hover:text-zinc-900"
+                      : "text-white/70 hover:bg-white/6 hover:text-white"
+                  )}
                   onClick={() => void selectDepartment(dept.id)}
                 >
                   <span
@@ -272,7 +326,12 @@ export function Header({ user, breadcrumb }: HeaderProps) {
                   />
                   <span className="flex-1 text-left">{dept.name}</span>
                   {dept.id === user.activeDepartmentId && (
-                    <Check className="w-3.5 h-3.5 text-[#ffeb66]" />
+                    <Check
+                      className={cn(
+                        "w-3.5 h-3.5",
+                        isLight ? "text-[color:var(--lt-yellow-solid)]" : "text-[#ffeb66]"
+                      )}
+                    />
                   )}
                 </button>
               ))}
@@ -283,6 +342,7 @@ export function Header({ user, breadcrumb }: HeaderProps) {
 
       <ThemeSelector />
 
+      <div className="flex items-center gap-2.5 shrink-0">
       {/* Notifications */}
       <div className="relative" ref={notifRef}>
         <button
@@ -302,16 +362,29 @@ export function Header({ user, breadcrumb }: HeaderProps) {
 
           {notifOpen && (
           <div
-            className="app-dropdown-panel top-full mt-2 right-0 z-50 w-80 animate-in fade-in slide-in-from-top-2 duration-200 overflow-hidden rounded-xl border border-white/12 shadow-2xl"
+            className={cn(
+              "app-dropdown-panel top-full mt-2 right-0 z-50 w-80 animate-in fade-in slide-in-from-top-2 duration-200 overflow-hidden rounded-xl border shadow-2xl",
+              isLight ? "border-zinc-200/90 backdrop-blur-xl" : "border-white/12"
+            )}
             style={{
               position: "absolute",
-              /* Casi opaco: sin backdrop-blur para que no “filtre” el contenido detrás */
-              background:
-                "linear-gradient(165deg, rgba(255,255,255,0.055) 0%, rgba(255,255,255,0.02) 100%), linear-gradient(180deg, rgb(10, 14, 26) 0%, rgb(7, 10, 20) 100%)",
+              background: isLight
+                ? "linear-gradient(180deg, rgba(255,255,255,0.95) 0%, rgba(250,250,252,0.9) 100%)"
+                : "linear-gradient(165deg, rgba(255,255,255,0.055) 0%, rgba(255,255,255,0.02) 100%), linear-gradient(180deg, rgb(10, 14, 26) 0%, rgb(7, 10, 20) 100%)",
             }}
           >
-            <div className="px-4 py-3 border-b border-white/8 flex items-center justify-between gap-2">
-              <span className="text-sm font-semibold text-white">
+            <div
+              className={cn(
+                "px-4 py-3 border-b flex items-center justify-between gap-2",
+                isLight ? "border-zinc-200/90" : "border-white/8"
+              )}
+            >
+              <span
+                className={cn(
+                  "text-sm font-semibold",
+                  isLight ? "text-zinc-900" : "text-white"
+                )}
+              >
                 Notificaciones
               </span>
               <div className="flex items-center gap-2">
@@ -332,7 +405,12 @@ export function Header({ user, breadcrumb }: HeaderProps) {
                       toast.error("No se pudo actualizar");
                     }
                   }}
-                  className="text-xs text-[#ffeb66] hover:text-[#ffeb66]/80 disabled:opacity-30 disabled:hover:text-[#ffeb66]"
+                  className={cn(
+                    "text-xs disabled:opacity-30",
+                    isLight
+                      ? "text-[color:var(--lt-yellow-solid)] hover:text-[color:var(--lt-yellow-hover)] disabled:hover:text-[color:var(--lt-yellow-solid)]"
+                      : "text-[#ffeb66] hover:text-[#ffeb66]/80 disabled:hover:text-[#ffeb66]"
+                  )}
                 >
                   Marcar todas
                 </button>
@@ -340,7 +418,10 @@ export function Header({ user, breadcrumb }: HeaderProps) {
                   type="button"
                   onClick={() => setNotifOpen(false)}
                   aria-label="Cerrar notificaciones"
-                  className="p-0.5 rounded text-white/30 hover:text-white/70 transition-colors"
+                  className={cn(
+                    "p-0.5 rounded transition-colors",
+                    isLight ? "text-zinc-400 hover:text-zinc-800" : "text-white/30 hover:text-white/70"
+                  )}
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
@@ -348,12 +429,22 @@ export function Header({ user, breadcrumb }: HeaderProps) {
             </div>
             <div className="max-h-80 overflow-y-auto">
               {notifLoading && !notifData ? (
-                <div className="px-4 py-8 flex flex-col items-center gap-2 text-white/30">
+                <div
+                  className={cn(
+                    "px-4 py-8 flex flex-col items-center gap-2",
+                    isLight ? "text-zinc-400" : "text-white/30"
+                  )}
+                >
                   <Loader2 className="w-5 h-5 animate-spin" />
                   <p className="text-xs">Cargando...</p>
                 </div>
               ) : !notifData?.items.length ? (
-                <div className="px-4 py-8 flex flex-col items-center gap-2 text-white/30">
+                <div
+                  className={cn(
+                    "px-4 py-8 flex flex-col items-center gap-2",
+                    isLight ? "text-zinc-400" : "text-white/30"
+                  )}
+                >
                   <Bell className="w-8 h-8 opacity-20" />
                   <p className="text-sm">Sin notificaciones</p>
                 </div>
@@ -362,9 +453,18 @@ export function Header({ user, breadcrumb }: HeaderProps) {
                   <button
                     key={n.id}
                     type="button"
-                    className={`w-full text-left px-4 py-3 border-b border-white/5 hover:bg-white/5 transition-colors ${
-                      !n.isRead ? "bg-[#ffeb66]/5" : ""
-                    }`}
+                    className={cn(
+                      "w-full text-left px-4 py-3 border-b transition-colors",
+                      isLight
+                        ? cn(
+                            "border-zinc-100 hover:bg-zinc-50/95",
+                            !n.isRead && "bg-[color:var(--lt-accent-bg)]"
+                          )
+                        : cn(
+                            "border-white/5 hover:bg-white/5",
+                            !n.isRead && "bg-[#ffeb66]/5"
+                          )
+                    )}
                     onClick={async () => {
                       if (!n.isRead) {
                         await fetch("/api/notifications", {
@@ -393,13 +493,28 @@ export function Header({ user, breadcrumb }: HeaderProps) {
                       }
                     }}
                   >
-                    <p className="text-sm font-medium text-white truncate">
+                    <p
+                      className={cn(
+                        "text-sm font-medium truncate",
+                        isLight ? "text-zinc-900" : "text-white"
+                      )}
+                    >
                       {n.title}
                     </p>
-                    <p className="text-xs text-white/45 mt-0.5 line-clamp-2">
+                    <p
+                      className={cn(
+                        "text-xs mt-0.5 line-clamp-2",
+                        isLight ? "text-zinc-600" : "text-white/45"
+                      )}
+                    >
                       {n.message}
                     </p>
-                    <p className="text-[10px] text-white/25 mt-1">
+                    <p
+                      className={cn(
+                        "text-[10px] mt-1",
+                        isLight ? "text-zinc-400" : "text-white/25"
+                      )}
+                    >
                       {new Date(n.createdAt).toLocaleString("es-ES", {
                         dateStyle: "short",
                         timeStyle: "short",
@@ -415,6 +530,7 @@ export function Header({ user, breadcrumb }: HeaderProps) {
 
       {/* Avatar */}
       <Avatar name={user.name} image={user.image} size="sm" />
+      </div>
     </header>
     </>
   );

@@ -9,7 +9,7 @@ import {
   type DragStart,
   type DropResult,
 } from "@hello-pangea/dnd";
-import { Plus, GripVertical, ChevronLeft, ListChecks, FlaskConical, Loader2, Archive, Trash2, X } from "lucide-react";
+import { Plus, GripVertical, ChevronLeft, ListChecks, FlaskConical, Loader2, Archive, Trash2, X, Focus } from "lucide-react";
 import toast from "react-hot-toast";
 import { KanbanCard } from "./KanbanCard";
 import { TaskDetailPanel } from "./TaskDetailPanel";
@@ -161,6 +161,8 @@ export function KanbanBoard({ project, allUsers }: KanbanBoardProps) {
   const [creatingTask, setCreatingTask] = useState(false);
   const [collapsedCols, setCollapsedCols] = useState<Set<string>>(new Set());
   const [whatIfOpen, setWhatIfOpen] = useState(false);
+  /* mejora 31 — focus mode: expand one column, collapse all others */
+  const [focusedColId, setFocusedColId] = useState<string | null>(null);
 
   function toggleColCollapse(colId: string) {
     setCollapsedCols((prev) => {
@@ -169,6 +171,16 @@ export function KanbanBoard({ project, allUsers }: KanbanBoardProps) {
       else next.add(colId);
       return next;
     });
+  }
+
+  function toggleFocusCol(colId: string) {
+    if (focusedColId === colId) {
+      setFocusedColId(null);
+      setCollapsedCols(new Set());
+    } else {
+      setFocusedColId(colId);
+      setCollapsedCols(new Set(columns.filter((c) => c.id !== colId).map((c) => c.id)));
+    }
   }
   /** Columna origen al arrastrar una tarea (para deshabilitar drop en columnas WIP llenas). */
   const dragSourceColIdRef = useRef<string | null>(null);
@@ -662,7 +674,7 @@ export function KanbanBoard({ project, allUsers }: KanbanBoardProps) {
           value={priorityFilter}
           onChange={(e) => setPriorityFilter(e.target.value)}
           aria-label="Filtrar por prioridad"
-          className="bg-white/5 border border-white/8 rounded-lg px-2.5 py-1 text-xs text-white/60 focus:outline-none focus:border-[#ffeb66]/40"
+          className="h-7 bg-white/5 border border-white/8 rounded-lg px-2.5 text-xs text-white/60 focus:outline-none focus:border-[#ffeb66]/40 focus:bg-white/7"
         >
           <option value="">Prioridad</option>
           <option value="HIGH">Alta</option>
@@ -673,7 +685,7 @@ export function KanbanBoard({ project, allUsers }: KanbanBoardProps) {
           value={assigneeFilter}
           onChange={(e) => setAssigneeFilter(e.target.value)}
           aria-label="Filtrar por responsable"
-          className="bg-white/5 border border-white/8 rounded-lg px-2.5 py-1 text-xs text-white/60 focus:outline-none focus:border-[#ffeb66]/40"
+          className="h-7 bg-white/5 border border-white/8 rounded-lg px-2.5 text-xs text-white/60 focus:outline-none focus:border-[#ffeb66]/40 focus:bg-white/7"
         >
           <option value="">Asignado</option>
           {allUsers.map((u) => (
@@ -850,6 +862,21 @@ export function KanbanBoard({ project, allUsers }: KanbanBoardProps) {
                               <ListChecks className="w-3.5 h-3.5" />
                             </button>
                           )}
+                          {!collapsedCols.has(col.id) && (
+                            <button
+                              type="button"
+                              onClick={() => toggleFocusCol(col.id)}
+                              title={focusedColId === col.id ? "Salir del modo foco" : "Modo foco: centrar en esta columna"}
+                              className={cn(
+                                "transition-colors opacity-0 group-hover/col:opacity-100",
+                                focusedColId === col.id
+                                  ? "text-[#ffeb66]/70 opacity-100"
+                                  : "text-white/20 hover:text-white/60"
+                              )}
+                            >
+                              <Focus className="w-3.5 h-3.5" />
+                            </button>
+                          )}
                           <button
                             type="button"
                             onClick={() => toggleColCollapse(col.id)}
@@ -930,7 +957,9 @@ export function KanbanBoard({ project, allUsers }: KanbanBoardProps) {
                                   ? "kanban-column-well-drag border-[#ffeb66]/15"
                                   : colIndex === filteredColumns.length - 1
                                     ? "kanban-column-well-last border-emerald-500/12 bg-emerald-400/[0.025]"
-                                    : "border-white/5"
+                                    : wipFull
+                                      ? "border-amber-500/30 bg-amber-500/[0.02]"
+                                      : "border-white/5"
                               )}
                             >
                               {col.tasks.length === 0 &&

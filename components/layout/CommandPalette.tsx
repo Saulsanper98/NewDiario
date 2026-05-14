@@ -286,6 +286,17 @@ export function CommandPalette({
                 </div>
               )}
               <Command.List className="max-h-[min(50vh,420px)] overflow-y-auto bg-[#0a0f1e] p-2">
+                {/* mejora 55: loading skeleton for results */}
+                {loading && query.trim().length >= 2 && (
+                  <div className="space-y-0.5 py-1">
+                    {[48, 36, 42].map((w, i) => (
+                      <div key={i} className="flex items-center gap-2 px-2 py-2 rounded-lg">
+                        <div className="w-4 h-4 skeleton rounded shrink-0" />
+                        <div className={`h-3 skeleton rounded`} style={{ width: `${w}%` }} />
+                      </div>
+                    ))}
+                  </div>
+                )}
                 {query.trim().length === 0 && recent.length > 0 && (
                   <Command.Group
                     heading="Recientes"

@@ -429,9 +429,11 @@ export function RichEditor({
       className={cn(
         "p-1.5 rounded-md text-sm transition-all duration-150 disabled:opacity-30 disabled:cursor-not-allowed shrink-0",
         active
-          ? "bg-[#ffeb66]/15 text-[#ffeb66]"
+          ? theme === "light"
+            ? "bg-[rgba(212,188,26,0.22)] text-zinc-900 ring-1 ring-inset ring-[rgba(165,145,20,0.28)]"
+            : "bg-[#ffeb66]/15 text-[#ffeb66]"
           : theme === "light"
-            ? "text-zinc-600 hover:text-zinc-900 hover:bg-zinc-200/60"
+            ? "text-zinc-600 hover:text-zinc-900 hover:bg-white/55"
             : "text-white/50 hover:text-white hover:bg-white/6"
       )}
     >
@@ -453,10 +455,10 @@ export function RichEditor({
       {...bitacoraProseRootProps}
       data-rich-editor
       className={cn(
-        "rounded-lg border focus-within:border-[#ffeb66]/40 focus-within:ring-1 focus-within:ring-[#ffeb66]/15 transition-all duration-200",
+        "border transition-all duration-200",
         theme === "light"
-          ? "border-zinc-200/90 bg-white/85 shadow-sm"
-          : "border-white/10 bg-white/3",
+          ? "rounded-xl sm:rounded-2xl border-white/55 bg-white/48 shadow-[inset_0_1px_0_rgba(255,255,255,0.78),0_2px_14px_rgba(15,23,42,0.06)] backdrop-blur-xl focus-within:border-[#c4ae16]/52 focus-within:ring-2 focus-within:ring-[#d4bc1a]/14"
+          : "rounded-lg border-white/10 bg-white/3 focus-within:border-[#ffeb66]/40 focus-within:ring-1 focus-within:ring-[#ffeb66]/15",
         focusMode
           ? "fixed inset-4 z-[110] max-h-[calc(100vh-2rem)] border-[#ffeb66]/25 shadow-2xl overflow-auto flex flex-col min-h-0"
           : "overflow-hidden",
@@ -486,10 +488,10 @@ export function RichEditor({
       {!focusMode && (
         <div
           className={cn(
-            "rich-editor-toolbar sticky top-0 z-20 flex items-center gap-0.5 px-2 py-1.5 border-b flex-wrap backdrop-blur-md rounded-t-lg",
+            "rich-editor-toolbar sticky top-0 z-20 flex items-center gap-0.5 px-2 py-1.5 border-b flex-wrap backdrop-blur-md",
             theme === "light"
-              ? "border-zinc-200/80 bg-white/92 supports-[backdrop-filter]:bg-white/88"
-              : "border-white/8 bg-[#0a0f1e]/88 supports-[backdrop-filter]:bg-[#0a0f1e]/72"
+              ? "rounded-t-xl sm:rounded-t-2xl border-zinc-200/65 bg-white/58 supports-[backdrop-filter]:bg-white/48"
+              : "rounded-t-lg border-white/8 bg-[#0a0f1e]/88 supports-[backdrop-filter]:bg-[#0a0f1e]/72"
           )}
         >
 
@@ -537,10 +539,10 @@ export function RichEditor({
                 "p-1.5 rounded-md text-sm transition-all duration-150 flex items-center gap-0.5",
                 showExtended
                   ? theme === "light"
-                    ? "bg-zinc-200 text-zinc-900"
+                    ? "bg-[rgba(212,188,26,0.18)] text-zinc-900 ring-1 ring-inset ring-[rgba(165,145,20,0.22)]"
                     : "bg-white/8 text-white"
                   : theme === "light"
-                    ? "text-zinc-600 hover:text-zinc-900 hover:bg-zinc-200/60"
+                    ? "text-zinc-600 hover:text-zinc-900 hover:bg-white/55"
                     : "text-white/40 hover:text-white hover:bg-white/6"
               )}
             >
@@ -555,7 +557,7 @@ export function RichEditor({
               className={cn(
                 "p-1.5 rounded-md text-sm transition-all duration-150",
                 theme === "light"
-                  ? "text-zinc-600 hover:text-zinc-900 hover:bg-zinc-200/60"
+                  ? "text-zinc-600 hover:text-zinc-900 hover:bg-white/55"
                   : "text-white/40 hover:text-white hover:bg-white/6"
               )}
             >
@@ -571,7 +573,7 @@ export function RichEditor({
           className={cn(
             "flex items-center gap-0.5 px-2 py-1.5 border-b flex-wrap",
             theme === "light"
-              ? "border-zinc-200/70 bg-zinc-50/90"
+              ? "border-zinc-200/60 bg-white/42 backdrop-blur-md"
               : "border-white/6 bg-white/1"
           )}
         >
@@ -595,8 +597,22 @@ export function RichEditor({
 
       {/* B44 — contextual table toolbar */}
       {inTable && !focusMode && (
-        <div className="flex items-center gap-0.5 px-2 py-1 border-b border-indigo-400/15 bg-indigo-400/[0.04] flex-wrap">
-          <span className="text-[10px] text-indigo-300/60 mr-1">Tabla:</span>
+        <div
+          className={cn(
+            "flex items-center gap-0.5 px-2 py-1 border-b flex-wrap",
+            theme === "light"
+              ? "border-indigo-200/55 bg-indigo-50/85"
+              : "border-indigo-400/15 bg-indigo-400/[0.04]"
+          )}
+        >
+          <span
+            className={cn(
+              "text-[10px] mr-1",
+              theme === "light" ? "text-indigo-800/75" : "text-indigo-300/60"
+            )}
+          >
+            Tabla:
+          </span>
           {btn(false, () => editor.chain().focus().addRowBefore().run(), "Añadir fila encima",     <TableRowsSplit className="w-3.5 h-3.5 rotate-180" />)}
           {btn(false, () => editor.chain().focus().addRowAfter().run(),  "Añadir fila debajo",     <TableRowsSplit className="w-3.5 h-3.5" />)}
           {sep()}
@@ -615,7 +631,7 @@ export function RichEditor({
           className={cn(
             "flex items-center justify-between px-4 py-2 border-b shrink-0",
             theme === "light"
-              ? "border-zinc-200/80 bg-zinc-50/95"
+              ? "border-zinc-200/70 bg-white/55 backdrop-blur-lg"
               : "border-white/8 bg-white/2"
           )}
         >
@@ -633,11 +649,11 @@ export function RichEditor({
             onClick={() => setFocusMode(false)}
             className={cn(
               "flex items-center gap-1.5 text-xs transition-colors px-2 py-1 rounded-md",
-              theme === "light"
-                ? "text-zinc-600 hover:text-zinc-900 hover:bg-zinc-200/60"
+                theme === "light"
+                ? "text-zinc-600 hover:text-zinc-900 hover:bg-white/55"
                 : "text-white/40 hover:text-white hover:bg-white/6"
-            )}
-          >
+              )}
+            >
             <Minimize2 className="w-3.5 h-3.5" />
             Salir del modo enfoque
           </button>
@@ -693,9 +709,10 @@ export function RichEditor({
       <div
         className={cn(
           "flex items-center justify-between px-4 py-1.5 border-t shrink-0",
-          !focusMode && "rounded-b-lg",
+          !focusMode &&
+            (theme === "light" ? "rounded-b-xl sm:rounded-b-2xl" : "rounded-b-lg"),
           theme === "light"
-            ? "border-zinc-200/80 bg-zinc-50/80"
+            ? "border-zinc-200/65 bg-white/42 backdrop-blur-md"
             : "border-white/6 bg-white/1"
         )}
       >

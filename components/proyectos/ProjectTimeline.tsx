@@ -1,6 +1,6 @@
 "use client";
 
-import { format, differenceInDays, startOfDay, addDays } from "date-fns";
+import { format, differenceInDays, startOfDay, addDays, isToday } from "date-fns";
 import { es } from "date-fns/locale";
 import type { ProjectDetail } from "@/lib/types/project-detail";
 
@@ -51,14 +51,16 @@ export function ProjectTimeline({ columns }: ProjectTimelineProps) {
           <div className="overflow-x-auto flex">
             {Array.from({ length: totalDays }).map((_, i) => {
               const d = addDays(minDate, i);
+              const todayCol = isToday(d);
               return (
                 <div
                   key={i}
-                  className="shrink-0 text-center border-r border-white/5"
+                  className={`shrink-0 text-center border-r ${todayCol ? "border-[#ffeb66]/30 bg-[#ffeb66]/6" : "border-white/5"}`}
                   style={{ width: dayWidth }}
                 >
-                  <div className="text-[9px] text-white/25 py-1">
+                  <div className={`text-[9px] py-1 ${todayCol ? "text-[#ffeb66] font-bold" : "text-white/25"}`}>
                     {format(d, "d", { locale: es })}
+                    {todayCol && <span className="block text-[7px] font-normal">hoy</span>}
                   </div>
                 </div>
               );

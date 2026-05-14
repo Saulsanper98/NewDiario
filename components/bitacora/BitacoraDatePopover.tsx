@@ -125,7 +125,7 @@ export function BitacoraDatePopover({
         className={cn(
           "fixed z-[300] w-[min(320px,calc(100vw-1.5rem))] rounded-2xl border overflow-hidden animate-in fade-in zoom-in-95 duration-150",
           isLight
-            ? "border-[color:var(--lt-border-strong)] bg-[linear-gradient(180deg,var(--lt-surface-raised)_0%,var(--lt-surface)_100%)] shadow-[var(--shadow-elevated)]"
+            ? "border-[color:var(--lt-border-strong)] bg-white/75 backdrop-blur-xl shadow-[var(--lt-shadow-glass)]"
             : "border-white/12 bg-[#0c1325]/98 backdrop-blur-xl shadow-[0_20px_60px_-12px_rgba(0,0,0,0.85)]"
         )}
         style={{ top: coords.top, left: coords.left }}

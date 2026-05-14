@@ -182,12 +182,15 @@ function UserPicker({
   onChange,
   loading,
   disabled,
+  uiLight = false,
 }: {
   users: LoginUser[];
   value: string;
   onChange: (email: string) => void;
   loading: boolean;
   disabled?: boolean;
+  /** Panel del portal (body): en tema claro debe coincidir con la tarjeta, no forzar oscuro. */
+  uiLight?: boolean;
 }) {
   const [open, setOpen]     = useState(false);
   const [search, setSearch] = useState("");
@@ -250,10 +253,19 @@ function UserPicker({
           borderRadius: "12px",
           overflow: "hidden",
           animation: "upp-in 0.18s cubic-bezier(0.16,1,0.3,1) both",
-          /* Mismo tono oscuro que el glass de la card */
-          background: "rgba(8,13,28,0.97)",
-          border: "1px solid rgba(255,255,255,0.10)",
-          boxShadow: "0 24px 60px rgba(0,0,0,0.8), 0 4px 16px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06)",
+          ...(uiLight
+            ? {
+                background: "linear-gradient(180deg, #fafafa 0%, #f4f4f5 100%)",
+                border: "1px solid rgba(228, 228, 231, 0.95)",
+                boxShadow:
+                  "inset 0 1px 0 rgba(255,255,255,0.9), 0 12px 40px rgba(15,23,42,0.12), 0 4px 12px rgba(15,23,42,0.06)",
+              }
+            : {
+                background: "rgba(8,13,28,0.97)",
+                border: "1px solid rgba(255,255,255,0.10)",
+                boxShadow:
+                  "0 24px 60px rgba(0,0,0,0.8), 0 4px 16px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06)",
+              }),
         }}
       >
         <style>{`
@@ -263,20 +275,37 @@ function UserPicker({
           }
           #upp .upp-list::-webkit-scrollbar { width:3px; }
           #upp .upp-list::-webkit-scrollbar-track { background:transparent; }
-          #upp .upp-list::-webkit-scrollbar-thumb { background:rgba(255,235,102,0.2); border-radius:4px; }
+          #upp .upp-list::-webkit-scrollbar-thumb { background:${uiLight ? "rgba(161,161,170,0.45)" : "rgba(255,235,102,0.2)"}; border-radius:4px; }
         `}</style>
 
-        {/* Buscador — misma clase bg-white/5 border-white/10 que el Input del sistema */}
-        <div className="p-2" style={{ borderBottom:"1px solid rgba(255,255,255,0.06)" }}>
+        {/* Buscador */}
+        <div
+          className="p-2"
+          style={{
+            borderBottom: uiLight
+              ? "1px solid rgba(228,228,231,0.9)"
+              : "1px solid rgba(255,255,255,0.06)",
+          }}
+        >
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/30 pointer-events-none" />
+            <Search
+              className={
+                uiLight
+                  ? "absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400 pointer-events-none"
+                  : "absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/30 pointer-events-none"
+              }
+            />
             <input
               ref={searchRef}
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Buscar usuario…"
-              className="w-full bg-white/5 border border-white/10 rounded-lg text-sm text-white placeholder:text-white/30 h-9 pl-9 pr-3 focus:outline-none focus:border-white/20 transition-all duration-200"
+              className={
+                uiLight
+                  ? "w-full bg-white border border-zinc-200 rounded-lg text-sm text-zinc-900 placeholder:text-zinc-400 h-9 pl-9 pr-3 focus:outline-none focus:border-amber-400/70 focus:ring-1 focus:ring-amber-400/25 transition-all duration-200"
+                  : "w-full bg-white/5 border border-white/10 rounded-lg text-sm text-white placeholder:text-white/30 h-9 pl-9 pr-3 focus:outline-none focus:border-white/20 transition-all duration-200"
+              }
             />
           </div>
         </div>
@@ -284,9 +313,24 @@ function UserPicker({
         {/* Lista */}
         <ul role="listbox" className="upp-list" style={{ maxHeight:"14rem", overflowY:"auto", padding:"4px" }}>
           {filtered.length === 0 ? (
-            <li className="py-8 text-center text-xs text-white/25 tracking-wide">Sin resultados</li>
+            <li
+              className={
+                uiLight
+                  ? "py-8 text-center text-xs text-zinc-400 tracking-wide"
+                  : "py-8 text-center text-xs text-white/25 tracking-wide"
+              }
+            >
+              Sin resultados
+            </li>
           ) : filtered.map((u) => {
             const sel = u.email === value;
+            const selBg = uiLight
+              ? "rgba(254, 243, 199, 0.95)"
+              : "rgba(255,235,102,0.08)";
+            const selBorder = uiLight
+              ? "1px solid rgba(251, 191, 36, 0.45)"
+              : "1px solid rgba(255,235,102,0.15)";
+            const hoverBg = uiLight ? "rgba(244, 244, 245, 1)" : "rgba(255,255,255,0.05)";
             return (
               <li
                 key={u.id}
@@ -295,35 +339,79 @@ function UserPicker({
                 onClick={() => { onChange(u.email); setOpen(false); }}
                 className="flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer select-none transition-colors duration-100"
                 style={{
-                  background: sel ? "rgba(255,235,102,0.08)" : "transparent",
-                  border: sel ? "1px solid rgba(255,235,102,0.15)" : "1px solid transparent",
+                  background: sel ? selBg : "transparent",
+                  border: sel ? selBorder : "1px solid transparent",
                   marginBottom: "1px",
                 }}
-                onMouseEnter={(e) => { if (!sel) (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.05)"; }}
-                onMouseLeave={(e) => { if (!sel) (e.currentTarget as HTMLElement).style.background = "transparent"; }}
+                onMouseEnter={(e) => {
+                  if (!sel) (e.currentTarget as HTMLElement).style.background = hoverBg;
+                }}
+                onMouseLeave={(e) => {
+                  if (!sel) (e.currentTarget as HTMLElement).style.background = "transparent";
+                }}
               >
                 {/* Avatar */}
                 <div style={{
                   flexShrink:0, borderRadius:"50%", padding:"2px",
-                  background: sel ? `linear-gradient(135deg, rgba(255,235,102,0.5), rgba(255,235,102,0.15))` : "transparent",
+                  background: sel
+                    ? uiLight
+                      ? "linear-gradient(135deg, rgba(251,191,36,0.35), rgba(254,243,199,0.5))"
+                      : `linear-gradient(135deg, rgba(255,235,102,0.5), rgba(255,235,102,0.15))`
+                    : "transparent",
                 }}>
                   <Avatar name={u.name} image={u.image} size="sm" />
                 </div>
 
                 {/* Nombre + email */}
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm truncate leading-tight" style={{ fontWeight: sel ? 600 : 500, color: sel ? "#fff" : "rgba(255,255,255,0.75)" }}>
+                  <p
+                    className="text-sm truncate leading-tight"
+                    style={{
+                      fontWeight: sel ? 600 : 500,
+                      color: sel
+                        ? uiLight
+                          ? "#18181b"
+                          : "#fff"
+                        : uiLight
+                          ? "rgba(24,24,27,0.88)"
+                          : "rgba(255,255,255,0.75)",
+                    }}
+                  >
                     {u.name}
                   </p>
-                  <p className="text-[11px] truncate mt-0.5" style={{ color: sel ? "rgba(255,235,102,0.5)" : "rgba(255,255,255,0.3)" }}>
+                  <p
+                    className="text-[11px] truncate mt-0.5"
+                    style={{
+                      color: sel
+                        ? uiLight
+                          ? "#52525b"
+                          : "rgba(255,235,102,0.5)"
+                        : uiLight
+                          ? "#71717a"
+                          : "rgba(255,255,255,0.3)",
+                    }}
+                  >
                     {u.email}
                   </p>
                 </div>
 
                 {/* Check */}
                 {sel && (
-                  <span className="shrink-0 w-5 h-5 rounded-full flex items-center justify-center" style={{ background: "rgba(255,235,102,0.15)" }}>
-                    <Check className="w-2.5 h-2.5" style={{ color: GOLD, strokeWidth: 3 }} />
+                  <span
+                    className="shrink-0 w-5 h-5 rounded-full flex items-center justify-center"
+                    style={{
+                      background: uiLight
+                        ? "rgba(251, 191, 36, 0.2)"
+                        : "rgba(255,235,102,0.15)",
+                    }}
+                  >
+                    <Check
+                      className="w-2.5 h-2.5"
+                      style={{
+                        color: uiLight ? "#b45309" : GOLD,
+                        strokeWidth: 3,
+                      }}
+                    />
                   </span>
                 )}
               </li>
@@ -332,8 +420,21 @@ function UserPicker({
         </ul>
 
         {/* Pie */}
-        <div className="px-3 py-1.5 text-center" style={{ borderTop:"1px solid rgba(255,255,255,0.05)" }}>
-          <span className="text-[10px] text-white/20 tracking-wide">
+        <div
+          className="px-3 py-1.5 text-center"
+          style={{
+            borderTop: uiLight
+              ? "1px solid rgba(228,228,231,0.85)"
+              : "1px solid rgba(255,255,255,0.05)",
+          }}
+        >
+          <span
+            className={
+              uiLight
+                ? "text-[10px] text-zinc-400 tracking-wide"
+                : "text-[10px] text-white/20 tracking-wide"
+            }
+          >
             {users.length} usuario{users.length !== 1 ? "s" : ""} disponible{users.length !== 1 ? "s" : ""}
           </span>
         </div>
@@ -349,7 +450,7 @@ function UserPicker({
       </label>
 
       <div className="relative overflow-hidden rounded-lg">
-        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40 pointer-events-none z-10">
+        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40 pointer-events-none z-10 flex items-center justify-center shrink-0">
           {loading ? (
             <Loader2 className="w-4 h-4 animate-spin" />
           ) : selected ? (
@@ -368,7 +469,8 @@ function UserPicker({
           aria-expanded={open}
           className={[
             "login-field w-full bg-white/5 border border-white/10 rounded-lg text-sm text-left",
-            "transition-all duration-200 h-9 pl-9 pr-9",
+            /* pl-12: margen claro entre avatar / icono y el nombre */
+            "transition-all duration-200 h-9 pl-12 pr-9",
             "focus:outline-none focus:border-[#ffeb66]/50 focus:bg-white/[0.07] focus:ring-1 focus:ring-[#ffeb66]/40",
             "disabled:opacity-40",
             open ? "border-[#ffeb66]/50 bg-white/[0.07] ring-1 ring-[#ffeb66]/40" : "",
@@ -1094,6 +1196,7 @@ export default function LoginPage() {
                     onChange={setEmail}
                     loading={usersLoading}
                     disabled={isLoading || isLocked}
+                    uiLight={uiLight}
                   />
                 </div>
 
@@ -1177,11 +1280,26 @@ export default function LoginPage() {
                     disabled={isLoading || isLocked}
                     className="w-full mt-2 h-11 rounded-[11px] font-semibold shadow-[0_10px_36px_rgba(0,0,0,0.42)] ring-1 ring-[#ffeb66]/[0.22]"
                   >
-                    {isLoading && <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />}
+                    {loginPhase === "redirecting" ? (
+                      <svg
+                        className="w-3.5 h-3.5 shrink-0"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        aria-hidden="true"
+                      >
+                        <path d="M20 6L9 17L4 12" className="check-draw" />
+                      </svg>
+                    ) : loginPhase === "checking" ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />
+                    ) : null}
                     {loginPhase === "checking"
                       ? "Verificando..."
                       : loginPhase === "redirecting"
-                      ? "Redirigiendo..."
+                      ? "Acceso concedido"
                       : isLocked
                       ? `Espera ${lockCountdown}s`
                       : "Iniciar sesión"}

@@ -5,6 +5,7 @@ import { ProjectView } from "@/components/proyectos/ProjectView";
 import { prisma } from "@/lib/prisma/client";
 import type { SessionUser } from "@/lib/auth/types";
 import { projectDetailInclude } from "@/lib/types/project-detail";
+import { STATUS_LABELS, getStatusColor } from "@/lib/utils";
 
 export default async function ProyectoPage({
   params,
@@ -44,7 +45,13 @@ export default async function ProyectoPage({
     ...(project.parent
       ? [{ label: project.parent.name, href: `/proyectos/${project.parent.id}` }]
       : []),
-    { label: project.name },
+    {
+      label: project.name,
+      badge: {
+        label: STATUS_LABELS[project.status as keyof typeof STATUS_LABELS] ?? project.status,
+        className: getStatusColor(project.status),
+      },
+    },
   ];
 
   return (

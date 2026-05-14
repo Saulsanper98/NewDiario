@@ -23,6 +23,7 @@ import { sanitizeHtml } from "@/lib/sanitize-html";
 import { cn } from "@/lib/utils";
 import { useDeptMentionAutocomplete } from "@/hooks/use-dept-mention-autocomplete";
 import { commentHasStructuredMentions } from "@/lib/mention-html-snippet";
+import { renderPlainTextWithMentions } from "@/components/ui/PlainTextWithMentions";
 import type { ProjectKanbanTask } from "@/lib/types/project-detail";
 
 type SubtaskRow     = NonNullable<ProjectKanbanTask["subtasks"]>[number];
@@ -98,6 +99,11 @@ export const TaskDetailPanel = forwardRef<HTMLDivElement, TaskDetailPanelProps>(
   const [showUnsavedWarning, setShowUnsavedWarning] = useState(false);
   const titleInputRef = useRef<HTMLInputElement>(null);
   const taskCommentInputRef = useRef<HTMLTextAreaElement>(null);
+
+  const taskMentionHighlightNames = useMemo(
+    () => [...new Set(allUsers.map((u) => u.name.trim()).filter(Boolean))],
+    [allUsers]
+  );
 
   const taskDeptMention = useDeptMentionAutocomplete({
     value: comment,
@@ -803,7 +809,7 @@ export const TaskDetailPanel = forwardRef<HTMLDivElement, TaskDetailPanelProps>(
                 onChange={(e) =>
                   setContractNotifyUserId(e.target.value || null)
                 }
-                className="w-full bg-white/5 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-white/70 focus:outline-none focus:border-amber-400/40"
+                className="h-8 w-full bg-white/5 border border-white/10 rounded-lg px-2.5 text-xs text-white/70 focus:outline-none focus:border-amber-400/40 focus:bg-white/7"
                 aria-label="Usuario aviso por retraso"
               >
                 <option value="">Nadie</option>
@@ -1118,7 +1124,9 @@ export const TaskDetailPanel = forwardRef<HTMLDivElement, TaskDetailPanelProps>(
                           }}
                         />
                       ) : (
-                        <p className="text-xs text-white/55">{c.content}</p>
+                        <p className="text-xs text-white/55 leading-relaxed">
+                          {renderPlainTextWithMentions(c.content, taskMentionHighlightNames)}
+                        </p>
                       )}
                     </div>
                   </div>

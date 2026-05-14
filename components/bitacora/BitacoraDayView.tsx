@@ -65,11 +65,11 @@ const SHIFT_STYLE_DARK: Record<string, ShiftPaletteRow> = {
   NIGHT:     { text: "text-indigo-300", bg: "bg-indigo-400/6", border: "border-indigo-400/18", time: "22:00–06:00" },
 };
 
-/** Cabeceras de turno en tema claro: fondos tintados suaves + texto oscuro legible */
+/** Cabeceras de turno en tema claro: tinte + cristal suave */
 const SHIFT_STYLE_LIGHT: Record<string, ShiftPaletteRow> = {
-  MORNING:   { text: "text-amber-950/92", bg: "bg-amber-200/42", border: "border-amber-800/14", time: "06:00–14:00" },
-  AFTERNOON: { text: "text-orange-950/92", bg: "bg-orange-200/38", border: "border-orange-900/12", time: "14:00–22:00" },
-  NIGHT:     { text: "text-indigo-950/92", bg: "bg-indigo-200/36", border: "border-indigo-950/14", time: "22:00–06:00" },
+  MORNING:   { text: "text-amber-950/92", bg: "bg-amber-100/45 backdrop-blur-md", border: "border-amber-400/28", time: "06:00–14:00" },
+  AFTERNOON: { text: "text-orange-950/92", bg: "bg-orange-100/42 backdrop-blur-md", border: "border-orange-400/26", time: "14:00–22:00" },
+  NIGHT:     { text: "text-indigo-950/92", bg: "bg-indigo-100/40 backdrop-blur-md", border: "border-indigo-400/28", time: "22:00–06:00" },
 };
 
 /** Chips “Turnos” en resumen día (claro): neutro predominante para no cansar la vista */
@@ -166,7 +166,7 @@ function DayEntryCard({
         className={cn(
           "rounded-xl border transition-all duration-200",
           isLight
-            ? "border-black/[0.07] bg-white/55 hover:bg-white/92 hover:border-black/[0.1] shadow-[var(--lt-shadow-soft)]"
+            ? "border border-black/[0.08] bg-white/40 backdrop-blur-md hover:bg-white/70 hover:border-black/[0.12] shadow-[var(--lt-shadow-glass)]"
             : "border-white/8 bg-white/[0.025] hover:bg-white/[0.045] hover:border-white/14",
           "print:border print:border-slate-300 print:bg-white print:shadow-none print:hover:bg-white",
           compact ? "p-3 print:p-3" : "p-4 print:p-3"
@@ -286,7 +286,7 @@ function EmptyShiftPlaceholder({ compact, isLight }: { compact: boolean; isLight
       className={cn(
         "rounded-xl border border-dashed flex items-center justify-center text-xs",
         isLight
-          ? "border-slate-300/72 text-slate-500 bg-zinc-100/45"
+          ? "border-slate-300/72 text-slate-500 bg-white/35 backdrop-blur-sm"
           : "border-white/6 text-white/18",
         "print:border-slate-300 print:border-dashed print:bg-slate-50 print:text-slate-500",
         compact ? "py-4" : "py-8"

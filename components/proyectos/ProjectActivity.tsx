@@ -8,6 +8,19 @@ import {
 import { Avatar } from "@/components/ui/Avatar";
 import type { ProjectDetail } from "@/lib/types/project-detail";
 import { formatRelative } from "@/lib/utils";
+import { format, isToday, isYesterday } from "date-fns";
+import { es } from "date-fns/locale";
+
+function activityDateLabel(dateStr: string | Date): string {
+  const d = new Date(dateStr);
+  if (isToday(d)) return "Hoy";
+  if (isYesterday(d)) return "Ayer";
+  return format(d, "EEEE d 'de' MMMM", { locale: es });
+}
+
+function activityDateKey(dateStr: string | Date): string {
+  return new Date(dateStr).toISOString().slice(0, 10);
+}
 
 type ActivityItem = ProjectDetail["activityFeed"][number];
 
@@ -130,40 +143,59 @@ export function ProjectActivity({ activities: initial, projectId }: ProjectActiv
             <p className="text-white/30 text-sm">Sin actividad registrada</p>
           </div>
         ) : (
-          <div className="space-y-1">
-            {items.map((activity) => {
-              const user = "user" in activity ? activity.user : null;
-              const action = "action" in activity ? activity.action : null;
-              const iconColor = getActionColor(action);
-              return (
-                <div
-                  key={activity.id}
-                  className="flex items-start gap-3 p-3 rounded-lg hover:bg-white/3 transition-colors group"
-                >
-                  {/* Action icon */}
-                  <div className={`mt-0.5 w-6 h-6 rounded-lg flex items-center justify-center shrink-0 ${iconColor}`}>
-                    {getActionIcon(action)}
+          <div className="space-y-4">
+            {/* mejora 37: group by date */}
+            {(() => {
+              const groups = new Map<string, typeof items>();
+              for (const item of items) {
+                const key = activityDateKey(item.createdAt);
+                if (!groups.has(key)) groups.set(key, []);
+                groups.get(key)!.push(item);
+              }
+              return Array.from(groups.entries()).map(([dateKey, groupItems]) => (
+                <div key={dateKey}>
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <div className="h-px flex-1 bg-white/6" />
+                    <span className="text-[10px] text-white/30 font-medium capitalize shrink-0">
+                      {activityDateLabel(groupItems[0]!.createdAt)}
+                    </span>
+                    <div className="h-px flex-1 bg-white/6" />
                   </div>
-
-                  {/* Content */}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm text-white/60">{activity.description}</p>
-                    <div className="flex items-center gap-1.5 mt-1">
-                      {user && (
-                        <>
-                          <Avatar name={user.name} image={user.image} size="xs" />
-                          <span className="text-[11px] text-white/35">{user.name}</span>
-                          <span className="text-white/15">·</span>
-                        </>
-                      )}
-                      <span className="text-[11px] text-white/25">
-                        {formatRelative(activity.createdAt)}
-                      </span>
-                    </div>
+                  <div className="space-y-0.5">
+                    {groupItems.map((activity) => {
+                      const user = "user" in activity ? activity.user : null;
+                      const action = "action" in activity ? activity.action : null;
+                      const iconColor = getActionColor(action);
+                      return (
+                        <div
+                          key={activity.id}
+                          className="flex items-start gap-3 p-3 rounded-lg hover:bg-white/3 transition-colors group"
+                        >
+                          <div className={`mt-0.5 w-6 h-6 rounded-lg flex items-center justify-center shrink-0 ${iconColor}`}>
+                            {getActionIcon(action)}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm text-white/60">{activity.description}</p>
+                            <div className="flex items-center gap-1.5 mt-1">
+                              {user && (
+                                <>
+                                  <Avatar name={user.name} image={user.image} size="xs" />
+                                  <span className="text-[11px] text-white/35">{user.name}</span>
+                                  <span className="text-white/15">·</span>
+                                </>
+                              )}
+                              <span className="text-[11px] text-white/25">
+                                {formatRelative(activity.createdAt)}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
-              );
-            })}
+              ));
+            })()}
           </div>
         )}
 

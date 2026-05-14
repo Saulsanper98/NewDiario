@@ -19,6 +19,30 @@ function escapeRegex(s: string): string {
 type MinimalUser = { id: string; name: string };
 
 /**
+ * Prefijo de respuesta `@Nombre:` solo si `Nombre` coincide exactamente con un
+ * nombre conocido (más largos primero). Evita tragar el mensaje hasta una `:`
+ * ajena (p. ej. «ponle la IP: 192…»).
+ */
+export function parseLeadingReplyMention(
+  content: string,
+  knownNames: string[]
+): { replyTarget: string; bodyText: string } | null {
+  const sorted = [...new Set(knownNames.map((n) => n.trim()).filter(Boolean))].sort(
+    (a, b) => b.length - a.length
+  );
+  for (const name of sorted) {
+    const prefix = `@${name}:`;
+    if (content.length < prefix.length) continue;
+    if (!content.toLowerCase().startsWith(prefix.toLowerCase())) continue;
+    return {
+      replyTarget: name,
+      bodyText: content.slice(prefix.length).trimStart(),
+    };
+  }
+  return null;
+}
+
+/**
  * `@Nombre` en texto tras quitar etiquetas HTML: resuelve userIds contra el equipo (nombres largos antes).
  */
 export function extractPlainAtMentionUserIds(

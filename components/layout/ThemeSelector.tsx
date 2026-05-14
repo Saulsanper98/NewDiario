@@ -14,7 +14,7 @@ const OPTIONS: {
   Icon: typeof Sun;
 }[] = [
   { id: "aurora", label: "Tema Aurora", hint: "Oscuro con orbes animados (predeterminado)", Icon: Sparkles },
-  { id: "light", label: "Tema claro", hint: "Interfaz clara, sin orbes", Icon: Sun },
+  { id: "light", label: "Tema claro", hint: "Cristal premium sobre lienzo suave (sin orbes)", Icon: Sun },
   { id: "dark", label: "Tema oscuro", hint: "Interfaz oscura, sin orbes", Icon: Moon },
 ];
 
@@ -133,7 +133,7 @@ export function ThemeSelector() {
                 "flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-sm transition-colors",
                 isLt
                   ? sel
-                    ? "bg-zinc-900/8 text-zinc-900"
+                    ? "bg-amber-50 text-zinc-900 ring-1 ring-amber-200/80 shadow-sm"
                     : "text-zinc-600 hover:bg-zinc-900/5 hover:text-zinc-900"
                   : sel
                     ? "bg-white/10 text-white"

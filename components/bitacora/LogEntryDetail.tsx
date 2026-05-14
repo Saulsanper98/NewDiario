@@ -52,7 +52,9 @@ import { useTheme } from "@/components/layout/ThemeProvider";
 import { bitacoraReadingProseClass } from "@/lib/bitacora-html-prose";
 import { bitacoraProseRootProps } from "@/lib/bitacora-prose-constants";
 import { useDeptMentionAutocomplete } from "@/hooks/use-dept-mention-autocomplete";
+import { parseLeadingReplyMention } from "@/lib/bitacora-mentions";
 import { commentHasStructuredMentions } from "@/lib/mention-html-snippet";
+import { renderPlainTextWithMentions } from "@/components/ui/PlainTextWithMentions";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -82,6 +84,8 @@ interface LogEntryDetailProps {
   prevEntry?: AdjacentEntry | null;
   nextEntry?: AdjacentEntry | null;
   relatedEntries?: RelatedEntry[];
+  /** Miembros activos del departamento: resaltado @ y prefijo «respondiendo a». */
+  departmentMemberNames?: string[];
 }
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -201,76 +205,6 @@ function parseChanges(raw: string): Record<string, unknown> {
   try { return JSON.parse(raw); } catch { return {}; }
 }
 
-function getReplyTarget(content: string): string | null {
-  const m = content.match(/^@([^:]+):/);
-  return m ? m[1] : null;
-}
-
-/** @usuario / @all en azul cuando coincide con participantes conocidos (evita falsos positivos). */
-function renderTextWithKnownMentions(text: string, knownNames: string[]): ReactNode {
-  if (!text) return null;
-  const sorted = [...new Set(knownNames.map((n) => n.trim()).filter(Boolean))].sort(
-    (a, b) => b.length - a.length
-  );
-  const hasNames = sorted.length > 0;
-
-  const parts: ReactNode[] = [];
-  let i = 0;
-  let partKey = 0;
-
-  while (i < text.length) {
-    const at = text.indexOf("@", i);
-    if (at === -1) {
-      parts.push(text.slice(i));
-      break;
-    }
-    if (at > i) parts.push(text.slice(i, at));
-
-    const afterAt = text.slice(at);
-    const allMatch = afterAt.match(/^@all\b/i);
-    if (allMatch) {
-      parts.push(
-        <span key={`mnt-${partKey++}-${at}`} className="text-[#4a9eff]/85 font-medium">
-          {allMatch[0]}
-        </span>
-      );
-      i = at + allMatch[0].length;
-      continue;
-    }
-
-    if (!hasNames) {
-      parts.push("@");
-      i = at + 1;
-      continue;
-    }
-
-    let matched = false;
-    for (const name of sorted) {
-      const needle = `@${name}`;
-      if (!text.startsWith(needle, at)) continue;
-      const end = at + needle.length;
-      if (end < text.length) {
-        const ch = text[end]!;
-        if (!/[\s:.,;!?'"()[\]{}]/.test(ch)) continue;
-      }
-      parts.push(
-        <span key={`mnt-${partKey++}-${at}`} className="text-[#4a9eff]/85 font-medium">
-          {needle}
-        </span>
-      );
-      i = end;
-      matched = true;
-      break;
-    }
-    if (!matched) {
-      parts.push("@");
-      i = at + 1;
-    }
-  }
-
-  return parts.length === 1 ? parts[0] : <>{parts}</>;
-}
-
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export function LogEntryDetail({
@@ -279,6 +213,7 @@ export function LogEntryDetail({
   prevEntry,
   nextEntry,
   relatedEntries,
+  departmentMemberNames = [],
 }: LogEntryDetailProps) {
   const { accent, withAlpha } = useAccentForUi();
   const { theme } = useTheme();
@@ -355,8 +290,12 @@ export function LogEntryDetail({
     const s = new Set<string>();
     for (const u of mentionCandidates) s.add(u.name.trim());
     s.add(currentUser.name.trim());
+    for (const n of departmentMemberNames) {
+      const t = n.trim();
+      if (t) s.add(t);
+    }
     return [...s];
-  }, [mentionCandidates, currentUser.name]);
+  }, [mentionCandidates, currentUser.name, departmentMemberNames]);
 
   function commentBodyNode(body: string, asParagraph = true): ReactNode {
     const mentionStyles =
@@ -369,7 +308,7 @@ export function LogEntryDetail({
         />
       );
     }
-    const inner = renderTextWithKnownMentions(body, mentionHighlightNames);
+    const inner = renderPlainTextWithMentions(body, mentionHighlightNames);
     return asParagraph ? <p className={mentionStyles}>{inner}</p> : inner;
   }
 
@@ -1121,10 +1060,12 @@ export function LogEntryDetail({
           {comments.length > 0 && (
             <div className="space-y-4 mb-5">
               {comments.map((c: LogCommentRow) => {
-                const replyTarget = getReplyTarget(c.content);
-                const bodyText = replyTarget
-                  ? c.content.slice(replyTarget.length + 2).trimStart()
-                  : c.content;
+                const replyParsed = parseLeadingReplyMention(
+                  c.content,
+                  mentionHighlightNames
+                );
+                const replyTarget = replyParsed?.replyTarget ?? null;
+                const bodyText = replyParsed?.bodyText ?? c.content;
                 return (
                   <div key={c.id} className="flex gap-3 group/comment">
                     <Avatar

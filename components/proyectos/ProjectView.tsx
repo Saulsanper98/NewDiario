@@ -445,7 +445,7 @@ export function ProjectView({ project, allUsers }: ProjectViewProps) {
                   : "pt-3 mt-2 border-t border-white/8"
               )}
             >
-              <Badge className={getStatusColor(status)} size="md">
+              <Badge key={status} className={`${getStatusColor(status)} badge-status-anim`} size="md">
                 {STATUS_LABELS[status as keyof typeof STATUS_LABELS]}
               </Badge>
               <Badge className={getPriorityColor(priority)} size="sm">
@@ -756,7 +756,7 @@ const EditPopover = forwardRef<HTMLDivElement, EditPopoverProps>(function EditPo
         <select
           value={draftStatus}
           onChange={(e) => setDraftStatus(e.target.value)}
-          className="w-full bg-white/5 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-[#ffeb66]/40"
+          className="w-full h-8 bg-white/5 border border-white/10 rounded-lg px-2.5 text-xs text-white focus:outline-none focus:border-[#ffeb66]/40 focus:bg-white/7"
         >
           {STATUS_OPTIONS.map(([k, v]) => (
             <option key={k} value={k}>{v}</option>
@@ -768,7 +768,7 @@ const EditPopover = forwardRef<HTMLDivElement, EditPopoverProps>(function EditPo
         <select
           value={draftPriority}
           onChange={(e) => setDraftPriority(e.target.value)}
-          className="w-full bg-white/5 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-[#ffeb66]/40"
+          className="w-full h-8 bg-white/5 border border-white/10 rounded-lg px-2.5 text-xs text-white focus:outline-none focus:border-[#ffeb66]/40 focus:bg-white/7"
         >
           {PRIORITY_OPTIONS.map(([k, v]) => (
             <option key={k} value={k}>{v}</option>
@@ -782,7 +782,7 @@ const EditPopover = forwardRef<HTMLDivElement, EditPopoverProps>(function EditPo
             type="date"
             value={draftEndDate}
             onChange={(e) => setDraftEndDate(e.target.value)}
-            className="flex-1 bg-white/5 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-[#ffeb66]/40 min-w-0"
+            className="flex-1 h-8 bg-white/5 border border-white/10 rounded-lg px-2.5 text-xs text-white focus:outline-none focus:border-[#ffeb66]/40 focus:bg-white/7 min-w-0 transition-all duration-200"
           />
           {draftEndDate && (
             <button type="button" onClick={() => setDraftEndDate("")}

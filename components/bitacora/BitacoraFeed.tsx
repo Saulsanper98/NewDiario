@@ -31,6 +31,7 @@ import {
   ArrowUp,
   Edit,
   Copy,
+  Check,
   Search,
   User,
   List,
@@ -41,8 +42,8 @@ import { HighlightText } from "@/components/ui/HighlightText";
 import { Avatar } from "@/components/ui/Avatar";
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { RelativeTime } from "@/components/ui/RelativeTime";
 import {
-  formatRelative,
   SHIFT_LABELS,
   TYPE_LABELS,
   getTypeColor,
@@ -64,13 +65,31 @@ const TYPE_ICONS: Record<string, React.ElementType> = {
   SIN_NOVEDADES: CheckCircle,
 };
 
-/* B1 — type-based left border colors (3px) */
+/* B1 — type-based left border colors (4px) */
 const TYPE_BORDER: Record<string, string> = {
   INCIDENCIA:    "border-l-orange-500/70",
   INFORMATIVO:   "border-l-blue-400/70",
   URGENTE:       "border-l-red-500/80",
   MANTENIMIENTO: "border-l-purple-400/70",
   SIN_NOVEDADES: "border-l-emerald-400/70",
+};
+
+/* mejora 20 — left border glow by type */
+const TYPE_GLOW_SHADOW: Record<string, string> = {
+  INCIDENCIA:    "inset 3px 0 8px -2px rgb(249 115 22 / 0.25)",
+  INFORMATIVO:   "inset 3px 0 8px -2px rgb(96 165 250 / 0.25)",
+  URGENTE:       "inset 3px 0 8px -2px rgb(239 68 68 / 0.30)",
+  MANTENIMIENTO: "inset 3px 0 8px -2px rgb(192 132 252 / 0.25)",
+  SIN_NOVEDADES: "inset 3px 0 8px -2px rgb(52 211 153 / 0.25)",
+};
+
+/* mejora 21 — type-specific active pill colors */
+const TYPE_PILL_ACTIVE: Record<string, string> = {
+  INCIDENCIA:    "border-orange-500/40 bg-orange-500/10 text-orange-400",
+  INFORMATIVO:   "border-blue-400/40 bg-blue-400/10 text-blue-400",
+  URGENTE:       "border-red-500/40 bg-red-500/10 text-red-400",
+  MANTENIMIENTO: "border-purple-400/40 bg-purple-400/10 text-purple-400",
+  SIN_NOVEDADES: "border-emerald-400/40 bg-emerald-400/10 text-emerald-400",
 };
 
 const TYPE_SHORT: Record<string, string> = {
@@ -211,6 +230,17 @@ export function BitacoraFeed({
   const sentinelRef        = useRef<HTMLDivElement>(null);
   const scrollAreaRef      = useRef<HTMLDivElement>(null);
   const hydratedFiltersRef = useRef(false);
+  /* mejora 22 — unread dot: timestamp of previous visit */
+  const lastVisitRef       = useRef<number>(0);
+
+  useEffect(() => {
+    const KEY = "bitacora:lastVisit";
+    try {
+      const prev = localStorage.getItem(KEY);
+      lastVisitRef.current = prev ? parseInt(prev, 10) : 0;
+      localStorage.setItem(KEY, String(Date.now()));
+    } catch { /* ignore */ }
+  }, []);
 
   /* B12 — scroll del panel de lista (no window: la barra de filtros queda fuera del scroll) */
   useEffect(() => {
@@ -220,10 +250,26 @@ export function BitacoraFeed({
       const el = scrollAreaRef.current;
       if (!el) return;
       setShowBackToTop(el.scrollTop > 480);
+      try { sessionStorage.setItem("bitacora:scrollPos", String(el.scrollTop)); } catch { /* ignore */ }
     }
     onScroll();
     root.addEventListener("scroll", onScroll, { passive: true });
     return () => root.removeEventListener("scroll", onScroll);
+  }, []);
+
+  /* #69 — scroll restoration: restore saved position on mount */
+  useEffect(() => {
+    const el = scrollAreaRef.current;
+    if (!el) return;
+    try {
+      const saved = sessionStorage.getItem("bitacora:scrollPos");
+      if (saved) {
+        const pos = parseInt(saved, 10);
+        if (pos > 0) requestAnimationFrame(() => { el.scrollTop = pos; });
+      }
+    } catch { /* ignore */ }
+  // Only restore on initial mount, not on filter/list changes
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function markFollowupDoneLocal(id: string) {
@@ -632,7 +678,7 @@ export function BitacoraFeed({
                   className={cn(
                     "flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-medium transition-all duration-150 border",
                     isActive
-                      ? "border-white/20 bg-white/10 text-white"
+                      ? (TYPE_PILL_ACTIVE[type] ?? "border-white/20 bg-white/10 text-white")
                       : "border-white/8 text-white/40 hover:text-white/70 hover:border-white/14",
                     count === 0 && !isActive && "opacity-40"
                   )}
@@ -812,6 +858,8 @@ export function BitacoraFeed({
               searchQuery={search}
               compact={compactView}
               onFollowupMarked={markFollowupDoneLocal}
+              currentUserId={currentUserId}
+              lastVisitTime={lastVisitRef.current}
             />
           ))}
 
@@ -821,6 +869,7 @@ export function BitacoraFeed({
               <>
                 <SkeletonCard seed={0} />
                 <SkeletonCard seed={1} />
+                <SkeletonCard seed={2} />
                 <div className="flex items-center gap-2 text-xs text-white/30 mt-2">
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
                   Cargando más…
@@ -899,6 +948,8 @@ function ShiftGroup({
   searchQuery,
   compact = false,
   onFollowupMarked,
+  currentUserId,
+  lastVisitTime = 0,
 }: {
   groupKey: GroupKey;
   logs: BitacoraFeedLog[];
@@ -906,6 +957,8 @@ function ShiftGroup({
   searchQuery: string;
   compact?: boolean;
   onFollowupMarked: (id: string) => void;
+  currentUserId?: string;
+  lastVisitTime?: number;
 }) {
   const storageKey = `bitacora:group:${groupKey.date}:${groupKey.shift}`;
 
@@ -969,6 +1022,8 @@ function ShiftGroup({
                 searchQuery={searchQuery}
                 compact={compact}
                 onFollowupMarked={onFollowupMarked}
+                currentUserId={currentUserId}
+                lastVisitTime={lastVisitTime}
               />
             </div>
           ))}
@@ -986,18 +1041,30 @@ function LogCard({
   searchQuery,
   compact = false,
   onFollowupMarked,
+  currentUserId,
+  lastVisitTime = 0,
 }: {
   log: BitacoraFeedLog;
   departmentId: string;
   searchQuery: string;
   compact?: boolean;
   onFollowupMarked: (id: string) => void;
+  currentUserId?: string;
+  lastVisitTime?: number;
 }) {
   const router    = useRouter();
   const TypeIcon  = TYPE_ICONS[log.type] ?? Info;
   const sharedFrom = log.departmentId !== departmentId;
   const isUrgent  = log.type === "URGENTE";
   const typeBorder = TYPE_BORDER[log.type] ?? "border-l-white/20";
+  /* mejora 22 — unread indicator (new since last visit, not authored by current user) */
+  const isNewEntry = lastVisitTime > 0 &&
+    new Date(log.createdAt).getTime() > lastVisitTime &&
+    log.author.id !== currentUserId;
+  /* mejora 26 — draft visual */
+  const isDraft = log.status === "DRAFT";
+
+  const [linkCopied, setLinkCopied] = useState(false);
 
   /* B14 — quick action: copy link */
   function handleCopyLink(e: React.MouseEvent) {
@@ -1005,6 +1072,8 @@ function LogCard({
     e.stopPropagation();
     const url = `${window.location.origin}/bitacora/${log.id}`;
     navigator.clipboard.writeText(url).then(() => {
+      setLinkCopied(true);
+      setTimeout(() => setLinkCopied(false), 1500);
       toast.success("Enlace copiado");
     }).catch(() => toast.error("No se pudo copiar el enlace"));
   }
@@ -1046,22 +1115,28 @@ function LogCard({
 
   return (
     /* B14 — relative container for hover actions */
-    <div className="relative group/card">
+    <div className={cn("relative group/card", isDraft && "opacity-75")}>
       <Link href={`/bitacora/${log.id}`} className="block w-full min-w-0">
         <Card
           hover
           className={cn(
-            "border-l-[3px]",
+            "border-l-[4px]",
             compact ? "py-2.5 px-4" : "p-5 sm:p-6",
             typeBorder,
             isUrgent ? "urgent-card-pulse" : "",
             sharedFrom ? "border-r-2" : ""
           )}
-          style={srcDeptColor ? { borderRightColor: `${srcDeptColor}60` } : undefined}
+          style={{
+            boxShadow: TYPE_GLOW_SHADOW[log.type] ?? undefined,
+            ...(srcDeptColor ? { borderRightColor: `${srcDeptColor}60` } : {}),
+          }}
         >
           {compact ? (
             /* ── Compact single-row layout ── */
             <div className="flex items-center gap-3 min-w-0">
+              {isNewEntry && (
+                <span className="shrink-0 w-1.5 h-1.5 rounded-full bg-blue-400 ring-2 ring-blue-400/20" aria-label="Nueva entrada" />
+              )}
               <TypeIcon className={cn("w-3.5 h-3.5 shrink-0", {
                 INCIDENCIA:   "text-orange-400",
                 INFORMATIVO:  "text-blue-400",
@@ -1076,12 +1151,10 @@ function LogCard({
                 <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-400/12 text-amber-400 border border-amber-400/20 shrink-0">Seg.</span>
               )}
               <span className="text-xs text-white/35 shrink-0 hidden sm:block">{log.author.name}</span>
-              <span
+              <RelativeTime
+                date={log.createdAt}
                 className="text-xs text-white/25 shrink-0"
-                title={new Date(log.createdAt).toLocaleString("es-ES", { dateStyle: "full", timeStyle: "short" })}
-              >
-                {formatRelative(log.createdAt)}
-              </span>
+              />
               {log._count.comments > 0 && (
                 <span className="flex items-center gap-0.5 text-[10px] text-white/25 shrink-0">
                   <MessageSquare className="w-3 h-3" />
@@ -1101,6 +1174,9 @@ function LogCard({
 
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap mb-1">
+                  {isNewEntry && (
+                    <span className="shrink-0 w-2 h-2 rounded-full bg-blue-400 ring-2 ring-blue-400/20 mt-0.5" aria-label="Nueva entrada desde tu última visita" />
+                  )}
                   <span className={`font-semibold text-sm ${isUrgent ? "text-red-300" : "text-white"}`}>
                     <HighlightText text={truncate(log.title, 60)} query={searchQuery} />
                   </span>
@@ -1108,6 +1184,11 @@ function LogCard({
                     <TypeIcon className="w-3 h-3" />
                     {TYPE_LABELS[log.type as keyof typeof TYPE_LABELS]}
                   </Badge>
+                  {isDraft && (
+                    <Badge className="border-white/15 bg-white/6 text-white/45" size="sm">
+                      Borrador
+                    </Badge>
+                  )}
                   {log.requiresFollowup && (
                     <Badge variant={log.followupDone ? "success" : "warning"} size="sm">
                       {log.followupDone ? "Atendido" : "Seguimiento"}
@@ -1163,11 +1244,7 @@ function LogCard({
                     {SHIFT_LABELS[log.shift as keyof typeof SHIFT_LABELS]}
                   </span>
                   <span>·</span>
-                  <span
-                    title={new Date(log.createdAt).toLocaleString("es-ES", { dateStyle: "full", timeStyle: "short" })}
-                  >
-                    {formatRelative(log.createdAt)}
-                  </span>
+                  <RelativeTime date={log.createdAt} />
                   {log._count.comments > 0 && (
                     <>
                       <span>·</span>
@@ -1205,10 +1282,18 @@ function LogCard({
         <button
           type="button"
           onClick={handleCopyLink}
-          className="p-1.5 rounded-md glass-2 border border-white/12 text-white/50 hover:text-white hover:border-white/24 transition-all duration-150"
-          title="Copiar enlace"
+          className={cn(
+            "p-1.5 rounded-md glass-2 border transition-all duration-150",
+            linkCopied
+              ? "border-green-400/30 text-green-400"
+              : "border-white/12 text-white/50 hover:text-white hover:border-white/24"
+          )}
+          title={linkCopied ? "✓ Copiado" : "Copiar enlace"}
         >
-          <Copy className="w-3 h-3" />
+          {linkCopied
+            ? <Check className="w-3 h-3" />
+            : <Copy className="w-3 h-3" />
+          }
         </button>
         {log.requiresFollowup && !log.followupDone && (
           <button

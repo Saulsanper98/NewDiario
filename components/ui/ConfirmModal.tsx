@@ -70,7 +70,7 @@ export function ConfirmModal({
                 disabled={loading}
                 aria-busy={loading}
                 onClick={onConfirm}
-                className={`flex-1 flex items-center justify-center gap-2 h-8 px-3 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 ${btnClass}`}
+                className={`flex-1 flex items-center justify-center gap-2 h-8 px-3 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a0f1e] ${variant === "danger" ? "focus-visible:ring-red-500/60" : "focus-visible:ring-amber-500/60"} ${btnClass}`}
               >
                 {loading ? (
                   <>

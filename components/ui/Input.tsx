@@ -1,6 +1,7 @@
 import { cn } from "@/lib/utils";
 import { forwardRef } from "react";
 import type { InputHTMLAttributes } from "react";
+import { AlertCircle } from "lucide-react";
 
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string;
@@ -22,6 +23,9 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
             className="text-xs font-medium text-white/60 uppercase tracking-wide"
           >
             {label}
+            {props.required && (
+              <span className="text-red-400/80 ml-0.5" aria-hidden>*</span>
+            )}
           </label>
         )}
         <div className="relative overflow-hidden rounded-lg">
@@ -40,20 +44,28 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
               "focus:outline-none focus:border-[#ffeb66]/50 focus:bg-white/7 focus:ring-1 focus:ring-[#ffeb66]/40",
               "transition-all duration-200 h-9 px-3",
               icon && "pl-9",
-              suffix && "pr-9",
+              (suffix || error) && "pr-9",
               error && "border-red-500/50 focus:border-red-500/70",
               className
             )}
             {...props}
           />
-          {suffix && (
+          {error ? (
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 text-red-400/70 pointer-events-none">
+              <AlertCircle className="w-3.5 h-3.5" />
+            </div>
+          ) : suffix ? (
             <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center text-white/40">
               {suffix}
             </div>
-          )}
+          ) : null}
           <span className="input-focus-bar" aria-hidden="true" />
         </div>
-        {error && <p id={errorId} role="alert" className="text-xs text-red-400">{error}</p>}
+        {error && (
+          <p key={error} id={errorId} role="alert" className="text-xs text-red-400 flex items-center gap-1 animate-in slide-in-from-top-1 duration-150">
+            {error}
+          </p>
+        )}
       </div>
     );
   }

@@ -281,7 +281,7 @@ function ProjectCard({ project, departmentId }: { project: ProjectListRow; depar
 
   return (
     <Link href={`/proyectos/${project.id}`}>
-      <Card hover className="h-full flex flex-col gap-4 hover:border-white/14">
+      <Card hover className="h-full flex flex-col gap-4 hover:border-white/14 project-card-hover">
         {/* Header */}
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0">
