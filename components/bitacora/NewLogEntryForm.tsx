@@ -27,6 +27,12 @@ import { PUBLISH_HINT_LABEL } from "@/lib/log-entry-publish-hints";
 import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 import { isValidYyyyMmDd, todayYyyyMmDd } from "@/lib/bitacora-entry-date";
+import {
+  NewLogEntryPollsSection,
+  serializePollDrafts,
+  type DeptMemberOption,
+  type LocalPollDraft,
+} from "@/components/bitacora/NewLogEntryPollsSection";
 
 function notifyPublishHints(hints: PublishHint[] | undefined) {
   if (!hints?.length) return;
@@ -60,7 +66,7 @@ function notifyPublishHints(hints: PublishHint[] | undefined) {
 /* ── schema ─────────────────────────────────────────────────────────────── */
 
 const schema = z.object({
-  title:            z.string().min(3, "Mínimo 3 caracteres"),
+  title:            z.string().max(150, "Máximo 150 caracteres"),
   shift:            z.enum(["MORNING", "AFTERNOON", "NIGHT"]),
   type:             z.enum(["INCIDENCIA", "INFORMATIVO", "URGENTE", "MANTENIMIENTO", "SIN_NOVEDADES"]),
   requiresFollowup: z.boolean(),
@@ -291,6 +297,8 @@ interface NewLogEntryFormProps {
   editingEntry?:  EditingLogEntry;
   /** YYYY-MM-DD: registrar la entrada en ese día (vista por día / retardo). */
   initialDate?: string | null;
+  /** Miembros del departamento de la entrada (nueva) para invitados en encuestas. */
+  departmentMembers?: DeptMemberOption[];
 }
 
 /* ── main component ─────────────────────────────────────────────────────── */
@@ -300,6 +308,7 @@ export function NewLogEntryForm({
   allDepartments,
   editingEntry,
   initialDate = null,
+  departmentMembers = [],
 }: NewLogEntryFormProps) {
   const { accent, withAlpha } = useAccentForUi();
   const { theme } = useTheme();
@@ -352,6 +361,7 @@ export function NewLogEntryForm({
   /* B32 — confirm cancel dialog */
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [correctingSpelling, setCorrectingSpelling] = useState(false);
+  const [pollDrafts, setPollDrafts] = useState<LocalPollDraft[]>([]);
 
   /* last saved display */
   const [, forceUpdate] = useState(0);
@@ -377,6 +387,7 @@ export function NewLogEntryForm({
           status:           editingEntry.status,
         }
       : {
+          title:            "",
           shift:            getCurrentShift(),
           type:             "INFORMATIVO",
           requiresFollowup: false,
@@ -431,7 +442,7 @@ export function NewLogEntryForm({
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [content, tags, sharedWith]);
+  }, [content, tags, sharedWith, pollDrafts]);
 
   const deptForEntry = editingEntry?.departmentId ?? departmentId;
 
@@ -468,9 +479,34 @@ export function NewLogEntryForm({
 
   async function onSubmit(data: FormData) {
     const strippedContent = content.replace(/<[^>]+>/g, "").trim();
-    if (!content || !strippedContent) {
-      toast.error("El contenido no puede estar vacío");
+    const pollsPayload = !editingEntry ? serializePollDrafts(pollDrafts) : [];
+
+    if (!editingEntry && pollDrafts.length > 0 && pollsPayload.length === 0) {
+      toast.error(
+        "Revisa las encuestas: pregunta (3+ caracteres), al menos dos opciones y, si aplica, invitados."
+      );
       return;
+    }
+
+    if (editingEntry) {
+      if (!content || !strippedContent) {
+        toast.error("El contenido no puede estar vacío");
+        return;
+      }
+      if (data.title.trim().length < 3) {
+        toast.error("El título debe tener al menos 3 caracteres");
+        return;
+      }
+    } else {
+      if (strippedContent.length === 0 && pollsPayload.length === 0) {
+        toast.error("Añade texto en el cuerpo o al menos una encuesta completa");
+        return;
+      }
+      const titleTrim = data.title.trim();
+      if (titleTrim.length > 0 && titleTrim.length < 3 && pollsPayload.length === 0) {
+        toast.error("El título debe tener al menos 3 caracteres (o añade una encuesta)");
+        return;
+      }
     }
     async function serverMessage(res: Response): Promise<string | null> {
       try {
@@ -511,15 +547,17 @@ export function NewLogEntryForm({
         router.push(`/bitacora/${editingEntry.id}`);
         return;
       }
+      const effectiveContent = strippedContent ? content : "<p></p>";
       const res = await fetch("/api/log-entries", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...data,
-          content,
+          content: effectiveContent,
           tags,
           departmentId: deptForEntry,
           shares: sharedWith,
+          ...(pollsPayload.length > 0 && { polls: pollsPayload }),
           ...(metricLabel.trim() && { metricAnchorLabel: metricLabel.trim() }),
           ...(metricValue.trim() && { metricAnchorValue: metricValue.trim() }),
           ...(metricTrend && { metricAnchorTrend: metricTrend }),
@@ -533,6 +571,7 @@ export function NewLogEntryForm({
       }
       const entry = (await res.json()) as { id: string; publishHints?: PublishHint[] };
       clearDraft(draftKey);
+      setPollDrafts([]);
       toast.success(data.status === "DRAFT" ? "Borrador guardado" : "Entrada publicada");
       if (data.status === "PUBLISHED") notifyPublishHints(entry.publishHints);
       if (data.status === "PUBLISHED" && backdateForApi) {
@@ -546,7 +585,15 @@ export function NewLogEntryForm({
   }
 
   function handleCancel() {
-    if (isDirty || content !== (editingEntry?.content ?? "")) {
+    const pollsTouched =
+      !editingEntry &&
+      pollDrafts.some(
+        (d) =>
+          d.question.trim().length > 0 ||
+          d.optionDrafts.some((o) => o.trim().length > 0) ||
+          d.selectedInvitees.size > 0
+      );
+    if (isDirty || content !== (editingEntry?.content ?? "") || pollsTouched) {
       setShowCancelDialog(true);
     } else {
       router.back();
@@ -561,6 +608,7 @@ export function NewLogEntryForm({
 
   function handleDiscard() {
     clearDraft(draftKey);
+    setPollDrafts([]);
     setShowCancelDialog(false);
     router.back();
   }
@@ -766,6 +814,17 @@ export function NewLogEntryForm({
             className={theme === "light" ? lightTitleInputClass : undefined}
             {...register("title")}
           />
+          {!editingEntry && (
+            <p
+              className={cn(
+                "mt-1.5 text-[11px] leading-relaxed",
+                theme === "light" ? "text-zinc-500" : "text-white/35"
+              )}
+            >
+              Opcional si la entrada es solo encuestas: puedes dejar el título vacío y usaremos la
+              pregunta de la primera encuesta como título (hasta 150 caracteres).
+            </p>
+          )}
         </div>
 
         {/* B29 — Type selector as visual cards */}
@@ -888,12 +947,23 @@ export function NewLogEntryForm({
               content={content}
               onChange={setContent}
               mentionDepartmentId={deptForEntry}
-              placeholder="Describe la incidencia, novedad o información relevante..."
+              placeholder={
+                !editingEntry && pollDrafts.length > 0
+                  ? "Opcional: contexto adicional. Puedes publicar solo con encuestas y sin texto aquí."
+                  : "Describe la incidencia, novedad o información relevante..."
+              }
             />
           )}
         </div>
 
-        {/* Ancla métrica (opcional): una fila en sm+ (etiqueta | valor | tendencia), misma altura de controles */}
+        {!editingEntry && (
+          <NewLogEntryPollsSection
+            theme={theme}
+            departmentMembers={departmentMembers}
+            drafts={pollDrafts}
+            onChange={setPollDrafts}
+          />
+        )}
         <div
           className={cn(
             "rounded-2xl border p-4 sm:p-5",

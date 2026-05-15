@@ -14,6 +14,7 @@ import type { ShiftHandoffActive } from "@/lib/types/shift-handoff";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
+import { useTheme } from "@/components/layout/ThemeProvider";
 import {
   SHIFT_LABELS,
   getCurrentShift,
@@ -38,6 +39,8 @@ export function ShiftHandoffPanel({
   initialHandoff,
 }: ShiftHandoffPanelProps) {
   const router = useRouter();
+  const { theme } = useTheme();
+  const L = theme === "light";
   const [handoff, setHandoff] = useState<ShiftHandoffActive | null>(
     initialHandoff
   );
@@ -205,7 +208,12 @@ export function ShiftHandoffPanel({
       >
         <div className="space-y-4 px-1 pb-1">
           <div>
-            <label className="block text-[11px] font-medium text-white/45 uppercase tracking-wide mb-1.5">
+            <label
+              className={cn(
+                "block text-[11px] font-medium uppercase tracking-wide mb-1.5",
+                L ? "text-zinc-500" : "text-white/45"
+              )}
+            >
               Turno desde el que dejas la nota
             </label>
             <select
@@ -213,7 +221,12 @@ export function ShiftHandoffPanel({
               onChange={(e) =>
                 setShift(e.target.value as "MORNING" | "AFTERNOON" | "NIGHT")
               }
-              className="h-9 w-full rounded-lg border border-white/12 bg-[#060912] px-3 text-sm text-white focus:outline-none focus:border-[#ffeb66]/45 focus:bg-[#08101f]"
+              className={cn(
+                "h-9 w-full rounded-lg px-3 text-sm focus:outline-none",
+                L
+                  ? "border border-zinc-200 bg-white text-zinc-900 focus:border-amber-400/80 focus:ring-1 focus:ring-amber-400/30"
+                  : "border border-white/12 bg-[#060912] text-white focus:border-[#ffeb66]/45 focus:bg-[#08101f]"
+              )}
             >
               {(Object.keys(SHIFT_LABELS) as (keyof typeof SHIFT_LABELS)[]).map(
                 (k) => (
@@ -225,7 +238,12 @@ export function ShiftHandoffPanel({
             </select>
           </div>
           <div>
-            <label className="block text-[11px] font-medium text-amber-200/80 uppercase tracking-wide mb-1.5">
+            <label
+              className={cn(
+                "block text-[11px] font-medium uppercase tracking-wide mb-1.5",
+                L ? "text-amber-800" : "text-amber-200/80"
+              )}
+            >
               ¿Qué quedó colgado?
             </label>
             <textarea
@@ -233,14 +251,21 @@ export function ShiftHandoffPanel({
               onChange={(e) => setPendingText(e.target.value)}
               rows={3}
               className={cn(
-                "w-full rounded-lg border border-white/12 bg-[#060912] px-3 py-2 text-sm text-white",
-                "placeholder:text-white/25 focus:border-[#ffeb66]/40 focus:outline-none focus:ring-1 focus:ring-[#ffeb66]/25"
+                "w-full rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1",
+                L
+                  ? "border border-zinc-200 bg-white text-zinc-900 placeholder:text-zinc-400 focus:border-amber-400/80 focus:ring-amber-400/25"
+                  : "border border-white/12 bg-[#060912] text-white placeholder:text-white/25 focus:border-[#ffeb66]/40 focus:ring-[#ffeb66]/25"
               )}
               placeholder="Seguimientos, cambios a medias, cosas sin cerrar…"
             />
           </div>
           <div>
-            <label className="block text-[11px] font-medium text-sky-200/80 uppercase tracking-wide mb-1.5">
+            <label
+              className={cn(
+                "block text-[11px] font-medium uppercase tracking-wide mb-1.5",
+                L ? "text-sky-800" : "text-sky-200/80"
+              )}
+            >
               Qué vigilar
             </label>
             <textarea
@@ -248,14 +273,21 @@ export function ShiftHandoffPanel({
               onChange={(e) => setWatchText(e.target.value)}
               rows={3}
               className={cn(
-                "w-full rounded-lg border border-white/12 bg-[#060912] px-3 py-2 text-sm text-white",
-                "placeholder:text-white/25 focus:border-[#ffeb66]/40 focus:outline-none focus:ring-1 focus:ring-[#ffeb66]/25"
+                "w-full rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1",
+                L
+                  ? "border border-zinc-200 bg-white text-zinc-900 placeholder:text-zinc-400 focus:border-amber-400/80 focus:ring-amber-400/25"
+                  : "border border-white/12 bg-[#060912] text-white placeholder:text-white/25 focus:border-[#ffeb66]/40 focus:ring-[#ffeb66]/25"
               )}
               placeholder="Servicios sensibles, ventanas, alertas…"
             />
           </div>
           <div>
-            <label className="block text-[11px] font-medium text-rose-200/80 uppercase tracking-wide mb-1.5">
+            <label
+              className={cn(
+                "block text-[11px] font-medium uppercase tracking-wide mb-1.5",
+                L ? "text-rose-800" : "text-rose-200/80"
+              )}
+            >
               Qué no tocar / evitar
             </label>
             <textarea
@@ -263,8 +295,10 @@ export function ShiftHandoffPanel({
               onChange={(e) => setAvoidText(e.target.value)}
               rows={3}
               className={cn(
-                "w-full rounded-lg border border-white/12 bg-[#060912] px-3 py-2 text-sm text-white",
-                "placeholder:text-white/25 focus:border-[#ffeb66]/40 focus:outline-none focus:ring-1 focus:ring-[#ffeb66]/25"
+                "w-full rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1",
+                L
+                  ? "border border-zinc-200 bg-white text-zinc-900 placeholder:text-zinc-400 focus:border-amber-400/80 focus:ring-amber-400/25"
+                  : "border border-white/12 bg-[#060912] text-white placeholder:text-white/25 focus:border-[#ffeb66]/40 focus:ring-[#ffeb66]/25"
               )}
               placeholder="Equipos en mantenimiento, cambios recientes frágiles…"
             />
@@ -273,6 +307,10 @@ export function ShiftHandoffPanel({
             <Button
               type="button"
               variant="secondary"
+              className={cn(
+                L &&
+                  "border-zinc-200 bg-zinc-100 text-zinc-800 hover:bg-zinc-200 hover:border-zinc-300"
+              )}
               onClick={() => setModalOpen(false)}
               disabled={saving}
             >

@@ -17,12 +17,13 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
-import { ROLE_LABELS } from "@/lib/utils";
+import { ROLE_LABELS, cn } from "@/lib/utils";
 import toast from "react-hot-toast";
 import type { SessionUser } from "@/lib/auth/types";
 import type { Role } from "@/app/generated/prisma/enums";
 import type { ConfigPageDepartment, ConfigPageUser } from "@/lib/types/config";
 import { useAccentForUi } from "@/lib/hooks/useAccentForUi";
+import { useTheme } from "@/components/layout/ThemeProvider";
 import { EmptyState } from "@/components/ui/EmptyState";
 
 interface UsersTabProps {
@@ -39,6 +40,8 @@ export function UsersTab({
   isSuperAdmin,
 }: UsersTabProps) {
   const { accent, withAlpha } = useAccentForUi();
+  const { theme } = useTheme();
+  const L = theme === "light";
   const router = useRouter();
   const [search, setSearch] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
@@ -445,6 +448,7 @@ export function UsersTab({
       >
         <form onSubmit={handleCreateUser} className="space-y-4">
           <Input
+            light={L}
             label="Nombre completo"
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -452,6 +456,7 @@ export function UsersTab({
             autoComplete="name"
           />
           <Input
+            light={L}
             label="Email"
             type="email"
             value={email}
@@ -460,6 +465,7 @@ export function UsersTab({
             autoComplete="off"
           />
           <Input
+            light={L}
             label="Contraseña"
             type="password"
             value={password}
@@ -469,6 +475,7 @@ export function UsersTab({
             autoComplete="new-password"
           />
           <Input
+            light={L}
             label="Confirmar contraseña"
             type="password"
             value={password2}
@@ -479,13 +486,23 @@ export function UsersTab({
           />
 
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-medium text-white/60 uppercase tracking-wide">
+            <label
+              className={cn(
+                "text-xs font-medium uppercase tracking-wide",
+                L ? "text-zinc-500" : "text-white/60"
+              )}
+            >
               Rol global
             </label>
             <select
               value={role}
               onChange={(e) => setRole(e.target.value as Role)}
-              className="h-9 bg-white/5 border border-white/10 rounded-lg px-3 text-sm text-white focus:outline-none focus:border-[#ffeb66]/50 focus:bg-white/7"
+              className={cn(
+                "h-9 rounded-lg px-3 text-sm focus:outline-none",
+                L
+                  ? "border border-zinc-200 bg-white text-zinc-900 focus:border-amber-400/80 focus:ring-1 focus:ring-amber-400/30"
+                  : "bg-white/5 border border-white/10 text-white focus:border-[#ffeb66]/50 focus:bg-white/7"
+              )}
             >
               {roleOptions.map((r) => (
                 <option key={r} value={r}>
@@ -493,13 +510,23 @@ export function UsersTab({
                 </option>
               ))}
             </select>
-            <p className="text-[11px] text-white/35">
+            <p className={cn("text-[11px]", L ? "text-zinc-500" : "text-white/35")}>
               El mismo rol se aplicará en cada departamento seleccionado.
             </p>
           </div>
 
-          <div className="rounded-xl border border-white/10 bg-white/3 p-3 space-y-2">
-            <p className="text-xs font-medium text-white/60 uppercase tracking-wide">
+          <div
+            className={cn(
+              "rounded-xl border p-3 space-y-2",
+              L ? "border-zinc-200 bg-zinc-50/80" : "border-white/10 bg-white/3"
+            )}
+          >
+            <p
+              className={cn(
+                "text-xs font-medium uppercase tracking-wide",
+                L ? "text-zinc-500" : "text-white/60"
+              )}
+            >
               Departamentos
             </p>
             <div className="space-y-2 max-h-40 overflow-y-auto">
@@ -508,13 +535,21 @@ export function UsersTab({
                 return (
                   <label
                     key={d.id}
-                    className="flex items-center gap-2.5 cursor-pointer text-sm text-white/70 hover:text-white/90"
+                    className={cn(
+                      "flex items-center gap-2.5 cursor-pointer text-sm",
+                      L
+                        ? "text-zinc-600 hover:text-zinc-900"
+                        : "text-white/70 hover:text-white/90"
+                    )}
                   >
                     <input
                       type="checkbox"
                       checked={checked}
                       onChange={() => toggleDept(d.id)}
-                      className="rounded border-white/20 bg-white/5 accent-[#ffeb66]"
+                      className={cn(
+                        "rounded accent-[#ffeb66]",
+                        L ? "border-zinc-300 bg-white" : "border-white/20 bg-white/5"
+                      )}
                     />
                     <span
                       className="w-2 h-2 rounded-full shrink-0"
@@ -535,13 +570,21 @@ export function UsersTab({
                 );
               })}
             </div>
-            <p className="text-[11px] text-white/35">
+            <p className={cn("text-[11px]", L ? "text-zinc-500" : "text-white/35")}>
               Marca el círculo del departamento que quieras como predeterminado al iniciar sesión.
             </p>
           </div>
 
           <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="secondary" onClick={closeModal}>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={closeModal}
+              className={cn(
+                L &&
+                  "border-zinc-200 bg-zinc-100 text-zinc-800 hover:bg-zinc-200 hover:border-zinc-300"
+              )}
+            >
               Cancelar
             </Button>
             <Button type="submit" variant="primary" loading={submitting}>
@@ -560,6 +603,7 @@ export function UsersTab({
       >
         <form onSubmit={handleEditUser} className="space-y-4">
           <Input
+            light={L}
             label="Nombre completo"
             value={editName}
             onChange={(e) => setEditName(e.target.value)}
@@ -567,6 +611,7 @@ export function UsersTab({
             autoComplete="name"
           />
           <Input
+            light={L}
             label="Email"
             type="email"
             value={editEmail}
@@ -575,13 +620,23 @@ export function UsersTab({
             autoComplete="off"
           />
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-medium text-white/60 uppercase tracking-wide">
+            <label
+              className={cn(
+                "text-xs font-medium uppercase tracking-wide",
+                L ? "text-zinc-500" : "text-white/60"
+              )}
+            >
               Rol global
             </label>
             <select
               value={editRole}
               onChange={(e) => setEditRole(e.target.value as Role)}
-              className="h-9 bg-white/5 border border-white/10 rounded-lg px-3 text-sm text-white focus:outline-none focus:border-[#ffeb66]/50 focus:bg-white/7"
+              className={cn(
+                "h-9 rounded-lg px-3 text-sm focus:outline-none",
+                L
+                  ? "border border-zinc-200 bg-white text-zinc-900 focus:border-amber-400/80 focus:ring-1 focus:ring-amber-400/30"
+                  : "bg-white/5 border border-white/10 text-white focus:border-[#ffeb66]/50 focus:bg-white/7"
+              )}
             >
               {roleOptions.map((r) => (
                 <option key={r} value={r}>
@@ -591,6 +646,7 @@ export function UsersTab({
             </select>
           </div>
           <Input
+            light={L}
             label="Nueva contraseña (opcional)"
             type="password"
             value={editPassword}
@@ -600,7 +656,15 @@ export function UsersTab({
             placeholder="Dejar vacío para no cambiar"
           />
           <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="secondary" onClick={() => setEditOpen(false)}>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setEditOpen(false)}
+              className={cn(
+                L &&
+                  "border-zinc-200 bg-zinc-100 text-zinc-800 hover:bg-zinc-200 hover:border-zinc-300"
+              )}
+            >
               Cancelar
             </Button>
             <Button type="submit" variant="primary" loading={editSaving}>
@@ -618,10 +682,18 @@ export function UsersTab({
         size="sm"
       >
         <div className="space-y-4">
-          <div className="rounded-lg bg-red-500/8 border border-red-500/20 p-3 text-sm text-red-400">
+          <div
+            className={cn(
+              "rounded-lg border p-3 text-sm",
+              L
+                ? "bg-red-50 border-red-200 text-red-800"
+                : "bg-red-500/8 border border-red-500/20 text-red-400"
+            )}
+          >
             <strong>Advertencia:</strong> Esta operación no se puede deshacer. Se perderán todos los datos asociados a este usuario.
           </div>
           <Input
+            light={L}
             label={`Escribe "${deleteTarget?.name}" para confirmar`}
             value={deleteConfirmName}
             onChange={(e) => setDeleteConfirmName(e.target.value)}
@@ -629,7 +701,15 @@ export function UsersTab({
             autoComplete="off"
           />
           <div className="flex justify-end gap-2 pt-1">
-            <Button type="button" variant="secondary" onClick={() => { setDeleteTarget(null); setDeleteConfirmName(""); }}>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => { setDeleteTarget(null); setDeleteConfirmName(""); }}
+              className={cn(
+                L &&
+                  "border-zinc-200 bg-zinc-100 text-zinc-800 hover:bg-zinc-200 hover:border-zinc-300"
+              )}
+            >
               Cancelar
             </Button>
             <Button

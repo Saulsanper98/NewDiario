@@ -46,6 +46,24 @@ export const logEntryDetailPageInclude = {
     },
     orderBy: { createdAt: "desc" as const },
   },
+  polls: {
+    orderBy: { createdAt: "asc" as const },
+    include: {
+      createdBy: { select: { id: true, name: true, image: true } },
+      options: { orderBy: { sortOrder: "asc" as const } },
+      invitees: {
+        include: {
+          user: { select: { id: true, name: true, image: true } },
+        },
+      },
+      responses: {
+        include: {
+          user: { select: { id: true, name: true, image: true } },
+          option: { select: { id: true, label: true } },
+        },
+      },
+    },
+  },
 } satisfies Prisma.LogEntryInclude;
 
 export type LogEntryDetailPage = Prisma.LogEntryGetPayload<{

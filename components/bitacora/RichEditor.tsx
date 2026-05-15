@@ -17,13 +17,13 @@ import {
   Bold, Italic, List, ListOrdered, Table as TableIcon, Heading2, Heading3,
   Minus, Code, Code2, Quote, Strikethrough, Link as LinkIcon, ListChecks,
   AlignLeft, AlignCenter, AlignRight, Undo2, Redo2, Highlighter, ImageIcon,
-  RemoveFormatting, Heading4, ChevronDown, Maximize2, Minimize2,
+  RemoveFormatting, Heading4, Maximize2, Minimize2,
   MoreHorizontal, TableRowsSplit, Columns3, Trash2, ExternalLink, Film,
   Link2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { sanitizeHtml } from "@/lib/sanitize-html";
-import { useCallback, useRef, useState, useEffect, useMemo } from "react";
+import { useCallback, useRef, useState, useEffect, useMemo, useId } from "react";
 import { createPortal } from "react-dom";
 import toast from "react-hot-toast";
 import { useTheme } from "@/components/layout/ThemeProvider";
@@ -79,6 +79,9 @@ export function RichEditor({
   const [mediaUrlDraft, setMediaUrlDraft] = useState("https://");
 
   const { theme } = useTheme();
+  const filePickerId = useId();
+  const imageFileInputId = `${filePickerId}-img`;
+  const videoFileInputId = `${filePickerId}-vid`;
 
   const editorRef = useRef<ReturnType<typeof useEditor>>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -306,14 +309,6 @@ export function RichEditor({
     setLinkDialogOpen(false);
   }, [editor, linkDraft]);
 
-  const insertImageFromFile = useCallback(() => {
-    imageFileInputRef.current?.click();
-  }, []);
-
-  const insertVideoFromFile = useCallback(() => {
-    videoFileInputRef.current?.click();
-  }, []);
-
   const openMediaUrlDialog = useCallback(() => {
     setMediaUrlDraft("https://");
     setMediaUrlDialogOpen(true);
@@ -441,6 +436,28 @@ export function RichEditor({
     </button>
   );
 
+  /** Abrir input file vía `<label htmlFor>` (evita `ref.current` en handlers creados durante render). */
+  const fileInsertLabel = (
+    inputId: string,
+    title: string,
+    children: React.ReactNode,
+    disabled = false
+  ) => (
+    <label
+      htmlFor={inputId}
+      title={title}
+      className={cn(
+        "p-1.5 rounded-md text-sm transition-all duration-150 shrink-0 cursor-pointer",
+        theme === "light"
+          ? "text-zinc-600 hover:text-zinc-900 hover:bg-white/55"
+          : "text-white/50 hover:text-white hover:bg-white/6",
+        disabled && "opacity-30 cursor-not-allowed pointer-events-none"
+      )}
+    >
+      {children}
+    </label>
+  );
+
   const sep = () => (
     <div
       className={cn(
@@ -467,6 +484,7 @@ export function RichEditor({
       ref={wrapperRef}
     >
       <input
+        id={imageFileInputId}
         ref={imageFileInputRef}
         type="file"
         accept="image/*"
@@ -476,6 +494,7 @@ export function RichEditor({
         onChange={onImageFileSelected}
       />
       <input
+        id={videoFileInputId}
         ref={videoFileInputRef}
         type="file"
         accept="video/mp4,video/webm,video/quicktime"
@@ -584,8 +603,8 @@ export function RichEditor({
           {sep()}
 
           {btn(false, () => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run(), "Insertar tabla",       <TableIcon className="w-3.5 h-3.5" />)}
-          {btn(false, insertImageFromFile, "Insertar imagen / GIF desde el equipo", <ImageIcon className="w-3.5 h-3.5" />, uploadingMedia)}
-          {btn(false, insertVideoFromFile, "Insertar vídeo desde el equipo", <Film className="w-3.5 h-3.5" />, uploadingMedia)}
+          {fileInsertLabel(imageFileInputId, "Insertar imagen / GIF desde el equipo", <ImageIcon className="w-3.5 h-3.5" />, uploadingMedia)}
+          {fileInsertLabel(videoFileInputId, "Insertar vídeo desde el equipo", <Film className="w-3.5 h-3.5" />, uploadingMedia)}
           {btn(false, openMediaUrlDialog, "Insertar imagen/vídeo por URL", <Link2 className="w-3.5 h-3.5" />)}
           {btn(false, () => editor.chain().focus().setHorizontalRule().run(), "Separador horizontal", <Minus className="w-3.5 h-3.5" />)}
 
@@ -640,8 +659,8 @@ export function RichEditor({
             {btn(editor.isActive("italic"),    () => editor.chain().focus().toggleItalic().run(),  "Cursiva", <Italic  className="w-3.5 h-3.5" />)}
             {btn(editor.isActive("highlight"), () => editor.chain().focus().toggleHighlight().run(),"Resaltar",<Highlighter className="w-3.5 h-3.5" />)}
             {btn(false, () => editor.chain().focus().undo().run(), "Deshacer", <Undo2 className="w-3.5 h-3.5" />, !canUndo)}
-            {btn(false, insertImageFromFile, "Insertar imagen / GIF", <ImageIcon className="w-3.5 h-3.5" />, uploadingMedia)}
-            {btn(false, insertVideoFromFile, "Insertar vídeo", <Film className="w-3.5 h-3.5" />, uploadingMedia)}
+            {fileInsertLabel(imageFileInputId, "Insertar imagen / GIF", <ImageIcon className="w-3.5 h-3.5" />, uploadingMedia)}
+            {fileInsertLabel(videoFileInputId, "Insertar vídeo", <Film className="w-3.5 h-3.5" />, uploadingMedia)}
             {btn(false, openMediaUrlDialog, "Insertar imagen/vídeo por URL", <Link2 className="w-3.5 h-3.5" />)}
           </div>
           <button

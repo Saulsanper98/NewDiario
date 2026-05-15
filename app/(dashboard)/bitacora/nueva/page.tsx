@@ -32,6 +32,15 @@ export default async function NuevaEntradaPage({
     select: { id: true, name: true, accentColor: true },
   });
 
+  const deptMembers = await prisma.userDepartment.findMany({
+    where: {
+      departmentId: deptId,
+      user: { deletedAt: null, isActive: true },
+    },
+    select: { user: { select: { id: true, name: true, image: true } } },
+  });
+  const departmentMembers = deptMembers.map((r) => r.user);
+
   return (
     <div className="flex flex-col h-full overflow-hidden">
       <Header
@@ -46,6 +55,7 @@ export default async function NuevaEntradaPage({
           departmentId={deptId}
           allDepartments={departments}
           initialDate={initialDate ?? null}
+          departmentMembers={departmentMembers}
         />
       </div>
     </div>

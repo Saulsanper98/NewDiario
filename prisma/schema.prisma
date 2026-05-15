@@ -33,6 +33,12 @@ enum LogEntryStatus {
   PUBLISHED
 }
 
+/** Quién puede votar en una encuesta ligada a una nota de bitácora. */
+enum LogEntryPollResponseScope {
+  DEPARTMENT_ALL
+  SELECTED_USERS
+}
+
 enum Shift {
   MORNING
   AFTERNOON
@@ -113,6 +119,9 @@ model User {
   activityLogs         ActivityLog[]
   accounts             Account[]
   sessions             Session[]
+  logEntryPollsCreated LogEntryPoll[]       @relation("LogPollAuthor")
+  logEntryPollInvitees LogEntryPollInvitee[]
+  logEntryPollResponses LogEntryPollResponse[]
 
   @@index([email])
   @@index([role])
@@ -242,6 +251,7 @@ model LogEntry {
   editHistory      LogEditHistory[]
   outgoingLogLinks LogEntryLink[]   @relation("LogLinkFrom")
   incomingLogLinks LogEntryLink[]   @relation("LogLinkTo")
+  polls            LogEntryPoll[]
 
   @@index([authorId])
   @@index([departmentId])
@@ -281,6 +291,66 @@ model LogComment {
 
   @@index([logEntryId])
   @@index([authorId])
+}
+
+model LogEntryPoll {
+  id              String                   @id @default(cuid())
+  logEntryId      String
+  question        String                   @db.VarChar(500)
+  allowMultiple   Boolean                  @default(false)
+  responseScope   LogEntryPollResponseScope
+  createdById     String
+  createdAt       DateTime                 @default(now())
+  updatedAt       DateTime                 @updatedAt
+  closedAt        DateTime?
+
+  logEntry  LogEntry @relation(fields: [logEntryId], references: [id], onDelete: Cascade)
+  createdBy User     @relation("LogPollAuthor", fields: [createdById], references: [id])
+  options   LogEntryPollOption[]
+  invitees  LogEntryPollInvitee[]
+  responses LogEntryPollResponse[]
+
+  @@index([logEntryId])
+  @@index([createdById])
+}
+
+model LogEntryPollOption {
+  id        String @id @default(cuid())
+  pollId    String
+  label     String @db.VarChar(280)
+  sortOrder Int    @default(0)
+
+  poll      LogEntryPoll         @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  responses LogEntryPollResponse[]
+
+  @@index([pollId])
+}
+
+model LogEntryPollInvitee {
+  pollId String
+  userId String
+
+  poll LogEntryPoll @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  user User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([pollId, userId])
+  @@index([userId])
+}
+
+model LogEntryPollResponse {
+  id        String   @id @default(cuid())
+  pollId    String
+  optionId  String
+  userId    String
+  createdAt DateTime @default(now())
+
+  poll   LogEntryPoll       @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  option LogEntryPollOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
+  user   User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([pollId, userId, optionId])
+  @@index([pollId, userId])
+  @@index([optionId])
 }
 
 model LogAttachment {

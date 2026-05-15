@@ -15,6 +15,8 @@ import { Modal } from "@/components/ui/Modal";
 import { Input } from "@/components/ui/Input";
 import type { ConfigPageDepartment } from "@/lib/types/config";
 import { useAccentForUi } from "@/lib/hooks/useAccentForUi";
+import { useTheme } from "@/components/layout/ThemeProvider";
+import { cn } from "@/lib/utils";
 
 interface DepartmentsTabProps {
   departments: ConfigPageDepartment[];
@@ -23,6 +25,8 @@ interface DepartmentsTabProps {
 
 export function DepartmentsTab({ departments, isSuperAdmin }: DepartmentsTabProps) {
   const { accent, withAlpha } = useAccentForUi();
+  const { theme } = useTheme();
+  const L = theme === "light";
   const router = useRouter();
   const [modalOpen, setModalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -90,6 +94,7 @@ export function DepartmentsTab({ departments, isSuperAdmin }: DepartmentsTabProp
       >
         <form onSubmit={handleCreate} className="space-y-4">
           <Input
+            light={L}
             label="Nombre"
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -97,7 +102,12 @@ export function DepartmentsTab({ departments, isSuperAdmin }: DepartmentsTabProp
             placeholder="Ej. Sistemas"
           />
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-medium text-white/60 uppercase tracking-wide">
+            <label
+              className={cn(
+                "text-xs font-medium uppercase tracking-wide",
+                L ? "text-zinc-500" : "text-white/60"
+              )}
+            >
               Color de acento
             </label>
             {/* Palette chips */}
@@ -111,7 +121,8 @@ export function DepartmentsTab({ departments, isSuperAdmin }: DepartmentsTabProp
                   className="w-6 h-6 rounded-full border-2 transition-transform hover:scale-110"
                   style={{
                     backgroundColor: c,
-                    borderColor: accentColor === c ? "white" : "transparent",
+                    borderColor:
+                      accentColor === c ? (L ? "#18181b" : "white") : "transparent",
                   }}
                 />
               ))}
@@ -121,9 +132,16 @@ export function DepartmentsTab({ departments, isSuperAdmin }: DepartmentsTabProp
                 type="color"
                 value={accentColor}
                 onChange={(e) => setAccentColor(e.target.value)}
-                className="h-9 w-14 rounded border border-white/10 bg-transparent cursor-pointer"
+                className={cn(
+                  "h-9 w-14 rounded cursor-pointer",
+                  L ? "border border-zinc-200 bg-white" : "border border-white/10 bg-transparent"
+                )}
               />
-              <span className="text-xs text-white/40 font-mono">{accentColor}</span>
+              <span
+                className={cn("text-xs font-mono", L ? "text-zinc-500" : "text-white/40")}
+              >
+                {accentColor}
+              </span>
               {/* Live preview */}
               <div className="flex items-center gap-2 ml-auto px-2.5 py-1.5 rounded-lg" style={{ backgroundColor: `${accentColor}18`, borderLeft: `3px solid ${accentColor}` }}>
                 <Building2 className="w-4 h-4 shrink-0" style={{ color: accentColor }} />
@@ -137,6 +155,10 @@ export function DepartmentsTab({ departments, isSuperAdmin }: DepartmentsTabProp
             <Button
               type="button"
               variant="secondary"
+              className={cn(
+                L &&
+                  "border-zinc-200 bg-zinc-100 text-zinc-800 hover:bg-zinc-200 hover:border-zinc-300"
+              )}
               onClick={() => setModalOpen(false)}
             >
               Cancelar

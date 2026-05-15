@@ -12,30 +12,83 @@ import {
   isValidYyyyMmDd,
   todayYyyyMmDd,
 } from "@/lib/bitacora-entry-date";
+import {
+  collectInviteeIdsForSelectedUsers,
+  createLogEntryPollInTransaction,
+} from "@/lib/log-entry-poll-create";
+import { LogEntryPollResponseScope } from "@/app/generated/prisma/enums";
 
-const createSchema = z.object({
-  title: z.string().min(1),
-  content: z.string().min(1),
-  type: z.enum(["INCIDENCIA", "INFORMATIVO", "URGENTE", "MANTENIMIENTO", "SIN_NOVEDADES"]),
-  shift: z.enum(["MORNING", "AFTERNOON", "NIGHT"]),
-  status: z.enum(["DRAFT", "PUBLISHED"]).default("PUBLISHED"),
-  requiresFollowup: z.boolean().default(false),
-  departmentId: z.string(),
-  tags: z.array(z.string()).default([]),
-  shares: z
-    .array(
-      z.object({
-        departmentId: z.string(),
-        permission: z.enum(["READ", "READ_COMMENT"]),
-      })
-    )
-    .default([]),
-  metricAnchorLabel: z.string().max(160).optional(),
-  metricAnchorValue: z.string().max(120).optional(),
-  metricAnchorTrend: z.enum(["UP", "DOWN", "FLAT"]).optional(),
-  /** Día calendario (YYYY-MM-DD) para registrar la entrada en un día pasado (vista por día). */
-  forDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+const newPollInCreateSchema = z.object({
+  question: z.string().min(3).max(500),
+  allowMultiple: z.boolean().default(false),
+  responseScope: z.nativeEnum(LogEntryPollResponseScope),
+  optionLabels: z.array(z.string().min(1).max(280)).min(2).max(10),
+  inviteeUserIds: z.array(z.string()).optional(),
 });
+
+const createSchema = z
+  .object({
+    title: z.string().max(500),
+    content: z.string().max(500_000).default(""),
+    type: z.enum(["INCIDENCIA", "INFORMATIVO", "URGENTE", "MANTENIMIENTO", "SIN_NOVEDADES"]),
+    shift: z.enum(["MORNING", "AFTERNOON", "NIGHT"]),
+    status: z.enum(["DRAFT", "PUBLISHED"]).default("PUBLISHED"),
+    requiresFollowup: z.boolean().default(false),
+    departmentId: z.string(),
+    tags: z.array(z.string()).default([]),
+    shares: z
+      .array(
+        z.object({
+          departmentId: z.string(),
+          permission: z.enum(["READ", "READ_COMMENT"]),
+        })
+      )
+      .default([]),
+    metricAnchorLabel: z.string().max(160).optional(),
+    metricAnchorValue: z.string().max(120).optional(),
+    metricAnchorTrend: z.enum(["UP", "DOWN", "FLAT"]).optional(),
+    /** Día calendario (YYYY-MM-DD) para registrar la entrada en un día pasado (vista por día). */
+    forDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+    /** Encuestas creadas junto con la nota (misma transacción). */
+    polls: z.array(newPollInCreateSchema).max(8).optional().default([]),
+  })
+  .superRefine((data, ctx) => {
+    const bodyText = data.content.replace(/<[^>]+>/g, "").trim();
+    if (bodyText.length === 0 && data.polls.length === 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Añade texto al cuerpo o al menos una encuesta",
+        path: ["content"],
+      });
+    }
+    const t = data.title.trim();
+    if (t.length === 0 && data.polls.length === 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Indica un título (o solo encuestas: se usará la pregunta como título)",
+        path: ["title"],
+      });
+    }
+    if (t.length > 0 && t.length < 3 && data.polls.length === 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "El título debe tener al menos 3 caracteres si no hay encuestas",
+        path: ["title"],
+      });
+    }
+    data.polls.forEach((p, i) => {
+      if (p.responseScope === LogEntryPollResponseScope.SELECTED_USERS) {
+        const raw = p.inviteeUserIds?.filter(Boolean) ?? [];
+        if (raw.length === 0) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Indica al menos un compañero en encuestas con alcance restringido",
+            path: ["polls", i, "inviteeUserIds"],
+          });
+        }
+      }
+    });
+  });
 
 export async function GET(req: NextRequest) {
   const session = await auth();
@@ -115,11 +168,23 @@ export async function POST(req: NextRequest) {
     metricAnchorValue: rawMetricValue,
     metricAnchorTrend: rawMetricTrend,
     forDate: rawForDate,
+    polls: pollsArrRaw,
   } = parsed.data;
+  const pollsArr = pollsArrRaw ?? [];
 
   const metricAnchorLabel = rawMetricLabel?.trim() || null;
   const metricAnchorValue = rawMetricValue?.trim() || null;
   const metricAnchorTrend = rawMetricTrend ?? null;
+
+  const bodyText = content.replace(/<[^>]+>/g, "").trim();
+  let effectiveTitle = title.trim();
+  if (effectiveTitle.length < 3 && pollsArr.length > 0) {
+    effectiveTitle = pollsArr[0].question.trim().slice(0, 150);
+    if (effectiveTitle.length < 1) effectiveTitle = "Encuesta";
+  }
+  effectiveTitle = effectiveTitle.slice(0, 500);
+
+  const effectiveContent = bodyText.length > 0 ? content : "<p></p>";
 
   let backdatedCreatedAt: Date | undefined;
   if (rawForDate) {
@@ -146,63 +211,132 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const entry = await prisma.logEntry.create({
-    data: {
-      title,
-      content,
-      type,
-      shift,
-      status,
-      requiresFollowup,
-      metricAnchorLabel,
-      metricAnchorValue,
-      metricAnchorTrend,
-      authorId: user.id,
+  const deptRows = await prisma.userDepartment.findMany({
+    where: {
       departmentId,
-      ...(backdatedCreatedAt && { createdAt: backdatedCreatedAt }),
-      tags: {
-        createMany: { data: tags.map((name) => ({ name })) },
-      },
-      shares: {
-        createMany: {
-          data: shares.map((s) => ({
-            departmentId: s.departmentId,
-            permission: s.permission,
-          })),
+      user: { deletedAt: null, isActive: true },
+    },
+    select: { userId: true },
+  });
+  const deptSet = new Set(deptRows.map((r) => r.userId));
+
+  for (const p of pollsArr) {
+    const inv = collectInviteeIdsForSelectedUsers(
+      p.responseScope,
+      p.inviteeUserIds,
+      deptSet
+    );
+    if (p.responseScope === LogEntryPollResponseScope.SELECTED_USERS && inv.length === 0) {
+      return NextResponse.json(
+        { error: "Los invitados de una encuesta deben ser miembros activos del departamento" },
+        { status: 400 }
+      );
+    }
+  }
+
+  type PollNotify = { pollId: string; inviteeIds: string[]; preview: string };
+  const pollNotifyQueue: PollNotify[] = [];
+
+  const entry = await prisma.$transaction(async (tx) => {
+    const e = await tx.logEntry.create({
+      data: {
+        title: effectiveTitle,
+        content: effectiveContent,
+        type,
+        shift,
+        status,
+        requiresFollowup,
+        metricAnchorLabel,
+        metricAnchorValue,
+        metricAnchorTrend,
+        authorId: user.id,
+        departmentId,
+        ...(backdatedCreatedAt && { createdAt: backdatedCreatedAt }),
+        tags: {
+          createMany: { data: tags.map((name) => ({ name })) },
+        },
+        shares: {
+          createMany: {
+            data: shares.map((s) => ({
+              departmentId: s.departmentId,
+              permission: s.permission,
+            })),
+          },
         },
       },
-    },
-    include: {
-      tags: true,
-      shares: true,
-    },
+      include: {
+        tags: true,
+        shares: true,
+      },
+    });
+
+    for (const p of pollsArr) {
+      const inv = collectInviteeIdsForSelectedUsers(
+        p.responseScope,
+        p.inviteeUserIds,
+        deptSet
+      );
+      const { id: pollId } = await createLogEntryPollInTransaction(tx, {
+        logEntryId: e.id,
+        createdById: user.id,
+        poll: p,
+        validatedInviteeIds: inv,
+      });
+      if (p.responseScope === LogEntryPollResponseScope.SELECTED_USERS && inv.length > 0) {
+        const q = p.question.trim();
+        pollNotifyQueue.push({
+          pollId,
+          inviteeIds: inv,
+          preview: q.slice(0, 72) + (q.length > 72 ? "…" : ""),
+        });
+      }
+    }
+
+    return e;
   });
+
+  for (const job of pollNotifyQueue) {
+    const targets = job.inviteeIds.filter((uid) => uid !== user.id);
+    if (targets.length === 0) continue;
+    await prisma.notification.createMany({
+      data: targets.map((uid) => ({
+        userId: uid,
+        type: "MENTION" as const,
+        title: "Encuesta: te invitan a responder",
+        message: `${user.name} en «${effectiveTitle}»: ${job.preview}`,
+        link: `/bitacora/${entry.id}#poll-${job.pollId}`,
+      })),
+      skipDuplicates: true,
+    });
+  }
 
   let publishHints: Awaited<ReturnType<typeof computePublishHints>> = [];
   if (status === "PUBLISHED") {
     publishHints = await computePublishHints(prisma, {
       departmentId,
-      title,
-      contentHtml: content,
+      title: effectiveTitle,
+      contentHtml: effectiveContent,
       tagNames: tags,
       excludeEntryId: entry.id,
     });
 
-    const mentionedIds = await resolveMentionNotificationUserIds(prisma, content, {
-      departmentId,
-      excludeUserId: user.id,
-    });
-    if (mentionedIds.length > 0) {
-      await prisma.notification.createMany({
-        data: mentionedIds.map((uid) => ({
-          userId: uid,
-          type: "MENTION" as const,
-          title: "Te mencionaron en una nota",
-          message: `${user.name} te mencionó en «${title}»`,
-          link: `/bitacora/${entry.id}`,
-        })),
-        skipDuplicates: true,
+    if (bodyText.length > 0) {
+      const mentionedIds = await resolveMentionNotificationUserIds(prisma, effectiveContent, {
+        departmentId,
+        excludeUserId: user.id,
       });
+      if (mentionedIds.length > 0) {
+        await prisma.notification.createMany({
+          data: mentionedIds.map((uid) => ({
+            userId: uid,
+            type: "MENTION" as const,
+            title: "Te mencionaron en una nota",
+            message: `${user.name} te mencionó en «${effectiveTitle}»`,
+            link: `/bitacora/${entry.id}`,
+          })),
+          skipDuplicates: true,
+        });
+      }
     }
   }
 

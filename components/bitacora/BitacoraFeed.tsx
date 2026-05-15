@@ -231,13 +231,14 @@ export function BitacoraFeed({
   const scrollAreaRef      = useRef<HTMLDivElement>(null);
   const hydratedFiltersRef = useRef(false);
   /* mejora 22 — unread dot: timestamp of previous visit */
-  const lastVisitRef       = useRef<number>(0);
+  const [lastVisitTime, setLastVisitTime] = useState(0);
 
   useEffect(() => {
     const KEY = "bitacora:lastVisit";
     try {
       const prev = localStorage.getItem(KEY);
-      lastVisitRef.current = prev ? parseInt(prev, 10) : 0;
+      const t = prev ? parseInt(prev, 10) : 0;
+      setLastVisitTime(t);
       localStorage.setItem(KEY, String(Date.now()));
     } catch { /* ignore */ }
   }, []);
@@ -859,7 +860,7 @@ export function BitacoraFeed({
               compact={compactView}
               onFollowupMarked={markFollowupDoneLocal}
               currentUserId={currentUserId}
-              lastVisitTime={lastVisitRef.current}
+              lastVisitTime={lastVisitTime}
             />
           ))}
 

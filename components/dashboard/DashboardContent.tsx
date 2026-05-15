@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import {
   BookOpen, CheckSquare, AlertTriangle, Zap,
-  FolderKanban, Plus, ArrowRight, CalendarCheck,
+  FolderKanban, ArrowRight, CalendarCheck,
   Sun, Sunset, Moon, ExternalLink, CheckCircle2,
   ArrowLeftRight, Search, Clock,
 } from "lucide-react";
@@ -241,7 +241,7 @@ export function DashboardContent({
   const allGood = urgentToday.length === 0 && stats.pendingFollowups === 0 && overdueTasks.length === 0;
 
   /* Fecha de carga (para timestamp de actualización - mejora 14) */
-  const fetchedAt = useRef(new Date()).current;
+  const [fetchedAt] = useState(() => new Date());
 
   return (
     <div className="p-6 space-y-5 max-w-7xl mx-auto">

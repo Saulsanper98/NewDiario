@@ -76,10 +76,11 @@ export default async function LogEntryPage({
       departmentId: entry.departmentId,
       user: { deletedAt: null, isActive: true },
     },
-    select: { user: { select: { name: true } } },
+    select: { user: { select: { id: true, name: true, image: true } } },
   });
+  const departmentMembers = deptMembers.map((r) => r.user);
   const departmentMemberNames = [
-    ...new Set(deptMembers.map((r) => r.user.name).filter(Boolean)),
+    ...new Set(departmentMembers.map((u) => u.name).filter(Boolean)),
   ];
 
   return (
@@ -99,6 +100,7 @@ export default async function LogEntryPage({
           nextEntry={nextEntry}
           relatedEntries={relatedEntries}
           departmentMemberNames={departmentMemberNames}
+          departmentMembers={departmentMembers}
         />
       </div>
     </div>

@@ -46,6 +46,7 @@ import type { SessionUser, UserDepartment } from "@/lib/auth/types";
 import { sanitizeHtml } from "@/lib/sanitize-html";
 import type { LogEntryDetailPage } from "@/lib/types/log-entry-detail";
 import { LogEntryLinksCard } from "@/components/bitacora/LogEntryLinksCard";
+import { LogEntryPollsCard } from "@/components/bitacora/LogEntryPollsCard";
 import { useAccentForUi } from "@/lib/hooks/useAccentForUi";
 import { BackgroundOrbs } from "@/components/layout/BackgroundOrbs";
 import { useTheme } from "@/components/layout/ThemeProvider";
@@ -86,6 +87,8 @@ interface LogEntryDetailProps {
   relatedEntries?: RelatedEntry[];
   /** Miembros activos del departamento: resaltado @ y prefijo «respondiendo a». */
   departmentMemberNames?: string[];
+  /** Miembros del departamento (id + nombre) para encuestas. */
+  departmentMembers?: { id: string; name: string; image: string | null }[];
 }
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -170,6 +173,20 @@ function calcReadingTime(html: string): number {
   return Math.max(1, Math.ceil(words / 200));
 }
 
+/** Texto visible aproximado del HTML (mismo criterio que el tiempo de lectura). */
+function logEntryPlainTextFromHtml(html: string): string {
+  return html
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/\u00a0/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function isLogEntryBodyEmpty(html: string | null | undefined): boolean {
+  return logEntryPlainTextFromHtml(html ?? "").length === 0;
+}
+
 function processHeadings(html: string): { toc: TocItem[]; html: string } {
   const toc: TocItem[] = [];
   let counter = 0;
@@ -214,15 +231,21 @@ export function LogEntryDetail({
   nextEntry,
   relatedEntries,
   departmentMemberNames = [],
+  departmentMembers = [],
 }: LogEntryDetailProps) {
   const { accent, withAlpha } = useAccentForUi();
   const { theme } = useTheme();
   const router = useRouter();
 
   // ── Computed / memoized ───────────────────────────────────────────────────
-  const readingMinutes = useMemo(
-    () => calcReadingTime(entry.content ?? ""),
+  const hasRichBody = useMemo(
+    () => !isLogEntryBodyEmpty(entry.content),
     [entry.content]
+  );
+
+  const readingMinutes = useMemo(
+    () => (hasRichBody ? calcReadingTime(entry.content ?? "") : 0),
+    [entry.content, hasRichBody]
   );
 
   const { toc, html: tocHtml } = useMemo(
@@ -725,7 +748,12 @@ export function LogEntryDetail({
           </div>
 
           {/* Author + B52 reading time */}
-          <div className="flex items-center gap-3 mb-6 pb-5 border-b border-white/8">
+          <div
+            className={cn(
+              "flex items-center gap-3 border-b border-white/8",
+              hasRichBody ? "mb-6 pb-5" : "mb-4 pb-4"
+            )}
+          >
             <Avatar
               name={entry.author.name}
               image={entry.author.image}
@@ -744,10 +772,12 @@ export function LogEntryDetail({
               </p>
             </div>
             <div className="ml-auto flex items-center gap-3">
-              {/* B52: Reading time */}
-              <span className="flex items-center gap-1.5 text-xs text-white/30">
-                <BookOpen className="w-3.5 h-3.5" />~{readingMinutes} min
-              </span>
+              {/* B52: Reading time (solo si hay cuerpo con texto) */}
+              {hasRichBody && (
+                <span className="flex items-center gap-1.5 text-xs text-white/30">
+                  <BookOpen className="w-3.5 h-3.5" />~{readingMinutes} min
+                </span>
+              )}
               <span className="flex items-center gap-1.5 text-xs text-white/30">
                 <span
                   className="w-2 h-2 rounded-full shrink-0"
@@ -804,17 +834,24 @@ export function LogEntryDetail({
           )}
 
           {/* Content */}
-          <div
-            ref={contentRef}
-            {...bitacoraProseRootProps}
-            data-bitacora-html-body
-            className={bitacoraReadingProseClass(theme)}
-            dangerouslySetInnerHTML={{ __html: tocHtml }}
-          />
+          {hasRichBody && (
+            <div
+              ref={contentRef}
+              {...bitacoraProseRootProps}
+              data-bitacora-html-body
+              className={bitacoraReadingProseClass(theme)}
+              dangerouslySetInnerHTML={{ __html: tocHtml }}
+            />
+          )}
 
           {/* Shares */}
           {entry.shares.length > 0 && (
-            <div className="flex flex-wrap items-center gap-2 mt-7 pt-6 border-t border-white/8">
+            <div
+              className={cn(
+                "flex flex-wrap items-center gap-2 border-t border-white/8",
+                hasRichBody ? "mt-7 pt-6" : "mt-4 pt-5"
+              )}
+            >
               <Share2 className="w-3.5 h-3.5 text-white/30" />
               <span className="text-xs text-white/40">Compartido con:</span>
               {entry.shares.map((share) => (
@@ -833,8 +870,18 @@ export function LogEntryDetail({
             </div>
           )}
 
-          {/* Emoji reactions */}
-          <div className="mt-7 pt-6 border-t border-white/8 print:hidden">
+          <LogEntryPollsCard
+            entryId={entry.id}
+            entryTitle={entry.title}
+            entryDepartmentId={entry.departmentId}
+            polls={entry.polls}
+            currentUser={currentUser}
+            departmentMembers={departmentMembers}
+            canEditEntry={canEdit}
+          />
+
+          {/* Emoji reactions (debajo de encuestas) */}
+          <div className="mt-7 border-t border-white/8 pt-6 print:hidden">
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-xs text-white/35 mr-1">Reaccionar:</span>
               {REACTION_EMOJIS.map((emoji) => {

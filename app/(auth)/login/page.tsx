@@ -844,6 +844,32 @@ export default function LoginPage() {
     };
   }, []);
 
+  function startCountdown(initial?: number) {
+    if (countdownRef.current) clearInterval(countdownRef.current);
+    if (initial !== undefined) setLockCountdown(initial);
+    countdownRef.current = setInterval(() => {
+      setLockCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(countdownRef.current!);
+          countdownRef.current = null;
+          try {
+            localStorage.removeItem(STORAGE_LOCK);
+            localStorage.removeItem(STORAGE_ATTEMPTS);
+          } catch { }
+          setAttempts(0);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  }
+
+  function triggerLock() {
+    const until = Date.now() + LOCK_SECONDS * 1000;
+    try { localStorage.setItem(STORAGE_LOCK, String(until)); } catch { }
+    startCountdown(LOCK_SECONDS);
+  }
+
   /* Día / noche según la hora real del dispositivo; se actualiza cada minuto y al volver a la pestaña */
   useEffect(() => {
     function syncNight() {
@@ -946,34 +972,6 @@ export default function LoginPage() {
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
   }, []);
-
-  /* ── helpers ── */
-
-  function startCountdown(initial?: number) {
-    if (countdownRef.current) clearInterval(countdownRef.current);
-    if (initial !== undefined) setLockCountdown(initial);
-    countdownRef.current = setInterval(() => {
-      setLockCountdown((prev) => {
-        if (prev <= 1) {
-          clearInterval(countdownRef.current!);
-          countdownRef.current = null;
-          try {
-            localStorage.removeItem(STORAGE_LOCK);
-            localStorage.removeItem(STORAGE_ATTEMPTS);
-          } catch { }
-          setAttempts(0);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-  }
-
-  function triggerLock() {
-    const until = Date.now() + LOCK_SECONDS * 1000;
-    try { localStorage.setItem(STORAGE_LOCK, String(until)); } catch { }
-    startCountdown(LOCK_SECONDS);
-  }
 
   /* L3 — shake animation via double-rAF to force CSS re-trigger */
   const triggerShake = useCallback(() => {

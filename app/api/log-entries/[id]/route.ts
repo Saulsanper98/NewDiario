@@ -10,6 +10,7 @@ import {
   snapshotFromPatchBody,
 } from "@/lib/log-entry-edit-diff";
 import { computePublishHints } from "@/lib/log-entry-publish-hints";
+import { logEntryDetailPageInclude } from "@/lib/types/log-entry-detail";
 
 const followupOnlySchema = z.object({ followupDone: z.boolean() }).strict();
 
@@ -67,6 +68,7 @@ export async function GET(
         },
         orderBy: { createdAt: "desc" },
       },
+      polls: logEntryDetailPageInclude.polls,
     },
   });
 
