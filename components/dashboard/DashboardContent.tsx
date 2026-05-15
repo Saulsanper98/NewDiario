@@ -80,7 +80,6 @@ function useAnimatedCounter(target: number, cacheKey?: string, duration = 650): 
     };
     rafId = requestAnimationFrame(step);
     return () => cancelAnimationFrame(rafId);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [target, cacheKey, duration]);
   return count;
 }

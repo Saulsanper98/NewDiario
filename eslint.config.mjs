@@ -23,6 +23,9 @@ const eslintConfig = defineConfig([
        * Es ruido masivo frente a patrones correctos; el equipo revisa efectos a mano.
        */
       "react-hooks/set-state-in-effect": "off",
+      /** Falsos positivos con handlers que delegan en refs (p. ej. input file) y patrones habituales. */
+      "react-hooks/refs": "warn",
+      "react-hooks/incompatible-library": "warn",
     },
   },
 ]);

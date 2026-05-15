@@ -11,7 +11,6 @@ import {
   AlertCircle,
   Loader2,
   ChevronDown,
-  ChevronRight,
   Check,
   User,
   Search,
@@ -172,9 +171,6 @@ function DepartmentPicker({
 /* ── UserPicker ─────────────────────────────────────────────────────────── */
 
 const GOLD = "#ffeb66";
-const GOLD_10 = "rgba(255,235,102,0.10)";
-const GOLD_18 = "rgba(255,235,102,0.18)";
-const GOLD_40 = "rgba(255,235,102,0.40)";
 
 function UserPicker({
   users,
@@ -218,7 +214,6 @@ function UserPicker({
     if (!open) { setSearch(""); return; }
     recalc();
     setTimeout(() => searchRef.current?.focus(), 60);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   useEffect(() => {
@@ -229,7 +224,6 @@ function UserPicker({
       window.removeEventListener("scroll", recalc, true);
       window.removeEventListener("resize", recalc);
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   useEffect(() => {
@@ -908,7 +902,6 @@ export default function LoginPage() {
         startCountdown(remaining);
       }
     } catch { /* localStorage unavailable */ }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   /* feature flags */

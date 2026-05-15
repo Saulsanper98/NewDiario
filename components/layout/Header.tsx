@@ -177,7 +177,6 @@ export function Header({ user, breadcrumb }: HeaderProps) {
   }
 
   const crumbs = breadcrumb?.length ? breadcrumb : null;
-  const lastCrumb = crumbs?.length ? crumbs[crumbs.length - 1] : null;
 
   const [isOffline, setIsOffline] = useState(false);
   useEffect(() => {

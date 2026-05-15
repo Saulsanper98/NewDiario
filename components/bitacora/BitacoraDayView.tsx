@@ -19,7 +19,6 @@ import {
   Printer,
   Minimize2,
   Maximize2,
-  Clock,
 } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { Avatar } from "@/components/ui/Avatar";
@@ -141,12 +140,10 @@ function DayEntryCard({
   log,
   compact,
   isLight,
-  searchQuery = "",
 }: {
   log: BitacoraFeedLog;
   compact: boolean;
   isLight: boolean;
-  searchQuery?: string;
 }) {
   const reactionSummary = Object.entries(
     log.reactions.reduce<Record<string, number>>((acc, r) => {

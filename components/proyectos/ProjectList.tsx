@@ -276,7 +276,6 @@ function ProjectCard({ project, departmentId }: { project: ProjectListRow; depar
   const completedTasks = getCompletedColumnCount(project.kanbanColumns);
   const progress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
   const isShared = project.departmentId !== departmentId;
-  const owner = project.members[0];
   const hasSubprojects = project.subprojects.length > 0;
 
   return (
@@ -398,7 +397,6 @@ function ProjectRow({ project, departmentId }: { project: ProjectListRow; depart
   const completedTasks = getCompletedColumnCount(project.kanbanColumns);
   const progress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
   const isShared = project.departmentId !== departmentId;
-  const owner = project.members[0];
 
   return (
     <Link href={`/proyectos/${project.id}`}>

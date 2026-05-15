@@ -269,8 +269,6 @@ export function BitacoraFeed({
         if (pos > 0) requestAnimationFrame(() => { el.scrollTop = pos; });
       }
     } catch { /* ignore */ }
-  // Only restore on initial mount, not on filter/list changes
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function markFollowupDoneLocal(id: string) {

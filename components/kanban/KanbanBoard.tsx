@@ -146,7 +146,6 @@ export function KanbanBoard({ project, allUsers }: KanbanBoardProps) {
     [project.kanbanColumns]
   );
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- sincronizar solo cuando cambia la huella del servidor (p. ej. tras `router.refresh`)
   useEffect(() => {
     setColumns(project.kanbanColumns ?? []);
   }, [serverBoardFingerprint]);

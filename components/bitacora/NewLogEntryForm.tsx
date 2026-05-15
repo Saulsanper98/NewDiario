@@ -15,7 +15,7 @@ import { RichEditor } from "./RichEditor";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Card } from "@/components/ui/Card";
-import { getCurrentShift, SHIFT_LABELS, TYPE_LABELS, cn } from "@/lib/utils";
+import { getCurrentShift, TYPE_LABELS, cn } from "@/lib/utils";
 import type { ThemeMode } from "@/lib/theme";
 import { sanitizeHtml } from "@/lib/sanitize-html";
 import { useAccentForUi } from "@/lib/hooks/useAccentForUi";

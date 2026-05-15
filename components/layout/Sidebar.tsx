@@ -94,8 +94,6 @@ export function Sidebar({ user, isAdmin, pendingFollowups = 0 }: SidebarProps) {
 
   /* Leer modo antes del primer pintado para evitar flash y reservar bien el ancho (expanded/collapsed). */
   useLayoutEffect(() => {
-    /* Lectura única de localStorage en el cliente; no es suscripción en el sentido del lint. */
-    /* eslint-disable react-hooks/set-state-in-effect */
     const stored = localStorage.getItem(STORAGE_KEY) as SidebarMode | null;
     if (stored === "smart" || stored === "expanded" || stored === "collapsed") {
       setMode(stored);
@@ -104,7 +102,6 @@ export function Sidebar({ user, isAdmin, pendingFollowups = 0 }: SidebarProps) {
       localStorage.setItem(STORAGE_KEY, "collapsed");
     }
     setHydrated(true);
-    /* eslint-enable react-hooks/set-state-in-effect */
   }, []);
 
   /* #72 — stagger sidebar nav items on first page load only */

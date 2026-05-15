@@ -37,7 +37,6 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
           (ref as React.MutableRefObject<HTMLButtonElement | null>).current = node;
         }
       },
-      // eslint-disable-next-line react-hooks/exhaustive-deps
       [ref]
     );
 
