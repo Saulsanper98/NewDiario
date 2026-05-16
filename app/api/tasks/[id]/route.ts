@@ -227,6 +227,22 @@ export async function PATCH(
     return NextResponse.json({ error: "Columna no válida" }, { status: 400 });
   }
 
+  const blockingAfterPatch =
+    b.blockedReason !== undefined
+      ? b.blockedReason !== null && b.blockedReason.trim().length > 0
+      : (task.blockedReason ?? "").trim().length > 0;
+  const isBlockedForColumnMove =
+    blockingAfterPatch && targetColumnId !== task.columnId;
+  if (hasKanbanReorder && isBlockedForColumnMove) {
+    return NextResponse.json(
+      {
+        error:
+          "La tarea tiene motivo de bloqueo y no puede cambiar de columna hasta vaciarlo.",
+      },
+      { status: 409 }
+    );
+  }
+
   const rawWip = (col as unknown as { wipLimit?: unknown }).wipLimit;
   const colWipLimit =
     typeof rawWip === "number" && rawWip > 0 ? rawWip : null;

@@ -94,6 +94,7 @@ export default async function LogEntryPage({
       />
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
         <LogEntryDetail
+          key={entry.id}
           entry={entry}
           currentUser={user}
           prevEntry={prevEntry}

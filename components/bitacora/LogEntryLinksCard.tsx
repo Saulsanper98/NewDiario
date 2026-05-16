@@ -148,8 +148,8 @@ export function LogEntryLinksCard({
   if (!hasAny && !canAddLink) return null;
 
   return (
-    <Card className="p-5 sm:p-6 print:hidden">
-      <div className="flex items-center gap-2 mb-4">
+    <Card className="p-4 sm:p-5 print:hidden">
+      <div className="flex items-center gap-2 mb-3">
         <GitBranch className="w-4 h-4 text-[#ffeb66]/80" />
         <span className="text-sm font-medium text-white/70">
           Causa → efecto (enlaces entre entradas)
@@ -157,7 +157,7 @@ export function LogEntryLinksCard({
       </div>
 
       {canAddLink && (
-        <div className="flex flex-col gap-2 mb-5">
+        <div className="flex flex-col gap-2 mb-4">
           <p className="text-[11px] text-white/40 leading-relaxed">
             El destino es <strong className="text-white/55">otra entrada de la bitácora</strong>.
             Usa el identificador que va en la barra de direcciones:{" "}
@@ -191,7 +191,7 @@ export function LogEntryLinksCard({
       )}
 
       {outgoing.length > 0 && (
-        <div className="mb-4">
+        <div className="mb-3">
           <p className="text-[11px] font-medium text-white/40 uppercase tracking-wide mb-2">
             Esta entrada conduce a
           </p>

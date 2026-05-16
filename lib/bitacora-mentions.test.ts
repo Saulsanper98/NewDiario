@@ -60,4 +60,14 @@ describe("bitacora-mentions", () => {
       "@Saul Esperamos a que pase X. Pon IP: 192.168.1.1";
     expect(parseLeadingReplyMention(long, names)).toBeNull();
   });
+
+  it("parseLeadingReplyMention: conserva espacios en el cuerpo (p. ej. IP y texto)", () => {
+    const names = ["Adrian"];
+    const raw =
+      "@Adrian: ya arreglo el problema del server 192.168.12.42 Era un problema de sesiones";
+    const r = parseLeadingReplyMention(raw, names);
+    expect(r).not.toBeNull();
+    expect(r!.bodyText).toContain("192.168.12.42 Era");
+    expect(r!.bodyText).not.toContain("192.168.12.42Era");
+  });
 });

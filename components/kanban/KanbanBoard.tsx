@@ -22,6 +22,11 @@ import type {
 
 type KanbanColumnState = ProjectDetail["kanbanColumns"][number];
 
+/** Motivo de bloqueo relleno: la tarea no puede cambiar de columna (drag + API). */
+function taskHasBlockingReason(task: Pick<ProjectKanbanTask, "blockedReason">): boolean {
+  return Boolean((task.blockedReason ?? "").trim());
+}
+
 /** Huella corta de un string largo (descripción / notas de contrato) para la firma del tablero. */
 function strBoardSig(s: string | null | undefined): string {
   const v = s ?? "";
@@ -409,6 +414,18 @@ export function KanbanBoard({ project, allUsers }: KanbanBoardProps) {
       if (!sourceCol || !destCol) return;
       const sourceIndex = sourceCol.tasks.findIndex((t) => t.id === taskId);
       if (sourceIndex === -1) return;
+
+      const taskBeingMoved = sourceCol.tasks[sourceIndex];
+      if (
+        taskBeingMoved &&
+        taskHasBlockingReason(taskBeingMoved) &&
+        sourceCol.id !== destCol.id
+      ) {
+        toast.error(
+          "Esta tarea tiene motivo de bloqueo: no se puede mover a otra columna. Vacía el motivo en el detalle si debe avanzar."
+        );
+        return;
+      }
 
       const snapshot = JSON.parse(JSON.stringify(columns)) as typeof columns;
 

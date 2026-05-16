@@ -1243,18 +1243,18 @@ export const TaskDetailPanel = forwardRef<HTMLDivElement, TaskDetailPanelProps>(
                       )}
                       {commentHasStructuredMentions(c.content) ? (
                         <div
-                          className="text-xs text-white/55 [&_span[data-type=mention]]:text-[#4a9eff] [&_span[data-type=mention]]:font-medium"
+                          className="text-xs text-white/55 [&_span[data-type=mention]]:text-[#4a9eff] [&_span[data-type=mention]]:font-medium whitespace-pre-wrap break-words leading-relaxed"
                           dangerouslySetInnerHTML={{
                             __html: sanitizeHtml(c.content),
                           }}
                         />
                       ) : replyTarget ? (
-                        <div className="text-xs text-white/55 leading-relaxed">
+                        <div className="text-xs text-white/55 leading-relaxed whitespace-pre-wrap break-words">
                           <span className="text-[#4a9eff]/80 font-medium">@{replyTarget}:</span>{" "}
                           {renderPlainTextWithMentions(bodyText, taskMentionHighlightNames)}
                         </div>
                       ) : (
-                        <p className="text-xs text-white/55 leading-relaxed">
+                        <p className="text-xs text-white/55 leading-relaxed whitespace-pre-wrap break-words">
                           {renderPlainTextWithMentions(c.content, taskMentionHighlightNames)}
                         </p>
                       )}

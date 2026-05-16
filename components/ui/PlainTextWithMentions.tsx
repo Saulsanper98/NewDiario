@@ -1,9 +1,9 @@
 import type { ReactNode } from "react";
 
-/** Misma idea que `extractPlainAtMentionUserIds`: fin de `@Nombre` en texto plano (incl. Markdown). */
+/** Fin de `@Nombre` en texto plano: no incluir dígitos (p. ej. `@ip` vs IP `192…`). */
 function isPlainMentionBoundary(ch: string | undefined): boolean {
   if (ch === undefined) return true;
-  return /\s|[.,;:!?'"()[\]{}*_`]/.test(ch);
+  return /\s|[.,;:!?'"()[\]{}*_`\d]/.test(ch);
 }
 
 /**

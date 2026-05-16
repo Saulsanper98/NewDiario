@@ -235,6 +235,7 @@ export function LogEntryDetail({
 }: LogEntryDetailProps) {
   const { accent, withAlpha } = useAccentForUi();
   const { theme } = useTheme();
+  const L = theme === "light";
   const router = useRouter();
 
   // ── Computed / memoized ───────────────────────────────────────────────────
@@ -321,8 +322,12 @@ export function LogEntryDetail({
   }, [mentionCandidates, currentUser.name, departmentMemberNames]);
 
   function commentBodyNode(body: string, asParagraph = true): ReactNode {
-    const mentionStyles =
-      "text-sm text-white/60 leading-relaxed [&_span[data-type=mention]]:text-[#4a9eff] [&_span[data-type=mention]]:font-medium";
+    const mentionStyles = cn(
+      "text-sm leading-relaxed whitespace-pre-wrap break-words",
+      L
+        ? "text-zinc-700 [&_span[data-type=mention]]:text-indigo-700 [&_span[data-type=mention]]:font-semibold"
+        : "text-white/70 [&_span[data-type=mention]]:text-[#ffeb66]/85 [&_span[data-type=mention]]:font-medium"
+    );
     if (commentHasStructuredMentions(body)) {
       return (
         <div
@@ -351,6 +356,11 @@ export function LogEntryDetail({
   useEffect(() => {
     setReactions(buildReactionsState(entry.reactions, currentUser.id));
   }, [entry.id, entry.reactions, currentUser.id]);
+
+  /** Misma instancia de cliente al cambiar de entrada: sincronizar lista con el servidor. */
+  useEffect(() => {
+    setComments(entry.comments);
+  }, [entry.id, entry.comments]);
 
   // ESC exits fullscreen
   useEffect(() => {
@@ -543,7 +553,7 @@ export function LogEntryDetail({
       <div
         className={cn(
           /* Misma escala que la migas (mb-4 sm:mb-5): arriba y abajo del bloque prev/sig */
-          "flex items-center justify-between gap-4 mb-4 sm:mb-5 print:hidden",
+          "flex items-center justify-between gap-4 mb-3 sm:mb-4 print:hidden",
           extraClass
         )}
       >
@@ -580,15 +590,15 @@ export function LogEntryDetail({
       className={
         fullscreen
           ? "fixed inset-0 z-[150] flex flex-col overflow-y-auto bg-[#060a14] detail-fullscreen-bg print:static print:inset-auto print:z-auto print:overflow-visible"
-          : "flex min-h-0 flex-1 flex-col overflow-y-auto p-6 md:px-8 md:pb-10 max-w-4xl mx-auto space-y-7 md:space-y-8 print:max-w-none"
+          : "flex min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden px-6 pt-5 pb-8 sm:pb-9 md:px-8 md:pb-10 max-w-4xl mx-auto print:max-w-none"
       }
     >
       {fullscreen && <BackgroundOrbs mode="layer" />}
       <div
         className={
           fullscreen
-            ? "relative z-10 max-w-4xl mx-auto space-y-7 md:space-y-8 px-4 pb-8 pt-6 sm:px-8 sm:pb-10 sm:pt-8"
-            : "contents"
+            ? "relative z-10 max-w-4xl mx-auto space-y-7 md:space-y-8 px-4 pb-14 pt-6 sm:px-8 sm:pb-20 sm:pt-8"
+            : "flex w-full min-h-0 min-w-0 flex-col gap-5 md:gap-6"
         }
       >
 
@@ -913,7 +923,7 @@ export function LogEntryDetail({
             </div>
           </div>
 
-          {/* Followup action */}
+          {/* Seguimiento (antes de comentarios) */}
           {entry.requiresFollowup && !entry.followupDone && canEdit && (
             <div className="mt-7 pt-6 border-t border-white/8 print:hidden">
               <Button
@@ -926,6 +936,419 @@ export function LogEntryDetail({
               </Button>
             </div>
           )}
+
+          {/* ── Comentarios (misma ficha que encuesta/reacciones; siempre bajo «Reaccionar») ── */}
+          <section
+            id="bitacora-entry-comments"
+            aria-labelledby="log-entry-comments-heading"
+            className={cn(
+              "relative z-0 mt-7 scroll-mt-24 rounded-xl border overflow-hidden",
+              L
+                ? "border-zinc-200/80 bg-white/70 shadow-sm shadow-zinc-900/[0.04]"
+                : "border-white/[0.07] bg-white/[0.025] ring-1 ring-inset ring-white/[0.04]"
+            )}
+          >
+          <div
+            className={cn(
+              "relative z-10 px-4 py-3.5 sm:px-5 sm:py-4 border-b",
+              L ? "border-zinc-200/70 bg-zinc-50/50" : "border-white/[0.06] bg-black/15"
+            )}
+          >
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3 min-w-0">
+                <span
+                  className={cn(
+                    "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border",
+                    L
+                      ? "border-zinc-200 bg-white text-zinc-700 shadow-sm"
+                      : "border-white/10 bg-white/[0.05] text-[#ffeb66]/90"
+                  )}
+                >
+                  <MessageSquare className="h-4 w-4" aria-hidden />
+                </span>
+                <div className="min-w-0">
+                  <h3
+                    id="log-entry-comments-heading"
+                    className={cn(
+                      "text-sm font-semibold tracking-tight",
+                      L ? "text-zinc-900" : "text-white/88"
+                    )}
+                  >
+                    Comentarios
+                  </h3>
+                  <p className={cn("text-[11px] mt-0.5", L ? "text-zinc-500" : "text-white/38")}>
+                    Conversación sobre esta nota
+                  </p>
+                </div>
+              </div>
+              <span
+                className={cn(
+                  "tabular-nums shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium border",
+                  L
+                    ? "border-zinc-200 bg-white text-zinc-600"
+                    : "border-white/10 bg-white/[0.05] text-white/55"
+                )}
+              >
+                {comments.length}
+              </span>
+            </div>
+          </div>
+
+          <div
+            className={cn(
+              "relative z-10 px-4 py-4 sm:px-5 sm:py-5",
+              L ? "bg-white/50" : "bg-black/10"
+            )}
+          >
+          {comments.length > 0 && (
+            <div className="space-y-3.5 mb-5">
+              {comments.map((c: LogCommentRow) => {
+                const plainForReply = c.content
+                  .replace(/<[^>]+>/g, "")
+                  .replace(/\u00a0/g, " ")
+                  .trim();
+                const replyParsed = parseLeadingReplyMention(
+                  plainForReply,
+                  mentionHighlightNames
+                );
+                const replyTarget = replyParsed?.replyTarget ?? null;
+                const bodyText = replyParsed?.bodyText ?? c.content;
+                const isReply = Boolean(replyTarget);
+                const structured = commentHasStructuredMentions(c.content);
+                return (
+                  <div
+                    key={c.id}
+                    className={cn(
+                      "flex gap-3 sm:gap-3.5 items-start group/comment",
+                      isReply && "relative ml-0.5 sm:ml-1.5 pl-2 sm:pl-3"
+                    )}
+                  >
+                    <div className="relative shrink-0 pt-0.5">
+                      <Avatar
+                        name={c.author.name}
+                        image={c.author.image}
+                        size="sm"
+                        className={cn(
+                          "ring-1",
+                          L
+                            ? "ring-white shadow-sm border border-zinc-200/80"
+                            : "ring-white/10 border border-white/[0.08]",
+                          isReply && (L ? "ring-emerald-200/60" : "ring-emerald-400/25")
+                        )}
+                      />
+                    </div>
+                    <div
+                      className={cn(
+                        "flex-1 min-w-0 rounded-xl px-3.5 py-3 sm:px-4 sm:py-3.5 transition-colors duration-150",
+                        "border",
+                        isReply
+                          ? L
+                            ? "bg-zinc-50/90 border-zinc-200/80 border-l-2 border-l-emerald-400/50"
+                            : "bg-white/[0.035] border-white/[0.08] border-l-2 border-l-emerald-400/40"
+                          : L
+                            ? "bg-white border-zinc-200/85 shadow-sm"
+                            : "bg-white/[0.04] border-white/[0.08] group-hover/comment:border-white/12 group-hover/comment:bg-white/[0.055]"
+                      )}
+                    >
+                      <div className="flex items-start gap-2 mb-2 flex-wrap">
+                        <div className="flex flex-col sm:flex-row sm:items-baseline sm:gap-2 min-w-0 gap-0.5">
+                          <span
+                            className={cn(
+                              "text-[13px] font-medium tracking-tight truncate",
+                              L ? "text-zinc-900" : "text-white/82"
+                            )}
+                          >
+                            {c.author.name}
+                          </span>
+                          <span
+                            className={cn(
+                              "inline-flex w-fit items-center rounded-md px-1.5 py-0.5 text-[10px] font-medium tabular-nums",
+                              L
+                                ? "bg-zinc-100 text-zinc-500 border border-zinc-200/70"
+                                : "bg-white/[0.06] text-white/42 border border-white/[0.06]"
+                            )}
+                          >
+                            {formatRelative(c.createdAt)}
+                          </span>
+                        </div>
+                        {isReply && (
+                          <span
+                            className={cn(
+                              "text-[9px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-md border shrink-0",
+                              L
+                                ? "text-emerald-800 bg-emerald-50 border-emerald-200/80"
+                                : "text-emerald-200/85 bg-emerald-500/[0.08] border-emerald-400/25"
+                            )}
+                          >
+                            Respuesta
+                          </span>
+                        )}
+                        <div className="ml-auto flex items-center gap-0.5 opacity-0 group-hover/comment:opacity-100 transition-opacity duration-150 print:hidden shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => startReply(c.author.name)}
+                            className={cn(
+                              "p-1.5 rounded-lg transition-colors",
+                              L
+                                ? "text-zinc-400 hover:text-amber-700 hover:bg-amber-50"
+                                : "text-white/35 hover:text-[#ffeb66]/80 hover:bg-white/[0.06]"
+                            )}
+                            aria-label="Responder"
+                          >
+                            <CornerDownLeft className="w-3.5 h-3.5" />
+                          </button>
+                          {(currentUser.id === c.author.id || canEdit) && (
+                            <button
+                              type="button"
+                              onClick={() => deleteComment(c.id)}
+                              className={cn(
+                                "p-1.5 rounded-lg transition-colors",
+                                L
+                                  ? "text-zinc-400 hover:text-red-600 hover:bg-red-50"
+                                  : "text-white/30 hover:text-red-400 hover:bg-white/[0.06]"
+                              )}
+                              aria-label="Eliminar comentario"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      {replyTarget && !structured && (
+                        <div
+                          className={cn(
+                            "flex items-center gap-1.5 mb-2 text-xs",
+                            L ? "text-zinc-500" : "text-white/35"
+                          )}
+                        >
+                          <CornerDownLeft className="w-3.5 h-3.5 shrink-0 opacity-80" />
+                          <span>Respondiendo a</span>
+                          <span
+                            className={cn(
+                              "font-medium",
+                              L ? "text-indigo-700" : "text-[#ffeb66]/82"
+                            )}
+                          >
+                            @{replyTarget}
+                          </span>
+                        </div>
+                      )}
+
+                      {structured && replyTarget ? (
+                        commentBodyNode(c.content, true)
+                      ) : replyTarget ? (
+                        <div
+                          className={cn(
+                            "text-sm leading-relaxed whitespace-pre-wrap break-words",
+                            L ? "text-zinc-700" : "text-white/70"
+                          )}
+                        >
+                          <span
+                            className={cn(
+                              "font-medium",
+                              L ? "text-indigo-700" : "text-[#ffeb66]/82"
+                            )}
+                          >
+                            @{replyTarget}:
+                          </span>{" "}
+                          {commentBodyNode(bodyText, false)}
+                        </div>
+                      ) : (
+                        commentBodyNode(c.content, true)
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* B59: Active reply banner */}
+          {replyTo && (
+            <div
+              className={cn(
+                "flex items-center gap-2 mb-4 px-3 py-2.5 rounded-lg border text-xs print:hidden",
+                L
+                  ? "bg-emerald-50/80 border-emerald-200/80 text-emerald-950"
+                  : "bg-white/[0.04] border-white/[0.08] text-white/65"
+              )}
+            >
+              <CornerDownLeft className={cn("w-3.5 h-3.5 shrink-0", L ? "text-emerald-700/80" : "text-white/40")} />
+              Respondiendo a{" "}
+              <strong className={cn("font-medium", L ? "" : "text-white/85")}>{replyTo.name}</strong>
+              <button
+                type="button"
+                onClick={() => { setReplyTo(null); setComment(""); }}
+                className={cn(
+                  "ml-auto p-1 rounded-md transition-colors",
+                  L ? "text-emerald-700 hover:bg-emerald-100" : "text-white/40 hover:text-white/75 hover:bg-white/[0.06]"
+                )}
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
+
+          {/* Comment form — mismo lenguaje que chips / campos de la nota */}
+          <form
+            onSubmit={submitComment}
+            className={cn(
+              "flex gap-3 sm:gap-3.5 print:hidden rounded-xl border p-3 sm:p-3.5",
+              L
+                ? "border-zinc-200/90 bg-zinc-50/90"
+                : "border-white/[0.08] bg-black/25"
+            )}
+          >
+            <div className="relative shrink-0 pt-0.5">
+              <Avatar
+                name={currentUser.name}
+                image={currentUser.image}
+                size="sm"
+                className={cn(
+                  "ring-1",
+                  L ? "ring-white border border-zinc-200/70" : "ring-white/10 border border-white/[0.08]"
+                )}
+              />
+            </div>
+            <div className="flex-1 space-y-2 min-w-0">
+              <p
+                className={cn(
+                  "text-[10px] font-semibold uppercase tracking-wider",
+                  L ? "text-zinc-500" : "text-white/38"
+                )}
+              >
+                Tu comentario
+              </p>
+              <div className="relative">
+                <textarea
+                  ref={commentInputRef}
+                  value={comment}
+                  {...deptMention.handlers}
+                  onKeyDown={(e) => {
+                    if (e.key === "Escape") {
+                      deptMention.dismiss();
+                      return;
+                    }
+                    if (
+                      e.key === "Enter" &&
+                      !e.shiftKey &&
+                      !deptMention.showMentionDrop
+                    ) {
+                      e.preventDefault();
+                      submitComment(e as unknown as React.FormEvent);
+                    }
+                  }}
+                  placeholder={
+                    replyTo
+                      ? `Respondiendo a @${replyTo.name}…`
+                      : "Añadir comentario… (@ + texto para buscar, Enter para enviar)"
+                  }
+                  rows={2}
+                  className={cn(
+                    "w-full rounded-lg px-3 py-2 text-sm resize-none transition-[border-color,box-shadow] duration-150",
+                    "focus:outline-none focus:ring-1",
+                    L
+                      ? "bg-white border border-zinc-200 text-zinc-900 placeholder:text-zinc-400 focus:border-amber-400/60 focus:ring-amber-400/20"
+                      : "bg-white/[0.04] border border-white/[0.1] text-white placeholder:text-white/32 focus:border-[#ffeb66]/35 focus:ring-[#ffeb66]/25"
+                  )}
+                />
+
+                {deptMention.showMentionDrop && (
+                  <div
+                    className={cn(
+                      "absolute bottom-full left-0 mb-2 w-[min(100%,20rem)] max-h-56 overflow-y-auto rounded-xl shadow-xl z-20 border",
+                      L
+                        ? "border-zinc-200/90 bg-white ring-1 ring-zinc-900/[0.04]"
+                        : "glass-3 border-white/12"
+                    )}
+                  >
+                    {deptMention.mentionRows.map((row) => (
+                      <button
+                        key={row.kind === "dept-all" ? "dept-all" : row.id}
+                        type="button"
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          deptMention.pickMention(row);
+                        }}
+                        className={cn(
+                          "w-full flex items-center gap-2.5 px-3 py-2 text-left transition-colors duration-100",
+                          L ? "hover:bg-zinc-100" : "hover:bg-white/8"
+                        )}
+                      >
+                        {row.kind === "user" && <Avatar name={row.name} size="xs" />}
+                        <span className="flex flex-col min-w-0">
+                          <span
+                            className={cn(
+                              "text-sm truncate",
+                              L ? "text-zinc-900" : "text-white/75"
+                            )}
+                          >
+                            {row.kind === "dept-all" ? "@all" : `@${row.name}`}
+                          </span>
+                          {row.kind === "dept-all" ? (
+                            <span
+                              className={cn(
+                                "text-[10px] truncate",
+                                L ? "text-zinc-500" : "text-white/35"
+                              )}
+                            >
+                              {row.name}
+                            </span>
+                          ) : row.email ? (
+                            <span
+                              className={cn(
+                                "text-[10px] truncate",
+                                L ? "text-zinc-500" : "text-white/35"
+                              )}
+                            >
+                              {row.email}
+                            </span>
+                          ) : null}
+                        </span>
+                      </button>
+                    ))}
+                    {deptMention.mentionRows.length === 0 && (
+                      <p
+                        className={cn(
+                          "px-3 py-2 text-xs",
+                          L ? "text-zinc-500" : "text-white/30"
+                        )}
+                      >
+                        Sin resultados
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <p
+                  className={cn(
+                    "flex items-center gap-1.5 text-[11px] max-w-[min(100%,28rem)]",
+                    L ? "text-zinc-500" : "text-white/28"
+                  )}
+                >
+                  <AtSign className="w-3.5 h-3.5 shrink-0 opacity-70" />
+                  <span>
+                    @ y al menos una letra para buscar (@all = todo el depto).{" "}
+                    <span className={L ? "text-zinc-600" : "text-white/40"}>Shift+Enter</span> = nueva línea
+                  </span>
+                </p>
+                <Button
+                  type="submit"
+                  variant="primary"
+                  size="sm"
+                  loading={submitting}
+                >
+                  Enviar
+                </Button>
+              </div>
+            </div>
+          </form>
+          </div>
+        </section>
+
         </div>
 
         {/* ── Attachments ──────────────────────────────────────────────────── */}
@@ -1054,21 +1477,21 @@ export function LogEntryDetail({
 
         {/* ── B57: Related entries ─────────────────────────────────────────── */}
         {relatedEntries && relatedEntries.length > 0 && (
-          <Card className="p-5 sm:p-6 print:hidden">
-            <div className="flex flex-col gap-6">
+          <Card className="p-4 sm:p-5 print:hidden">
+            <div className="flex flex-col gap-4">
               <div className="flex items-center gap-2">
                 <ExternalLink className="w-4 h-4 text-white/40" />
                 <span className="text-sm font-medium text-white/70">
                   Entradas relacionadas
                 </span>
               </div>
-              <div className="space-y-3">
+              <div className="space-y-2">
               {relatedEntries.map((rel) => (
                 <button
                   key={rel.id}
                   type="button"
                   onClick={() => router.push(`/bitacora/${rel.id}`)}
-                  className="w-full flex items-center gap-3 px-4 py-3.5 sm:py-4 rounded-xl bg-white/[0.03] border border-white/6 hover:border-white/12 hover:bg-white/5 transition-all duration-150 text-left group min-h-[3.25rem]"
+                  className="w-full flex items-center gap-3 px-3.5 py-2.5 sm:py-3 rounded-xl bg-white/[0.03] border border-white/6 hover:border-white/12 hover:bg-white/5 transition-all duration-150 text-left group min-h-[2.75rem]"
                 >
                   <span
                     className={`text-xs px-1.5 py-0.5 rounded-md border shrink-0 ${getTypeColor(
@@ -1095,226 +1518,12 @@ export function LogEntryDetail({
           </Card>
         )}
 
-        {/* ── Comments ─────────────────────────────────────────────────────── */}
-        <Card className="p-5 sm:p-6">
-          <div className="flex items-center gap-2 mb-5">
-            <MessageSquare className="w-4 h-4 text-white/40" />
-            <span className="text-sm font-medium text-white/70">
-              Comentarios ({comments.length})
-            </span>
-          </div>
-
-          {comments.length > 0 && (
-            <div className="space-y-3 mb-5">
-              {comments.map((c: LogCommentRow) => {
-                const plainForReply = c.content
-                  .replace(/<[^>]+>/g, "")
-                  .replace(/\u00a0/g, " ")
-                  .trim();
-                const replyParsed = parseLeadingReplyMention(
-                  plainForReply,
-                  mentionHighlightNames
-                );
-                const replyTarget = replyParsed?.replyTarget ?? null;
-                const bodyText = replyParsed?.bodyText ?? c.content;
-                const isReply = Boolean(replyTarget);
-                const structured = commentHasStructuredMentions(c.content);
-                return (
-                  <div
-                    key={c.id}
-                    className={cn(
-                      "flex gap-3 group/comment",
-                      isReply &&
-                        "relative pl-4 sm:pl-5 ml-0.5 border-l-[3px] border-[#4a9eff]/45 rounded-l-md"
-                    )}
-                  >
-                    <Avatar
-                      name={c.author.name}
-                      image={c.author.image}
-                      size="sm"
-                      className={cn(isReply && "ring-1 ring-[#4a9eff]/25")}
-                    />
-                    <div
-                      className={cn(
-                        "flex-1 min-w-0 rounded-xl p-4",
-                        isReply
-                          ? "bg-[#4a9eff]/[0.08] border border-[#4a9eff]/22 shadow-[inset_0_1px_0_rgba(74,158,255,0.07)]"
-                          : "bg-white/4 border border-white/6"
-                      )}
-                    >
-                      <div className="flex items-center gap-2 mb-2 flex-wrap">
-                        <span className="text-xs font-semibold text-white/70">
-                          {c.author.name}
-                        </span>
-                        <span className="text-xs text-white/30">
-                          {formatRelative(c.createdAt)}
-                        </span>
-                        {isReply && (
-                          <span className="text-[10px] font-medium uppercase tracking-wide text-[#4a9eff]/55 px-1.5 py-0.5 rounded-md bg-[#4a9eff]/10 border border-[#4a9eff]/20">
-                            Respuesta
-                          </span>
-                        )}
-                        {/* Hover actions */}
-                        <div className="ml-auto flex items-center gap-1 opacity-0 group-hover/comment:opacity-100 transition-opacity duration-150 print:hidden">
-                          <button
-                            type="button"
-                            onClick={() => startReply(c.author.name)}
-                            className="p-1 rounded text-white/30 hover:text-[#ffeb66]/70 transition-colors"
-                            aria-label="Responder"
-                          >
-                            <CornerDownLeft className="w-3 h-3" />
-                          </button>
-                          {(currentUser.id === c.author.id || canEdit) && (
-                            <button
-                              type="button"
-                              onClick={() => deleteComment(c.id)}
-                              className="p-1 rounded text-white/25 hover:text-red-400 transition-colors"
-                              aria-label="Eliminar comentario"
-                            >
-                              <Trash2 className="w-3 h-3" />
-                            </button>
-                          )}
-                        </div>
-                      </div>
-
-                      {replyTarget && !structured && (
-                        <div className="flex items-center gap-1 mb-1.5 text-xs text-white/30">
-                          <CornerDownLeft className="w-3 h-3 shrink-0" />
-                          Respondiendo a
-                          <span className="text-[#4a9eff]/60 font-medium">
-                            @{replyTarget}
-                          </span>
-                        </div>
-                      )}
-
-                      {structured && replyTarget ? (
-                        commentBodyNode(c.content, true)
-                      ) : replyTarget ? (
-                        <div className="text-sm text-white/60 leading-relaxed">
-                          <span className="text-[#4a9eff]/70 font-medium">
-                            @{replyTarget}:
-                          </span>{" "}
-                          {commentBodyNode(bodyText, false)}
-                        </div>
-                      ) : (
-                        commentBodyNode(c.content, true)
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-
-          {/* B59: Active reply banner */}
-          {replyTo && (
-            <div className="flex items-center gap-2 mb-2.5 px-3 py-2 rounded-lg bg-[#4a9eff]/[0.06] border border-[#4a9eff]/20 text-xs text-[#4a9eff]/70 print:hidden">
-              <CornerDownLeft className="w-3.5 h-3.5 shrink-0" />
-              Respondiendo a{" "}
-              <strong className="font-semibold">{replyTo.name}</strong>
-              <button
-                type="button"
-                onClick={() => { setReplyTo(null); setComment(""); }}
-                className="ml-auto text-white/30 hover:text-white/60 transition-colors"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          )}
-
-          {/* Comment form */}
-          <form onSubmit={submitComment} className="flex gap-3 print:hidden">
-            <Avatar
-              name={currentUser.name}
-              image={currentUser.image}
-              size="sm"
-            />
-            <div className="flex-1 space-y-2">
-              {/* B60: @mention textarea */}
-              <div className="relative">
-                <textarea
-                  ref={commentInputRef}
-                  value={comment}
-                  {...deptMention.handlers}
-                  onKeyDown={(e) => {
-                    if (e.key === "Escape") {
-                      deptMention.dismiss();
-                      return;
-                    }
-                    if (
-                      e.key === "Enter" &&
-                      !e.shiftKey &&
-                      !deptMention.showMentionDrop
-                    ) {
-                      e.preventDefault();
-                      submitComment(e as unknown as React.FormEvent);
-                    }
-                  }}
-                  placeholder={
-                    replyTo
-                      ? `Respondiendo a @${replyTo.name}…`
-                      : "Añadir comentario… (@ + texto para buscar, Enter para enviar)"
-                  }
-                  rows={2}
-                  className="w-full bg-white/5 border border-white/8 rounded-xl px-3 py-2 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-[#ffeb66]/40 resize-none transition-colors duration-150"
-                />
-
-                {/* @menciones departamento (+ @all) vía API */}
-                {deptMention.showMentionDrop && (
-                  <div className="absolute bottom-full left-0 mb-2 w-[min(100%,20rem)] max-h-56 overflow-y-auto glass-3 rounded-xl border border-white/12 shadow-xl z-20">
-                    {deptMention.mentionRows.map((row) => (
-                      <button
-                        key={row.kind === "dept-all" ? "dept-all" : row.id}
-                        type="button"
-                        onMouseDown={(e) => {
-                          e.preventDefault();
-                          deptMention.pickMention(row);
-                        }}
-                        className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-white/8 text-left transition-colors duration-100"
-                      >
-                        {row.kind === "user" && <Avatar name={row.name} size="xs" />}
-                        <span className="flex flex-col min-w-0">
-                          <span className="text-sm text-white/75 truncate">
-                            {row.kind === "dept-all" ? "@all" : `@${row.name}`}
-                          </span>
-                          {row.kind === "dept-all" ? (
-                            <span className="text-[10px] text-white/35 truncate">
-                              {row.name}
-                            </span>
-                          ) : row.email ? (
-                            <span className="text-[10px] text-white/35 truncate">{row.email}</span>
-                          ) : null}
-                        </span>
-                      </button>
-                    ))}
-                    {deptMention.mentionRows.length === 0 && (
-                      <p className="px-3 py-2 text-xs text-white/30">Sin resultados</p>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              <div className="flex items-center justify-between">
-                <p className="flex items-center gap-1 text-xs text-white/25">
-                  <AtSign className="w-3 h-3" />
-                  @ y al menos una letra para buscar (@all = todo el depto). Shift+Enter = nueva línea
-                </p>
-                <Button
-                  type="submit"
-                  variant="primary"
-                  size="sm"
-                  loading={submitting}
-                >
-                  Enviar
-                </Button>
-              </div>
-            </div>
-          </form>
-        </Card>
-
-        {/* B53: Bottom prev/next nav — separación respecto al bloque de comentarios */}
-        {renderNav("!mt-4 sm:!mt-5")}
-
+        {/* B53: Bottom prev/next nav — debajo de enlaces y relacionadas */}
+        {renderNav("!mt-2 sm:!mt-3 !mb-2 sm:!mb-3")}
+        <div
+          className="shrink-0 print:hidden h-4 sm:h-5 pb-[max(4px,env(safe-area-inset-bottom,0px))]"
+          aria-hidden
+        />
       </div>
     </div>
   );

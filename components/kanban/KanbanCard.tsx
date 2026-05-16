@@ -1,7 +1,7 @@
 "use client";
 
 import { useId } from "react";
-import { MessageSquare, CheckSquare, Calendar } from "lucide-react";
+import { MessageSquare, CheckSquare, Calendar, Lock } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { Avatar } from "@/components/ui/Avatar";
 import { format, isPast } from "date-fns";
@@ -54,6 +54,8 @@ export function KanbanCard({ task, onClick }: KanbanCardProps) {
     ? task.description.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 120)
     : null;
 
+  const blocked = Boolean((task.blockedReason ?? "").trim());
+
   return (
     <div
       role="button"
@@ -81,6 +83,7 @@ export function KanbanCard({ task, onClick }: KanbanCardProps) {
         {totalSubtasks > 0
           ? ` Subtareas ${completedSubtasks} de ${totalSubtasks} completadas.`
           : ""}
+        {blocked ? " Bloqueada: no se puede mover de columna hasta vaciar el motivo de bloqueo." : ""}
       </span>
       {/* Shift badge */}
       {task.isShiftTask && (
@@ -88,6 +91,14 @@ export function KanbanCard({ task, onClick }: KanbanCardProps) {
           <Badge variant="warning" size="sm">
             Turno
           </Badge>
+        </div>
+      )}
+      {blocked && (
+        <div className="flex items-center gap-1.5 mb-2 text-amber-200/90">
+          <Lock className="w-3.5 h-3.5 shrink-0" aria-hidden />
+          <span className="text-[10px] font-medium uppercase tracking-wide">
+            Bloqueada en columna
+          </span>
         </div>
       )}
 
