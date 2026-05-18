@@ -21,15 +21,20 @@ export default async function DashboardLayout({
   const deptId = getActiveDepartmentId(user);
 
   const pendingFollowups = deptId
-    ? await prisma.logEntry.count({
-        where: {
-          departmentId: deptId,
-          status: "PUBLISHED",
-          requiresFollowup: true,
-          followupDone: false,
-          deletedAt: null,
-        },
-      })
+    ? await prisma.logEntry
+        .count({
+          where: {
+            departmentId: deptId,
+            status: "PUBLISHED",
+            requiresFollowup: true,
+            followupDone: false,
+            deletedAt: null,
+          },
+        })
+        .catch((e) => {
+          console.error("[dashboard-layout] prisma.logEntry.count (pendingFollowups)", e);
+          throw e;
+        })
     : 0;
 
   return (

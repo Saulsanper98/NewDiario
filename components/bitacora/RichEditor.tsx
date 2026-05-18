@@ -31,6 +31,7 @@ import { createRichEditorMention } from "./rich-editor-mention";
 import { richEditorBodyProseClass } from "@/lib/bitacora-html-prose";
 import { bitacoraProseRootProps } from "@/lib/bitacora-prose-constants";
 import { VideoExtension } from "./rich-editor-video";
+import { LOG_ENTRY_CONTENT_MAX } from "@/lib/log-entry-limits";
 
 const VIDEO_FILE_MAX_BYTES = 200 * 1024 * 1024; // 200 MB
 const IMAGE_FILE_MAX_BYTES = 50 * 1024 * 1024;  // 50 MB (server upload, no base64 limit)
@@ -63,7 +64,7 @@ export function RichEditor({
   mentionDepartmentId = "",
   placeholder = "Escribe aquí...",
   className,
-  maxLength = 50000,
+  maxLength = LOG_ENTRY_CONTENT_MAX,
 }: RichEditorProps) {
   /* B46 — focus mode */
   const [focusMode,    setFocusMode]    = useState(false);

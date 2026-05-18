@@ -11,29 +11,9 @@ import {
 } from "@/lib/log-entry-edit-diff";
 import { computePublishHints } from "@/lib/log-entry-publish-hints";
 import { logEntryDetailPageInclude } from "@/lib/types/log-entry-detail";
+import { logEntryEditSchema } from "@/lib/log-entry-api-schema";
 
 const followupOnlySchema = z.object({ followupDone: z.boolean() }).strict();
-
-const editEntrySchema = z.object({
-  title: z.string().min(1),
-  content: z.string().min(1),
-  type: z.enum(["INCIDENCIA", "INFORMATIVO", "URGENTE", "MANTENIMIENTO", "SIN_NOVEDADES"]),
-  shift: z.enum(["MORNING", "AFTERNOON", "NIGHT"]),
-  status: z.enum(["DRAFT", "PUBLISHED"]),
-  requiresFollowup: z.boolean(),
-  tags: z.array(z.string()).default([]),
-  shares: z
-    .array(
-      z.object({
-        departmentId: z.string(),
-        permission: z.enum(["READ", "READ_COMMENT"]),
-      })
-    )
-    .default([]),
-  metricAnchorLabel: z.string().max(160).nullable().optional(),
-  metricAnchorValue: z.string().max(120).nullable().optional(),
-  metricAnchorTrend: z.enum(["UP", "DOWN", "FLAT"]).nullable().optional(),
-});
 
 export async function GET(
   req: NextRequest,
@@ -150,9 +130,11 @@ export async function PATCH(
     return NextResponse.json(updated);
   }
 
-  const parsed = editEntrySchema.safeParse(body);
+  const parsed = logEntryEditSchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+    const details = parsed.error.flatten();
+    console.error(`[log-entries PATCH ${id}] validation failed:`, JSON.stringify(details));
+    return NextResponse.json({ error: details }, { status: 400 });
   }
 
   const {

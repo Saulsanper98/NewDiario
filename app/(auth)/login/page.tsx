@@ -46,10 +46,14 @@ interface LoginDepartment {
 function DepartmentPicker({
   departments,
   loading,
+  loadError,
+  onRetry,
   onSelect,
 }: {
   departments: LoginDepartment[];
   loading: boolean;
+  loadError?: boolean;
+  onRetry?: () => void;
   onSelect: (dept: LoginDepartment) => void;
 }) {
   const [search, setSearch] = useState("");
@@ -69,6 +73,24 @@ function DepartmentPicker({
     return (
       <div className="flex items-center justify-center py-10">
         <Loader2 className="w-5 h-5 text-white/20 animate-spin" />
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="py-10 text-center px-1">
+        <AlertCircle className="w-8 h-8 text-amber-400/70 mx-auto mb-3" />
+        <p className="text-sm text-white/70 mb-1">No se pudo cargar el listado de departamentos</p>
+        <p className="text-[11px] text-white/35 mb-4 leading-relaxed">
+          Comprueba que PostgreSQL esté en marcha y que <span className="font-mono text-white/45">DATABASE_URL</span> en{" "}
+          <span className="font-mono text-white/45">.env</span> sea correcta.
+        </p>
+        {onRetry && (
+          <Button type="button" variant="secondary" size="sm" onClick={onRetry} className="mx-auto">
+            Reintentar
+          </Button>
+        )}
       </div>
     );
   }
@@ -818,6 +840,7 @@ export default function LoginPage() {
   const [loginStep, setLoginStep]       = useState<"department" | "credentials">("department");
   const [departments, setDepartments]   = useState<LoginDepartment[]>([]);
   const [deptsLoading, setDeptsLoading] = useState(true);
+  const [deptsLoadError, setDeptsLoadError] = useState(false);
   const [selectedDept, setSelectedDept] = useState<LoginDepartment | null>(null);
 
   /* Step 2 — users for selected department */
@@ -932,17 +955,29 @@ export default function LoginPage() {
     return () => window.removeEventListener("mousemove", onMouseMove);
   }, []);
 
+  const loadDepartments = useCallback(async () => {
+    setDeptsLoading(true);
+    setDeptsLoadError(false);
+    try {
+      const res = await fetch("/api/login-departments");
+      if (res.ok) {
+        setDepartments(await res.json());
+      } else {
+        setDepartments([]);
+        setDeptsLoadError(true);
+      }
+    } catch {
+      setDepartments([]);
+      setDeptsLoadError(true);
+    } finally {
+      setDeptsLoading(false);
+    }
+  }, []);
+
   /* Load departments for step 1 */
   useEffect(() => {
-    void (async () => {
-      try {
-        const res = await fetch("/api/login-departments");
-        if (res.ok) setDepartments(await res.json());
-      } catch { /* ignore */ } finally {
-        setDeptsLoading(false);
-      }
-    })();
-  }, []);
+    void loadDepartments();
+  }, [loadDepartments]);
 
   /* L19 — focus trap inside form */
   useEffect(() => {
@@ -1133,6 +1168,8 @@ export default function LoginPage() {
               <DepartmentPicker
                 departments={departments}
                 loading={deptsLoading}
+                loadError={deptsLoadError}
+                onRetry={() => void loadDepartments()}
                 onSelect={(dept) => void selectDepartment(dept)}
               />
             </div>

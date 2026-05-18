@@ -51,8 +51,13 @@ export default function DashboardError({
               </>
             ) : (
               <>
-                No se pudo cargar el contenido. Puedes reintentar o volver al
-                inicio.
+                No se pudo cargar el contenido. Si ocurre en el servidor, revisa el log de errores
+                de Node (p. ej. <span className="font-mono text-white/50">CCOps.err.log</span>): lo
+                habitual es un fallo de <strong className="text-white/65">base de datos</strong>{" "}
+                o tablas sin esquema Prisma. Tras corregir{" "}
+                <span className="font-mono text-white/50">DATABASE_URL</span>, ejecuta{" "}
+                <span className="font-mono text-white/50">npm run setup</span> en el servidor y
+                reinicia el servicio.
               </>
             )}
           </p>

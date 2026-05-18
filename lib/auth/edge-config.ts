@@ -1,9 +1,43 @@
 import type { NextAuthConfig } from "next-auth";
 import type { SessionUser } from "@/lib/auth/types";
 
+/**
+ * En `next dev`, las cookies no incluyen puerto: una sesión de otra instancia en el mismo host
+ * (p. ej. CCOps en :3000 y dev en :3001) provoca JWTSessionError / "no matching decryption secret"
+ * y peticiones raras. Nombres propios solo en desarrollo.
+ */
+function authCookiesForDev(): NextAuthConfig["cookies"] | undefined {
+  if (process.env.NODE_ENV !== "development") return undefined;
+  const base = {
+    httpOnly: true as const,
+    sameSite: "lax" as const,
+    path: "/",
+    secure: false,
+  };
+  return {
+    sessionToken: { name: "authjs.session-token.dev", options: base },
+    callbackUrl: { name: "authjs.callback-url.dev", options: base },
+    csrfToken: { name: "authjs.csrf-token.dev", options: base },
+    pkceCodeVerifier: {
+      name: "authjs.pkce.code_verifier.dev",
+      options: { ...base, maxAge: 60 * 15 },
+    },
+    state: {
+      name: "authjs.state.dev",
+      options: { ...base, maxAge: 60 * 15 },
+    },
+    nonce: { name: "authjs.nonce.dev", options: base },
+    webauthnChallenge: {
+      name: "authjs.challenge.dev",
+      options: { ...base, maxAge: 60 * 15 },
+    },
+  };
+}
+
 export const edgeAuthConfig: NextAuthConfig = {
   // Auth.js v5 exige secret en Edge (middleware). Acepta AUTH_SECRET o NEXTAUTH_SECRET (Docker/README).
   secret: process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET,
+  cookies: authCookiesForDev(),
   // Permitir IPs y hosts no-localhost (despliegue en servidor Windows con IP fija)
   trustHost: true,
   pages: {

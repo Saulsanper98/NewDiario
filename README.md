@@ -13,19 +13,36 @@ Incluye Diario de Bitácora y Gestor de Proyectos/Kanban.
 - **Tailwind CSS v4** + Glassmorphism
 - **@hello-pangea/dnd** para Kanban drag & drop
 - **Tiptap 3** para editor de texto enriquecido
-- **Docker Compose** para levantar el entorno completo
+- **Docker Compose** *(opcional)* para levantar PostgreSQL + app en contenedores
 
 ---
 
 ## Requisitos previos
 
 - Node.js 20+
-- Docker Desktop
+- **PostgreSQL** (instalación nativa en Windows o Linux; el puerto por defecto es **5432**)
 - npm
+- *(Opcional)* Docker / Docker Compose solo si quieres levantar Postgres con el `docker-compose.yml` del repo (entonces el host suele usar el puerto **5433** para no chocar con un 5432 local)
 
 ---
 
-## Inicio rápido con Docker Compose
+## Inicio rápido sin Docker (PostgreSQL nativo)
+
+1. Crea en PostgreSQL el rol, la base y el usuario que uses en `DATABASE_URL` (el `.env.example` parte de `ccops` / `ccops_password` / `ccops_db` en `127.0.0.1:5432`).
+2. Copia `.env.example` a `.env` y revisa `DATABASE_URL`, `AUTH_SECRET` y `NEXTAUTH_URL`.
+3. En la carpeta del proyecto:
+
+```bash
+npm install
+npm run setup
+npm run dev
+```
+
+Accede en la URL que indique la consola (por ejemplo [http://localhost:3000](http://localhost:3000)).
+
+---
+
+## Inicio rápido con Docker Compose *(opcional)*
 
 ```bash
 # 1. Clona / copia el proyecto y entra al directorio
@@ -34,10 +51,10 @@ cd cc-ops
 # 2. Copia el archivo de variables de entorno
 cp .env.example .env
 # Edita .env: define AUTH_SECRET (o NEXTAUTH_SECRET) con un valor aleatorio largo; sin esto Auth.js falla en el middleware
+# Si usas Compose, usa DATABASE_URL con puerto 5433 (ver comentarios en .env.example).
 
 # 3. Levanta la base de datos PostgreSQL (expuesta en el host como puerto 5433)
 docker compose up postgres -d
-#    DATABASE_URL del .env.example apunta a 127.0.0.1:5433 para no chocar con un Postgres local en 5432.
 
 # 4. Instala dependencias
 npm install

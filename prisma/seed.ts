@@ -17,7 +17,7 @@ loadEnv({
 const databaseUrl = process.env.DATABASE_URL?.trim();
 if (!databaseUrl) {
   throw new Error(
-    "DATABASE_URL no está definida. Copia .env.example a .env (Docker del repo: puerto host 5433, ver docker-compose.yml)."
+    "DATABASE_URL no está definida. Copia .env.example a .env y apunta a tu PostgreSQL (nativo en Windows suele ser el puerto 5432)."
   );
 }
 

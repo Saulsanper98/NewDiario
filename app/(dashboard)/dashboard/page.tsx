@@ -24,8 +24,15 @@ export default async function DashboardPage() {
   const now = new Date();
   const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
-  const [recentLogs, myTasks, shiftTasks, overdueTasks, projects, entriesToday, pendingFollowups] =
-    await Promise.all([
+  const [
+    recentLogs,
+    myTasks,
+    shiftTasks,
+    overdueTasks,
+    projects,
+    entriesToday,
+    pendingFollowups,
+  ] = await Promise.all([
       prisma.logEntry.findMany({
         where: {
           departmentId: deptId,
@@ -98,7 +105,10 @@ export default async function DashboardPage() {
           followupDone: false,
         },
       }),
-    ]);
+    ]).catch((e) => {
+      console.error("[dashboard-page] Prisma Promise.all", e);
+      throw e;
+    });
 
   return (
     <div className="flex flex-col h-full overflow-hidden">

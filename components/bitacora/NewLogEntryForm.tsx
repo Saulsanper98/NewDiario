@@ -27,6 +27,9 @@ import { PUBLISH_HINT_LABEL } from "@/lib/log-entry-publish-hints";
 import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 import { isValidYyyyMmDd, todayYyyyMmDd } from "@/lib/bitacora-entry-date";
+import { hasSubstantiveLogEntryBody } from "@/lib/log-entry-body";
+import { formatApiValidationError } from "@/lib/format-api-validation-error";
+import { LOG_ENTRY_CONTENT_MAX, LOG_ENTRY_TITLE_MAX } from "@/lib/log-entry-limits";
 import {
   NewLogEntryPollsSection,
   serializePollDrafts,
@@ -66,7 +69,7 @@ function notifyPublishHints(hints: PublishHint[] | undefined) {
 /* ── schema ─────────────────────────────────────────────────────────────── */
 
 const schema = z.object({
-  title:            z.string().max(150, "Máximo 150 caracteres"),
+  title:            z.string().max(LOG_ENTRY_TITLE_MAX, `Máximo ${LOG_ENTRY_TITLE_MAX.toLocaleString("es")} caracteres`),
   shift:            z.enum(["MORNING", "AFTERNOON", "NIGHT"]),
   type:             z.enum(["INCIDENCIA", "INFORMATIVO", "URGENTE", "MANTENIMIENTO", "SIN_NOVEDADES"]),
   requiresFollowup: z.boolean(),
@@ -256,10 +259,12 @@ function ConfirmCancelDialog({
 /* ── title counter color (B34) ──────────────────────────────────────────── */
 
 function titleCounterColor(len: number, t: ThemeMode): string {
+  const warn = Math.floor(LOG_ENTRY_TITLE_MAX * 0.85);
+  const hot = Math.floor(LOG_ENTRY_TITLE_MAX * 0.95);
   if (len < 3 && len > 0) return t === "light" ? "text-red-600" : "text-red-400";
-  if (len <= 100) return t === "light" ? "text-zinc-500" : "text-white/25";
-  if (len <= 120) return t === "light" ? "text-amber-700" : "text-amber-400";
-  if (len <= 135) return t === "light" ? "text-orange-700" : "text-orange-400";
+  if (len <= warn) return t === "light" ? "text-zinc-500" : "text-white/25";
+  if (len <= hot) return t === "light" ? "text-amber-700" : "text-amber-400";
+  if (len < LOG_ENTRY_TITLE_MAX) return t === "light" ? "text-orange-700" : "text-orange-400";
   return t === "light" ? "text-red-600" : "text-red-400";
 }
 
@@ -478,7 +483,7 @@ export function NewLogEntryForm({
   }
 
   async function onSubmit(data: FormData) {
-    const strippedContent = content.replace(/<[^>]+>/g, "").trim();
+    const hasBody = hasSubstantiveLogEntryBody(content);
     const pollsPayload = !editingEntry ? serializePollDrafts(pollDrafts) : [];
 
     if (!editingEntry && pollDrafts.length > 0 && pollsPayload.length === 0) {
@@ -489,8 +494,8 @@ export function NewLogEntryForm({
     }
 
     if (editingEntry) {
-      if (!content || !strippedContent) {
-        toast.error("El contenido no puede estar vacío");
+      if (!hasBody) {
+        toast.error("El contenido no puede estar vacío (texto o imagen)");
         return;
       }
       if (data.title.trim().length < 3) {
@@ -498,8 +503,8 @@ export function NewLogEntryForm({
         return;
       }
     } else {
-      if (strippedContent.length === 0 && pollsPayload.length === 0) {
-        toast.error("Añade texto en el cuerpo o al menos una encuesta completa");
+      if (!hasBody && pollsPayload.length === 0) {
+        toast.error("Añade texto, una imagen o al menos una encuesta completa");
         return;
       }
       const titleTrim = data.title.trim();
@@ -511,10 +516,7 @@ export function NewLogEntryForm({
     async function serverMessage(res: Response): Promise<string | null> {
       try {
         const body = (await res.json()) as Record<string, unknown>;
-        const err = body?.error;
-        const msg = body?.message;
-        if (typeof err === "string" && err.trim()) return err;
-        if (typeof msg === "string" && msg.trim()) return msg;
+        return formatApiValidationError(body);
       } catch {
         /* ignore */
       }
@@ -547,7 +549,7 @@ export function NewLogEntryForm({
         router.push(`/bitacora/${editingEntry.id}`);
         return;
       }
-      const effectiveContent = strippedContent ? content : "<p></p>";
+      const effectiveContent = hasBody ? content : "<p></p>";
       const res = await fetch("/api/log-entries", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -804,13 +806,13 @@ export function NewLogEntryForm({
                 titleCounterColor(titleValue.length, theme)
               )}
             >
-              {titleValue.length}/150
+              {titleValue.length.toLocaleString("es")}/{LOG_ENTRY_TITLE_MAX.toLocaleString("es")}
             </span>
           </div>
           <Input
             placeholder={TYPE_PLACEHOLDER[typeValue] ?? "Resumen breve de la entrada..."}
             error={errors.title?.message}
-            maxLength={150}
+            maxLength={LOG_ENTRY_TITLE_MAX}
             className={theme === "light" ? lightTitleInputClass : undefined}
             {...register("title")}
           />
@@ -822,7 +824,7 @@ export function NewLogEntryForm({
               )}
             >
               Opcional si la entrada es solo encuestas: puedes dejar el título vacío y usaremos la
-              pregunta de la primera encuesta como título (hasta 150 caracteres).
+              pregunta de la primera encuesta como título (hasta {LOG_ENTRY_TITLE_MAX.toLocaleString("es")} caracteres).
             </p>
           )}
         </div>
@@ -946,6 +948,7 @@ export function NewLogEntryForm({
               key={editingEntry?.id ?? "new"}
               content={content}
               onChange={setContent}
+              maxLength={LOG_ENTRY_CONTENT_MAX}
               mentionDepartmentId={deptForEntry}
               placeholder={
                 !editingEntry && pollDrafts.length > 0

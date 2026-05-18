@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma/client";
-import { z } from "zod";
 import { getActiveDepartmentId } from "@/lib/auth/permissions";
 import { buildPublishedLogWhere } from "@/lib/bitacora-where";
 import { computePublishHints } from "@/lib/log-entry-publish-hints";
@@ -17,78 +16,8 @@ import {
   createLogEntryPollInTransaction,
 } from "@/lib/log-entry-poll-create";
 import { LogEntryPollResponseScope } from "@/app/generated/prisma/enums";
-
-const newPollInCreateSchema = z.object({
-  question: z.string().min(3).max(500),
-  allowMultiple: z.boolean().default(false),
-  responseScope: z.nativeEnum(LogEntryPollResponseScope),
-  optionLabels: z.array(z.string().min(1).max(280)).min(2).max(10),
-  inviteeUserIds: z.array(z.string()).optional(),
-});
-
-const createSchema = z
-  .object({
-    title: z.string().max(500),
-    content: z.string().max(500_000).default(""),
-    type: z.enum(["INCIDENCIA", "INFORMATIVO", "URGENTE", "MANTENIMIENTO", "SIN_NOVEDADES"]),
-    shift: z.enum(["MORNING", "AFTERNOON", "NIGHT"]),
-    status: z.enum(["DRAFT", "PUBLISHED"]).default("PUBLISHED"),
-    requiresFollowup: z.boolean().default(false),
-    departmentId: z.string(),
-    tags: z.array(z.string()).default([]),
-    shares: z
-      .array(
-        z.object({
-          departmentId: z.string(),
-          permission: z.enum(["READ", "READ_COMMENT"]),
-        })
-      )
-      .default([]),
-    metricAnchorLabel: z.string().max(160).optional(),
-    metricAnchorValue: z.string().max(120).optional(),
-    metricAnchorTrend: z.enum(["UP", "DOWN", "FLAT"]).optional(),
-    /** Día calendario (YYYY-MM-DD) para registrar la entrada en un día pasado (vista por día). */
-    forDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-    /** Encuestas creadas junto con la nota (misma transacción). */
-    polls: z.array(newPollInCreateSchema).max(8).optional().default([]),
-  })
-  .superRefine((data, ctx) => {
-    const bodyText = data.content.replace(/<[^>]+>/g, "").trim();
-    if (bodyText.length === 0 && data.polls.length === 0) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "Añade texto al cuerpo o al menos una encuesta",
-        path: ["content"],
-      });
-    }
-    const t = data.title.trim();
-    if (t.length === 0 && data.polls.length === 0) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "Indica un título (o solo encuestas: se usará la pregunta como título)",
-        path: ["title"],
-      });
-    }
-    if (t.length > 0 && t.length < 3 && data.polls.length === 0) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "El título debe tener al menos 3 caracteres si no hay encuestas",
-        path: ["title"],
-      });
-    }
-    data.polls.forEach((p, i) => {
-      if (p.responseScope === LogEntryPollResponseScope.SELECTED_USERS) {
-        const raw = p.inviteeUserIds?.filter(Boolean) ?? [];
-        if (raw.length === 0) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: "Indica al menos un compañero en encuestas con alcance restringido",
-            path: ["polls", i, "inviteeUserIds"],
-          });
-        }
-      }
-    });
-  });
+import { stripLogEntryBodyText } from "@/lib/log-entry-body";
+import { logEntryCreateSchema } from "@/lib/log-entry-api-schema";
 
 export async function GET(req: NextRequest) {
   const session = await auth();
@@ -145,13 +74,12 @@ export async function POST(req: NextRequest) {
 
   const user = session.user as SessionUser;
   const body = await req.json();
-  const parsed = createSchema.safeParse(body);
+  const parsed = logEntryCreateSchema.safeParse(body);
 
   if (!parsed.success) {
-    return NextResponse.json(
-      { error: parsed.error.flatten() },
-      { status: 400 }
-    );
+    const details = parsed.error.flatten();
+    console.error("[log-entries POST] validation failed:", JSON.stringify(details));
+    return NextResponse.json({ error: details }, { status: 400 });
   }
 
   const {
@@ -176,7 +104,7 @@ export async function POST(req: NextRequest) {
   const metricAnchorValue = rawMetricValue?.trim() || null;
   const metricAnchorTrend = rawMetricTrend ?? null;
 
-  const bodyText = content.replace(/<[^>]+>/g, "").trim();
+  const bodyText = stripLogEntryBodyText(content);
   let effectiveTitle = title.trim();
   if (effectiveTitle.length < 3 && pollsArr.length > 0) {
     effectiveTitle = pollsArr[0].question.trim().slice(0, 150);
