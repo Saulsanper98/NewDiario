@@ -1,7 +1,15 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { Users, Building2, Settings, Activity, Cloud, FileBarChart } from "lucide-react";
+import {
+  Users,
+  Building2,
+  Settings,
+  Activity,
+  Cloud,
+  FileBarChart,
+  UserCircle,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { UsersTab } from "./UsersTab";
 import { DepartmentsTab } from "./DepartmentsTab";
@@ -9,6 +17,7 @@ import { AppSettingsTab } from "./AppSettingsTab";
 import { ActivityLogsTab } from "./ActivityLogsTab";
 import { MicrosoftIntegrationTab } from "./MicrosoftIntegrationTab";
 import { ReportsTab } from "./ReportsTab";
+import { MyProfileTab } from "./MyProfileTab";
 import type { SessionUser } from "@/lib/auth/types";
 import type {
   ConfigPageActivityLog,
@@ -16,7 +25,14 @@ import type {
   ConfigPageUser,
 } from "@/lib/types/config";
 
-type Tab = "users" | "departments" | "settings" | "logs" | "microsoft" | "informes";
+type Tab =
+  | "profile"
+  | "users"
+  | "departments"
+  | "settings"
+  | "logs"
+  | "microsoft"
+  | "informes";
 
 const TABS: { id: Tab; label: string; icon: React.ElementType; superAdminOnly?: boolean }[] = [
   { id: "users", label: "Usuarios", icon: Users },
@@ -33,6 +49,7 @@ interface ConfigTabsProps {
   activityLogs: ConfigPageActivityLog[];
   currentUser: SessionUser;
   isSuperAdmin: boolean;
+  isAdmin: boolean;
 }
 
 export function ConfigTabs({
@@ -41,17 +58,20 @@ export function ConfigTabs({
   activityLogs,
   currentUser,
   isSuperAdmin,
+  isAdmin,
 }: ConfigTabsProps) {
-  const [activeTab, setActiveTab] = useState<Tab>("users");
+  const [activeTab, setActiveTab] = useState<Tab>(isAdmin ? "users" : "profile");
 
-  const visibleTabs = TABS.filter(
-    (t) => !t.superAdminOnly || isSuperAdmin
-  );
+  const visibleTabs = useMemo(() => {
+    if (!isAdmin) {
+      return [{ id: "profile" as const, label: "Mi cuenta", icon: UserCircle }];
+    }
+    return TABS.filter((t) => !t.superAdminOnly || isSuperAdmin);
+  }, [isAdmin, isSuperAdmin]);
 
   const visibleTabIds = useMemo(() => {
-    const ids = TABS.filter((t) => !t.superAdminOnly || isSuperAdmin).map((t) => t.id);
-    return new Set(ids);
-  }, [isSuperAdmin]);
+    return new Set(visibleTabs.map((t) => t.id));
+  }, [visibleTabs]);
 
   useEffect(() => {
     function syncFromHash() {
@@ -65,9 +85,11 @@ export function ConfigTabs({
 
   return (
     <div className="config-tabs-root p-6 max-w-6xl mx-auto space-y-5">
-      <h1 className="text-xl font-semibold text-white">Configuración</h1>
+      {isAdmin && (
+        <h1 className="text-xl font-semibold text-white">Configuración</h1>
+      )}
 
-      {/* Tab nav */}
+      {visibleTabs.length > 1 && (
       <div className="flex items-center gap-1 flex-wrap">
         {visibleTabs.map((tab) => {
           const Icon = tab.icon;
@@ -92,10 +114,14 @@ export function ConfigTabs({
           );
         })}
       </div>
+      )}
 
       {/* Tab content */}
       <div>
-        {activeTab === "users" && (
+        {activeTab === "profile" && !isAdmin && (
+          <MyProfileTab currentUser={currentUser} />
+        )}
+        {activeTab === "users" && isAdmin && (
           <UsersTab
             users={users}
             departments={departments}
@@ -103,13 +129,13 @@ export function ConfigTabs({
             isSuperAdmin={isSuperAdmin}
           />
         )}
-        {activeTab === "departments" && (
+        {activeTab === "departments" && isAdmin && (
           <DepartmentsTab departments={departments} isSuperAdmin={isSuperAdmin} />
         )}
         {activeTab === "settings" && isSuperAdmin && <AppSettingsTab />}
-        {activeTab === "logs" && <ActivityLogsTab logs={activityLogs} />}
+        {activeTab === "logs" && isAdmin && <ActivityLogsTab logs={activityLogs} />}
         {activeTab === "microsoft" && isSuperAdmin && <MicrosoftIntegrationTab />}
-        {activeTab === "informes" && <ReportsTab />}
+        {activeTab === "informes" && isAdmin && <ReportsTab />}
       </div>
     </div>
   );

@@ -3,8 +3,9 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma/client";
 import type { Prisma } from "@/app/generated/prisma/client";
 import {
+  canManageTargetUser,
   isAdminOrAbove,
-  isAdminOfDepartment,
+  isSelfProfilePatch,
   isSuperAdmin,
 } from "@/lib/auth/permissions";
 import type { SessionUser } from "@/lib/auth/types";
@@ -31,10 +32,6 @@ export async function PATCH(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const actor = session.user as SessionUser;
-  if (!isAdminOrAbove(actor)) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
-
   const { id } = await params;
   const raw = await req.json();
   const parsed = patchUserSchema.safeParse(raw);
@@ -46,6 +43,8 @@ export async function PATCH(
   }
 
   const body = parsed.data;
+  const isSelf = id === actor.id;
+  const selfProfileOnly = isSelf && isSelfProfilePatch(body);
 
   if (id === actor.id && body.isActive === false) {
     return NextResponse.json(
@@ -69,12 +68,25 @@ export async function PATCH(
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  if (!isSuperAdmin(actor)) {
-    const ok = target.departments.some((d) =>
-      isAdminOfDepartment(actor, d.departmentId)
-    );
-    if (!ok) {
+  if (selfProfileOnly) {
+    /* Perfil propio: nombre, email, avatar, contraseña. */
+  } else if (isSelf) {
+    if (!isAdminOrAbove(actor)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+  } else {
+    if (!isAdminOrAbove(actor)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+    const targetDeptIds = target.departments.map((d) => d.departmentId);
+    if (!canManageTargetUser(actor, targetDeptIds)) {
+      return NextResponse.json(
+        {
+          error:
+            "No tienes permiso para editar usuarios de ese departamento",
+        },
+        { status: 403 }
+      );
     }
   }
 

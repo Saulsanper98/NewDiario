@@ -11,7 +11,7 @@ import {
 interface AvatarProps {
   name: string;
   image?: string | null;
-  size?: "xs" | "sm" | "md" | "lg";
+  size?: "xs" | "sm" | "md" | "lg" | "xl";
   className?: string;
   presence?: "online" | "away" | "offline";
   effect?: AvatarFrameEffect;
@@ -22,6 +22,7 @@ const sizes = {
   sm: "w-8 h-8 text-xs",
   md: "w-9 h-9 text-sm",
   lg: "w-11 h-11 text-base",
+  xl: "w-20 h-20 text-lg",
 };
 
 const presenceDotSize: Record<string, string> = {
@@ -29,6 +30,7 @@ const presenceDotSize: Record<string, string> = {
   sm: "w-2 h-2 border",
   md: "w-2.5 h-2.5 border-[1.5px]",
   lg: "w-3 h-3 border-2",
+  xl: "w-3.5 h-3.5 border-2",
 };
 
 const presenceColor: Record<string, string> = {
@@ -45,7 +47,7 @@ function AvatarFrameShell({
   presenceDot,
 }: {
   effect: AvatarFrameEffect;
-  size: keyof typeof sizes;
+  size: "xs" | "sm" | "md" | "lg" | "xl";
   className?: string;
   children: ReactNode;
   presenceDot: ReactNode;

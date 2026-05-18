@@ -51,10 +51,7 @@ export default async function DashboardLayout({
         </PageTransition>
       </main>
       <KeyboardShortcuts />
-      <MobileNav
-        showSettings={isAdminOrAbove(user)}
-        pendingFollowups={pendingFollowups}
-      />
+      <MobileNav pendingFollowups={pendingFollowups} />
     </div>
   );
 }

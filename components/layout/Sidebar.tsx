@@ -308,11 +308,10 @@ export function Sidebar({ user, isAdmin, pendingFollowups = 0 }: SidebarProps) {
           );
         })}
 
-        {isAdmin && (
-          <Link
+        <Link
             href="/configuracion"
-            aria-label={!isExpanded ? "Configuración" : undefined}
-            title={!isExpanded ? "Configuración" : undefined}
+            aria-label={!isExpanded ? (isAdmin ? "Configuración" : "Mi cuenta") : undefined}
+            title={!isExpanded ? (isAdmin ? "Configuración" : "Mi cuenta") : undefined}
             className={cn(
               "sidebar-nav-link relative flex items-center rounded-lg text-sm font-medium transition-all w-full overflow-hidden",
               isExpanded ? "gap-3 px-3 py-2.5" : "justify-center gap-0 px-0 py-2.5",
@@ -326,10 +325,11 @@ export function Sidebar({ user, isAdmin, pendingFollowups = 0 }: SidebarProps) {
             {pathname.startsWith("/configuracion") && <span className="sidebar-active-bar" aria-hidden />}
             <Settings className="w-4 h-4 shrink-0" />
             {isExpanded && (
-              <span className="overflow-hidden whitespace-nowrap">Configuración</span>
+              <span className="overflow-hidden whitespace-nowrap">
+                {isAdmin ? "Configuración" : "Mi cuenta"}
+              </span>
             )}
           </Link>
-        )}
       </nav>
 
       {/* Bottom section: user info + mode picker + sign out */}

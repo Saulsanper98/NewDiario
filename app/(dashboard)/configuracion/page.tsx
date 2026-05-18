@@ -9,6 +9,9 @@ import {
   configPageActivityLogInclude,
   configPageDepartmentInclude,
   configPageUserInclude,
+  type ConfigPageActivityLog,
+  type ConfigPageDepartment,
+  type ConfigPageUser,
 } from "@/lib/types/config";
 
 export default async function ConfiguracionPage() {
@@ -16,30 +19,36 @@ export default async function ConfiguracionPage() {
   if (!session?.user) redirect("/login");
 
   const user = session.user as SessionUser;
-  if (!isAdminOrAbove(user)) redirect("/dashboard");
+  const isAdmin = isAdminOrAbove(user);
 
-  const [users, departments, activityLogs] = await Promise.all([
-    prisma.user.findMany({
-      where: { deletedAt: null },
-      include: configPageUserInclude,
-      orderBy: { name: "asc" },
-    }),
-    prisma.department.findMany({
-      include: configPageDepartmentInclude,
-      orderBy: { name: "asc" },
-    }),
-    prisma.activityLog.findMany({
-      include: configPageActivityLogInclude,
-      orderBy: { createdAt: "desc" },
-      take: 100,
-    }),
-  ]);
+  let users: ConfigPageUser[] = [];
+  let departments: ConfigPageDepartment[] = [];
+  let activityLogs: ConfigPageActivityLog[] = [];
+
+  if (isAdmin) {
+    [users, departments, activityLogs] = await Promise.all([
+      prisma.user.findMany({
+        where: { deletedAt: null },
+        include: configPageUserInclude,
+        orderBy: { name: "asc" },
+      }),
+      prisma.department.findMany({
+        include: configPageDepartmentInclude,
+        orderBy: { name: "asc" },
+      }),
+      prisma.activityLog.findMany({
+        include: configPageActivityLogInclude,
+        orderBy: { createdAt: "desc" },
+        take: 100,
+      }),
+    ]);
+  }
 
   return (
     <div className="config-page-root flex flex-col h-full overflow-hidden">
       <Header
         user={user}
-        breadcrumb={[{ label: "Configuración" }]}
+        breadcrumb={[{ label: isAdmin ? "Configuración" : "Mi cuenta" }]}
       />
       <div className="flex-1 overflow-y-auto">
         <ConfigTabs
@@ -48,6 +57,7 @@ export default async function ConfiguracionPage() {
           activityLogs={activityLogs}
           currentUser={user}
           isSuperAdmin={user.role === "SUPERADMIN"}
+          isAdmin={isAdmin}
         />
       </div>
     </div>

@@ -101,13 +101,14 @@ export const AVATAR_FRAME_GRADIENT_RING = new Set<AvatarFrameEffect>([
   "aurora",
 ]);
 
-export type AvatarFrameSize = "xs" | "sm" | "md" | "lg";
+export type AvatarFrameSize = "xs" | "sm" | "md" | "lg" | "xl";
 
 const FRAME_PAD: Record<AvatarFrameSize, string> = {
   xs: "p-[1.5px]",
   sm: "p-[2px]",
   md: "p-[2px]",
   lg: "p-[2.5px]",
+  xl: "p-[3px]",
 };
 
 const FRAME_PAD_GRADIENT: Record<AvatarFrameSize, string> = {
@@ -115,6 +116,7 @@ const FRAME_PAD_GRADIENT: Record<AvatarFrameSize, string> = {
   sm: "p-[2.5px]",
   md: "p-[2.5px]",
   lg: "p-[3px]",
+  xl: "p-[3.5px]",
 };
 
 export function avatarFramePadding(

@@ -29,16 +29,11 @@ const coreNav: MobileNavItem[] = [
 ];
 
 interface MobileNavProps {
-  /** Solo administración: la ruta /configuracion redirige a otros roles */
-  showSettings?: boolean;
   /** Entradas de bitácora con seguimiento pendiente (misma métrica que el badge del sidebar). */
   pendingFollowups?: number;
 }
 
-export function MobileNav({
-  showSettings = false,
-  pendingFollowups = 0,
-}: MobileNavProps) {
+export function MobileNav({ pendingFollowups = 0 }: MobileNavProps) {
   const pathname = usePathname();
 
   const isActive = (href: string, exact?: boolean) => {
@@ -47,9 +42,10 @@ export function MobileNav({
     return pathname.startsWith(href);
   };
 
-  const items: MobileNavItem[] = showSettings
-    ? [...coreNav, { label: "Ajustes", href: "/configuracion", icon: Settings, exact: true }]
-    : coreNav;
+  const items: MobileNavItem[] = [
+    ...coreNav,
+    { label: "Ajustes", href: "/configuracion", icon: Settings, exact: true },
+  ];
 
   return (
     <nav

@@ -25,6 +25,33 @@ export function hasAccessToDepartment(
   return user.departments.some((d) => d.id === departmentId);
 }
 
+/** Puede gestionar un usuario según departamentos compartidos. */
+export function canManageTargetUser(
+  actor: SessionUser,
+  targetDepartmentIds: string[]
+): boolean {
+  if (isSuperAdmin(actor)) return true;
+  if (!isAdminOrAbove(actor)) return false;
+  if (targetDepartmentIds.length === 0) return false;
+  return targetDepartmentIds.some((departmentId) => {
+    if (!hasAccessToDepartment(actor, departmentId)) return false;
+    return actor.role === "ADMIN" || isAdminOfDepartment(actor, departmentId);
+  });
+}
+
+const PROFILE_SELF_FIELDS = ["name", "email", "image", "password"] as const;
+
+/** Actualización de perfil propio (sin rol ni estado). */
+export function isSelfProfilePatch(body: Record<string, unknown>): boolean {
+  const keys = Object.keys(body);
+  return (
+    keys.length > 0 &&
+    keys.every((k) =>
+      (PROFILE_SELF_FIELDS as readonly string[]).includes(k)
+    )
+  );
+}
+
 export function getActiveDepartmentId(user: SessionUser): string | null {
   return user.activeDepartmentId ?? user.departments[0]?.id ?? null;
 }
