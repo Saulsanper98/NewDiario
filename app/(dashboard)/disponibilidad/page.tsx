@@ -10,7 +10,7 @@ export default async function DisponibilidadPage() {
   const user = session.user as SessionUser;
 
   return (
-    <div className="flex flex-col h-full min-h-0 overflow-hidden">
+    <div className="disponibilidad-page-root flex flex-col h-full min-h-0 overflow-hidden">
       <Header
         user={user}
         breadcrumb={[{ label: "Disponibilidad" }]}

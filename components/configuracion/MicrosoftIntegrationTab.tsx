@@ -29,7 +29,7 @@ function DisabledToggle({ label, description }: { label: string; description: st
 
 export function MicrosoftIntegrationTab() {
   return (
-    <div className="space-y-5 max-w-2xl">
+    <div className="config-microsoft-root space-y-5 max-w-2xl">
       <div className="flex items-center gap-3 p-4 rounded-xl bg-[#4a9eff]/8 border border-[#4a9eff]/20">
         <Cloud className="w-5 h-5 text-[#4a9eff] shrink-0" />
         <div>

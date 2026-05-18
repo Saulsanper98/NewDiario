@@ -7,6 +7,7 @@ import toast from "react-hot-toast";
 import { Bell, ChevronDown, ChevronRight, Check, X, Loader2, WifiOff, Sun, Sunset, Moon } from "lucide-react";
 import Link from "next/link";
 import { Avatar } from "@/components/ui/Avatar";
+import { useAvatarFrameEffect } from "@/lib/hooks/useAvatarFrameEffect";
 import { CommandPalette } from "@/components/layout/CommandPalette";
 import { ThemeSelector } from "@/components/layout/ThemeSelector";
 import { useTheme } from "@/components/layout/ThemeProvider";
@@ -72,6 +73,7 @@ export function Header({ user, breadcrumb }: HeaderProps) {
   const shift = getCurrentShift();
   const ShiftIcon = shift.Icon;
   const { update } = useSession();
+  const avatarEffect = useAvatarFrameEffect();
   const [notifOpen, setNotifOpen] = useState(false);
   const [deptOpen, setDeptOpen] = useState(false);
   const [deptLoading, setDeptLoading] = useState(false);
@@ -528,7 +530,12 @@ export function Header({ user, breadcrumb }: HeaderProps) {
       </div>
 
       {/* Avatar */}
-      <Avatar name={user.name} image={user.image} size="sm" />
+      <Avatar
+        name={user.name}
+        image={user.image}
+        size="sm"
+        effect={avatarEffect}
+      />
       </div>
     </header>
     </>

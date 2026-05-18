@@ -140,7 +140,7 @@ export function AppSettingsTab() {
   }
 
   return (
-    <div className="space-y-5 max-w-2xl">
+    <div className="config-appsettings-root space-y-5 max-w-2xl">
       <Card className="space-y-6 min-w-0 overflow-hidden">
         <div className="space-y-4">
           <h3 className="text-sm font-semibold text-white">General</h3>

@@ -112,10 +112,10 @@ export function ProjectActivity({ activities: initial, projectId }: ProjectActiv
   }
 
   return (
-    <div className="flex-1 overflow-y-auto p-4">
+    <div className="project-activity-root flex-1 overflow-y-auto p-4">
       <div className="max-w-2xl mx-auto space-y-4">
         {/* Filter bar */}
-        <div className="flex items-center gap-1.5 flex-wrap">
+        <div className="project-activity-filters flex items-center gap-1.5 flex-wrap">
           <Filter className="w-3 h-3 text-white/30 shrink-0" />
           {ACTION_FILTERS.map((f) => (
             <button
@@ -169,7 +169,7 @@ export function ProjectActivity({ activities: initial, projectId }: ProjectActiv
                       return (
                         <div
                           key={activity.id}
-                          className="flex items-start gap-3 p-3 rounded-lg hover:bg-white/3 transition-colors group"
+                          className="project-activity-row flex items-start gap-3 p-3 rounded-lg hover:bg-white/3 transition-colors group"
                         >
                           <div className={`mt-0.5 w-6 h-6 rounded-lg flex items-center justify-center shrink-0 ${iconColor}`}>
                             {getActionIcon(action)}

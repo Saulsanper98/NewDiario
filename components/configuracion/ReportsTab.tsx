@@ -21,7 +21,7 @@ export function ReportsTab() {
       : null;
 
   return (
-    <div className="space-y-6">
+    <div className="config-reports-root space-y-6">
       <p className="text-sm text-white/50 max-w-2xl leading-relaxed">
         Genera un listado de entradas publicadas de la bitácora (según tu departamento activo y
         permisos) para imprimirlo o guardarlo como PDF desde el navegador. Los informes usan la

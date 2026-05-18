@@ -155,7 +155,7 @@ export function ProjectList({
       </div>
 
       {/* Filters */}
-      <div className="glass rounded-xl p-3 flex items-center gap-3 flex-wrap relative">
+      <div className="project-list-filters glass rounded-xl p-3 flex items-center gap-3 flex-wrap relative">
         {isPending && (
           <div className="absolute inset-0 rounded-xl bg-[#0a0f1e]/40 flex items-center justify-center z-10 pointer-events-none">
             <Loader2 className="w-5 h-5 text-[#ffeb66] animate-spin" />
@@ -280,7 +280,7 @@ function ProjectCard({ project, departmentId }: { project: ProjectListRow; depar
 
   return (
     <Link href={`/proyectos/${project.id}`}>
-      <Card hover className="h-full flex flex-col gap-4 hover:border-white/14 project-card-hover">
+      <Card hover className="project-list-card h-full flex flex-col gap-4 hover:border-white/14 project-card-hover">
         {/* Header */}
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0">
@@ -400,7 +400,7 @@ function ProjectRow({ project, departmentId }: { project: ProjectListRow; depart
 
   return (
     <Link href={`/proyectos/${project.id}`}>
-      <Card hover className="flex items-center gap-4 hover:border-white/14 py-3">
+      <Card hover className="project-list-row flex items-center gap-4 hover:border-white/14 py-3">
         {/* Color dot */}
         <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: accent(project.department.accentColor) }} />
 

@@ -1,5 +1,11 @@
 import { PrismaClient } from "@/app/generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
+import { config as loadEnv } from "dotenv";
+import { resolve } from "node:path";
+
+if (process.env.NODE_ENV !== "production") {
+  loadEnv({ path: resolve(process.cwd(), ".env"), override: true, quiet: true });
+}
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;

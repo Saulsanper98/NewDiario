@@ -135,7 +135,7 @@ function ShiftProgressBar({ shift }: { shift: "MORNING" | "AFTERNOON" | "NIGHT" 
   const barColor = shift === "MORNING" ? "#fcd34d" : shift === "AFTERNOON" ? "#fb923c" : "#818cf8";
 
   return (
-    <div className="space-y-1.5">
+    <div className="dashboard-shift-progress space-y-1.5">
       <div className="flex items-center justify-between text-xs">
         <span className="text-white/35 flex items-center gap-1">
           <Clock className="w-3 h-3" />
@@ -146,9 +146,10 @@ function ShiftProgressBar({ shift }: { shift: "MORNING" | "AFTERNOON" | "NIGHT" 
         </span>
       </div>
       {/* Barra con hitos a 25%, 50%, 75% (mejora 15) */}
-      <div className="relative h-1.5 bg-white/6 rounded-full overflow-hidden">
+      <div className="dashboard-shift-track relative h-1.5 bg-white/6 rounded-full overflow-hidden">
         <div
-          className="h-full rounded-full transition-all duration-1000"
+          className="dashboard-shift-fill h-full rounded-full transition-all duration-1000"
+          data-shift={shift}
           style={{ width: `${progress}%`, backgroundColor: barColor }}
         />
         {[25, 50, 75].map((pct) => (
@@ -176,32 +177,32 @@ function QuickActions() {
   return (
     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
       <Link href="/bitacora/nueva" className="group">
-        <div className="flex items-center gap-2.5 px-4 py-3 rounded-xl glass-hover border border-white/8 hover:border-[#ffeb66]/25 hover:bg-[#ffeb66]/5 transition-all duration-200">
-          <div className="p-1.5 rounded-lg bg-[#ffeb66]/10">
+        <div className="dashboard-quick-action flex items-center gap-2.5 px-4 py-3 rounded-xl glass-hover border border-white/8 hover:border-[#ffeb66]/25 hover:bg-[#ffeb66]/5 transition-all duration-200">
+          <div className="dashboard-quick-icon p-1.5 rounded-lg bg-[#ffeb66]/10">
             <BookOpen className="w-3.5 h-3.5 text-[#ffeb66]" />
           </div>
           <span className="text-sm font-medium text-white/70 group-hover:text-white transition-colors truncate">Nueva entrada</span>
         </div>
       </Link>
       <Link href="/traspaso" className="group">
-        <div className="flex items-center gap-2.5 px-4 py-3 rounded-xl glass-hover border border-white/8 hover:border-[#4a9eff]/25 hover:bg-[#4a9eff]/5 transition-all duration-200">
-          <div className="p-1.5 rounded-lg bg-[#4a9eff]/10">
+        <div className="dashboard-quick-action flex items-center gap-2.5 px-4 py-3 rounded-xl glass-hover border border-white/8 hover:border-[#4a9eff]/25 hover:bg-[#4a9eff]/5 transition-all duration-200">
+          <div className="dashboard-quick-icon p-1.5 rounded-lg bg-[#4a9eff]/10">
             <ArrowLeftRight className="w-3.5 h-3.5 text-[#4a9eff]" />
           </div>
           <span className="text-sm font-medium text-white/70 group-hover:text-white transition-colors truncate">Traspaso</span>
         </div>
       </Link>
       <Link href="/proyectos" className="group">
-        <div className="flex items-center gap-2.5 px-4 py-3 rounded-xl glass-hover border border-white/8 hover:border-emerald-400/25 hover:bg-emerald-400/5 transition-all duration-200">
-          <div className="p-1.5 rounded-lg bg-emerald-400/10">
+        <div className="dashboard-quick-action flex items-center gap-2.5 px-4 py-3 rounded-xl glass-hover border border-white/8 hover:border-emerald-400/25 hover:bg-emerald-400/5 transition-all duration-200">
+          <div className="dashboard-quick-icon p-1.5 rounded-lg bg-emerald-400/10">
             <CheckSquare className="w-3.5 h-3.5 text-emerald-400" />
           </div>
           <span className="text-sm font-medium text-white/70 group-hover:text-white transition-colors truncate">Mis tareas</span>
         </div>
       </Link>
       <button type="button" onClick={openPalette} className="group text-left">
-        <div className="flex items-center gap-2.5 px-4 py-3 rounded-xl glass-hover border border-white/8 hover:border-white/20 hover:bg-white/5 transition-all duration-200">
-          <div className="p-1.5 rounded-lg bg-white/6">
+        <div className="dashboard-quick-action flex items-center gap-2.5 px-4 py-3 rounded-xl glass-hover border border-white/8 hover:border-white/20 hover:bg-white/5 transition-all duration-200">
+          <div className="dashboard-quick-icon p-1.5 rounded-lg bg-white/6">
             <Search className="w-3.5 h-3.5 text-white/50 group-hover:text-white transition-colors" />
           </div>
           <span className="text-sm font-medium text-white/70 group-hover:text-white transition-colors truncate">Buscar</span>
@@ -284,7 +285,7 @@ export function DashboardContent({
         <div className="widget-appear" style={{ animationDelay: "100ms" }}>
           <Link
             href="/bitacora?followup=1"
-            className="flex items-center gap-3 rounded-xl border border-amber-500/25 bg-amber-500/8 px-4 py-3 text-sm text-amber-100/95 hover:bg-amber-500/12 transition-colors"
+            className="dashboard-followup-banner flex items-center gap-3 rounded-xl border border-amber-500/25 bg-amber-500/8 px-4 py-3 text-sm text-amber-100/95 hover:bg-amber-500/12 transition-colors"
           >
             <AlertTriangle className="w-5 h-5 shrink-0 text-amber-400" aria-hidden />
             <div className="flex-1 min-w-0">
@@ -299,7 +300,7 @@ export function DashboardContent({
       {/* ── Urgent incidents alert ───────────────────────────────────── */}
       {urgentToday.length > 0 && (
         <div className="widget-appear" style={{ animationDelay: "130ms" }}>
-          <div className="rounded-xl border border-red-500/30 bg-red-500/6 px-4 py-3 space-y-2">
+          <div className="dashboard-urgent-banner rounded-xl border border-red-500/30 bg-red-500/6 px-4 py-3 space-y-2">
             <div className="flex items-center gap-2">
               <Zap className="w-4 h-4 text-red-400 shrink-0" />
               <p className="text-sm font-semibold text-red-300">
@@ -326,8 +327,8 @@ export function DashboardContent({
       {/* ── Estado "todo en orden" (mejora 18) ──────────────────────── */}
       {allGood && (
         <div className="widget-appear" style={{ animationDelay: "130ms" }}>
-          <div className="flex items-center gap-3 rounded-xl border border-emerald-500/20 bg-emerald-500/6 px-4 py-3">
-            <div className="w-8 h-8 rounded-full bg-emerald-500/15 flex items-center justify-center shrink-0">
+          <div className="dashboard-allgood-banner flex items-center gap-3 rounded-xl border border-emerald-500/20 bg-emerald-500/6 px-4 py-3">
+            <div className="dashboard-allgood-icon w-8 h-8 rounded-full bg-emerald-500/15 flex items-center justify-center shrink-0">
               <CheckCircle2 className="w-4 h-4 text-emerald-400" />
             </div>
             <div>
@@ -718,8 +719,8 @@ function StatCard({
           <span className={color}>{icon}</span>
         </div>
         <div className="min-w-0">
-          <p className={cn("text-xl font-bold tabular-nums leading-none", color)}>{animated}</p>
-          <p className="text-[10px] text-white/35 mt-0.5 leading-tight">{label}</p>
+          <p className={cn("dashboard-stat-value text-xl font-bold tabular-nums leading-none", color)}>{animated}</p>
+          <p className="dashboard-stat-label text-[10px] text-white/35 mt-0.5 leading-tight">{label}</p>
         </div>
       </Card>
     </Link>

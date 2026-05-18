@@ -41,8 +41,8 @@ export function ProjectTimeline({ columns }: ProjectTimelineProps) {
   const dayWidth = 32;
 
   return (
-    <div className="flex-1 overflow-auto p-4">
-      <div className="glass rounded-xl overflow-hidden">
+    <div className="project-timeline-root flex-1 overflow-auto p-4">
+      <div className="project-timeline-shell glass rounded-xl overflow-hidden">
         {/* Timeline header */}
         <div className="flex border-b border-white/8">
           <div className="w-48 shrink-0 px-4 py-2 text-xs text-white/40">

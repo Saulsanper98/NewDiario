@@ -72,7 +72,7 @@ export function DepartmentsTab({ departments, isSuperAdmin }: DepartmentsTabProp
   }
 
   return (
-    <div className="space-y-4">
+    <div className="config-departments-root space-y-4">
       <div className="flex items-center justify-between">
         <p className="text-sm text-white/50">
           {departments.length} departamento{departments.length !== 1 ? "s" : ""}
@@ -174,7 +174,7 @@ export function DepartmentsTab({ departments, isSuperAdmin }: DepartmentsTabProp
         {departments.map((dept) => (
           <div
             key={dept.id}
-            className="glass rounded-xl p-4 flex items-start justify-between gap-4"
+            className="config-department-card glass rounded-xl p-4 flex items-start justify-between gap-4"
           >
             <div className="flex items-center gap-3">
               <div

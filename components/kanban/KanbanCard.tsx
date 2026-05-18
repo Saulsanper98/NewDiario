@@ -71,7 +71,7 @@ export function KanbanCard({ task, onClick }: KanbanCardProps) {
       }}
       title={descPreview ?? undefined}
       className={cn(
-        "kanban-task-card card-3d glass-hover glass rounded-xl p-3 cursor-pointer group",
+        "kanban-task-card card-3d glass-hover glass rounded-xl p-3 min-w-0 cursor-pointer group",
         "border border-white/6 hover:border-white/12 border-t-[3px]",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ffeb66]/50",
         PRIORITY_BORDER[task.priority] ?? "border-t-white/10",
@@ -103,7 +103,7 @@ export function KanbanCard({ task, onClick }: KanbanCardProps) {
       )}
 
       {/* Title */}
-      <p className="kanban-task-title text-sm font-medium text-white/85 group-hover:text-white transition-colors leading-snug mb-2">
+      <p className="kanban-task-title text-sm font-medium text-white/85 group-hover:text-white transition-colors leading-snug mb-2 whitespace-normal break-words [overflow-wrap:anywhere]">
         {task.title}
       </p>
 

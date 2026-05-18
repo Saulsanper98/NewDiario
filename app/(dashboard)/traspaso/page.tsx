@@ -73,7 +73,7 @@ export default async function TraspasoPage() {
     ]);
 
   return (
-    <div className="flex flex-col h-full overflow-hidden">
+    <div className="traspaso-page-root flex flex-col h-full overflow-hidden">
       <Header
         user={user}
         breadcrumb={[{ label: "Traspaso de Turno" }]}

@@ -25,7 +25,15 @@ import { signOut } from "next-auth/react";
 import { cn } from "@/lib/utils";
 import { Logo } from "@/components/ui/Logo";
 import { Avatar } from "@/components/ui/Avatar";
+import { AvatarFramePicker } from "@/components/ui/AvatarFramePicker";
 import type { SessionUser } from "@/lib/auth/types";
+import {
+  type AvatarFrameEffect,
+} from "@/lib/avatar-frame";
+import {
+  persistAvatarFrameEffect,
+  useAvatarFrameEffect,
+} from "@/lib/hooks/useAvatarFrameEffect";
 import { useTheme } from "@/components/layout/ThemeProvider";
 
 type SidebarMode = "smart" | "expanded" | "collapsed";
@@ -89,6 +97,7 @@ export function Sidebar({ user, isAdmin, pendingFollowups = 0 }: SidebarProps) {
   const [signingOut, setSigningOut] = useState(false);
   const [modePickerOpen, setModePickerOpen] = useState(false);
   const [navStagger, setNavStagger] = useState(false);
+  const avatarEffect = useAvatarFrameEffect();
   const modePickerRef = useRef<HTMLDivElement>(null);
   const hoverTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -158,6 +167,10 @@ export function Sidebar({ user, isAdmin, pendingFollowups = 0 }: SidebarProps) {
     localStorage.setItem(STORAGE_KEY, m);
     setModePickerOpen(false);
     if (m !== "smart") setHovered(false);
+  }
+
+  function selectAvatarEffect(effect: AvatarFrameEffect) {
+    persistAvatarFrameEffect(effect);
   }
 
   const isOverlayMode = mode === "smart";
@@ -259,12 +272,12 @@ export function Sidebar({ user, isAdmin, pendingFollowups = 0 }: SidebarProps) {
                   : bitacoraHint
               }
               className={cn(
-                "relative flex items-center rounded-lg text-sm font-medium transition-all w-full overflow-hidden",
+                "sidebar-nav-link relative flex items-center rounded-lg text-sm font-medium transition-all w-full overflow-hidden",
                 isExpanded ? "gap-3 px-3 py-2.5" : "justify-center gap-0 px-0 py-2.5",
                 active
                   ? isExpanded
-                    ? "bg-[#ffeb66]/12 text-[#ffeb66] border border-[#ffeb66]/20"
-                    : "bg-[#ffeb66]/12 text-[#ffeb66] ring-2 ring-[#ffeb66]/25 ring-inset border border-transparent"
+                    ? "sidebar-nav-link-active bg-[#ffeb66]/12 text-[#ffeb66] border border-[#ffeb66]/20"
+                    : "sidebar-nav-link-active bg-[#ffeb66]/12 text-[#ffeb66] ring-2 ring-[#ffeb66]/25 ring-inset border border-transparent"
                   : "text-white/55 hover:text-white hover:bg-white/6 border border-transparent",
                 navStagger && "sidebar-nav-enter"
               )}
@@ -301,12 +314,12 @@ export function Sidebar({ user, isAdmin, pendingFollowups = 0 }: SidebarProps) {
             aria-label={!isExpanded ? "Configuración" : undefined}
             title={!isExpanded ? "Configuración" : undefined}
             className={cn(
-              "relative flex items-center rounded-lg text-sm font-medium transition-all w-full overflow-hidden",
+              "sidebar-nav-link relative flex items-center rounded-lg text-sm font-medium transition-all w-full overflow-hidden",
               isExpanded ? "gap-3 px-3 py-2.5" : "justify-center gap-0 px-0 py-2.5",
               pathname.startsWith("/configuracion")
                 ? isExpanded
-                  ? "bg-[#ffeb66]/12 text-[#ffeb66] border border-[#ffeb66]/20"
-                  : "bg-[#ffeb66]/12 text-[#ffeb66] ring-2 ring-[#ffeb66]/25 ring-inset border border-transparent"
+                  ? "sidebar-nav-link-active bg-[#ffeb66]/12 text-[#ffeb66] border border-[#ffeb66]/20"
+                  : "sidebar-nav-link-active bg-[#ffeb66]/12 text-[#ffeb66] ring-2 ring-[#ffeb66]/25 ring-inset border border-transparent"
                 : "text-white/55 hover:text-white hover:bg-white/6 border border-transparent"
             )}
           >
@@ -324,7 +337,7 @@ export function Sidebar({ user, isAdmin, pendingFollowups = 0 }: SidebarProps) {
         {/* User info — only when expanded */}
         {isExpanded && (
           <div className="flex items-center gap-2.5 mb-1 px-1">
-            <Avatar name={user.name} image={user.image} size="sm" />
+            <Avatar name={user.name} image={user.image} size="sm" effect={avatarEffect} />
             <div className="flex-1 min-w-0">
               <p className="text-xs font-semibold text-white truncate">
                 {user.name}
@@ -351,6 +364,12 @@ export function Sidebar({ user, isAdmin, pendingFollowups = 0 }: SidebarProps) {
               </div>
             );
           })()}
+
+        {!isExpanded && (
+          <div className="flex justify-center py-1">
+            <Avatar name={user.name} image={user.image} size="sm" effect={avatarEffect} />
+          </div>
+        )}
 
         {/* Mode picker */}
         <div ref={modePickerRef} className="relative">
@@ -445,6 +464,13 @@ export function Sidebar({ user, isAdmin, pendingFollowups = 0 }: SidebarProps) {
             </div>
           )}
         </div>
+
+        <AvatarFramePicker
+          value={avatarEffect}
+          onChange={selectAvatarEffect}
+          isExpanded={isExpanded}
+          isLight={isLight}
+        />
 
         {/* Sign out */}
         <button

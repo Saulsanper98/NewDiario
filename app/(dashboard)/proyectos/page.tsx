@@ -54,7 +54,7 @@ export default async function ProyectosPage({
   });
 
   return (
-    <div className="flex flex-col h-full overflow-hidden">
+    <div className="proyectos-page-root flex flex-col h-full overflow-hidden">
       <Header
         user={user}
         breadcrumb={[{ label: "Proyectos" }]}

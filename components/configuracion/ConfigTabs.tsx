@@ -64,7 +64,7 @@ export function ConfigTabs({
   }, [visibleTabIds]);
 
   return (
-    <div className="p-6 max-w-6xl mx-auto space-y-5">
+    <div className="config-tabs-root p-6 max-w-6xl mx-auto space-y-5">
       <h1 className="text-xl font-semibold text-white">Configuración</h1>
 
       {/* Tab nav */}
@@ -80,9 +80,9 @@ export function ConfigTabs({
                 window.history.replaceState(null, "", `#${tab.id}`);
               }}
               className={cn(
-                "flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200",
+                "config-tab-trigger flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200",
                 activeTab === tab.id
-                  ? "bg-[#ffeb66]/12 text-[#ffeb66] border border-[#ffeb66]/20"
+                  ? "config-tab-trigger-active bg-[#ffeb66]/12 text-[#ffeb66] border border-[#ffeb66]/20"
                   : "text-white/50 hover:text-white hover:bg-white/6"
               )}
             >

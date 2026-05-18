@@ -36,7 +36,7 @@ export default async function ConfiguracionPage() {
   ]);
 
   return (
-    <div className="flex flex-col h-full overflow-hidden">
+    <div className="config-page-root flex flex-col h-full overflow-hidden">
       <Header
         user={user}
         breadcrumb={[{ label: "Configuración" }]}

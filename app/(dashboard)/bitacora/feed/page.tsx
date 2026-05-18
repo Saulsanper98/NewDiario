@@ -74,7 +74,7 @@ export default async function BitacoraFeedPage({
     : null;
 
   return (
-    <div className="flex flex-col h-full overflow-hidden">
+    <div className="bitacora-page-root flex flex-col h-full overflow-hidden">
       <Header
         user={user}
         breadcrumb={[{ label: "Bitácora", href: "/bitacora/dia" }, { label: "Feed" }]}

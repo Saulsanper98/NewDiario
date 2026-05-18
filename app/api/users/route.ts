@@ -16,6 +16,7 @@ const deptEntrySchema = z.object({
 const createUserSchema = z.object({
   name: z.string().min(2).max(120),
   email: z.string().email(),
+  image: z.union([z.string().max(2048), z.literal(""), z.null()]).optional(),
   password: z.string().min(8, "La contraseña debe tener al menos 8 caracteres"),
   departments: z.array(deptEntrySchema).min(1, "Selecciona al menos un departamento"),
 });
@@ -45,7 +46,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
-  const { name, email, password, departments } = parsed.data;
+  const { name, email, image, password, departments } = parsed.data;
 
   const defaults = departments.filter((d) => d.isDefault);
   if (defaults.length !== 1) {
@@ -108,6 +109,7 @@ export async function POST(req: NextRequest) {
     data: {
       name: name.trim(),
       email: email.toLowerCase().trim(),
+      image: image && image.trim() !== "" ? image.trim() : null,
       password: hashed,
       role: globalRole,
       departments: {

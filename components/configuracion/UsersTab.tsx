@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useCallback, Fragment } from "react";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import {
   Search,
   UserPlus,
@@ -11,6 +12,7 @@ import {
   Download,
   UserRoundSearch,
   Trash2,
+  Upload,
 } from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
 import { Badge } from "@/components/ui/Badge";
@@ -43,11 +45,14 @@ export function UsersTab({
   const { theme } = useTheme();
   const L = theme === "light";
   const router = useRouter();
+  const { update } = useSession();
   const [search, setSearch] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [image, setImage] = useState("");
   const [password, setPassword] = useState("");
   const [password2, setPassword2] = useState("");
   const [role, setRole] = useState<Role>("OPERATOR");
@@ -58,13 +63,44 @@ export function UsersTab({
   const [editId, setEditId] = useState("");
   const [editName, setEditName] = useState("");
   const [editEmail, setEditEmail] = useState("");
+  const [editImage, setEditImage] = useState("");
   const [editRole, setEditRole] = useState<Role>("OPERATOR");
   const [editPassword, setEditPassword] = useState("");
   const [editSaving, setEditSaving] = useState(false);
+  const [uploadingEditAvatar, setUploadingEditAvatar] = useState(false);
 
   const [deleteTarget, setDeleteTarget] = useState<ConfigPageUser | null>(null);
   const [deleteConfirmName, setDeleteConfirmName] = useState("");
   const [deleting, setDeleting] = useState(false);
+
+  async function uploadAvatar(file: File, target: "create" | "edit") {
+    if (!file.type.startsWith("image/")) {
+      toast.error("Selecciona una imagen válida (JPG, PNG, GIF o WebP)");
+      return;
+    }
+    if (target === "create") setUploadingAvatar(true);
+    else setUploadingEditAvatar(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch("/api/uploads", { method: "POST", body: fd });
+      const data = (await res.json().catch(() => ({}))) as {
+        url?: string;
+        error?: string;
+      };
+      if (!res.ok || !data.url) {
+        throw new Error(data.error ?? "No se pudo subir el avatar");
+      }
+      if (target === "create") setImage(data.url);
+      else setEditImage(data.url);
+      toast.success("Avatar subido");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Error al subir avatar");
+    } finally {
+      if (target === "create") setUploadingAvatar(false);
+      else setUploadingEditAvatar(false);
+    }
+  }
 
   const assignableDepartments = useMemo(() => {
     if (isSuperAdmin) return departments;
@@ -79,6 +115,7 @@ export function UsersTab({
   const resetForm = useCallback(() => {
     setName("");
     setEmail("");
+    setImage("");
     setPassword("");
     setPassword2("");
     setRole("OPERATOR");
@@ -93,6 +130,7 @@ export function UsersTab({
     }
     setName("");
     setEmail("");
+    setImage("");
     setPassword("");
     setPassword2("");
     setRole("OPERATOR");
@@ -168,6 +206,7 @@ export function UsersTab({
     setEditId(user.id);
     setEditName(user.name);
     setEditEmail(user.email);
+    setEditImage(user.image ?? "");
     setEditRole(user.role as Role);
     setEditPassword("");
     setEditOpen(true);
@@ -185,6 +224,7 @@ export function UsersTab({
         name: editName.trim(),
         email: editEmail.trim(),
         role: editRole,
+        image: editImage.trim(),
       };
       if (editPassword.trim()) body.password = editPassword;
       const res = await fetch(`/api/users/${editId}`, {
@@ -202,6 +242,16 @@ export function UsersTab({
       }
       toast.success("Usuario actualizado");
       setEditOpen(false);
+      if (editId === currentUser.id) {
+        const normalizedName = editName.trim();
+        const normalizedEmail = editEmail.trim();
+        const normalizedImage = editImage.trim();
+        await update({
+          name: normalizedName,
+          email: normalizedEmail,
+          image: normalizedImage !== "" ? normalizedImage : null,
+        });
+      }
       router.refresh();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Error");
@@ -278,6 +328,7 @@ export function UsersTab({
         body: JSON.stringify({
           name,
           email,
+          image: image.trim() || undefined,
           password,
           departments: departmentsPayload,
         }),
@@ -418,7 +469,7 @@ export function UsersTab({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="config-users-root space-y-4">
       <div className="flex items-center gap-3">
         <div className="flex-1 relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
@@ -427,7 +478,7 @@ export function UsersTab({
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Buscar usuarios..."
-            className="w-full bg-white/5 border border-white/8 rounded-lg pl-9 pr-3 py-2 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-[#ffeb66]/40"
+            className="config-users-search w-full bg-white/5 border border-white/8 rounded-lg pl-9 pr-3 py-2 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-[#ffeb66]/40"
           />
         </div>
         <Button variant="secondary" size="md" type="button" onClick={exportCSV} title="Exportar CSV">
@@ -464,6 +515,50 @@ export function UsersTab({
             required
             autoComplete="off"
           />
+          <Input
+            light={L}
+            label="URL de avatar (opcional)"
+            type="text"
+            value={image}
+            onChange={(e) => setImage(e.target.value)}
+            placeholder="https://... o /api/media/..."
+            autoComplete="off"
+          />
+          <div
+            className={cn(
+              "flex items-center gap-2 rounded-lg border px-2.5 py-2",
+              L ? "border-zinc-200 bg-zinc-50/80" : "border-white/10 bg-white/3"
+            )}
+          >
+            <Avatar name={name || "Nuevo usuario"} image={image.trim() || null} size="sm" />
+            <span className={cn("text-xs", L ? "text-zinc-500" : "text-white/40")}>
+              Vista previa del avatar
+            </span>
+            <label className="ml-auto">
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) void uploadAvatar(f, "create");
+                  e.currentTarget.value = "";
+                }}
+              />
+              <span
+                className={cn(
+                  "inline-flex cursor-pointer items-center gap-1 rounded-md border px-2 py-1 text-xs",
+                  L
+                    ? "border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-100"
+                    : "border-white/20 bg-white/5 text-white/70 hover:bg-white/10",
+                  uploadingAvatar && "pointer-events-none opacity-60"
+                )}
+              >
+                <Upload className="h-3 w-3" />
+                {uploadingAvatar ? "Subiendo..." : "Subir"}
+              </span>
+            </label>
+          </div>
           <Input
             light={L}
             label="Contraseña"
@@ -619,6 +714,50 @@ export function UsersTab({
             required
             autoComplete="off"
           />
+          <Input
+            light={L}
+            label="URL de avatar (opcional)"
+            type="text"
+            value={editImage}
+            onChange={(e) => setEditImage(e.target.value)}
+            placeholder="https://... o /api/media/..."
+            autoComplete="off"
+          />
+          <div
+            className={cn(
+              "flex items-center gap-2 rounded-lg border px-2.5 py-2",
+              L ? "border-zinc-200 bg-zinc-50/80" : "border-white/10 bg-white/3"
+            )}
+          >
+            <Avatar name={editName || "Usuario"} image={editImage.trim() || null} size="sm" />
+            <span className={cn("text-xs", L ? "text-zinc-500" : "text-white/40")}>
+              Vista previa del avatar
+            </span>
+            <label className="ml-auto">
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) void uploadAvatar(f, "edit");
+                  e.currentTarget.value = "";
+                }}
+              />
+              <span
+                className={cn(
+                  "inline-flex cursor-pointer items-center gap-1 rounded-md border px-2 py-1 text-xs",
+                  L
+                    ? "border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-100"
+                    : "border-white/20 bg-white/5 text-white/70 hover:bg-white/10",
+                  uploadingEditAvatar && "pointer-events-none opacity-60"
+                )}
+              >
+                <Upload className="h-3 w-3" />
+                {uploadingEditAvatar ? "Subiendo..." : "Subir"}
+              </span>
+            </label>
+          </div>
           <div className="flex flex-col gap-1.5">
             <label
               className={cn(
@@ -726,7 +865,7 @@ export function UsersTab({
         </div>
       </Modal>
 
-      <div className="glass rounded-xl overflow-hidden flex flex-col max-h-[min(70vh,560px)]">
+      <div className="config-users-table-shell glass rounded-xl overflow-hidden flex flex-col max-h-[min(70vh,560px)]">
         {filtered.length === 0 ? (
           <EmptyState
             compact

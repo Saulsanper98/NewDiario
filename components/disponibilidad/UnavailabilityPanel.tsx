@@ -332,7 +332,7 @@ export function UnavailabilityPanel() {
   const hasListContent = active.length + upcoming.length > 0 || past.length > 0;
 
   return (
-    <div className="p-6 space-y-5 max-w-5xl mx-auto pb-10">
+    <div className="disponibilidad-root p-6 space-y-5 max-w-5xl mx-auto pb-10">
       {/* Intro */}
       <div className="widget-appear" style={{ animationDelay: "0ms" }}>
         <div className="flex flex-col sm:flex-row sm:items-start gap-4 sm:justify-between">
@@ -388,7 +388,7 @@ export function UnavailabilityPanel() {
       {active.map((activeRow) => (
         <div
           key={activeRow.id}
-          className="widget-appear rounded-xl border border-[#ffeb66]/28 bg-[#ffeb66]/8 px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-3"
+          className="disponibilidad-active-banner widget-appear rounded-xl border border-[#ffeb66]/28 bg-[#ffeb66]/8 px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-3"
           style={{ animationDelay: "70ms" }}
         >
           <div className="flex items-center gap-2 text-[#ffeb66] shrink-0">
@@ -422,7 +422,7 @@ export function UnavailabilityPanel() {
         style={{ animationDelay: "100ms" }}
       >
         {/* Formulario */}
-        <Card className="lg:col-span-2 p-0 overflow-hidden border-white/10">
+        <Card className="disponibilidad-form-card lg:col-span-2 p-0 overflow-hidden border-white/10">
           <CardHeader className="px-4 sm:px-5 pt-4 pb-0 border-b border-white/8">
             <CardTitle className="text-base flex items-center gap-2">
               <CalendarPlus className="w-4 h-4 text-[#ffeb66]/80" aria-hidden />
@@ -513,7 +513,7 @@ export function UnavailabilityPanel() {
 
         {/* Listas */}
         <div className="lg:col-span-3 space-y-5 min-w-0">
-          <Card className="p-0 overflow-hidden border-white/10">
+          <Card className="disponibilidad-list-card p-0 overflow-hidden border-white/10">
             <CardHeader className="px-4 sm:px-5 pt-4 pb-3 border-b border-white/8 mb-0">
               <div className="flex items-center justify-between gap-2 w-full">
                 <CardTitle className="text-base flex items-center gap-2">
@@ -556,7 +556,7 @@ export function UnavailabilityPanel() {
             </CardContent>
           </Card>
 
-          <Card className="p-0 overflow-hidden border-white/10">
+          <Card className="disponibilidad-list-card p-0 overflow-hidden border-white/10">
             <CardHeader className="px-4 sm:px-5 pt-4 pb-3 border-b border-white/8 mb-0">
               <CardTitle className="text-base flex items-center gap-2">
                 <History className="w-4 h-4 text-white/40" aria-hidden />

@@ -43,7 +43,7 @@ export function ActivityLogsTab({ logs }: ActivityLogsTabProps) {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="config-activity-root space-y-4">
       <div className="flex items-center gap-3">
         <div className="relative max-w-sm flex-1">
           <input
@@ -51,7 +51,7 @@ export function ActivityLogsTab({ logs }: ActivityLogsTabProps) {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Buscar en logs..."
-            className="w-full bg-white/5 border border-white/8 rounded-lg px-3 pr-8 py-2 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-[#ffeb66]/40"
+            className="config-activity-search w-full bg-white/5 border border-white/8 rounded-lg px-3 pr-8 py-2 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-[#ffeb66]/40"
           />
           {search && (
             <button
@@ -78,7 +78,7 @@ export function ActivityLogsTab({ logs }: ActivityLogsTabProps) {
         </button>
       </div>
 
-      <div className="glass rounded-xl overflow-hidden flex flex-col max-h-[min(70vh,560px)]">
+      <div className="config-activity-table-shell glass rounded-xl overflow-hidden flex flex-col max-h-[min(70vh,560px)]">
         {filtered.length === 0 ? (
           <EmptyState
             compact

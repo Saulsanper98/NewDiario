@@ -70,7 +70,7 @@ export default async function BitacoraDiaPage({
   });
 
   return (
-    <div className="flex flex-col h-full overflow-hidden">
+    <div className="bitacora-page-root flex flex-col h-full overflow-hidden">
       <Header
         user={user}
         breadcrumb={[

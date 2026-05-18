@@ -1,4 +1,12 @@
+import type { ReactNode } from "react";
 import { cn, getInitials } from "@/lib/utils";
+import {
+  AVATAR_FRAME_OVERLAY_LAYERS,
+  AVATAR_FRAME_RING_LAYERS,
+  avatarFrameClass,
+  avatarFramePadding,
+  type AvatarFrameEffect,
+} from "@/lib/avatar-frame";
 
 interface AvatarProps {
   name: string;
@@ -6,6 +14,7 @@ interface AvatarProps {
   size?: "xs" | "sm" | "md" | "lg";
   className?: string;
   presence?: "online" | "away" | "offline";
+  effect?: AvatarFrameEffect;
 }
 
 const sizes = {
@@ -28,7 +37,71 @@ const presenceColor: Record<string, string> = {
   offline: "bg-white/25",
 };
 
-export function Avatar({ name, image, size = "md", className, presence }: AvatarProps) {
+function AvatarFrameShell({
+  effect,
+  size,
+  className,
+  children,
+  presenceDot,
+}: {
+  effect: AvatarFrameEffect;
+  size: keyof typeof sizes;
+  className?: string;
+  children: ReactNode;
+  presenceDot: ReactNode;
+}) {
+  const pad = avatarFramePadding(effect, size);
+  const ringLayer = AVATAR_FRAME_RING_LAYERS[effect];
+  const overlay = AVATAR_FRAME_OVERLAY_LAYERS[effect];
+
+  return (
+    <span
+      className={cn(
+        "relative isolate inline-flex shrink-0 rounded-full",
+        pad,
+        avatarFrameClass(effect),
+        className
+      )}
+    >
+      {ringLayer && (
+        <span
+          aria-hidden
+          className={cn(
+            ringLayer,
+            "pointer-events-none absolute inset-0 z-0 rounded-full"
+          )}
+        />
+      )}
+      <span
+        className={cn(
+          "avatar-frame-inner relative z-[1] block overflow-hidden rounded-full",
+          sizes[size]
+        )}
+      >
+        {children}
+      </span>
+      {overlay && (
+        <span
+          aria-hidden
+          className={cn(
+            overlay,
+            "pointer-events-none absolute inset-0 z-[2] rounded-full"
+          )}
+        />
+      )}
+      {presenceDot}
+    </span>
+  );
+}
+
+export function Avatar({
+  name,
+  image,
+  size = "md",
+  className,
+  presence,
+  effect = "none",
+}: AvatarProps) {
   const initials = getInitials(name);
   const hash = name
     .split("")
@@ -37,54 +110,75 @@ export function Avatar({ name, image, size = "md", className, presence }: Avatar
 
   const presenceDot = presence ? (
     <span
-      aria-label={presence === "online" ? "En línea" : presence === "away" ? "Ausente" : "Desconectado"}
+      aria-label={
+        presence === "online"
+          ? "En línea"
+          : presence === "away"
+            ? "Ausente"
+            : "Desconectado"
+      }
       className={cn(
-        "absolute bottom-0 right-0 rounded-full border-[#0a0f1e]",
+        "absolute bottom-0 right-0 z-[3] rounded-full border-[#0a0f1e]",
         presenceDotSize[size],
         presenceColor[presence]
       )}
     />
   ) : null;
 
-  if (image) {
+  const framed = effect !== "none";
+
+  const imageNode = image ? (
+    /* eslint-disable-next-line @next/next/no-img-element -- avatares dinámicos */
+    <img
+      src={image}
+      alt={name}
+      onError={(e) => {
+        e.currentTarget.style.display = "none";
+      }}
+      className={cn(
+        "h-full w-full rounded-full object-cover",
+        !framed && "shrink-0 border border-white/10",
+        !framed && sizes[size],
+        className
+      )}
+    />
+  ) : (
+    <span
+      role="img"
+      aria-label={name}
+      className={cn(
+        "flex h-full w-full items-center justify-center rounded-full font-semibold",
+        !framed && "shrink-0 border border-white/10",
+        !framed && sizes[size],
+        className
+      )}
+      style={{
+        background: `hsl(${hue}, 60%, 30%)`,
+        color: `hsl(${hue}, 80%, 80%)`,
+      }}
+      title={name}
+    >
+      <span aria-hidden="true">{initials}</span>
+    </span>
+  );
+
+  if (!framed) {
     return (
       <span className="relative inline-flex shrink-0">
-        {/* URLs de avatar (OAuth / externos): evitamos el optimizador de Next para no configurar remotePatterns por dominio. */}
-        {/* eslint-disable-next-line @next/next/no-img-element -- avatares dinámicos; ver nota anterior */}
-        <img
-          src={image}
-          alt={name}
-          onError={(e) => { e.currentTarget.style.display = "none"; }}
-          className={cn(
-            "rounded-full object-cover border border-white/10 shrink-0",
-            sizes[size],
-            className
-          )}
-        />
+        {imageNode}
         {presenceDot}
       </span>
     );
   }
 
   return (
-    <span className="relative inline-flex shrink-0">
-      <span
-        role="img"
-        aria-label={name}
-        className={cn(
-          "rounded-full flex items-center justify-center font-semibold shrink-0 border border-white/10",
-          sizes[size],
-          className
-        )}
-        style={{
-          background: `hsl(${hue}, 60%, 30%)`,
-          color: `hsl(${hue}, 80%, 80%)`,
-        }}
-        title={name}
-      >
-        <span aria-hidden="true">{initials}</span>
-      </span>
-      {presenceDot}
-    </span>
+    <AvatarFrameShell
+      effect={effect}
+      size={size}
+      className={className}
+      presenceDot={presenceDot}
+    >
+      {imageNode}
+    </AvatarFrameShell>
   );
 }

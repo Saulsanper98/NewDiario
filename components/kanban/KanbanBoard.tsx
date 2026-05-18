@@ -204,35 +204,12 @@ export function KanbanBoard({ project, allUsers }: KanbanBoardProps) {
   const [archivedCompleted, setArchivedCompleted] = useState<
     { id: string; title: string; deletedAt: string | null; assignee: { id: string; name: string } | null; column: { id: string; name: string } }[]
   >([]);
-  const boardRegionRef = useRef<HTMLDivElement>(null);
-  const [columnWellMaxHeight, setColumnWellMaxHeight] = useState<number>(420);
-
   useEffect(() => {
     const mq = window.matchMedia("(min-width: 768px)");
     const apply = () => setTaskPanelLayout(mq.matches ? "docked" : "overlay");
     apply();
     mq.addEventListener("change", apply);
     return () => mq.removeEventListener("change", apply);
-  }, []);
-
-  useEffect(() => {
-    function recalcColumnMaxHeight() {
-      const region = boardRegionRef.current;
-      if (!region) return;
-      const rect = region.getBoundingClientRect();
-      const viewportBottom = window.innerHeight;
-      const available = Math.floor(viewportBottom - rect.top - 16);
-      const safe = Math.max(180, available - 52);
-      setColumnWellMaxHeight(safe);
-    }
-    recalcColumnMaxHeight();
-    window.addEventListener("resize", recalcColumnMaxHeight);
-    const observer = new ResizeObserver(() => recalcColumnMaxHeight());
-    if (boardRegionRef.current) observer.observe(boardRegionRef.current);
-    return () => {
-      window.removeEventListener("resize", recalcColumnMaxHeight);
-      observer.disconnect();
-    };
   }, []);
 
   const completedTasksInBoard = useMemo(() => {
@@ -642,8 +619,8 @@ export function KanbanBoard({ project, allUsers }: KanbanBoardProps) {
   return (
     <div className="kanban-board-root flex min-h-0 flex-1 flex-col overflow-hidden">
       {archiveOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 px-4">
-          <div className="w-full max-w-2xl rounded-xl border border-white/12 bg-[#0c1325] p-4 shadow-2xl">
+        <div className="kanban-archive-overlay fixed inset-0 z-50 flex items-center justify-center bg-black/55 px-4">
+          <div className="kanban-archive-modal w-full max-w-2xl rounded-xl border border-white/12 bg-[#0c1325] p-4 shadow-2xl">
             <div className="mb-3 flex items-center justify-between">
               <h3 className="text-sm font-semibold text-white/80">Archivo de tareas completadas</h3>
               <button
@@ -655,7 +632,7 @@ export function KanbanBoard({ project, allUsers }: KanbanBoardProps) {
                 <X className="h-4 w-4" />
               </button>
             </div>
-            <div className="max-h-[60vh] overflow-y-auto rounded-lg border border-white/8 bg-white/[0.02]">
+            <div className="kanban-archive-list max-h-[60vh] overflow-y-auto rounded-lg border border-white/8 bg-white/[0.02]">
               {loadingArchive ? (
                 <p className="p-4 text-xs text-white/45">Cargando archivo…</p>
               ) : archivedCompleted.length === 0 ? (
@@ -757,7 +734,6 @@ export function KanbanBoard({ project, allUsers }: KanbanBoardProps) {
       {/* Board + panel lateral de tarea (flujo flex, no fixed sobre todo el viewport) */}
       <div className="flex h-full min-h-0 flex-1 items-stretch overflow-hidden">
       <div
-        ref={boardRegionRef}
         role="region"
         aria-label="Tablero Kanban"
         className="min-h-0 min-w-0 flex-1 overflow-x-auto overflow-y-auto kanban-scroll-hint relative"
@@ -965,9 +941,8 @@ export function KanbanBoard({ project, allUsers }: KanbanBoardProps) {
                             <div
                               ref={taskDrop.innerRef}
                               {...taskDrop.droppableProps}
-                              style={{ maxHeight: `${columnWellMaxHeight}px` }}
                               className={cn(
-                                "kanban-column-well scrollbar-hidden min-h-20 min-w-0 overflow-x-hidden overflow-y-auto flex flex-col gap-2 p-2 rounded-xl transition-all duration-200 border",
+                                "kanban-column-well scrollbar-hidden min-h-20 min-w-0 overflow-visible flex flex-col gap-2 p-2 rounded-xl transition-all duration-200 border",
                                 collapsedCols.has(col.id) ? "hidden" : "",
                                 snapshot.isDraggingOver
                                   ? "kanban-column-well-drag border-[#ffeb66]/15"
@@ -1006,9 +981,17 @@ export function KanbanBoard({ project, allUsers }: KanbanBoardProps) {
                                       ref={taskDrag.innerRef}
                                       {...taskDrag.draggableProps}
                                       {...taskDrag.dragHandleProps}
+                                      style={
+                                        taskSnap.isDropAnimating
+                                          ? {
+                                              ...taskDrag.draggableProps.style,
+                                              transitionDuration: "0.01s",
+                                            }
+                                          : taskDrag.draggableProps.style
+                                      }
                                       className={cn(
-                                        "cursor-grab active:cursor-grabbing transition-transform duration-150",
-                                        taskSnap.isDragging && "rotate-1 scale-105 cursor-grabbing"
+                                        "cursor-grab active:cursor-grabbing",
+                                        taskSnap.isDragging && "cursor-grabbing"
                                       )}
                                     >
                                       <KanbanCard
