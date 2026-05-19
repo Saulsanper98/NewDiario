@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma/client";
-import { isSuperAdmin } from "@/lib/auth/permissions";
+import { isPlatformOwnerUser } from "@/lib/auth/permissions";
 import { slugify } from "@/lib/slug";
 import type { SessionUser } from "@/lib/auth/types";
 import { z } from "zod";
@@ -23,8 +23,11 @@ export async function POST(req: NextRequest) {
   }
 
   const user = session.user as SessionUser;
-  if (!isSuperAdmin(user)) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!isPlatformOwnerUser(user)) {
+    return NextResponse.json(
+      { error: "Solo el propietario de la plataforma puede crear departamentos" },
+      { status: 403 }
+    );
   }
 
   const raw = await req.json();

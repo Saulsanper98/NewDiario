@@ -5,9 +5,11 @@ import type { Prisma } from "@/app/generated/prisma/client";
 import {
   canManageTargetUser,
   isAdminOrAbove,
+  isPlatformOwnerUser,
   isSelfProfilePatch,
   isSuperAdmin,
 } from "@/lib/auth/permissions";
+import { isPlatformOwnerEmail } from "@/lib/platform-owner";
 import type { SessionUser } from "@/lib/auth/types";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
@@ -56,8 +58,11 @@ export async function PATCH(
     );
   }
 
-  if (body.role === "SUPERADMIN" && !isSuperAdmin(actor)) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (body.role === "SUPERADMIN" && !isPlatformOwnerUser(actor)) {
+    return NextResponse.json(
+      { error: "Solo el propietario de la plataforma puede asignar SuperAdmin" },
+      { status: 403 }
+    );
   }
 
   const target = await prisma.user.findUnique({
@@ -71,6 +76,18 @@ export async function PATCH(
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
+  if (
+    body.role !== undefined &&
+    body.role !== target.role &&
+    !isPlatformOwnerUser(actor) &&
+    (body.role === "SUPERADMIN" || target.role === "SUPERADMIN")
+  ) {
+    return NextResponse.json(
+      { error: "Solo el propietario puede cambiar roles SuperAdmin" },
+      { status: 403 }
+    );
+  }
+
   if (selfProfileOnly) {
     /* Perfil propio: nombre, email, avatar, contraseña. */
   } else if (isSelf) {
@@ -81,8 +98,14 @@ export async function PATCH(
     if (!isAdminOrAbove(actor)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
+    if (isPlatformOwnerEmail(target.email) && !isPlatformOwnerUser(actor)) {
+      return NextResponse.json(
+        { error: "No puedes modificar la cuenta del propietario de la plataforma" },
+        { status: 403 }
+      );
+    }
     const targetDeptIds = target.departments.map((d) => d.departmentId);
-    if (!canManageTargetUser(actor, targetDeptIds)) {
+    if (!canManageTargetUser(actor, targetDeptIds, target.email)) {
       return NextResponse.json(
         {
           error:
@@ -161,8 +184,11 @@ export async function DELETE(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const actor = session.user as SessionUser;
-  if (!isSuperAdmin(actor)) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!isPlatformOwnerUser(actor)) {
+    return NextResponse.json(
+      { error: "Solo el propietario de la plataforma puede eliminar usuarios" },
+      { status: 403 }
+    );
   }
 
   const { id } = await params;
@@ -177,6 +203,13 @@ export async function DELETE(
   const target = await prisma.user.findUnique({ where: { id } });
   if (!target || target.deletedAt) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
+  if (isPlatformOwnerEmail(target.email)) {
+    return NextResponse.json(
+      { error: "No se puede eliminar la cuenta del propietario" },
+      { status: 400 }
+    );
   }
 
   await prisma.user.update({

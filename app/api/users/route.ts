@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma/client";
-import { isAdminOrAbove, isAdminOfDepartment, isSuperAdmin } from "@/lib/auth/permissions";
+import {
+  isAdminOrAbove,
+  isAdminOfDepartment,
+  isPlatformOwnerUser,
+  isSuperAdmin,
+} from "@/lib/auth/permissions";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 import type { Role } from "@/app/generated/prisma/enums";
@@ -66,15 +71,15 @@ export async function POST(req: NextRequest) {
 
   const globalRole = maxRole(departments.map((d) => d.role));
 
-  if (globalRole === "SUPERADMIN" && !isSuperAdmin(actor)) {
+  if (globalRole === "SUPERADMIN" && !isPlatformOwnerUser(actor)) {
     return NextResponse.json(
-      { error: "Solo un SuperAdmin puede crear usuarios con rol SuperAdmin" },
+      { error: "Solo el propietario de la plataforma puede crear usuarios SuperAdmin" },
       { status: 403 }
     );
   }
 
   for (const d of departments) {
-    if (d.role === "SUPERADMIN" && !isSuperAdmin(actor)) {
+    if (d.role === "SUPERADMIN" && !isPlatformOwnerUser(actor)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
     if (!isAdminOfDepartment(actor, d.departmentId)) {

@@ -12,23 +12,39 @@ export async function GET(req: NextRequest) {
 
   const actor = session.user as SessionUser;
   const q = (req.nextUrl.searchParams.get("q") ?? "").trim();
+  const departmentId = req.nextUrl.searchParams.get("departmentId")?.trim() ?? "";
 
-  const deptIds = actor.departments.map((d) => d.id);
-  const departmentScope =
-    isSuperAdmin(actor) || deptIds.length === 0
-      ? {}
-      : {
-          departments: {
-            some: { departmentId: { in: deptIds } },
-          },
-        };
+  if (!departmentId) {
+    return NextResponse.json(
+      { error: "Indica departmentId" },
+      { status: 400 }
+    );
+  }
+
+  const actorDeptIds = actor.departments.map((d) => d.id);
+  const canAccessDept =
+    isSuperAdmin(actor) ||
+    actorDeptIds.length === 0 ||
+    actorDeptIds.includes(departmentId);
+
+  if (!canAccessDept) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const dept = await prisma.department.findFirst({
+    where: { id: departmentId, isArchived: false },
+    select: { id: true },
+  });
+  if (!dept) {
+    return NextResponse.json({ error: "Departamento no encontrado" }, { status: 404 });
+  }
 
   const users = await prisma.user.findMany({
     where: {
       deletedAt: null,
       isActive: true,
       id: { not: actor.id },
-      ...departmentScope,
+      departments: { some: { departmentId } },
       ...(q.length > 0
         ? {
             OR: [

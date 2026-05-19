@@ -4,6 +4,7 @@ import { Header } from "@/components/layout/Header";
 import { ConfigTabs } from "@/components/configuracion/ConfigTabs";
 import { prisma } from "@/lib/prisma/client";
 import { isAdminOrAbove } from "@/lib/auth/permissions";
+import { isPlatformOwner } from "@/lib/platform-owner";
 import type { SessionUser } from "@/lib/auth/types";
 import {
   configPageActivityLogInclude,
@@ -59,6 +60,7 @@ export default async function ConfiguracionPage() {
           activityLogs={activityLogs}
           currentUser={user}
           isSuperAdmin={user.role === "SUPERADMIN"}
+          isPlatformOwner={isPlatformOwner(user)}
           isAdmin={isAdmin}
         />
       </div>

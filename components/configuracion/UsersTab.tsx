@@ -29,12 +29,14 @@ import { useAccentForUi } from "@/lib/hooks/useAccentForUi";
 import { useTheme } from "@/components/layout/ThemeProvider";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { AvatarImagePreview } from "@/components/ui/AvatarImagePreview";
+import { isPlatformOwnerEmail } from "@/lib/platform-owner";
 
 interface UsersTabProps {
   users: ConfigPageUser[];
   departments: ConfigPageDepartment[];
   currentUser: SessionUser;
   isSuperAdmin: boolean;
+  isPlatformOwner: boolean;
   /** Operadores: listado del equipo sin edición. */
   readOnly?: boolean;
 }
@@ -44,6 +46,7 @@ export function UsersTab({
   departments,
   currentUser,
   isSuperAdmin,
+  isPlatformOwner,
   readOnly = false,
 }: UsersTabProps) {
   const { accent, withAlpha } = useAccentForUi();
@@ -225,8 +228,8 @@ export function UsersTab({
 
   async function handleEditUser(e: React.FormEvent) {
     e.preventDefault();
-    if (editRole === "SUPERADMIN" && !isSuperAdmin) {
-      toast.error("No puedes asignar rol SuperAdmin");
+    if (editRole === "SUPERADMIN" && !isPlatformOwner) {
+      toast.error("Solo el propietario puede asignar rol SuperAdmin");
       return;
     }
     setEditSaving(true);
@@ -320,8 +323,8 @@ export function UsersTab({
       toast.error("Elige un departamento por defecto entre los seleccionados");
       return;
     }
-    if (role === "SUPERADMIN" && !isSuperAdmin) {
-      toast.error("No puedes asignar rol SuperAdmin");
+    if (role === "SUPERADMIN" && !isPlatformOwner) {
+      toast.error("Solo el propietario puede asignar rol SuperAdmin");
       return;
     }
 
@@ -362,9 +365,17 @@ export function UsersTab({
     }
   }
 
-  const roleOptions: Role[] = isSuperAdmin
+  const roleOptions: Role[] = isPlatformOwner
     ? ["OPERATOR", "ADMIN", "SUPERADMIN"]
-    : ["OPERATOR", "ADMIN"];
+    : isSuperAdmin
+      ? ["OPERATOR", "ADMIN"]
+      : ["OPERATOR", "ADMIN"];
+
+  function canEditUserRow(user: ConfigPageUser): boolean {
+    if (readOnly) return false;
+    if (isPlatformOwnerEmail(user.email) && !isPlatformOwner) return false;
+    return true;
+  }
 
   function exportCSV() {
     const rows = [
@@ -447,11 +458,15 @@ export function UsersTab({
         </td>
         <td className="px-4 py-2.5 align-middle">
           <div className="flex items-center gap-1.5">
-            {user.role === "SUPERADMIN" && (
-              <Shield className="w-3 h-3 text-[#ffeb66]" />
-            )}
+            {isPlatformOwnerEmail(user.email) ? (
+              <Shield className="w-3 h-3 text-[#ffeb66]" aria-label="Propietario de la plataforma" />
+            ) : user.role === "SUPERADMIN" ? (
+              <Shield className="w-3 h-3 text-violet-400" />
+            ) : null}
             <span className="text-xs text-white/60">
-              {ROLE_LABELS[user.role as keyof typeof ROLE_LABELS]}
+              {isPlatformOwnerEmail(user.email)
+                ? "Propietario"
+                : ROLE_LABELS[user.role as keyof typeof ROLE_LABELS]}
             </span>
           </div>
         </td>
@@ -467,6 +482,7 @@ export function UsersTab({
         </td>
         {!readOnly && (
           <td className="px-4 py-2.5 align-middle">
+            {canEditUserRow(user) ? (
             <div className="flex items-center gap-2">
               <Button variant="ghost" size="sm" type="button" onClick={() => openEdit(user)}>
                 Editar
@@ -481,7 +497,7 @@ export function UsersTab({
                   {user.isActive ? "Desactivar" : "Activar"}
                 </Button>
               )}
-              {isSuperAdmin && user.id !== currentUser.id && (
+              {isPlatformOwner && user.id !== currentUser.id && (
                 <Button
                   variant="ghost"
                   size="sm"
@@ -497,6 +513,11 @@ export function UsersTab({
                 </Button>
               )}
             </div>
+            ) : (
+              <span className="text-xs text-white/25" title="Cuenta del propietario">
+                —
+              </span>
+            )}
           </td>
         )}
       </tr>

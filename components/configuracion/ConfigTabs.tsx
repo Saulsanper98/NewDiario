@@ -49,6 +49,7 @@ interface ConfigTabsProps {
   activityLogs: ConfigPageActivityLog[];
   currentUser: SessionUser;
   isSuperAdmin: boolean;
+  isPlatformOwner: boolean;
   isAdmin: boolean;
 }
 
@@ -58,6 +59,7 @@ export function ConfigTabs({
   activityLogs,
   currentUser,
   isSuperAdmin,
+  isPlatformOwner,
   isAdmin,
 }: ConfigTabsProps) {
   const [activeTab, setActiveTab] = useState<Tab>(isAdmin ? "users" : "profile");
@@ -73,9 +75,9 @@ export function ConfigTabs({
     }
     return [
       profileTab,
-      ...TABS.filter((t) => !t.superAdminOnly || isSuperAdmin),
+      ...TABS.filter((t) => !t.superAdminOnly || isPlatformOwner),
     ];
-  }, [isAdmin, isSuperAdmin]);
+  }, [isAdmin, isPlatformOwner]);
 
   const visibleTabIds = useMemo(() => {
     return new Set(visibleTabs.map((t) => t.id));
@@ -144,15 +146,20 @@ export function ConfigTabs({
             departments={departments}
             currentUser={currentUser}
             isSuperAdmin={isSuperAdmin}
+            isPlatformOwner={isPlatformOwner}
             readOnly={!isAdmin}
           />
         )}
         {activeTab === "departments" && isAdmin && (
-          <DepartmentsTab departments={departments} isSuperAdmin={isSuperAdmin} />
+          <DepartmentsTab
+            departments={departments}
+            isSuperAdmin={isSuperAdmin}
+            isPlatformOwner={isPlatformOwner}
+          />
         )}
-        {activeTab === "settings" && isSuperAdmin && <AppSettingsTab />}
+        {activeTab === "settings" && isPlatformOwner && <AppSettingsTab />}
         {activeTab === "logs" && isAdmin && <ActivityLogsTab logs={activityLogs} />}
-        {activeTab === "microsoft" && isSuperAdmin && <MicrosoftIntegrationTab />}
+        {activeTab === "microsoft" && isPlatformOwner && <MicrosoftIntegrationTab />}
         {activeTab === "informes" && isAdmin && <ReportsTab />}
       </div>
     </div>

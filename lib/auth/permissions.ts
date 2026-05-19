@@ -1,7 +1,18 @@
 import type { SessionUser } from "./types";
+import { isPlatformOwner, isPlatformOwnerEmail } from "@/lib/platform-owner";
 
 export function isSuperAdmin(user: SessionUser): boolean {
   return user.role === "SUPERADMIN";
+}
+
+/** Puede asignar rol global SUPERADMIN o gestionar la cuenta del propietario. */
+export function isPlatformOwnerUser(user: SessionUser): boolean {
+  return isPlatformOwner(user);
+}
+
+/** SuperAdmin que no es el propietario: edita usuarios con límites. */
+export function isDelegatedSuperAdmin(user: SessionUser): boolean {
+  return isSuperAdmin(user) && !isPlatformOwner(user);
 }
 
 export function isAdminOrAbove(user: SessionUser): boolean {
@@ -28,8 +39,12 @@ export function hasAccessToDepartment(
 /** Puede gestionar un usuario según departamentos compartidos. */
 export function canManageTargetUser(
   actor: SessionUser,
-  targetDepartmentIds: string[]
+  targetDepartmentIds: string[],
+  targetEmail?: string
 ): boolean {
+  if (targetEmail && isPlatformOwnerEmail(targetEmail) && !isPlatformOwner(actor)) {
+    return false;
+  }
   if (isSuperAdmin(actor)) return true;
   if (!isAdminOrAbove(actor)) return false;
   if (targetDepartmentIds.length === 0) return false;

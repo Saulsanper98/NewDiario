@@ -21,9 +21,13 @@ import { cn } from "@/lib/utils";
 interface DepartmentsTabProps {
   departments: ConfigPageDepartment[];
   isSuperAdmin: boolean;
+  isPlatformOwner: boolean;
 }
 
-export function DepartmentsTab({ departments, isSuperAdmin }: DepartmentsTabProps) {
+export function DepartmentsTab({
+  departments,
+  isPlatformOwner,
+}: DepartmentsTabProps) {
   const { accent, withAlpha } = useAccentForUi();
   const { theme } = useTheme();
   const L = theme === "light";
@@ -77,7 +81,7 @@ export function DepartmentsTab({ departments, isSuperAdmin }: DepartmentsTabProp
         <p className="text-sm text-white/50">
           {departments.length} departamento{departments.length !== 1 ? "s" : ""}
         </p>
-        {isSuperAdmin && (
+        {isPlatformOwner && (
           <Button variant="primary" size="md" type="button" onClick={openModal}>
             <Plus className="w-3.5 h-3.5" />
             Nuevo departamento

@@ -6,10 +6,10 @@ import {
   Loader2,
   MessageCircle,
   Plus,
-  Search,
   Send,
-  X,
+  Sparkles,
 } from "lucide-react";
+import { NewChatPicker } from "@/components/chat/NewChatPicker";
 import toast from "react-hot-toast";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
@@ -19,7 +19,6 @@ import { cn } from "@/lib/utils";
 import type {
   ChatConversationItem,
   ChatMessageItem,
-  ChatPeer,
 } from "@/lib/chat/serialize";
 
 function formatTime(iso: string) {
@@ -73,9 +72,6 @@ export function ChatView() {
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   const [newChatOpen, setNewChatOpen] = useState(false);
-  const [userQuery, setUserQuery] = useState("");
-  const [userResults, setUserResults] = useState<ChatPeer[]>([]);
-  const [searchingUsers, setSearchingUsers] = useState(false);
   const [mobileShowThread, setMobileShowThread] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -190,26 +186,6 @@ export function ChatView() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, activeId]);
 
-  useEffect(() => {
-    if (!newChatOpen) return;
-    const q = userQuery.trim();
-    const t = setTimeout(async () => {
-      setSearchingUsers(true);
-      try {
-        const res = await fetch(
-          `/api/chat/users${q ? `?q=${encodeURIComponent(q)}` : ""}`
-        );
-        if (res.ok) {
-          const data = (await res.json()) as { users: ChatPeer[] };
-          setUserResults(data.users);
-        }
-      } finally {
-        setSearchingUsers(false);
-      }
-    }, 250);
-    return () => clearTimeout(t);
-  }, [userQuery, newChatOpen]);
-
   async function startChatWith(peerId: string) {
     try {
       const res = await fetch("/api/chat/conversations", {
@@ -227,7 +203,6 @@ export function ChatView() {
         );
       }
       setNewChatOpen(false);
-      setUserQuery("");
       await loadConversations();
       selectConversation(data.conversationId);
     } catch (err) {
@@ -270,23 +245,31 @@ export function ChatView() {
     }
   }
 
-  const panelClass = cn(
-    "flex h-full min-h-0 flex-col border-r",
-    L ? "border-zinc-200/90 bg-white/80" : "border-white/8 bg-[#0a0f1e]/60"
+  const listPanelClass = cn(
+    "flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border shadow-xl backdrop-blur-xl",
+    L
+      ? "border-zinc-200/90 bg-white/90 shadow-zinc-200/30"
+      : "border-white/10 bg-[#0a0f1e]/75 shadow-black/40"
+  );
+
+  const threadPanelClass = cn(
+    "flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border shadow-xl backdrop-blur-xl",
+    L
+      ? "border-zinc-200/90 bg-white/85 shadow-zinc-200/25"
+      : "border-white/10 bg-[#080d18]/80 shadow-black/35"
   );
 
   return (
     <div
       className={cn(
-        "chat-page-inner flex h-full min-h-0 overflow-hidden",
-        L ? "bg-zinc-50/40" : "bg-transparent"
+        "chat-page-inner flex h-full min-h-0 gap-2 overflow-hidden p-2 md:gap-3 md:p-4",
+        L ? "bg-zinc-100/50" : "bg-transparent"
       )}
     >
-      {/* Lista de conversaciones */}
       <aside
         className={cn(
-          panelClass,
-          "w-full shrink-0 md:w-[min(100%,20rem)] lg:w-80",
+          listPanelClass,
+          "w-full shrink-0 md:w-[min(100%,20rem)] lg:w-[22rem]",
           mobileShowThread && "hidden md:flex"
         )}
       >
@@ -321,94 +304,17 @@ export function ChatView() {
               )}
               title="Nueva conversación"
             >
-              {newChatOpen ? (
-                <X className="h-4 w-4" />
-              ) : (
-                <Plus className="h-4 w-4" />
-              )}
+              <Plus className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Nuevo</span>
             </button>
           </div>
 
           {newChatOpen && (
-            <div className="mt-3 space-y-2">
-              <div className="relative">
-                <Search
-                  className={cn(
-                    "pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2",
-                    L ? "text-zinc-400" : "text-white/35"
-                  )}
-                />
-                <input
-                  type="search"
-                  value={userQuery}
-                  onChange={(e) => setUserQuery(e.target.value)}
-                  placeholder="Buscar compañero…"
-                  className={cn(
-                    "w-full rounded-lg border py-2 pl-8 pr-3 text-sm outline-none focus:ring-2 focus:ring-[#ffeb66]/40",
-                    L
-                      ? "border-zinc-200 bg-white text-zinc-900 placeholder:text-zinc-400"
-                      : "border-white/12 bg-white/5 text-white placeholder:text-white/35"
-                  )}
-                  autoFocus
-                />
-              </div>
-              <div
-                className={cn(
-                  "max-h-48 overflow-y-auto rounded-lg border",
-                  L ? "border-zinc-200 bg-white" : "border-white/10 bg-[#0d1427]/80"
-                )}
-              >
-                {searchingUsers ? (
-                  <p
-                    className={cn(
-                      "flex items-center justify-center gap-2 py-6 text-xs",
-                      L ? "text-zinc-500" : "text-white/40"
-                    )}
-                  >
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Buscando…
-                  </p>
-                ) : userResults.length === 0 ? (
-                  <p
-                    className={cn(
-                      "py-6 text-center text-xs",
-                      L ? "text-zinc-500" : "text-white/40"
-                    )}
-                  >
-                    {userQuery.trim()
-                      ? "Sin resultados"
-                      : "Escribe un nombre o elige de la lista"}
-                  </p>
-                ) : (
-                  <ul>
-                    {userResults.map((u) => (
-                      <li key={u.id}>
-                        <button
-                          type="button"
-                          onClick={() => void startChatWith(u.id)}
-                          className={cn(
-                            "flex w-full items-center gap-3 px-3 py-2.5 text-left text-sm transition-colors",
-                            L
-                              ? "hover:bg-zinc-50"
-                              : "hover:bg-white/5"
-                          )}
-                        >
-                          <Avatar name={u.name} image={u.image} size="sm" />
-                          <span
-                            className={cn(
-                              "min-w-0 flex-1 truncate font-medium",
-                              L ? "text-zinc-900" : "text-white"
-                            )}
-                          >
-                            {u.name}
-                          </span>
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            </div>
+            <NewChatPicker
+              isLight={L}
+              onClose={() => setNewChatOpen(false)}
+              onSelectUser={(id) => void startChatWith(id)}
+            />
           )}
         </div>
 
@@ -517,7 +423,7 @@ export function ChatView() {
       {/* Hilo de mensajes */}
       <section
         className={cn(
-          "flex min-h-0 min-w-0 flex-1 flex-col",
+          threadPanelClass,
           !mobileShowThread && "hidden md:flex"
         )}
       >
@@ -570,7 +476,10 @@ export function ChatView() {
 
             <div
               ref={messagesContainerRef}
-              className="min-h-0 flex-1 overflow-y-auto px-4 py-4 space-y-3"
+              className={cn(
+                "chat-messages-scroll min-h-0 flex-1 overflow-y-auto px-4 py-5 space-y-3",
+                !L && "bg-[radial-gradient(ellipse_at_50%_0%,rgba(255,235,102,0.06),transparent_55%)]"
+              )}
             >
               {loadingMessages && messages.length === 0 ? (
                 <p
@@ -603,10 +512,10 @@ export function ChatView() {
                       className={cn(
                         "max-w-[min(100%,28rem)] rounded-2xl px-3.5 py-2.5 shadow-sm",
                         m.isMine
-                          ? "rounded-br-md bg-gradient-to-br from-[#3d5a80] to-[#2d4a6f] text-white"
+                          ? "rounded-br-md border border-[#ffeb66]/25 bg-gradient-to-br from-[#ffeb66]/22 via-[#c9a227]/18 to-[#3d5a80]/40 text-white shadow-[0_4px_20px_rgba(255,235,102,0.12)]"
                           : L
-                            ? "rounded-bl-md border border-zinc-200/90 bg-white text-zinc-900"
-                            : "rounded-bl-md border border-white/10 bg-white/[0.06] text-white"
+                            ? "rounded-bl-md border border-zinc-200/90 bg-white text-zinc-900 shadow-sm"
+                            : "rounded-bl-md border border-white/12 bg-white/[0.07] text-white shadow-sm backdrop-blur-sm"
                       )}
                     >
                       <p className="whitespace-pre-wrap break-words text-sm leading-relaxed">
@@ -681,16 +590,32 @@ export function ChatView() {
               L ? "text-zinc-500" : "text-white/40"
             )}
           >
-            <MessageCircle
-              className={cn("h-12 w-12 opacity-40", L ? "text-zinc-400" : "")}
-            />
-            <p className="text-sm font-medium">
-              Selecciona una conversación o inicia una nueva
-            </p>
-            <p className="max-w-xs text-xs">
-              Los mensajes con tus compañeros del departamento aparecerán aquí.
-              Recibirás una notificación cuando te escriban.
-            </p>
+            <div
+              className={cn(
+                "flex h-16 w-16 items-center justify-center rounded-2xl border",
+                L
+                  ? "border-zinc-200 bg-zinc-50"
+                  : "border-white/10 bg-white/[0.04]"
+              )}
+            >
+              <Sparkles
+                className={cn("h-8 w-8", L ? "text-zinc-400" : "text-[#ffeb66]/50")}
+              />
+            </div>
+            <div>
+              <p
+                className={cn(
+                  "text-sm font-semibold",
+                  L ? "text-zinc-800" : "text-white/85"
+                )}
+              >
+                Selecciona una conversación
+              </p>
+              <p className="mx-auto mt-1 max-w-sm text-xs leading-relaxed">
+                Pulsa <strong className={L ? "text-zinc-900" : "text-[#ffeb66]/90"}>Nuevo</strong>
+                , elige departamento y compañero.
+              </p>
+            </div>
             <Button
               type="button"
               variant="secondary"
