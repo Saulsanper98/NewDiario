@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { ClickableAvatar } from "@/components/ui/ClickableAvatar";
 import { usePathname } from "next/navigation";
 import {
   useState,
@@ -16,6 +17,7 @@ import {
   ArrowLeftRight,
   CalendarOff,
   Settings,
+  Bug,
   LogOut,
   PanelLeft,
   PanelLeftClose,
@@ -24,7 +26,6 @@ import {
 import { signOut } from "next-auth/react";
 import { cn } from "@/lib/utils";
 import { Logo } from "@/components/ui/Logo";
-import { Avatar } from "@/components/ui/Avatar";
 import { AvatarFramePicker } from "@/components/ui/AvatarFramePicker";
 import type { SessionUser } from "@/lib/auth/types";
 import {
@@ -85,9 +86,17 @@ interface SidebarProps {
   user: SessionUser;
   isAdmin: boolean;
   pendingFollowups?: number;
+  isBugReportsAdmin?: boolean;
+  openBugReports?: number;
 }
 
-export function Sidebar({ user, isAdmin, pendingFollowups = 0 }: SidebarProps) {
+export function Sidebar({
+  user,
+  isAdmin,
+  pendingFollowups = 0,
+  isBugReportsAdmin = false,
+  openBugReports = 0,
+}: SidebarProps) {
   const { theme } = useTheme();
   const isLight = theme === "light";
   const pathname = usePathname();
@@ -223,9 +232,11 @@ export function Sidebar({ user, isAdmin, pendingFollowups = 0 }: SidebarProps) {
       )}
     >
       {/* Logo */}
-      <div
+      <Link
+        href="/dashboard"
+        title="Ir al panel principal"
         className={cn(
-          "h-16 flex items-center border-b border-white/8 shrink-0 overflow-hidden",
+          "h-16 flex items-center border-b border-white/8 shrink-0 overflow-hidden transition-colors hover:bg-white/[0.04]",
           isExpanded ? "px-4" : "justify-center px-0"
         )}
       >
@@ -234,7 +245,7 @@ export function Sidebar({ user, isAdmin, pendingFollowups = 0 }: SidebarProps) {
         ) : (
           <Logo size="sm" showText={false} className="scale-95" />
         )}
-      </div>
+      </Link>
 
       {/* Navigation */}
       <nav
@@ -308,6 +319,55 @@ export function Sidebar({ user, isAdmin, pendingFollowups = 0 }: SidebarProps) {
           );
         })}
 
+        {isBugReportsAdmin && (
+          <Link
+            href="/bugs"
+            aria-label={
+              !isExpanded
+                ? openBugReports > 0
+                  ? `Reportes de bugs — ${openBugReports} pendiente${openBugReports !== 1 ? "s" : ""}`
+                  : "Reportes de bugs"
+                : undefined
+            }
+            title={
+              !isExpanded && openBugReports > 0
+                ? `${openBugReports} bug${openBugReports !== 1 ? "s" : ""} pendiente${openBugReports !== 1 ? "s" : ""}`
+                : undefined
+            }
+            className={cn(
+              "sidebar-nav-link relative flex items-center rounded-lg text-sm font-medium transition-all w-full overflow-hidden",
+              isExpanded ? "gap-3 px-3 py-2.5" : "justify-center gap-0 px-0 py-2.5",
+              pathname.startsWith("/bugs")
+                ? isExpanded
+                  ? "sidebar-nav-link-active bg-[#ffeb66]/12 text-[#ffeb66] border border-[#ffeb66]/20"
+                  : "sidebar-nav-link-active bg-[#ffeb66]/12 text-[#ffeb66] ring-2 ring-[#ffeb66]/25 ring-inset border border-transparent"
+                : "text-white/55 hover:text-white hover:bg-white/6 border border-transparent"
+            )}
+          >
+            {pathname.startsWith("/bugs") && (
+              <span className="sidebar-active-bar" aria-hidden />
+            )}
+            <span className="relative shrink-0 flex items-center justify-center">
+              <Bug className="w-4 h-4" />
+              {openBugReports > 0 && (
+                <span className="absolute -top-1 -right-1 min-w-[14px] h-3.5 px-0.5 rounded-full bg-red-400 text-[#0a0f1e] text-[8px] font-bold flex items-center justify-center leading-none">
+                  {openBugReports > 9 ? "9+" : openBugReports}
+                </span>
+              )}
+            </span>
+            {isExpanded && (
+              <span className="flex-1 flex items-center justify-between gap-2 min-w-0 overflow-hidden">
+                <span className="truncate whitespace-nowrap">Incidencias</span>
+                {openBugReports > 0 && (
+                  <span className="ml-auto shrink-0 text-[9px] font-semibold uppercase tracking-wide bg-red-400/15 text-red-300 px-1.5 py-0.5 rounded-full leading-none">
+                    {openBugReports}
+                  </span>
+                )}
+              </span>
+            )}
+          </Link>
+        )}
+
         <Link
             href="/configuracion"
             aria-label={!isExpanded ? (isAdmin ? "Configuración" : "Mi cuenta") : undefined}
@@ -337,7 +397,7 @@ export function Sidebar({ user, isAdmin, pendingFollowups = 0 }: SidebarProps) {
         {/* User info — only when expanded */}
         {isExpanded && (
           <div className="flex items-center gap-2.5 mb-1 px-1">
-            <Avatar name={user.name} image={user.image} size="sm" effect={avatarEffect} />
+            <ClickableAvatar name={user.name} image={user.image} size="sm" effect={avatarEffect} />
             <div className="flex-1 min-w-0">
               <p className="text-xs font-semibold text-white truncate">
                 {user.name}
@@ -367,7 +427,7 @@ export function Sidebar({ user, isAdmin, pendingFollowups = 0 }: SidebarProps) {
 
         {!isExpanded && (
           <div className="flex justify-center py-1">
-            <Avatar name={user.name} image={user.image} size="sm" effect={avatarEffect} />
+            <ClickableAvatar name={user.name} image={user.image} size="sm" effect={avatarEffect} />
           </div>
         )}
 

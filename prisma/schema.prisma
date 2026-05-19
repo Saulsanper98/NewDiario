@@ -81,6 +81,20 @@ enum NotificationType {
   LOG_SHARED
   PROJECT_SHARED
   MENTION
+  BUG_REPORT_CLOSED
+}
+
+enum BugReportStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  WONT_FIX
+}
+
+enum BugReportPriority {
+  LOW
+  MEDIUM
+  HIGH
 }
 
 // ─── Users & Departments ─────────────────────────────────────────────────────
@@ -122,6 +136,7 @@ model User {
   logEntryPollsCreated LogEntryPoll[]       @relation("LogPollAuthor")
   logEntryPollInvitees LogEntryPollInvitee[]
   logEntryPollResponses LogEntryPollResponse[]
+  bugReports            BugReport[]
 
   @@index([email])
   @@index([role])
@@ -779,6 +794,28 @@ model Notification {
 
   @@index([userId])
   @@index([isRead])
+  @@index([createdAt])
+}
+
+// ─── Bug reports (panel solo administrador de incidencias) ─────────────────────
+
+model BugReport {
+  id          String            @id @default(cuid())
+  title       String            @db.VarChar(200)
+  description String            @db.Text
+  pageUrl     String?           @db.VarChar(2048)
+  status      BugReportStatus   @default(OPEN)
+  priority    BugReportPriority @default(MEDIUM)
+  adminNotes  String?           @db.Text
+  reporterId  String
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  resolvedAt  DateTime?
+
+  reporter User @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+  @@index([reporterId])
   @@index([createdAt])
 }
 

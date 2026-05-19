@@ -7,7 +7,9 @@ import { SkipToMain } from "@/components/layout/SkipToMain";
 import { MobileNav } from "@/components/layout/MobileNav";
 import { PageTransition } from "@/components/layout/PageTransition";
 import { isAdminOrAbove, getActiveDepartmentId } from "@/lib/auth/permissions";
+import { isBugReportsAdmin } from "@/lib/bug-reports";
 import type { SessionUser } from "@/lib/auth/types";
+import { BugReportStatus } from "@/app/generated/prisma/enums";
 
 export default async function DashboardLayout({
   children,
@@ -37,10 +39,25 @@ export default async function DashboardLayout({
         })
     : 0;
 
+  const bugReportsAdmin = isBugReportsAdmin(user);
+  const openBugReports = bugReportsAdmin
+    ? await prisma.bugReport.count({
+        where: {
+          status: { in: [BugReportStatus.OPEN, BugReportStatus.IN_PROGRESS] },
+        },
+      })
+    : 0;
+
   return (
     <div className="app-dashboard-root flex h-screen overflow-hidden relative print:h-auto print:min-h-0 print:overflow-visible">
       <SkipToMain />
-      <Sidebar user={user} isAdmin={isAdminOrAbove(user)} pendingFollowups={pendingFollowups} />
+      <Sidebar
+        user={user}
+        isAdmin={isAdminOrAbove(user)}
+        pendingFollowups={pendingFollowups}
+        isBugReportsAdmin={bugReportsAdmin}
+        openBugReports={openBugReports}
+      />
       <main
         id="main-content"
         className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-transparent relative z-10 print:h-auto print:min-h-0 print:overflow-visible"

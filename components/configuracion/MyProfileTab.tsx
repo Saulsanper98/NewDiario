@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
 import {
   Camera,
@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { Avatar } from "@/components/ui/Avatar";
+import { AvatarImagePreview } from "@/components/ui/AvatarImagePreview";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { cn } from "@/lib/utils";
@@ -33,8 +34,9 @@ export function MyProfileTab({ currentUser }: MyProfileTabProps) {
   const [password2, setPassword2] = useState("");
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [showImageUrl, setShowImageUrl] = useState(false);
-
+  const [showImageUrl, setShowImageUrl] = useState(true);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const trimmedImage = image.trim();
   const imageDirty = trimmedImage !== (currentUser.image ?? "");
   const passwordDirty = password.length > 0;
@@ -178,43 +180,56 @@ export function MyProfileTab({ currentUser }: MyProfileTabProps) {
               : "border-b border-white/8 bg-white/[0.02]"
           )}
         >
-          <label
-            className={cn(
-              "group relative mx-auto inline-flex cursor-pointer rounded-full",
-              uploading && "pointer-events-none opacity-70"
-            )}
-          >
-            <input
-              type="file"
-              accept="image/*"
-              className="sr-only"
-              disabled={uploading}
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f) void uploadAvatar(f);
-                e.currentTarget.value = "";
-              }}
-            />
-            <Avatar
-              name={currentUser.name}
-              image={trimmedImage || null}
-              size="xl"
-              effect={avatarEffect}
-            />
-            <span
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            className="sr-only"
+            disabled={uploading}
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) void uploadAvatar(f);
+              e.currentTarget.value = "";
+            }}
+          />
+          <div className="relative mx-auto inline-flex flex-col items-center gap-2">
+            <button
+              type="button"
+              onClick={() => trimmedImage && setPreviewOpen(true)}
+              disabled={!trimmedImage || uploading}
+              title={trimmedImage ? "Ver foto en grande" : "Aún no hay foto"}
               className={cn(
-                "absolute inset-0 flex items-center justify-center rounded-full transition-opacity",
-                L ? "bg-zinc-900/40" : "bg-black/45",
-                uploading ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+                "group relative rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ffeb66]/50",
+                trimmedImage && "cursor-zoom-in"
+              )}
+            >
+              <Avatar
+                name={currentUser.name}
+                image={trimmedImage || null}
+                size="xl"
+                effect={avatarEffect}
+              />
+            </button>
+            <button
+              type="button"
+              disabled={uploading}
+              onClick={() => fileInputRef.current?.click()}
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors",
+                L
+                  ? "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50"
+                  : "border-white/15 bg-white/5 text-white/75 hover:bg-white/10",
+                uploading && "pointer-events-none opacity-60"
               )}
             >
               {uploading ? (
-                <Loader2 className="h-6 w-6 animate-spin text-white" />
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
               ) : (
-                <Camera className="h-6 w-6 text-white drop-shadow" />
+                <Camera className="h-3.5 w-3.5" />
               )}
-            </span>
-          </label>
+              {uploading ? "Subiendo…" : "Cambiar foto"}
+            </button>
+          </div>
 
           <p
             className={cn(
@@ -244,7 +259,7 @@ export function MyProfileTab({ currentUser }: MyProfileTabProps) {
           )}
 
           <p className={cn("mt-3 text-xs", L ? "text-zinc-400" : "text-white/30")}>
-            Pulsa la foto para cambiarla · JPG, PNG o WebP
+            Pulsa la foto para verla en grande · «Cambiar foto» o URL abajo para actualizarla
           </p>
 
           <p
@@ -370,6 +385,13 @@ export function MyProfileTab({ currentUser }: MyProfileTabProps) {
           </Button>
         </div>
       </form>
+
+      <AvatarImagePreview
+        open={previewOpen}
+        name={currentUser.name}
+        imageUrl={trimmedImage || null}
+        onClose={() => setPreviewOpen(false)}
+      />
     </div>
   );
 }

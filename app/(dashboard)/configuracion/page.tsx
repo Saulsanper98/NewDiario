@@ -21,34 +21,36 @@ export default async function ConfiguracionPage() {
   const user = session.user as SessionUser;
   const isAdmin = isAdminOrAbove(user);
 
-  let users: ConfigPageUser[] = [];
-  let departments: ConfigPageDepartment[] = [];
-  let activityLogs: ConfigPageActivityLog[] = [];
+  const [users, departments] = await Promise.all([
+    prisma.user.findMany({
+      where: { deletedAt: null },
+      include: configPageUserInclude,
+      orderBy: { name: "asc" },
+    }),
+    prisma.department.findMany({
+      include: configPageDepartmentInclude,
+      orderBy: { name: "asc" },
+    }),
+  ]);
 
+  let activityLogs: ConfigPageActivityLog[] = [];
   if (isAdmin) {
-    [users, departments, activityLogs] = await Promise.all([
-      prisma.user.findMany({
-        where: { deletedAt: null },
-        include: configPageUserInclude,
-        orderBy: { name: "asc" },
-      }),
-      prisma.department.findMany({
-        include: configPageDepartmentInclude,
-        orderBy: { name: "asc" },
-      }),
-      prisma.activityLog.findMany({
-        include: configPageActivityLogInclude,
-        orderBy: { createdAt: "desc" },
-        take: 100,
-      }),
-    ]);
+    activityLogs = await prisma.activityLog.findMany({
+      include: configPageActivityLogInclude,
+      orderBy: { createdAt: "desc" },
+      take: 100,
+    });
   }
 
   return (
     <div className="config-page-root flex flex-col h-full overflow-hidden">
       <Header
         user={user}
-        breadcrumb={[{ label: isAdmin ? "Configuración" : "Mi cuenta" }]}
+        breadcrumb={[
+          {
+            label: isAdmin ? "Configuración" : "Mi cuenta",
+          },
+        ]}
       />
       <div className="flex-1 overflow-y-auto">
         <ConfigTabs

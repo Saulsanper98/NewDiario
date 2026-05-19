@@ -549,6 +549,12 @@ export function RichEditor({
           {btn(editor.isActive("orderedList"), () => editor.chain().focus().toggleOrderedList().run(), "Lista numerada",        <ListOrdered className="w-3.5 h-3.5" />)}
           {btn(editor.isActive("taskList"),    () => editor.chain().focus().toggleTaskList().run(),    "Lista de verificación", <ListChecks  className="w-3.5 h-3.5" />)}
 
+          {sep()}
+
+          {fileInsertLabel(imageFileInputId, "Insertar imagen / GIF desde el equipo", <ImageIcon className="w-3.5 h-3.5" />, uploadingMedia)}
+          {fileInsertLabel(videoFileInputId, "Insertar vídeo desde el equipo", <Film className="w-3.5 h-3.5" />, uploadingMedia)}
+          {btn(false, openMediaUrlDialog, "Insertar imagen/vídeo por URL", <Link2 className="w-3.5 h-3.5" />)}
+
           {/* B50 — extended tools toggle */}
           <div className="ml-auto flex items-center gap-0.5">
             <button
@@ -604,9 +610,6 @@ export function RichEditor({
           {sep()}
 
           {btn(false, () => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run(), "Insertar tabla",       <TableIcon className="w-3.5 h-3.5" />)}
-          {fileInsertLabel(imageFileInputId, "Insertar imagen / GIF desde el equipo", <ImageIcon className="w-3.5 h-3.5" />, uploadingMedia)}
-          {fileInsertLabel(videoFileInputId, "Insertar vídeo desde el equipo", <Film className="w-3.5 h-3.5" />, uploadingMedia)}
-          {btn(false, openMediaUrlDialog, "Insertar imagen/vídeo por URL", <Link2 className="w-3.5 h-3.5" />)}
           {btn(false, () => editor.chain().focus().setHorizontalRule().run(), "Separador horizontal", <Minus className="w-3.5 h-3.5" />)}
 
           {sep()}

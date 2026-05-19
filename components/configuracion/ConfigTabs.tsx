@@ -64,7 +64,10 @@ export function ConfigTabs({
 
   const visibleTabs = useMemo(() => {
     if (!isAdmin) {
-      return [{ id: "profile" as const, label: "Mi cuenta", icon: UserCircle }];
+      return [
+        { id: "profile" as const, label: "Mi cuenta", icon: UserCircle },
+        { id: "users" as const, label: "Usuarios", icon: Users },
+      ];
     }
     return TABS.filter((t) => !t.superAdminOnly || isSuperAdmin);
   }, [isAdmin, isSuperAdmin]);
@@ -118,15 +121,16 @@ export function ConfigTabs({
 
       {/* Tab content */}
       <div>
-        {activeTab === "profile" && !isAdmin && (
+        {activeTab === "profile" && (
           <MyProfileTab currentUser={currentUser} />
         )}
-        {activeTab === "users" && isAdmin && (
+        {activeTab === "users" && (
           <UsersTab
             users={users}
             departments={departments}
             currentUser={currentUser}
             isSuperAdmin={isSuperAdmin}
+            readOnly={!isAdmin}
           />
         )}
         {activeTab === "departments" && isAdmin && (

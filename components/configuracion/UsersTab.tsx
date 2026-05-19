@@ -27,12 +27,15 @@ import type { ConfigPageDepartment, ConfigPageUser } from "@/lib/types/config";
 import { useAccentForUi } from "@/lib/hooks/useAccentForUi";
 import { useTheme } from "@/components/layout/ThemeProvider";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { AvatarImagePreview } from "@/components/ui/AvatarImagePreview";
 
 interface UsersTabProps {
   users: ConfigPageUser[];
   departments: ConfigPageDepartment[];
   currentUser: SessionUser;
   isSuperAdmin: boolean;
+  /** Operadores: listado del equipo sin edición. */
+  readOnly?: boolean;
 }
 
 export function UsersTab({
@@ -40,6 +43,7 @@ export function UsersTab({
   departments,
   currentUser,
   isSuperAdmin,
+  readOnly = false,
 }: UsersTabProps) {
   const { accent, withAlpha } = useAccentForUi();
   const { theme } = useTheme();
@@ -72,6 +76,12 @@ export function UsersTab({
   const [deleteTarget, setDeleteTarget] = useState<ConfigPageUser | null>(null);
   const [deleteConfirmName, setDeleteConfirmName] = useState("");
   const [deleting, setDeleting] = useState(false);
+  const [avatarPreview, setAvatarPreview] = useState<{
+    name: string;
+    image: string;
+  } | null>(null);
+
+  const colCount = readOnly ? 4 : 5;
 
   async function uploadAvatar(file: File, target: "create" | "edit") {
     if (!file.type.startsWith("image/")) {
@@ -375,6 +385,11 @@ export function UsersTab({
     URL.revokeObjectURL(url);
   }
 
+  function openAvatarPreview(user: ConfigPageUser) {
+    if (!user.image) return;
+    setAvatarPreview({ name: user.name, image: user.image });
+  }
+
   function renderUserTableRow(user: ConfigPageUser, rowKey: string) {
     return (
       <tr
@@ -383,7 +398,18 @@ export function UsersTab({
       >
         <td className="px-4 py-2.5 align-middle">
           <div className="flex items-center gap-2.5">
-            <Avatar name={user.name} image={user.image} size="sm" />
+            <button
+              type="button"
+              onClick={() => openAvatarPreview(user)}
+              disabled={!user.image}
+              title={user.image ? "Ver foto" : undefined}
+              className={cn(
+                "shrink-0 rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ffeb66]/50",
+                user.image && "cursor-zoom-in"
+              )}
+            >
+              <Avatar name={user.name} image={user.image} size="sm" />
+            </button>
             <div>
               <p className="text-sm font-medium text-white">{user.name}</p>
               <p className="text-xs text-white/40">{user.email}</p>
@@ -432,44 +458,58 @@ export function UsersTab({
             {user.isActive ? "Activo" : "Inactivo"}
           </Badge>
         </td>
-        <td className="px-4 py-2.5 align-middle">
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" type="button" onClick={() => openEdit(user)}>
-              Editar
-            </Button>
-            {user.id !== currentUser.id && (
-              <Button
-                variant="danger"
-                size="sm"
-                type="button"
-                onClick={() => toggleActive(user.id, user.isActive)}
-              >
-                {user.isActive ? "Desactivar" : "Activar"}
+        {!readOnly && (
+          <td className="px-4 py-2.5 align-middle">
+            <div className="flex items-center gap-2">
+              <Button variant="ghost" size="sm" type="button" onClick={() => openEdit(user)}>
+                Editar
               </Button>
-            )}
-            {isSuperAdmin && user.id !== currentUser.id && (
-              <Button
-                variant="ghost"
-                size="sm"
-                type="button"
-                onClick={() => {
-                  setDeleteTarget(user);
-                  setDeleteConfirmName("");
-                }}
-                title="Eliminar usuario"
-                className="text-red-400/60 hover:text-red-400"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-              </Button>
-            )}
-          </div>
-        </td>
+              {user.id !== currentUser.id && (
+                <Button
+                  variant="danger"
+                  size="sm"
+                  type="button"
+                  onClick={() => toggleActive(user.id, user.isActive)}
+                >
+                  {user.isActive ? "Desactivar" : "Activar"}
+                </Button>
+              )}
+              {isSuperAdmin && user.id !== currentUser.id && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  type="button"
+                  onClick={() => {
+                    setDeleteTarget(user);
+                    setDeleteConfirmName("");
+                  }}
+                  title="Eliminar usuario"
+                  className="text-red-400/60 hover:text-red-400"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </Button>
+              )}
+            </div>
+          </td>
+        )}
       </tr>
     );
   }
 
   return (
     <div className="config-users-root space-y-4">
+      {readOnly && (
+        <p
+          className={cn(
+            "rounded-lg border px-3 py-2 text-xs",
+            L
+              ? "border-zinc-200 bg-zinc-50 text-zinc-600"
+              : "border-white/10 bg-white/[0.03] text-white/50"
+          )}
+        >
+          Directorio del equipo en solo lectura. Para cambiar tu perfil, usa la pestaña Mi cuenta.
+        </p>
+      )}
       <div className="flex items-center gap-3">
         <div className="flex-1 relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
@@ -481,15 +521,21 @@ export function UsersTab({
             className="config-users-search w-full bg-white/5 border border-white/8 rounded-lg pl-9 pr-3 py-2 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-[#ffeb66]/40"
           />
         </div>
-        <Button variant="secondary" size="md" type="button" onClick={exportCSV} title="Exportar CSV">
-          <Download className="w-3.5 h-3.5" />
-        </Button>
-        <Button variant="primary" size="md" type="button" onClick={openModal}>
-          <UserPlus className="w-3.5 h-3.5" />
-          Nuevo usuario
-        </Button>
+        {!readOnly && (
+          <>
+            <Button variant="secondary" size="md" type="button" onClick={exportCSV} title="Exportar CSV">
+              <Download className="w-3.5 h-3.5" />
+            </Button>
+            <Button variant="primary" size="md" type="button" onClick={openModal}>
+              <UserPlus className="w-3.5 h-3.5" />
+              Nuevo usuario
+            </Button>
+          </>
+        )}
       </div>
 
+      {!readOnly && (
+      <>
       <Modal
         open={modalOpen}
         onClose={closeModal}
@@ -864,6 +910,8 @@ export function UsersTab({
           </div>
         </div>
       </Modal>
+      </>
+      )}
 
       <div className="config-users-table-shell glass rounded-xl overflow-hidden flex flex-col max-h-[min(70vh,560px)]">
         {filtered.length === 0 ? (
@@ -912,7 +960,9 @@ export function UsersTab({
                 >
                   Estado
                 </th>
-                <th scope="col" className="px-4 py-2.5 align-middle" aria-label="Acciones" />
+                {!readOnly && (
+                  <th scope="col" className="px-4 py-2.5 align-middle" aria-label="Acciones" />
+                )}
               </tr>
             </thead>
             <tbody>
@@ -923,7 +973,7 @@ export function UsersTab({
                   {usersByDepartmentSections.map(({ department, users: list }) => (
                     <Fragment key={department.id}>
                       <tr className="border-b border-white/8 bg-white/[0.045]">
-                        <td colSpan={5} className="px-4 py-2 align-middle">
+                        <td colSpan={colCount} className="px-4 py-2 align-middle">
                           <div className="flex items-center gap-2 flex-wrap">
                             <span
                               className="w-2 h-2 rounded-full shrink-0"
@@ -953,7 +1003,7 @@ export function UsersTab({
                   {usersWithoutDepartment.length > 0 && (
                     <Fragment key="__sin-depto">
                       <tr className="border-b border-white/8 bg-amber-500/[0.07]">
-                        <td colSpan={5} className="px-4 py-2 align-middle">
+                        <td colSpan={colCount} className="px-4 py-2 align-middle">
                           <div className="flex items-center gap-2">
                             <span className="text-xs font-semibold text-amber-200/90 tracking-wide">
                               Sin departamento asignado
@@ -977,6 +1027,13 @@ export function UsersTab({
           </div>
         )}
       </div>
+
+      <AvatarImagePreview
+        open={!!avatarPreview}
+        name={avatarPreview?.name ?? ""}
+        imageUrl={avatarPreview?.image ?? null}
+        onClose={() => setAvatarPreview(null)}
+      />
     </div>
   );
 }

@@ -5,8 +5,9 @@ import { useRouter, usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
 import toast from "react-hot-toast";
 import { Bell, ChevronDown, ChevronRight, Check, X, Loader2, WifiOff, Sun, Sunset, Moon } from "lucide-react";
+import { ReportBugHeaderButton } from "@/components/bugs/ReportBugHeaderButton";
 import Link from "next/link";
-import { Avatar } from "@/components/ui/Avatar";
+import { ClickableAvatar } from "@/components/ui/ClickableAvatar";
 import { useAvatarFrameEffect } from "@/lib/hooks/useAvatarFrameEffect";
 import { CommandPalette } from "@/components/layout/CommandPalette";
 import { ThemeSelector } from "@/components/layout/ThemeSelector";
@@ -341,6 +342,8 @@ export function Header({ user, breadcrumb }: HeaderProps) {
         </div>
       )}
 
+      <ReportBugHeaderButton />
+
       <ThemeSelector />
 
       <div className="flex items-center gap-2.5 shrink-0">
@@ -530,7 +533,7 @@ export function Header({ user, breadcrumb }: HeaderProps) {
       </div>
 
       {/* Avatar */}
-      <Avatar
+      <ClickableAvatar
         name={user.name}
         image={user.image}
         size="sm"
