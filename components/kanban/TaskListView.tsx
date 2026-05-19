@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { Calendar, ChevronUp, ChevronDown, Minus } from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
+import { UserProfilePopover } from "@/components/user/UserProfilePopover";
 import { Badge } from "@/components/ui/Badge";
 import { getPriorityColor, PRIORITY_LABELS } from "@/lib/utils";
 import { format, isPast } from "date-fns";
@@ -174,9 +175,12 @@ export function TaskListView({ columns }: TaskListViewProps) {
                           image={task.assignee.image}
                           size="xs"
                         />
-                        <span className="text-xs text-white/50">
-                          {task.assignee.name}
-                        </span>
+                        <UserProfilePopover
+                          userId={task.assignee.id}
+                          name={task.assignee.name}
+                          image={task.assignee.image}
+                          nameClassName="text-xs text-white/50"
+                        />
                       </div>
                     ) : (
                       <span className="text-xs text-white/20">—</span>

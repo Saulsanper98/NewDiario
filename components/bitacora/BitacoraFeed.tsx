@@ -40,6 +40,7 @@ import {
 import { Badge } from "@/components/ui/Badge";
 import { HighlightText } from "@/components/ui/HighlightText";
 import { Avatar } from "@/components/ui/Avatar";
+import { UserProfilePopover } from "@/components/user/UserProfilePopover";
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { RelativeTime } from "@/components/ui/RelativeTime";
@@ -1149,7 +1150,12 @@ function LogCard({
               {log.requiresFollowup && !log.followupDone && (
                 <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-400/12 text-amber-400 border border-amber-400/20 shrink-0">Seg.</span>
               )}
-              <span className="text-xs text-white/35 shrink-0 hidden sm:block">{log.author.name}</span>
+              <UserProfilePopover
+                userId={log.author.id}
+                name={log.author.name}
+                image={log.author.image}
+                nameClassName="text-xs text-white/35 shrink-0 hidden sm:inline"
+              />
               <RelativeTime
                 date={log.createdAt}
                 className="text-xs text-white/25 shrink-0"
@@ -1236,7 +1242,12 @@ function LogCard({
                 )}
 
                 <div className="flex items-center gap-3 text-xs text-white/30">
-                  <span className="font-medium text-white/40">{log.author.name}</span>
+                  <UserProfilePopover
+                    userId={log.author.id}
+                    name={log.author.name}
+                    image={log.author.image}
+                    nameClassName="font-medium text-white/40"
+                  />
                   <span>·</span>
                   <span className="flex items-center gap-1">
                     <Clock className="w-3 h-3" />

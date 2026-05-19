@@ -30,6 +30,7 @@ import {
   Minus,
 } from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
+import { UserProfilePopover } from "@/components/user/UserProfilePopover";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -770,9 +771,12 @@ export function LogEntryDetail({
               size="sm"
             />
             <div>
-              <p className="text-sm font-medium text-white/80">
-                {entry.author.name}
-              </p>
+              <UserProfilePopover
+                userId={entry.author.id}
+                name={entry.author.name}
+                image={entry.author.image}
+                nameClassName="text-sm font-medium text-white/80"
+              />
               <p className="text-xs text-white/40">
                 {formatDate(entry.createdAt)}
                 {entry.editHistory.length > 0 &&
@@ -1052,14 +1056,15 @@ export function LogEntryDetail({
                     >
                       <div className="flex items-start gap-2 mb-2 flex-wrap">
                         <div className="flex flex-col sm:flex-row sm:items-baseline sm:gap-2 min-w-0 gap-0.5">
-                          <span
-                            className={cn(
+                          <UserProfilePopover
+                            userId={c.author.id}
+                            name={c.author.name}
+                            image={c.author.image}
+                            nameClassName={cn(
                               "text-[13px] font-medium tracking-tight truncate",
                               L ? "text-zinc-900" : "text-white/82"
                             )}
-                          >
-                            {c.author.name}
-                          </span>
+                          />
                           <span
                             className={cn(
                               "inline-flex w-fit items-center rounded-md px-1.5 py-0.5 text-[10px] font-medium tabular-nums",

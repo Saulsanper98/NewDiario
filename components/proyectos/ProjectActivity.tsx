@@ -6,6 +6,7 @@ import {
   CheckSquare, Filter, Loader2, ChevronDown,
 } from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
+import { UserProfilePopover } from "@/components/user/UserProfilePopover";
 import type { ProjectDetail } from "@/lib/types/project-detail";
 import { formatRelative } from "@/lib/utils";
 import { format, isToday, isYesterday } from "date-fns";
@@ -180,7 +181,12 @@ export function ProjectActivity({ activities: initial, projectId }: ProjectActiv
                               {user && (
                                 <>
                                   <Avatar name={user.name} image={user.image} size="xs" />
-                                  <span className="text-[11px] text-white/35">{user.name}</span>
+                                  <UserProfilePopover
+                                    userId={user.id}
+                                    name={user.name}
+                                    image={user.image}
+                                    nameClassName="text-[11px] text-white/35"
+                                  />
                                   <span className="text-white/15">·</span>
                                 </>
                               )}

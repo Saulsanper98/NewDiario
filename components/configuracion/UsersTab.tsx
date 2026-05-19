@@ -15,6 +15,7 @@ import {
   Upload,
 } from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
+import { UserProfilePopover } from "@/components/user/UserProfilePopover";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -411,7 +412,13 @@ export function UsersTab({
               <Avatar name={user.name} image={user.image} size="sm" />
             </button>
             <div>
-              <p className="text-sm font-medium text-white">{user.name}</p>
+              <UserProfilePopover
+                userId={user.id}
+                name={user.name}
+                email={user.email}
+                image={user.image}
+                nameClassName="text-sm font-medium text-white"
+              />
               <p className="text-xs text-white/40">{user.email}</p>
             </div>
           </div>

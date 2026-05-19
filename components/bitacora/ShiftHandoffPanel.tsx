@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import type { ShiftHandoffActive } from "@/lib/types/shift-handoff";
 import { Modal } from "@/components/ui/Modal";
+import { UserProfilePopover } from "@/components/user/UserProfilePopover";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/components/layout/ThemeProvider";
@@ -148,7 +149,11 @@ export function ShiftHandoffPanel({
             <ShiftIcon className="w-3 h-3 text-white/50" />
             <span>{SHIFT_LABELS[handoff.shift]}</span>
             <span>·</span>
-            <span>{handoff.author.name}</span>
+            <UserProfilePopover
+              userId={handoff.author.id}
+              name={handoff.author.name}
+              image={handoff.author.image}
+            />
             <span>·</span>
             <span>
               {format(new Date(handoff.createdAt), "d MMM HH:mm", { locale: es })}

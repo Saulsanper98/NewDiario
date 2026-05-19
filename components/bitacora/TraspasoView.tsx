@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { Avatar } from "@/components/ui/Avatar";
+import { UserProfilePopover } from "@/components/user/UserProfilePopover";
 import { Button } from "@/components/ui/Button";
 import {
   TYPE_LABELS,
@@ -522,7 +523,11 @@ export function TraspasoView({
                           isLight ? "text-zinc-600" : "text-white/40"
                         )}
                       >
-                        <span>{log.author.name}</span>
+                        <UserProfilePopover
+                          userId={log.author.id}
+                          name={log.author.name}
+                          image={log.author.image}
+                        />
                         <span className={isLight ? "text-zinc-300" : "text-white/20"}>·</span>
                         <span>{SHIFT_LABELS[log.shift as keyof typeof SHIFT_LABELS]}</span>
                         <span className={isLight ? "text-zinc-300" : "text-white/20"}>·</span>
@@ -680,7 +685,11 @@ export function TraspasoView({
                           isLight ? "text-zinc-600" : "text-white/45"
                         )}
                       >
-                        {log.author.name} ·{" "}
+                        <UserProfilePopover
+                          userId={log.author.id}
+                          name={log.author.name}
+                        />
+                        {" · "}
                         <span className="tabular-nums">{formatDate(log.createdAt)}</span>
                       </p>
                     </div>

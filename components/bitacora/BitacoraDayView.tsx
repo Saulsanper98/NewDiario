@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { Avatar } from "@/components/ui/Avatar";
+import { UserProfilePopover } from "@/components/user/UserProfilePopover";
 import {
   cn,
   SHIFT_LABELS,
@@ -224,7 +225,11 @@ function DayEntryCard({
                   isLight ? "text-zinc-600" : "text-white/35"
                 )}
               >
-                <span>{log.author.name}</span>
+                <UserProfilePopover
+                  userId={log.author.id}
+                  name={log.author.name}
+                  image={log.author.image}
+                />
                 <span>·</span>
                 <span>{formatDate(log.createdAt)}</span>
                 {(log._count?.comments ?? 0) > 0 && (

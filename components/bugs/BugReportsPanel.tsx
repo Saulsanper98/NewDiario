@@ -14,6 +14,7 @@ import toast from "react-hot-toast";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { UserProfilePopover } from "@/components/user/UserProfilePopover";
 import { useTheme } from "@/components/layout/ThemeProvider";
 import { cn, formatDate, formatRelative } from "@/lib/utils";
 import {
@@ -365,7 +366,17 @@ export function BugReportsPanel() {
                           L ? "text-zinc-500" : "text-white/35"
                         )}
                       >
-                        {r.reporter.name} · {formatRelative(r.createdAt)}
+                        <UserProfilePopover
+                          userId={r.reporter.id}
+                          name={r.reporter.name}
+                          email={r.reporter.email}
+                          nameClassName={cn(
+                            "font-medium",
+                            L ? "text-zinc-600" : "text-white/50"
+                          )}
+                        />
+                        {" · "}
+                        {formatRelative(r.createdAt)}
                       </p>
                     </div>
                   </button>
@@ -426,7 +437,12 @@ export function BugReportsPanel() {
                   </Badge>
                 </div>
                 <p className={cn("text-xs", L ? "text-zinc-500" : "text-white/40")}>
-                  <span className="font-medium text-inherit">{selected.reporter.name}</span>
+                  <UserProfilePopover
+                    userId={selected.reporter.id}
+                    name={selected.reporter.name}
+                    email={selected.reporter.email}
+                    nameClassName="font-medium text-inherit"
+                  />
                   {" · "}
                   {selected.reporter.email}
                   {" · "}

@@ -11,6 +11,7 @@ import Link from "next/link";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Avatar } from "@/components/ui/Avatar";
+import { UserProfilePopover } from "@/components/user/UserProfilePopover";
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { cn } from "@/lib/utils";
@@ -429,7 +430,11 @@ export function DashboardContent({
                             )}
                           </div>
                           <div className="flex items-center gap-2 text-xs text-white/35">
-                            <span>{log.author.name}</span>
+                            <UserProfilePopover
+                              userId={log.author.id}
+                              name={log.author.name}
+                              image={log.author.image}
+                            />
                             <span>·</span>
                             <span>{SHIFT_LABELS[log.shift as keyof typeof SHIFT_LABELS]}</span>
                             <span>·</span>
