@@ -42,6 +42,21 @@ function formatTime(iso: string) {
   });
 }
 
+function daySeparatorLabel(iso: string) {
+  const d = new Date(iso);
+  const now = new Date();
+  const startOfDay = (x: Date) =>
+    new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+  const diff = startOfDay(now) - startOfDay(d);
+  if (diff === 0) return "Hoy";
+  if (diff === 86_400_000) return "Ayer";
+  return d.toLocaleDateString("es-ES", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  });
+}
+
 function formatListTime(iso: string) {
   const d = new Date(iso);
   const now = new Date();
@@ -275,37 +290,60 @@ export function ChatView() {
       >
         <div
           className={cn(
-            "shrink-0 border-b px-4 py-3",
-            L ? "border-zinc-200/80" : "border-white/8"
+            "shrink-0 border-b px-4 py-3.5",
+            L
+              ? "border-zinc-200/80 bg-gradient-to-r from-[#ffeb66]/12 to-transparent"
+              : "border-white/8 bg-gradient-to-r from-[#ffeb66]/10 via-[#ffeb66]/5 to-transparent"
           )}
         >
           <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <MessageCircle
-                className={cn("h-5 w-5", L ? "text-zinc-700" : "text-[#ffeb66]")}
-              />
-              <h2
+            <div className="flex items-center gap-2.5">
+              <span
                 className={cn(
-                  "text-base font-semibold",
-                  L ? "text-zinc-900" : "text-white"
+                  "flex h-9 w-9 items-center justify-center rounded-xl border shadow-sm",
+                  L
+                    ? "border-[#ffeb66]/35 bg-[#ffeb66]/18 text-zinc-800"
+                    : "border-[#ffeb66]/25 bg-[#ffeb66]/10 text-[#ffeb66] shadow-[0_0_24px_rgba(255,235,102,0.12)]"
                 )}
               >
-                Mensajes
-              </h2>
+                <MessageCircle className="h-4 w-4" />
+              </span>
+              <div>
+                <h2
+                  className={cn(
+                    "text-base font-semibold tracking-tight",
+                    L ? "text-zinc-900" : "text-white"
+                  )}
+                >
+                  Mensajes
+                </h2>
+                <p
+                  className={cn(
+                    "text-[11px]",
+                    L ? "text-zinc-500" : "text-white/40"
+                  )}
+                >
+                  Chat del equipo
+                </p>
+              </div>
             </div>
             <button
               type="button"
               onClick={() => setNewChatOpen((v) => !v)}
               className={cn(
-                "flex h-8 w-8 items-center justify-center rounded-lg border transition-colors",
-                L
-                  ? "border-zinc-200 bg-zinc-50 text-zinc-700 hover:bg-zinc-100"
-                  : "border-white/12 bg-white/5 text-white/70 hover:bg-white/10 hover:text-white"
+                "flex h-9 items-center gap-1.5 rounded-xl border px-3 text-xs font-semibold transition-all",
+                newChatOpen
+                  ? L
+                    ? "border-zinc-300 bg-zinc-100 text-zinc-800"
+                    : "border-white/20 bg-white/10 text-white"
+                  : L
+                    ? "border-[#ffeb66]/45 bg-[#ffeb66]/18 text-zinc-900 hover:bg-[#ffeb66]/28"
+                    : "border-[#ffeb66]/35 bg-[#ffeb66]/12 text-[#ffeb66] hover:bg-[#ffeb66]/20 shadow-[0_0_16px_rgba(255,235,102,0.1)]"
               )}
               title="Nueva conversación"
             >
               <Plus className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Nuevo</span>
+              Nuevo
             </button>
           </div>
 
@@ -341,7 +379,7 @@ export function ChatView() {
               Pulsa + para escribir a un compañero.
             </p>
           ) : (
-            <ul>
+            <ul className="space-y-1 p-2">
               {conversations.map((c) => {
                 const active = c.id === activeId;
                 return (
@@ -350,15 +388,14 @@ export function ChatView() {
                       type="button"
                       onClick={() => selectConversation(c.id)}
                       className={cn(
-                        "flex w-full items-start gap-3 border-b px-4 py-3 text-left transition-colors",
-                        L ? "border-zinc-100" : "border-white/5",
+                        "flex w-full items-start gap-3 rounded-xl px-3 py-2.5 text-left transition-all",
                         active
                           ? L
-                            ? "bg-[#ffeb66]/12"
-                            : "bg-[#ffeb66]/8"
+                            ? "bg-[#ffeb66]/14 ring-1 ring-[#ffeb66]/35 shadow-sm"
+                            : "bg-[#ffeb66]/10 ring-1 ring-[#ffeb66]/25 shadow-[0_0_20px_rgba(255,235,102,0.08)]"
                           : L
                             ? "hover:bg-zinc-50"
-                            : "hover:bg-white/[0.03]"
+                            : "hover:bg-white/[0.05]"
                       )}
                     >
                       <Avatar
@@ -431,10 +468,10 @@ export function ChatView() {
           <>
             <header
               className={cn(
-                "flex shrink-0 items-center gap-3 border-b px-4 py-3",
+                "flex shrink-0 items-center gap-3 border-b px-4 py-3.5",
                 L
-                  ? "border-zinc-200/80 bg-white/70"
-                  : "border-white/8 bg-[#0d1427]/50 backdrop-blur-md"
+                  ? "border-zinc-200/80 bg-white/80 backdrop-blur-md"
+                  : "border-white/8 bg-[#0a0f1e]/70 backdrop-blur-xl"
               )}
             >
               <button
@@ -500,38 +537,72 @@ export function ChatView() {
                   Escribe el primer mensaje a {activeConv.peer.name}.
                 </p>
               ) : (
-                messages.map((m) => (
-                  <div
-                    key={m.id}
-                    className={cn(
-                      "flex",
-                      m.isMine ? "justify-end" : "justify-start"
-                    )}
-                  >
-                    <div
-                      className={cn(
-                        "max-w-[min(100%,28rem)] rounded-2xl px-3.5 py-2.5 shadow-sm",
-                        m.isMine
-                          ? "rounded-br-md border border-[#ffeb66]/25 bg-gradient-to-br from-[#ffeb66]/22 via-[#c9a227]/18 to-[#3d5a80]/40 text-white shadow-[0_4px_20px_rgba(255,235,102,0.12)]"
-                          : L
-                            ? "rounded-bl-md border border-zinc-200/90 bg-white text-zinc-900 shadow-sm"
-                            : "rounded-bl-md border border-white/12 bg-white/[0.07] text-white shadow-sm backdrop-blur-sm"
+                messages.map((m, idx) => {
+                  const prev = messages[idx - 1];
+                  const showDay =
+                    !prev ||
+                    daySeparatorLabel(prev.createdAt) !==
+                      daySeparatorLabel(m.createdAt);
+                  return (
+                    <div key={m.id} className="space-y-3">
+                      {showDay && (
+                        <div className="flex justify-center py-1">
+                          <span
+                            className={cn(
+                              "rounded-full border px-3 py-0.5 text-[10px] font-medium capitalize",
+                              L
+                                ? "border-zinc-200/90 bg-zinc-100 text-zinc-500"
+                                : "border-white/10 bg-white/[0.05] text-white/40"
+                            )}
+                          >
+                            {daySeparatorLabel(m.createdAt)}
+                          </span>
+                        </div>
                       )}
-                    >
-                      <p className="whitespace-pre-wrap break-words text-sm leading-relaxed">
-                        {m.body}
-                      </p>
-                      <p
+                      <div
                         className={cn(
-                          "mt-1 text-[10px]",
-                          m.isMine ? "text-white/55" : L ? "text-zinc-400" : "text-white/35"
+                          "flex gap-2",
+                          m.isMine ? "flex-row-reverse" : "flex-row"
                         )}
                       >
-                        {formatTime(m.createdAt)}
-                      </p>
+                        {!m.isMine && (
+                          <Avatar
+                            name={m.sender.name}
+                            image={m.sender.image}
+                            size="xs"
+                            className="mt-0.5 shrink-0"
+                          />
+                        )}
+                        <div
+                          className={cn(
+                            "max-w-[min(100%,26rem)] rounded-2xl px-3.5 py-2.5 shadow-sm",
+                            m.isMine
+                              ? "rounded-br-md border border-[#ffeb66]/30 bg-gradient-to-br from-[#ffeb66]/28 via-[#d4af37]/15 to-[#1a2a42]/90 text-white shadow-[0_4px_24px_rgba(255,235,102,0.14)]"
+                              : L
+                                ? "rounded-bl-md border border-zinc-200/90 bg-white text-zinc-900"
+                                : "rounded-bl-md border border-white/12 bg-[#121a2e]/90 text-white backdrop-blur-sm"
+                          )}
+                        >
+                          <p className="whitespace-pre-wrap break-words text-sm leading-relaxed">
+                            {m.body}
+                          </p>
+                          <p
+                            className={cn(
+                              "mt-1.5 text-[10px] tabular-nums",
+                              m.isMine
+                                ? "text-white/50"
+                                : L
+                                  ? "text-zinc-400"
+                                  : "text-white/35"
+                            )}
+                          >
+                            {formatTime(m.createdAt)}
+                          </p>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                ))
+                  );
+                })
               )}
               <div ref={messagesEndRef} />
             </div>
@@ -540,10 +611,17 @@ export function ChatView() {
               onSubmit={handleSend}
               className={cn(
                 "shrink-0 border-t p-3 sm:p-4",
-                L ? "border-zinc-200/80 bg-white/80" : "border-white/8 bg-[#0a0f1e]/80"
+                L ? "border-zinc-200/80 bg-white/90" : "border-white/8 bg-[#060a14]/90"
               )}
             >
-              <div className="flex gap-2">
+              <div
+                className={cn(
+                  "flex items-end gap-2 rounded-2xl border p-1.5 shadow-inner",
+                  L
+                    ? "border-zinc-200/90 bg-zinc-50/90"
+                    : "border-white/10 bg-white/[0.03] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
+                )}
+              >
                 <textarea
                   value={draft}
                   onChange={(e) => setDraft(e.target.value)}
@@ -556,22 +634,29 @@ export function ChatView() {
                   rows={1}
                   placeholder={`Mensaje para ${activeConv.peer.name}…`}
                   className={cn(
-                    "max-h-32 min-h-[2.75rem] flex-1 resize-none rounded-xl border px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#ffeb66]/40",
+                    "max-h-32 min-h-[2.75rem] flex-1 resize-none border-0 bg-transparent px-2.5 py-2 text-sm outline-none focus:ring-0",
                     L
-                      ? "border-zinc-200 bg-white text-zinc-900 placeholder:text-zinc-400"
-                      : "border-white/12 bg-white/5 text-white placeholder:text-white/35"
+                      ? "text-zinc-900 placeholder:text-zinc-400"
+                      : "text-white placeholder:text-white/35"
                   )}
                 />
-                <Button
+                <button
                   type="submit"
-                  variant="primary"
                   disabled={!draft.trim() || sending}
-                  loading={sending}
-                  className="shrink-0 self-end"
                   aria-label="Enviar"
+                  className={cn(
+                    "mb-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-all",
+                    "bg-gradient-to-br from-[#ffeb66] to-[#e6c200] text-[#0a0f1e]",
+                    "hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40",
+                    sending && "opacity-70"
+                  )}
                 >
-                  <Send className="h-4 w-4" />
-                </Button>
+                  {sending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Send className="h-4 w-4" />
+                  )}
+                </button>
               </div>
               <p
                 className={cn(

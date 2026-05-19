@@ -1661,6 +1661,35 @@ textarea:focus ~ .input-focus-bar {
     #060a14;
 }
 
+/* Chat — ambiente alineado con el resto de la app */
+.chat-page-root {
+  position: relative;
+}
+.chat-page-root .chat-page-inner {
+  position: relative;
+  isolation: isolate;
+}
+.chat-page-root .chat-page-inner::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(ellipse 55% 40% at 12% 18%, rgba(255, 235, 102, 0.08), transparent 52%),
+    radial-gradient(ellipse 50% 45% at 88% 72%, rgba(74, 158, 255, 0.07), transparent 55%),
+    radial-gradient(ellipse 40% 30% at 50% 100%, rgba(120, 80, 200, 0.05), transparent 50%);
+}
+.chat-page-root .chat-page-inner > * {
+  position: relative;
+  z-index: 1;
+}
+html[data-theme="light"] .chat-page-root .chat-page-inner::before {
+  background:
+    radial-gradient(ellipse 55% 40% at 12% 18%, rgba(255, 235, 102, 0.14), transparent 52%),
+    radial-gradient(ellipse 50% 45% at 88% 72%, rgba(74, 158, 255, 0.06), transparent 55%);
+}
+
 /* Orbes Aurora dentro de un lienzo acotado (p. ej. bitácora a pantalla completa): mismas clases .bg-orb-* que el root, pero `absolute` en lugar de `fixed`. */
 .bg-orb-layer-host {
   position: absolute;
