@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ClickableAvatar } from "@/components/ui/ClickableAvatar";
+import { SidebarProfileMenu } from "@/components/layout/SidebarProfileMenu";
 import { usePathname } from "next/navigation";
 import {
   useState,
@@ -18,7 +18,6 @@ import {
   CalendarOff,
   Settings,
   Bug,
-  LogOut,
   PanelLeft,
   PanelLeftClose,
   Sparkles,
@@ -26,7 +25,6 @@ import {
 import { signOut } from "next-auth/react";
 import { cn } from "@/lib/utils";
 import { Logo } from "@/components/ui/Logo";
-import { AvatarFramePicker } from "@/components/ui/AvatarFramePicker";
 import type { SessionUser } from "@/lib/auth/types";
 import {
   type AvatarFrameEffect,
@@ -105,6 +103,7 @@ export function Sidebar({
   const [hydrated, setHydrated] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const [modePickerOpen, setModePickerOpen] = useState(false);
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [navStagger, setNavStagger] = useState(false);
   const avatarEffect = useAvatarFrameEffect();
   const modePickerRef = useRef<HTMLDivElement>(null);
@@ -216,6 +215,7 @@ export function Sidebar({
         if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
         setHovered(false);
         setModePickerOpen(false);
+        setProfileMenuOpen(false);
       }}
       className={cn(
         "app-sidebar-shell flex flex-col h-full z-20 print:hidden",
@@ -231,12 +231,17 @@ export function Sidebar({
           : ""
       )}
     >
-      {/* Logo */}
-      <Link
-        href="/dashboard"
+      {/* Logo — recarga completa en dashboard (Link de Next no navega si ya estás ahí) */}
+      <button
+        type="button"
+        onClick={() => {
+          if (pathname === "/dashboard") window.location.reload();
+          else window.location.href = "/dashboard";
+        }}
         title="Ir al panel principal"
+        aria-label="Ir al panel principal"
         className={cn(
-          "h-16 flex items-center border-b border-white/8 shrink-0 overflow-hidden transition-colors hover:bg-white/[0.04]",
+          "h-16 flex w-full items-center border-b border-white/8 shrink-0 overflow-hidden transition-colors hover:bg-white/[0.04]",
           isExpanded ? "px-4" : "justify-center px-0"
         )}
       >
@@ -245,7 +250,7 @@ export function Sidebar({
         ) : (
           <Logo size="sm" showText={false} className="scale-95" />
         )}
-      </Link>
+      </button>
 
       {/* Navigation */}
       <nav
@@ -392,50 +397,34 @@ export function Sidebar({
           </Link>
       </nav>
 
-      {/* Bottom section: user info + mode picker + sign out */}
+      {/* Bottom section: perfil + modo del menú */}
       <div className="p-3 border-t border-white/8 shrink-0 space-y-1">
-        {/* User info — only when expanded */}
-        {isExpanded && (
-          <div className="flex items-center gap-2.5 mb-1 px-1">
-            <ClickableAvatar name={user.name} image={user.image} size="sm" effect={avatarEffect} />
-            <div className="flex-1 min-w-0">
-              <p className="text-xs font-semibold text-white truncate">
-                {user.name}
-              </p>
-              <p className="text-[10px] text-white/40 truncate">{user.email}</p>
-            </div>
-          </div>
-        )}
-        {isExpanded &&
-          (() => {
-            const activeDept = user.departments.find(
-              (d) => d.id === user.activeDepartmentId
-            );
-            if (!activeDept) return null;
-            return (
-              <div className="flex w-full items-center justify-center gap-1.5 mb-2 px-1">
-                <span
-                  className="w-1.5 h-1.5 rounded-full shrink-0"
-                  style={{ backgroundColor: activeDept.accentColor }}
-                />
-                <span className="text-[10px] text-white/35 truncate text-center max-w-full">
-                  {activeDept.name}
-                </span>
-              </div>
-            );
-          })()}
-
-        {!isExpanded && (
-          <div className="flex justify-center py-1">
-            <ClickableAvatar name={user.name} image={user.image} size="sm" effect={avatarEffect} />
-          </div>
-        )}
-
+        <SidebarProfileMenu
+          user={user}
+          isAdmin={isAdmin}
+          isExpanded={isExpanded}
+          isLight={isLight}
+          avatarEffect={avatarEffect}
+          onAvatarEffectChange={selectAvatarEffect}
+          open={profileMenuOpen}
+          onOpenChange={(next) => {
+            setProfileMenuOpen(next);
+            if (next) setModePickerOpen(false);
+          }}
+          signingOut={signingOut}
+          onSignOut={() => {
+            setSigningOut(true);
+            void signOut({ callbackUrl: "/login" });
+          }}
+        />
         {/* Mode picker */}
         <div ref={modePickerRef} className="relative">
           <button
             type="button"
-            onClick={() => setModePickerOpen((o) => !o)}
+            onClick={() => {
+              setModePickerOpen((o) => !o);
+              setProfileMenuOpen(false);
+            }}
             title={`Menú: ${MODES.find((m) => m.value === mode)?.label}`}
             aria-label="Comportamiento del menú lateral"
             aria-expanded={modePickerOpen}
@@ -525,33 +514,6 @@ export function Sidebar({
           )}
         </div>
 
-        <AvatarFramePicker
-          value={avatarEffect}
-          onChange={selectAvatarEffect}
-          isExpanded={isExpanded}
-          isLight={isLight}
-        />
-
-        {/* Sign out */}
-        <button
-          type="button"
-          disabled={signingOut}
-          onClick={() => {
-            setSigningOut(true);
-            void signOut({ callbackUrl: "/login" });
-          }}
-          aria-label={!isExpanded ? "Cerrar sesión" : undefined}
-          title={!isExpanded ? "Cerrar sesión" : undefined}
-          className={cn(
-            "flex items-center w-full rounded-lg text-xs text-white/35 hover:text-red-300 hover:bg-red-500/10 hover:border-red-500/25 border border-transparent transition-all duration-200 disabled:opacity-50",
-            isExpanded ? "gap-2 px-3 py-2" : "justify-center gap-0 px-0 py-2"
-          )}
-        >
-          <LogOut className="w-3.5 h-3.5 shrink-0" />
-          {isExpanded && (
-            <span className="overflow-hidden whitespace-nowrap">Cerrar sesión</span>
-          )}
-        </button>
       </div>
     </aside>
   );

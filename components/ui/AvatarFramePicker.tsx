@@ -24,7 +24,7 @@ interface AvatarFramePickerProps {
   isLight: boolean;
 }
 
-function FrameGrid({
+export function AvatarFrameGrid({
   isLight,
 
   value,
@@ -186,7 +186,7 @@ export function AvatarFramePicker({
                 : "border-white/10 bg-gradient-to-b from-white/[0.06] to-white/[0.02]",
             )}
           >
-            <FrameGrid isLight={isLight} value={value} onSelect={onChange} />
+            <AvatarFrameGrid isLight={isLight} value={value} onSelect={onChange} />
           </div>
         )}
       </div>
@@ -226,7 +226,7 @@ export function AvatarFramePicker({
             Marco del avatar
           </p>
 
-          <FrameGrid
+          <AvatarFrameGrid
             isLight={isLight}
             value={value}
             onSelect={(effect) => {
