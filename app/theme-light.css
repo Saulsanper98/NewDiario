@@ -289,10 +289,40 @@ html[data-theme="light"] .skeleton {
 }
 
 html[data-theme="light"] ::-webkit-scrollbar-thumb {
-  background: rgba(15, 23, 42, 0.14);
+  background: transparent;
 }
 html[data-theme="light"] ::-webkit-scrollbar-thumb:hover {
-  background: rgba(15, 23, 42, 0.22);
+  background: rgba(15, 23, 42, 0.28);
+}
+
+html[data-theme="light"] .overflow-y-auto:hover,
+html[data-theme="light"] .overflow-x-auto:hover,
+html[data-theme="light"] .overflow-auto:hover,
+html[data-theme="light"] .overflow-y-scroll:hover,
+html[data-theme="light"] .overflow-x-scroll:hover,
+html[data-theme="light"] .overflow-scroll:hover,
+html[data-theme="light"] .overflow-y-auto:focus-within,
+html[data-theme="light"] .overflow-x-auto:focus-within,
+html[data-theme="light"] .overflow-auto:focus-within,
+html[data-theme="light"] .overflow-y-scroll:focus-within,
+html[data-theme="light"] .overflow-x-scroll:focus-within,
+html[data-theme="light"] .overflow-scroll:focus-within {
+  scrollbar-color: rgba(15, 23, 42, 0.22) transparent;
+}
+
+html[data-theme="light"] .overflow-y-auto:hover::-webkit-scrollbar-thumb,
+html[data-theme="light"] .overflow-x-auto:hover::-webkit-scrollbar-thumb,
+html[data-theme="light"] .overflow-auto:hover::-webkit-scrollbar-thumb,
+html[data-theme="light"] .overflow-y-scroll:hover::-webkit-scrollbar-thumb,
+html[data-theme="light"] .overflow-x-scroll:hover::-webkit-scrollbar-thumb,
+html[data-theme="light"] .overflow-scroll:hover::-webkit-scrollbar-thumb,
+html[data-theme="light"] .overflow-y-auto:focus-within::-webkit-scrollbar-thumb,
+html[data-theme="light"] .overflow-x-auto:focus-within::-webkit-scrollbar-thumb,
+html[data-theme="light"] .overflow-auto:focus-within::-webkit-scrollbar-thumb,
+html[data-theme="light"] .overflow-y-scroll:focus-within::-webkit-scrollbar-thumb,
+html[data-theme="light"] .overflow-x-scroll:focus-within::-webkit-scrollbar-thumb,
+html[data-theme="light"] .overflow-scroll:focus-within::-webkit-scrollbar-thumb {
+  background: rgba(15, 23, 42, 0.16);
 }
 
 html[data-theme="light"] select {
