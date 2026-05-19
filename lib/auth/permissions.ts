@@ -39,7 +39,13 @@ export function canManageTargetUser(
   });
 }
 
-const PROFILE_SELF_FIELDS = ["name", "email", "image", "password"] as const;
+const PROFILE_SELF_FIELDS = [
+  "name",
+  "email",
+  "image",
+  "profileBanner",
+  "password",
+] as const;
 
 /** Actualización de perfil propio (sin rol ni estado). */
 export function isSelfProfilePatch(body: Record<string, unknown>): boolean {

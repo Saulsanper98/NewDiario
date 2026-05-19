@@ -14,6 +14,7 @@ export interface SessionUser {
   name: string;
   email: string;
   image?: string | null;
+  profileBanner?: string | null;
   role: Role;
   departments: UserDepartment[];
   activeDepartmentId: string | null;
@@ -29,6 +30,7 @@ declare module "next-auth/jwt" {
   interface JWT {
     id?: string;
     image?: string | null;
+    profileBanner?: string | null;
     role?: Role;
     departments?: UserDepartment[];
     activeDepartmentId?: string | null;

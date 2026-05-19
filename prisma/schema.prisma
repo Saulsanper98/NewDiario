@@ -104,7 +104,8 @@ model User {
   name      String
   email     String    @unique
   password  String?
-  image     String?
+  image          String?
+  profileBanner  String?
   role      Role      @default(OPERATOR)
   isActive  Boolean   @default(true)
   createdAt DateTime  @default(now())

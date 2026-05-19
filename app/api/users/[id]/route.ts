@@ -19,6 +19,9 @@ const patchUserSchema = z
     isActive: z.boolean().optional(),
     role: z.enum(["SUPERADMIN", "ADMIN", "OPERATOR"]).optional(),
     image: z.union([z.string().max(2048), z.literal(""), z.null()]).optional(),
+    profileBanner: z
+      .union([z.string().max(2048), z.literal(""), z.null()])
+      .optional(),
     password: z.string().min(8).optional(),
   })
   .strict();
@@ -97,6 +100,12 @@ export async function PATCH(
   if (body.role !== undefined) data.role = body.role;
   if (body.image !== undefined) {
     data.image = body.image === "" || body.image === null ? null : body.image;
+  }
+  if (body.profileBanner !== undefined) {
+    data.profileBanner =
+      body.profileBanner === "" || body.profileBanner === null
+        ? null
+        : body.profileBanner;
   }
   if (body.password !== undefined) {
     data.password = await bcrypt.hash(body.password, 10);

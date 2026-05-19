@@ -15,8 +15,8 @@ import { AvatarFrameGrid } from "@/components/ui/AvatarFramePicker";
 import type { SessionUser } from "@/lib/auth/types";
 import type { AvatarFrameEffect } from "@/lib/avatar-frame";
 import { avatarFrameLabel } from "@/lib/avatar-frame";
-import { ROLE_LABELS } from "@/lib/utils";
-import { cn } from "@/lib/utils";
+import { ProfileMenuBanner } from "@/components/ui/ProfileMenuBanner";
+import { ROLE_LABELS, cn } from "@/lib/utils";
 
 interface SidebarProfileMenuProps {
   user: SessionUser;
@@ -130,12 +130,9 @@ export function SidebarProfileMenu({
               : "border-white/10 bg-[#0d1427]/98 shadow-[0_16px_48px_rgba(0,0,0,0.55)]"
           )}
         >
-          {/* Banner + avatar (estilo Discord) */}
-          <div
-            className="relative h-[52px] shrink-0"
-            style={{
-              background: `linear-gradient(135deg, ${bannerColor} 0%, ${bannerColor}88 55%, transparent 100%)`,
-            }}
+          <ProfileMenuBanner
+            bannerUrl={user.profileBanner}
+            accentColor={bannerColor}
           />
           <div className="relative px-3 pb-1">
             <div className="-mt-7 mb-2 flex items-end justify-between gap-2">
@@ -217,6 +214,15 @@ export function SidebarProfileMenu({
               <span className="flex-1">
                 {isAdmin ? "Configuración" : "Editar perfil"}
               </span>
+            </Link>
+
+            <Link
+              href={`${profileHref}#fondo-perfil`}
+              onClick={() => onOpenChange(false)}
+              className={menuItemClass}
+            >
+              <ImageIcon className="h-4 w-4 shrink-0 opacity-70" />
+              <span className="flex-1">Cambiar fondo del perfil</span>
             </Link>
 
             {user.image && (

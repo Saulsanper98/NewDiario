@@ -43,6 +43,7 @@ const credentialProvider = Credentials({
       name: user.name,
       email: user.email,
       image: user.image,
+      profileBanner: user.profileBanner,
       role: user.role,
       departments: user.departments.map((d: { departmentId: string; department: { name: string; slug: string; accentColor: string }; role: string; isDefault: boolean }) => ({
         id: d.departmentId,
@@ -125,6 +126,7 @@ export const authConfig = {
             token.name = dbUser.name;
             token.email = dbUser.email;
             token.image = dbUser.image;
+            token.profileBanner = dbUser.profileBanner;
             token.role = dbUser.role;
             token.departments = dbUser.departments.map((d) => ({
               id: d.departmentId,
@@ -146,6 +148,7 @@ export const authConfig = {
         token.name = u.name;
         token.email = u.email;
         token.image = u.image ?? null;
+        token.profileBanner = u.profileBanner ?? null;
         token.role = u.role;
         token.departments = u.departments;
         token.activeDepartmentId = u.activeDepartmentId;
@@ -160,6 +163,12 @@ export const authConfig = {
         }
         if (typeof s.image === "string" || s.image === null) {
           token.image = s.image as string | null;
+        }
+        if (
+          typeof s.profileBanner === "string" ||
+          s.profileBanner === null
+        ) {
+          token.profileBanner = s.profileBanner as string | null;
         }
         if (typeof s.activeDepartmentId === "string") {
           token.activeDepartmentId = s.activeDepartmentId;

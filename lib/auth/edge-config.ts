@@ -76,6 +76,7 @@ export const edgeAuthConfig: NextAuthConfig = {
         token.name = u.name;
         token.email = u.email;
         token.image = u.image ?? null;
+        token.profileBanner = u.profileBanner ?? null;
         token.role = u.role;
         token.departments = u.departments;
         token.activeDepartmentId = u.activeDepartmentId;
@@ -91,6 +92,12 @@ export const edgeAuthConfig: NextAuthConfig = {
         if (typeof s.image === "string" || s.image === null) {
           token.image = s.image as string | null;
         }
+        if (
+          typeof s.profileBanner === "string" ||
+          s.profileBanner === null
+        ) {
+          token.profileBanner = s.profileBanner as string | null;
+        }
         if (typeof s.activeDepartmentId === "string") {
           token.activeDepartmentId = s.activeDepartmentId;
         }
@@ -105,6 +112,9 @@ export const edgeAuthConfig: NextAuthConfig = {
       if (typeof token.name === "string") session.user.name = token.name;
       if (typeof token.email === "string") session.user.email = token.email;
       if (token.image !== undefined) session.user.image = token.image as string | null;
+      if (token.profileBanner !== undefined) {
+        session.user.profileBanner = token.profileBanner as string | null;
+      }
       if (token.role) session.user.role = token.role;
       if (token.departments) session.user.departments = token.departments;
       if (token.activeDepartmentId !== undefined) {
