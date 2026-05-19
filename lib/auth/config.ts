@@ -5,6 +5,7 @@ import type { NextAuthConfig } from "next-auth";
 import { prisma } from "@/lib/prisma/client";
 import { z } from "zod";
 import { edgeAuthConfig } from "./edge-config";
+import { refreshTokenUserFromDb } from "@/lib/auth/refresh-token-user";
 import type { SessionUser, UserDepartment } from "@/lib/auth/types";
 
 const loginSchema = z.object({
@@ -177,6 +178,8 @@ export const authConfig = {
           token.departments = s.departments as UserDepartment[];
         }
       }
+
+      await refreshTokenUserFromDb(token);
       return token;
     },
   },

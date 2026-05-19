@@ -147,7 +147,7 @@ export function ConfigTabs({
             currentUser={currentUser}
             isSuperAdmin={isSuperAdmin}
             isPlatformOwner={isPlatformOwner}
-            readOnly={!isAdmin}
+            readOnly={!isAdmin && !isSuperAdmin}
           />
         )}
         {activeTab === "departments" && isAdmin && (

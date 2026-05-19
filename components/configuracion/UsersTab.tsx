@@ -32,7 +32,7 @@ import { AvatarImagePreview } from "@/components/ui/AvatarImagePreview";
 import {
   IMAGE_UPLOAD_ACCEPT,
   IMAGE_UPLOAD_HINT,
-  isAllowedImageUpload,
+  validateProfileImageFile,
 } from "@/lib/upload-file";
 import { isPlatformOwnerEmail } from "@/lib/platform-owner";
 
@@ -93,8 +93,9 @@ export function UsersTab({
   const colCount = readOnly ? 4 : 5;
 
   async function uploadAvatar(file: File, target: "create" | "edit") {
-    if (!isAllowedImageUpload(file)) {
-      toast.error(`Selecciona una imagen válida (${IMAGE_UPLOAD_HINT})`);
+    const validationError = validateProfileImageFile(file);
+    if (validationError) {
+      toast.error(validationError);
       return;
     }
     if (target === "create") setUploadingAvatar(true);

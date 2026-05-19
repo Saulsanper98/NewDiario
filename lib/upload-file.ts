@@ -5,6 +5,7 @@ const MIME_TO_EXT: Record<string, string> = {
   "image/pjpeg": "jpg",
   "image/png": "png",
   "image/gif": "gif",
+  "image/x-gif": "gif",
   "image/webp": "webp",
   "video/mp4": "mp4",
   "video/webm": "webm",
@@ -30,6 +31,25 @@ export const IMAGE_UPLOAD_ACCEPT =
 
 export const IMAGE_UPLOAD_HINT =
   "JPG, PNG, GIF o WebP (los GIF animados desde el PC también valen)";
+
+/** Límite para avatares y fondos de perfil (GIF animados suelen superar 1–5 MB). */
+export const PROFILE_IMAGE_MAX_BYTES = 20 * 1024 * 1024; // 20 MB
+
+export function formatUploadMaxMb(bytes: number): string {
+  return `${Math.round(bytes / (1024 * 1024))} MB`;
+}
+
+export function validateProfileImageFile(
+  file: Pick<File, "name" | "type" | "size">
+): string | null {
+  if (!isAllowedImageUpload(file)) {
+    return `Selecciona una imagen válida (${IMAGE_UPLOAD_HINT})`;
+  }
+  if (file.size > PROFILE_IMAGE_MAX_BYTES) {
+    return `La imagen supera el máximo de ${formatUploadMaxMb(PROFILE_IMAGE_MAX_BYTES)}. Comprímela o usa un enlace externo.`;
+  }
+  return null;
+}
 
 export function resolveUploadExt(file: Pick<File, "name" | "type">): string | null {
   const mime = (file.type ?? "").toLowerCase().trim();

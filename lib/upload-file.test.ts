@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { isAllowedImageUpload, resolveUploadExt } from "./upload-file";
+import {
+  isAllowedImageUpload,
+  PROFILE_IMAGE_MAX_BYTES,
+  resolveUploadExt,
+  validateProfileImageFile,
+} from "./upload-file";
 
 describe("resolveUploadExt", () => {
   it("acepta GIF por MIME", () => {
@@ -23,5 +28,27 @@ describe("resolveUploadExt", () => {
 describe("isAllowedImageUpload", () => {
   it("incluye GIF", () => {
     expect(isAllowedImageUpload({ name: "x.gif", type: "" })).toBe(true);
+  });
+});
+
+describe("validateProfileImageFile", () => {
+  it("rechaza archivos mayores al límite de perfil", () => {
+    expect(
+      validateProfileImageFile({
+        name: "big.gif",
+        type: "image/gif",
+        size: PROFILE_IMAGE_MAX_BYTES + 1,
+      })
+    ).toMatch(/supera el máximo/i);
+  });
+
+  it("acepta GIF dentro del límite", () => {
+    expect(
+      validateProfileImageFile({
+        name: "ok.gif",
+        type: "image/gif",
+        size: 1024,
+      })
+    ).toBeNull();
   });
 });

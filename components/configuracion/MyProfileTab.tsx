@@ -23,7 +23,7 @@ import { useTheme } from "@/components/layout/ThemeProvider";
 import {
   IMAGE_UPLOAD_ACCEPT,
   IMAGE_UPLOAD_HINT,
-  isAllowedImageUpload,
+  validateProfileImageFile,
 } from "@/lib/upload-file";
 
 interface MyProfileTabProps {
@@ -79,8 +79,9 @@ export function MyProfileTab({ currentUser }: MyProfileTabProps) {
   }
 
   async function uploadAvatar(file: File) {
-    if (!isAllowedImageUpload(file)) {
-      toast.error(`Selecciona una imagen válida (${IMAGE_UPLOAD_HINT})`);
+    const validationError = validateProfileImageFile(file);
+    if (validationError) {
+      toast.error(validationError);
       return;
     }
     setUploading(true);

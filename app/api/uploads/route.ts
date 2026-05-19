@@ -3,12 +3,17 @@ import { auth } from "@/lib/auth";
 import { writeFile, mkdir } from "fs/promises";
 import path from "path";
 import { randomUUID } from "crypto";
-import { resolveUploadExt } from "@/lib/upload-file";
+import {
+  PROFILE_IMAGE_MAX_BYTES,
+  formatUploadMaxMb,
+  resolveUploadExt,
+} from "@/lib/upload-file";
 
 const UPLOAD_DIR =
   process.env.UPLOAD_DIR ?? path.join(/*turbopackIgnore: true*/ process.cwd(), "uploads");
 
-const MAX_BYTES = 200 * 1024 * 1024; // 200 MB
+const VIDEO_MAX_BYTES = 200 * 1024 * 1024; // 200 MB
+const IMAGE_EXTS = new Set(["jpg", "png", "gif", "webp"]);
 
 export async function POST(req: NextRequest) {
   const session = await auth();
@@ -32,11 +37,17 @@ export async function POST(req: NextRequest) {
       { status: 400 }
     );
 
-  if (file.size > MAX_BYTES)
+  const isProfileImage = IMAGE_EXTS.has(ext);
+  const maxBytes = isProfileImage ? PROFILE_IMAGE_MAX_BYTES : VIDEO_MAX_BYTES;
+  if (file.size > maxBytes) {
+    const label = isProfileImage
+      ? `imágenes de perfil (máx. ${formatUploadMaxMb(PROFILE_IMAGE_MAX_BYTES)})`
+      : "vídeos (máx. 200 MB)";
     return NextResponse.json(
-      { error: "Archivo demasiado grande (máx. 200 MB)" },
-      { status: 400 }
+      { error: `Archivo demasiado grande para ${label}` },
+      { status: 413 }
     );
+  }
 
   await mkdir(UPLOAD_DIR, { recursive: true });
 

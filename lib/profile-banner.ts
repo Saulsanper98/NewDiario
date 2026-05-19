@@ -1,4 +1,4 @@
-import { isAllowedImageUpload, IMAGE_UPLOAD_HINT } from "@/lib/upload-file";
+import { validateProfileImageFile } from "@/lib/upload-file";
 
 /** Guarda el fondo del menú de perfil en la API. */
 export async function patchProfileBanner(
@@ -22,9 +22,8 @@ export async function patchProfileBanner(
 
 /** Sube una imagen y devuelve la URL pública. */
 export async function uploadProfileBannerFile(file: File): Promise<string> {
-  if (!isAllowedImageUpload(file)) {
-    throw new Error(`Selecciona una imagen válida (${IMAGE_UPLOAD_HINT})`);
-  }
+  const validationError = validateProfileImageFile(file);
+  if (validationError) throw new Error(validationError);
   const fd = new FormData();
   fd.append("file", file);
   const res = await fetch("/api/uploads", { method: "POST", body: fd });
@@ -33,6 +32,12 @@ export async function uploadProfileBannerFile(file: File): Promise<string> {
     error?: string;
   };
   if (!res.ok || !data.url) {
+    if (res.status === 413) {
+      throw new Error(
+        data.error ??
+          "La imagen es demasiado grande. Prueba con un GIF más pequeño o un enlace."
+      );
+    }
     throw new Error(data.error ?? "No se pudo subir la imagen");
   }
   return data.url;

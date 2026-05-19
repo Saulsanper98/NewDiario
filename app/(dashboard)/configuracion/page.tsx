@@ -19,7 +19,15 @@ export default async function ConfiguracionPage() {
   const session = await auth();
   if (!session?.user) redirect("/login");
 
-  const user = session.user as SessionUser;
+  const sessionUser = session.user as SessionUser;
+  const dbSelf = await prisma.user.findUnique({
+    where: { id: sessionUser.id },
+    select: { role: true },
+  });
+  const user: SessionUser = {
+    ...sessionUser,
+    role: dbSelf?.role ?? sessionUser.role,
+  };
   const isAdmin = isAdminOrAbove(user);
 
   const [users, departments] = await Promise.all([
