@@ -139,6 +139,7 @@ export function SidebarProfileMenu({
           <ProfileMenuBanner
             bannerUrl={bannerDraft || user.profileBanner}
             accentColor={bannerColor}
+            blendToColor={isLight ? "#f4f4f5" : "#0d1427"}
           />
           <div className="relative px-3 pb-1">
             <div className="-mt-7 mb-2 flex items-end justify-between gap-2">

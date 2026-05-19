@@ -765,26 +765,30 @@ export function LogEntryDetail({
               hasRichBody ? "mb-6 pb-5" : "mb-4 pb-4"
             )}
           >
-            <Avatar
+            <UserProfilePopover
+              userId={entry.author.id}
               name={entry.author.name}
               image={entry.author.image}
-              size="sm"
-            />
-            <div>
-              <UserProfilePopover
-                userId={entry.author.id}
+              className="min-w-0 flex-1"
+            >
+              <Avatar
                 name={entry.author.name}
                 image={entry.author.image}
-                nameClassName="text-sm font-medium text-white/80"
+                size="sm"
               />
-              <p className="text-xs text-white/40">
-                {formatDate(entry.createdAt)}
-                {entry.editHistory.length > 0 &&
-                  ` · Editado ${formatRelative(
-                    entry.editHistory[0].createdAt
-                  )}`}
-              </p>
-            </div>
+              <div className="min-w-0 flex-1 text-left">
+                <span className="block text-sm font-medium text-white/85">
+                  {entry.author.name}
+                </span>
+                <span className="block text-xs text-white/40">
+                  {formatDate(entry.createdAt)}
+                  {entry.editHistory.length > 0 &&
+                    ` · Editado ${formatRelative(
+                      entry.editHistory[0].createdAt
+                    )}`}
+                </span>
+              </div>
+            </UserProfilePopover>
             <div className="ml-auto flex items-center gap-3">
               {/* B52: Reading time (solo si hay cuerpo con texto) */}
               {hasRichBody && (
