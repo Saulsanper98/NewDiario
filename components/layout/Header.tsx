@@ -63,6 +63,7 @@ const ROUTE_FALLBACK_TITLE: Record<string, string> = {
   "/proyectos": "Proyectos",
   "/traspaso": "Traspaso",
   "/configuracion": "Configuración",
+  "/chat": "Mensajes",
 };
 
 export function Header({ user, breadcrumb }: HeaderProps) {

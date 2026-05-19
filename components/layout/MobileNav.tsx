@@ -9,6 +9,7 @@ import {
   FolderKanban,
   ArrowLeftRight,
   CalendarOff,
+  MessageCircle,
   Settings,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -26,6 +27,7 @@ const coreNav: MobileNavItem[] = [
   { label: "Proyectos",     href: "/proyectos",     icon: FolderKanban },
   { label: "Traspaso",      href: "/traspaso",      icon: ArrowLeftRight,  exact: true },
   { label: "Disponib.",     href: "/disponibilidad", icon: CalendarOff,    exact: true },
+  { label: "Mensajes",      href: "/chat",           icon: MessageCircle,  exact: true },
 ];
 
 interface MobileNavProps {

@@ -10,6 +10,7 @@ import { isAdminOrAbove, getActiveDepartmentId } from "@/lib/auth/permissions";
 import { isBugReportsAdmin } from "@/lib/bug-reports";
 import type { SessionUser } from "@/lib/auth/types";
 import { BugReportStatus } from "@/app/generated/prisma/enums";
+import { countUnreadChatMessages } from "@/lib/chat/access";
 
 export default async function DashboardLayout({
   children,
@@ -48,6 +49,13 @@ export default async function DashboardLayout({
       })
     : 0;
 
+  const unreadChatMessages = await countUnreadChatMessages(user.id).catch(
+    (e) => {
+      console.error("[dashboard-layout] chat unread count", e);
+      return 0;
+    }
+  );
+
   return (
     <div className="app-dashboard-root flex h-screen overflow-hidden relative print:h-auto print:min-h-0 print:overflow-visible">
       <SkipToMain />
@@ -57,6 +65,7 @@ export default async function DashboardLayout({
         pendingFollowups={pendingFollowups}
         isBugReportsAdmin={bugReportsAdmin}
         openBugReports={openBugReports}
+        unreadChatMessages={unreadChatMessages}
       />
       <main
         id="main-content"

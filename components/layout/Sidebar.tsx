@@ -16,6 +16,7 @@ import {
   FolderKanban,
   ArrowLeftRight,
   CalendarOff,
+  MessageCircle,
   Settings,
   Bug,
   PanelLeft,
@@ -50,6 +51,7 @@ const navItems: NavItem[] = [
   { label: "Proyectos", href: "/proyectos", icon: FolderKanban },
   { label: "Traspaso", href: "/traspaso", icon: ArrowLeftRight, exact: true },
   { label: "Disponibilidad", href: "/disponibilidad", icon: CalendarOff, exact: true },
+  { label: "Mensajes", href: "/chat", icon: MessageCircle, exact: true },
 ];
 
 const STORAGE_KEY = "cc-ops-sidebar-mode";
@@ -86,6 +88,7 @@ interface SidebarProps {
   pendingFollowups?: number;
   isBugReportsAdmin?: boolean;
   openBugReports?: number;
+  unreadChatMessages?: number;
 }
 
 export function Sidebar({
@@ -94,6 +97,7 @@ export function Sidebar({
   pendingFollowups = 0,
   isBugReportsAdmin = false,
   openBugReports = 0,
+  unreadChatMessages = 0,
 }: SidebarProps) {
   const { theme } = useTheme();
   const isLight = theme === "light";
@@ -263,7 +267,9 @@ export function Sidebar({
           const badge =
             item.href === "/bitacora/dia" && pendingFollowups > 0
               ? pendingFollowups
-              : 0;
+              : item.href === "/chat" && unreadChatMessages > 0
+                ? unreadChatMessages
+                : 0;
           const bitacoraHint =
             badge > 0
               ? `${badge} entrada(s) con seguimiento pendiente: abre el filtro para verlas y marca «atendido» en cada una (no se quita solo al leer).`

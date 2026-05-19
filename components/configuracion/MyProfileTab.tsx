@@ -176,15 +176,20 @@ export function MyProfileTab({ currentUser }: MyProfileTabProps) {
       </div>
 
       <form onSubmit={handleSubmit} className={cardClass}>
-        {/* Cabecera con avatar */}
+        {/* Cabecera con fondo de perfil + avatar */}
         <div
           className={cn(
-            "relative px-6 pb-6 pt-8 text-center",
-            L
-              ? "border-b border-zinc-200/80 bg-zinc-50/50"
-              : "border-b border-white/8 bg-white/[0.02]"
+            "relative overflow-hidden text-center",
+            L ? "border-b border-zinc-200/80" : "border-b border-white/8"
           )}
         >
+          <ProfileMenuBanner
+            bannerUrl={trimmedBanner || null}
+            accentColor={defaultDept?.accentColor}
+            blendToColor={L ? "#fafafa" : "#0d1427"}
+            heightClass="h-28 sm:h-32"
+          />
+          <div className="relative px-6 pb-6 pt-0">
           <input
             ref={fileInputRef}
             type="file"
@@ -197,7 +202,7 @@ export function MyProfileTab({ currentUser }: MyProfileTabProps) {
               e.currentTarget.value = "";
             }}
           />
-          <div className="relative mx-auto inline-flex flex-col items-center gap-2">
+          <div className="-mt-10 relative mx-auto inline-flex flex-col items-center gap-2">
             <button
               type="button"
               onClick={() => trimmedImage && setPreviewOpen(true)}
@@ -205,8 +210,15 @@ export function MyProfileTab({ currentUser }: MyProfileTabProps) {
               title={trimmedImage ? "Ver foto en grande" : "Aún no hay foto"}
               className={cn(
                 "group relative rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ffeb66]/50",
-                trimmedImage && "cursor-zoom-in"
+                trimmedImage && "cursor-zoom-in",
+                "ring-[3px]",
+                L ? "ring-[#fafafa]" : "ring-[#0d1427]"
               )}
+              style={{
+                boxShadow: defaultDept?.accentColor
+                  ? `0 0 0 1px ${defaultDept.accentColor}55, 0 8px 20px rgba(0,0,0,0.35)`
+                  : undefined,
+              }}
             >
               <Avatar
                 name={currentUser.name}
@@ -276,6 +288,7 @@ export function MyProfileTab({ currentUser }: MyProfileTabProps) {
             <Sparkles className="h-3 w-3 shrink-0" />
             El marco decorativo se elige en el menú lateral
           </p>
+          </div>
         </div>
 
         {/* URL opcional */}
@@ -325,7 +338,7 @@ export function MyProfileTab({ currentUser }: MyProfileTabProps) {
             Fondo del menú de perfil
           </p>
           <p className={cn("mt-1 text-xs", L ? "text-zinc-500" : "text-white/35")}>
-            Se muestra arriba al abrir tu perfil en el menú lateral.
+            Se muestra en la cabecera de esta página y al abrir tu perfil en el menú lateral.
           </p>
           <div className="mt-3 overflow-hidden rounded-xl border border-white/10">
             <ProfileMenuBanner
