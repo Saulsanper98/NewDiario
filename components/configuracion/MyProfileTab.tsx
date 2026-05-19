@@ -20,6 +20,11 @@ import { cn } from "@/lib/utils";
 import type { SessionUser } from "@/lib/auth/types";
 import { useAvatarFrameEffect } from "@/lib/hooks/useAvatarFrameEffect";
 import { useTheme } from "@/components/layout/ThemeProvider";
+import {
+  IMAGE_UPLOAD_ACCEPT,
+  IMAGE_UPLOAD_HINT,
+  isAllowedImageUpload,
+} from "@/lib/upload-file";
 
 interface MyProfileTabProps {
   currentUser: SessionUser;
@@ -74,8 +79,8 @@ export function MyProfileTab({ currentUser }: MyProfileTabProps) {
   }
 
   async function uploadAvatar(file: File) {
-    if (!file.type.startsWith("image/")) {
-      toast.error("Selecciona una imagen válida (JPG, PNG, GIF o WebP)");
+    if (!isAllowedImageUpload(file)) {
+      toast.error(`Selecciona una imagen válida (${IMAGE_UPLOAD_HINT})`);
       return;
     }
     setUploading(true);
@@ -193,7 +198,7 @@ export function MyProfileTab({ currentUser }: MyProfileTabProps) {
           <input
             ref={fileInputRef}
             type="file"
-            accept="image/*"
+            accept={IMAGE_UPLOAD_ACCEPT}
             className="sr-only"
             disabled={uploading}
             onChange={(e) => {

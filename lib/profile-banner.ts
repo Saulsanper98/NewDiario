@@ -1,3 +1,5 @@
+import { isAllowedImageUpload, IMAGE_UPLOAD_HINT } from "@/lib/upload-file";
+
 /** Guarda el fondo del menú de perfil en la API. */
 export async function patchProfileBanner(
   userId: string,
@@ -20,8 +22,8 @@ export async function patchProfileBanner(
 
 /** Sube una imagen y devuelve la URL pública. */
 export async function uploadProfileBannerFile(file: File): Promise<string> {
-  if (!file.type.startsWith("image/")) {
-    throw new Error("Selecciona una imagen válida (JPG, PNG, GIF o WebP)");
+  if (!isAllowedImageUpload(file)) {
+    throw new Error(`Selecciona una imagen válida (${IMAGE_UPLOAD_HINT})`);
   }
   const fd = new FormData();
   fd.append("file", file);

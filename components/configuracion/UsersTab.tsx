@@ -29,6 +29,11 @@ import { useAccentForUi } from "@/lib/hooks/useAccentForUi";
 import { useTheme } from "@/components/layout/ThemeProvider";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { AvatarImagePreview } from "@/components/ui/AvatarImagePreview";
+import {
+  IMAGE_UPLOAD_ACCEPT,
+  IMAGE_UPLOAD_HINT,
+  isAllowedImageUpload,
+} from "@/lib/upload-file";
 import { isPlatformOwnerEmail } from "@/lib/platform-owner";
 
 interface UsersTabProps {
@@ -88,8 +93,8 @@ export function UsersTab({
   const colCount = readOnly ? 4 : 5;
 
   async function uploadAvatar(file: File, target: "create" | "edit") {
-    if (!file.type.startsWith("image/")) {
-      toast.error("Selecciona una imagen válida (JPG, PNG, GIF o WebP)");
+    if (!isAllowedImageUpload(file)) {
+      toast.error(`Selecciona una imagen válida (${IMAGE_UPLOAD_HINT})`);
       return;
     }
     if (target === "create") setUploadingAvatar(true);
@@ -611,7 +616,7 @@ export function UsersTab({
             <label className="ml-auto">
               <input
                 type="file"
-                accept="image/*"
+                accept={IMAGE_UPLOAD_ACCEPT}
                 className="hidden"
                 onChange={(e) => {
                   const f = e.target.files?.[0];
@@ -810,7 +815,7 @@ export function UsersTab({
             <label className="ml-auto">
               <input
                 type="file"
-                accept="image/*"
+                accept={IMAGE_UPLOAD_ACCEPT}
                 className="hidden"
                 onChange={(e) => {
                   const f = e.target.files?.[0];

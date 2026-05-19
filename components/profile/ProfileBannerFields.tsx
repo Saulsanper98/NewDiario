@@ -6,6 +6,7 @@ import { ImageIcon, Loader2 } from "lucide-react";
 import toast from "react-hot-toast";
 import { patchProfileBanner, uploadProfileBannerFile } from "@/lib/profile-banner";
 import { cn } from "@/lib/utils";
+import { IMAGE_UPLOAD_ACCEPT } from "@/lib/upload-file";
 
 interface ProfileBannerFieldsProps {
   userId: string;
@@ -96,7 +97,7 @@ export function ProfileBannerFields({
       <input
         ref={fileRef}
         type="file"
-        accept="image/*"
+        accept={IMAGE_UPLOAD_ACCEPT}
         className="sr-only"
         disabled={busy}
         onChange={(e) => {
