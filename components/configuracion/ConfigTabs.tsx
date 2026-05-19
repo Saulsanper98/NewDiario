@@ -63,13 +63,18 @@ export function ConfigTabs({
   const [activeTab, setActiveTab] = useState<Tab>(isAdmin ? "users" : "profile");
 
   const visibleTabs = useMemo(() => {
+    const profileTab = {
+      id: "profile" as const,
+      label: "Mi cuenta",
+      icon: UserCircle,
+    };
     if (!isAdmin) {
-      return [
-        { id: "profile" as const, label: "Mi cuenta", icon: UserCircle },
-        { id: "users" as const, label: "Usuarios", icon: Users },
-      ];
+      return [profileTab, { id: "users" as const, label: "Usuarios", icon: Users }];
     }
-    return TABS.filter((t) => !t.superAdminOnly || isSuperAdmin);
+    return [
+      profileTab,
+      ...TABS.filter((t) => !t.superAdminOnly || isSuperAdmin),
+    ];
   }, [isAdmin, isSuperAdmin]);
 
   const visibleTabIds = useMemo(() => {
@@ -78,8 +83,17 @@ export function ConfigTabs({
 
   useEffect(() => {
     function syncFromHash() {
-      const id = window.location.hash.replace("#", "") as Tab;
-      if (visibleTabIds.has(id)) setActiveTab(id);
+      const raw = window.location.hash.replace("#", "");
+      if (raw === "fondo-perfil") {
+        setActiveTab("profile");
+        requestAnimationFrame(() => {
+          document
+            .getElementById("fondo-perfil")
+            ?.scrollIntoView({ behavior: "smooth", block: "start" });
+        });
+        return;
+      }
+      if (visibleTabIds.has(raw as Tab)) setActiveTab(raw as Tab);
     }
     syncFromHash();
     window.addEventListener("hashchange", syncFromHash);

@@ -5,7 +5,6 @@ import { useSession } from "next-auth/react";
 import {
   Camera,
   ChevronDown,
-  ImageIcon,
   KeyRound,
   Loader2,
   Sparkles,
@@ -13,6 +12,7 @@ import {
 import toast from "react-hot-toast";
 import { Avatar } from "@/components/ui/Avatar";
 import { AvatarImagePreview } from "@/components/ui/AvatarImagePreview";
+import { ProfileBannerFields } from "@/components/profile/ProfileBannerFields";
 import { ProfileMenuBanner } from "@/components/ui/ProfileMenuBanner";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -39,18 +39,14 @@ export function MyProfileTab({ currentUser }: MyProfileTabProps) {
   const [password2, setPassword2] = useState("");
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [bannerUploading, setBannerUploading] = useState(false);
   const [showImageUrl, setShowImageUrl] = useState(true);
-  const [showBannerUrl, setShowBannerUrl] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const bannerInputRef = useRef<HTMLInputElement>(null);
   const trimmedImage = image.trim();
   const trimmedBanner = profileBanner.trim();
   const imageDirty = trimmedImage !== (currentUser.image ?? "");
-  const bannerDirty = trimmedBanner !== (currentUser.profileBanner ?? "");
   const passwordDirty = password.length > 0;
-  const hasChanges = imageDirty || bannerDirty || passwordDirty;
+  const hasChanges = imageDirty || passwordDirty;
 
   const defaultDept = useMemo(
     () =>
@@ -75,50 +71,6 @@ export function MyProfileTab({ currentUser }: MyProfileTabProps) {
       throw new Error(msg);
     }
     await update({ image: url || null });
-  }
-
-  async function persistBanner(url: string) {
-    const res = await fetch(`/api/users/${currentUser.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ profileBanner: url || null }),
-    });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      const msg =
-        typeof data?.error === "string"
-          ? data.error
-          : "No se pudo guardar el fondo";
-      throw new Error(msg);
-    }
-    await update({ profileBanner: url || null });
-  }
-
-  async function uploadBanner(file: File) {
-    if (!file.type.startsWith("image/")) {
-      toast.error("Selecciona una imagen válida (JPG, PNG, GIF o WebP)");
-      return;
-    }
-    setBannerUploading(true);
-    try {
-      const fd = new FormData();
-      fd.append("file", file);
-      const res = await fetch("/api/uploads", { method: "POST", body: fd });
-      const data = (await res.json().catch(() => ({}))) as {
-        url?: string;
-        error?: string;
-      };
-      if (!res.ok || !data.url) {
-        throw new Error(data.error ?? "No se pudo subir el fondo");
-      }
-      setProfileBanner(data.url);
-      await persistBanner(data.url);
-      toast.success("Fondo del menú de perfil actualizado");
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Error al subir");
-    } finally {
-      setBannerUploading(false);
-    }
   }
 
   async function uploadAvatar(file: File) {
@@ -169,7 +121,6 @@ export function MyProfileTab({ currentUser }: MyProfileTabProps) {
     try {
       const body: Record<string, string> = {};
       if (imageDirty) body.image = trimmedImage;
-      if (bannerDirty) body.profileBanner = trimmedBanner;
       if (password) body.password = password;
 
       const res = await fetch(`/api/users/${currentUser.id}`, {
@@ -191,12 +142,6 @@ export function MyProfileTab({ currentUser }: MyProfileTabProps) {
           image: trimmedImage !== "" ? trimmedImage : null,
         });
       }
-      if (bannerDirty) {
-        await update({
-          profileBanner: trimmedBanner !== "" ? trimmedBanner : null,
-        });
-      }
-
       setPassword("");
       setPassword2("");
       toast.success(password ? "Contraseña actualizada" : "Cambios guardados");
@@ -389,90 +334,14 @@ export function MyProfileTab({ currentUser }: MyProfileTabProps) {
               heightClass="h-20"
             />
           </div>
-          <input
-            ref={bannerInputRef}
-            type="file"
-            accept="image/*"
-            className="sr-only"
-            disabled={bannerUploading}
-            onChange={(e) => {
-              const f = e.target.files?.[0];
-              if (f) void uploadBanner(f);
-              e.currentTarget.value = "";
-            }}
-          />
-          <div className="mt-3 flex flex-wrap gap-2">
-            <button
-              type="button"
-              disabled={bannerUploading}
-              onClick={() => bannerInputRef.current?.click()}
-              className={cn(
-                "inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors",
-                L
-                  ? "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50"
-                  : "border-white/15 bg-white/5 text-white/75 hover:bg-white/10",
-                bannerUploading && "pointer-events-none opacity-60"
-              )}
-            >
-              {bannerUploading ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <ImageIcon className="h-3.5 w-3.5" />
-              )}
-              {bannerUploading ? "Subiendo…" : "Elegir imagen"}
-            </button>
-            {trimmedBanner ? (
-              <button
-                type="button"
-                disabled={bannerUploading}
-                onClick={async () => {
-                  setProfileBanner("");
-                  try {
-                    await persistBanner("");
-                    toast.success("Fondo eliminado");
-                  } catch (err) {
-                    toast.error(err instanceof Error ? err.message : "Error al quitar");
-                  }
-                }}
-                className={cn(
-                  "rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors",
-                  L
-                    ? "border-zinc-200 text-zinc-600 hover:bg-zinc-50"
-                    : "border-white/15 text-white/55 hover:bg-white/8"
-                )}
-              >
-                Quitar fondo
-              </button>
-            ) : null}
-          </div>
-          <button
-            type="button"
-            onClick={() => setShowBannerUrl((v) => !v)}
-            className={cn(
-              "mt-3 flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-left text-xs font-medium transition-colors",
-              L
-                ? "text-zinc-500 hover:bg-zinc-100 hover:text-zinc-800"
-                : "text-white/40 hover:bg-white/5 hover:text-white/70"
-            )}
-          >
-            Usar enlace de imagen
-            <ChevronDown
-              className={cn("h-3.5 w-3.5 transition-transform", showBannerUrl && "rotate-180")}
+          <div className="mt-3">
+            <ProfileBannerFields
+              userId={currentUser.id}
+              value={profileBanner}
+              onChange={setProfileBanner}
+              isLight={L}
             />
-          </button>
-          {showBannerUrl ? (
-            <div className="mt-2">
-              <Input
-                light={L}
-                label="URL del fondo"
-                type="text"
-                value={profileBanner}
-                onChange={(e) => setProfileBanner(e.target.value)}
-                placeholder="/api/media/... o https://..."
-                autoComplete="off"
-              />
-            </div>
-          ) : null}
+          </div>
         </div>
 
         {/* Contraseña */}

@@ -12,6 +12,7 @@ import {
 import { Avatar } from "@/components/ui/Avatar";
 import { AvatarImagePreview } from "@/components/ui/AvatarImagePreview";
 import { AvatarFrameGrid } from "@/components/ui/AvatarFramePicker";
+import { ProfileBannerFields } from "@/components/profile/ProfileBannerFields";
 import type { SessionUser } from "@/lib/auth/types";
 import type { AvatarFrameEffect } from "@/lib/avatar-frame";
 import { avatarFrameLabel } from "@/lib/avatar-frame";
@@ -46,14 +47,21 @@ export function SidebarProfileMenu({
   const rootRef = useRef<HTMLDivElement>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [framesOpen, setFramesOpen] = useState(false);
+  const [bannerOpen, setBannerOpen] = useState(false);
+  const [bannerDraft, setBannerDraft] = useState(user.profileBanner ?? "");
 
   const activeDept = user.departments.find((d) => d.id === user.activeDepartmentId);
   const bannerColor = activeDept?.accentColor ?? "#ffeb66";
   const profileHref = "/configuracion";
 
   useEffect(() => {
+    setBannerDraft(user.profileBanner ?? "");
+  }, [user.profileBanner]);
+
+  useEffect(() => {
     if (!open) {
       setFramesOpen(false);
+      setBannerOpen(false);
       return;
     }
     function handleClick(e: MouseEvent) {
@@ -107,14 +115,12 @@ export function SidebarProfileMenu({
           effect={avatarEffect}
         />
         {isExpanded && (
-          <>
-            <div className="min-w-0 flex-1 text-left">
-              <p className="truncate text-xs font-semibold text-white">
-                {user.name}
-              </p>
-              <p className="truncate text-[10px] text-white/40">{user.email}</p>
-            </div>
-          </>
+          <div className="min-w-0 flex-1 text-left">
+            <p className="truncate text-xs font-semibold text-white">
+              {user.name}
+            </p>
+            <p className="truncate text-[10px] text-white/40">{user.email}</p>
+          </div>
         )}
       </button>
 
@@ -131,7 +137,7 @@ export function SidebarProfileMenu({
           )}
         >
           <ProfileMenuBanner
-            bannerUrl={user.profileBanner}
+            bannerUrl={bannerDraft || user.profileBanner}
             accentColor={bannerColor}
           />
           <div className="relative px-3 pb-1">
@@ -216,14 +222,41 @@ export function SidebarProfileMenu({
               </span>
             </Link>
 
-            <Link
-              href={`${profileHref}#fondo-perfil`}
-              onClick={() => onOpenChange(false)}
+            <button
+              type="button"
+              onClick={() => {
+                setBannerOpen((o) => !o);
+                setFramesOpen(false);
+              }}
+              aria-expanded={bannerOpen}
               className={menuItemClass}
             >
               <ImageIcon className="h-4 w-4 shrink-0 opacity-70" />
-              <span className="flex-1">Cambiar fondo del perfil</span>
-            </Link>
+              <span className="flex-1 text-left">Cambiar fondo del perfil</span>
+              <ChevronRight
+                className={cn(
+                  "h-4 w-4 shrink-0 opacity-50 transition-transform",
+                  bannerOpen && "rotate-90"
+                )}
+              />
+            </button>
+
+            {bannerOpen && (
+              <div
+                className={cn(
+                  "rounded-lg border p-2",
+                  isLight ? "border-zinc-200/80 bg-zinc-50" : "border-white/8 bg-white/[0.03]"
+                )}
+              >
+                <ProfileBannerFields
+                  userId={user.id}
+                  value={bannerDraft}
+                  onChange={setBannerDraft}
+                  isLight={isLight}
+                  compact
+                />
+              </div>
+            )}
 
             {user.image && (
               <button
@@ -241,7 +274,10 @@ export function SidebarProfileMenu({
 
             <button
               type="button"
-              onClick={() => setFramesOpen((o) => !o)}
+              onClick={() => {
+                setFramesOpen((o) => !o);
+                setBannerOpen(false);
+              }}
               aria-expanded={framesOpen}
               className={menuItemClass}
             >
