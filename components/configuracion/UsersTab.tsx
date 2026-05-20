@@ -222,13 +222,18 @@ export function UsersTab({
     usersByDepartmentSections.length === 0 &&
     usersWithoutDepartment.length === 0;
 
+  const [editTarget, setEditTarget] = useState<ConfigPageUser | null>(null);
+  const [editCanManageSA, setEditCanManageSA] = useState(false);
+
   function openEdit(user: (typeof users)[number]) {
     setEditId(user.id);
+    setEditTarget(user);
     setEditName(user.name);
     setEditEmail(user.email);
     setEditImage(user.image ?? "");
     setEditRole(user.role as Role);
     setEditPassword("");
+    setEditCanManageSA(user.canManageSuperAdmins ?? false);
     setEditOpen(true);
   }
 
@@ -242,13 +247,24 @@ export function UsersTab({
     }
     setEditSaving(true);
     try {
-      const body: Record<string, string> = {
+      const body: Record<string, string | boolean> = {
         name: editName.trim(),
         email: editEmail.trim(),
         role: editRole,
         image: editImage.trim(),
       };
       if (editPassword.trim()) body.password = editPassword;
+      const canShowToggle =
+        isPlatformOwner &&
+        editTarget != null &&
+        editRole === "SUPERADMIN" &&
+        !isPlatformOwnerEmail(editTarget.email);
+      if (
+        canShowToggle &&
+        editCanManageSA !== (editTarget?.canManageSuperAdmins ?? false)
+      ) {
+        body.canManageSuperAdmins = editCanManageSA;
+      }
       const res = await fetch(`/api/users/${editId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -389,35 +405,6 @@ export function UsersTab({
     return true;
   }
 
-  async function toggleCanManageSuperAdmins(
-    user: ConfigPageUser,
-    enable: boolean
-  ) {
-    try {
-      const res = await fetch(`/api/users/${user.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ canManageSuperAdmins: enable }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        throw new Error(
-          typeof data?.error === "string"
-            ? data.error
-            : "No se pudo actualizar el permiso"
-        );
-      }
-      toast.success(
-        enable
-          ? `${user.name} ahora puede gestionar SuperAdmin`
-          : `Se quitó a ${user.name} el permiso para gestionar SuperAdmin`
-      );
-      router.refresh();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Error");
-    }
-  }
-
   function exportCSV() {
     const rows = [
       ["Nombre", "Email", "Rol", "Departamentos"],
@@ -541,27 +528,15 @@ export function UsersTab({
               {isPlatformOwner &&
                 user.id !== currentUser.id &&
                 user.role === "SUPERADMIN" &&
-                !isPlatformOwnerEmail(user.email) && (
-                  <label
-                    className={cn(
-                      "inline-flex items-center gap-1.5 text-[11px] rounded-md border px-2 py-1 cursor-pointer transition-colors",
-                      user.canManageSuperAdmins
-                        ? "border-[#ffeb66]/35 bg-[#ffeb66]/8 text-[#ffeb66]"
-                        : "border-white/10 bg-white/5 text-white/55 hover:text-white/85"
-                    )}
-                    title="Permite a este SuperAdmin asignar o quitar el rol SuperAdmin a otros usuarios"
+                !isPlatformOwnerEmail(user.email) &&
+                user.canManageSuperAdmins && (
+                  <span
+                    className="inline-flex items-center gap-1 rounded-md border border-[#ffeb66]/30 bg-[#ffeb66]/[0.08] px-1.5 py-0.5 text-[10px] font-medium text-[#ffeb66]"
+                    title="Este SuperAdmin tiene permiso para asignar o quitar SuperAdmin a otros"
                   >
-                    <input
-                      type="checkbox"
-                      className="accent-[#ffeb66] w-3 h-3"
-                      checked={user.canManageSuperAdmins ?? false}
-                      onChange={(ev) =>
-                        void toggleCanManageSuperAdmins(user, ev.target.checked)
-                      }
-                    />
                     <Shield className="w-3 h-3" />
-                    Gestiona SuperAdmin
-                  </label>
+                    Gestiona SA
+                  </span>
                 )}
               {isPlatformOwner && user.id !== currentUser.id && (
                 <Button
@@ -934,6 +909,47 @@ export function UsersTab({
             autoComplete="new-password"
             placeholder="Dejar vacío para no cambiar"
           />
+          {isPlatformOwner &&
+            editTarget &&
+            editRole === "SUPERADMIN" &&
+            !isPlatformOwnerEmail(editTarget.email) && (
+              <label
+                className={cn(
+                  "flex items-start gap-2.5 rounded-lg border px-3 py-2.5 cursor-pointer transition-colors",
+                  L
+                    ? "border-amber-300/40 bg-amber-50/60"
+                    : "border-[#ffeb66]/25 bg-[#ffeb66]/[0.04] hover:bg-[#ffeb66]/[0.08]"
+                )}
+              >
+                <input
+                  type="checkbox"
+                  checked={editCanManageSA}
+                  onChange={(e) => setEditCanManageSA(e.target.checked)}
+                  className="mt-0.5 w-4 h-4 accent-[#ffeb66] shrink-0"
+                />
+                <div className="flex-1 min-w-0">
+                  <div
+                    className={cn(
+                      "flex items-center gap-1.5 text-xs font-semibold",
+                      L ? "text-amber-700" : "text-[#ffeb66]"
+                    )}
+                  >
+                    <Shield className="w-3.5 h-3.5" />
+                    Puede gestionar SuperAdmin
+                  </div>
+                  <p
+                    className={cn(
+                      "mt-0.5 text-[11px] leading-relaxed",
+                      L ? "text-zinc-600" : "text-white/45"
+                    )}
+                  >
+                    Si marcas esta opción, este SuperAdmin podrá asignar o
+                    quitar el rol SuperAdmin a otros usuarios (excepto a tu
+                    cuenta de propietario).
+                  </p>
+                </div>
+              </label>
+            )}
           <div className="flex justify-end gap-2 pt-2">
             <Button
               type="button"
