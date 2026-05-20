@@ -1,0 +1,6 @@
+Mejoras de perfil: zoom en enfoque, edicion de nombre, banners
+
+- UserProfilePopover: si profileBanner == image se muestra solo el degradado de fondo para evitar el efecto de "foto continua" que hacia parecer que el avatar se salia del circulo.
+- UsersTab: filas con banner ganan altura (h-16) y mas padding vertical para mejorar la calidad percibida del fondo manteniendo cobertura total.
+- FocusPicker: anade zoom (1x..5x) con rueda del raton, slider y botones +/-. El raton actualiza el foco compensando el zoom y la cruceta queda fija en el centro. Indicador visual de zoom y boton "Centrar" reinicia zoom + foco.
+- MyProfileTab: se anade campo editable "Nombre" para que cada usuario pueda cambiar su propio nombre. La sesion se actualiza al guardar y la previsualizacion refleja el cambio al instante.

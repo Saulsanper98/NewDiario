@@ -470,19 +470,24 @@ export function UsersTab({
     const bannerFocusY = user.bannerFocusY ?? 50;
     const rowStyle: React.CSSProperties | undefined = bannerUrl
       ? {
-          backgroundImage: `linear-gradient(90deg, rgba(10,15,30,0.92) 0%, rgba(10,15,30,0.55) 35%, rgba(10,15,30,0.45) 65%, rgba(10,15,30,0.92) 100%), url(${bannerUrl})`,
+          backgroundImage: `linear-gradient(90deg, rgba(10,15,30,0.92) 0%, rgba(10,15,30,0.5) 35%, rgba(10,15,30,0.4) 65%, rgba(10,15,30,0.92) 100%), url(${bannerUrl})`,
           backgroundRepeat: "no-repeat, no-repeat",
           backgroundSize: "cover, cover",
           backgroundPosition: `center, ${bannerFocusX}% ${bannerFocusY}%`,
+          // Mejor renderizado del navegador al escalar fotos/gifs.
+          imageRendering: "auto",
         }
       : undefined;
     return (
       <tr
         key={rowKey}
-        className="user-row border-b border-white/6 transition-colors hover:brightness-110"
+        className={cn(
+          "user-row border-b border-white/6 transition-colors hover:brightness-110",
+          bannerUrl ? "h-16" : ""
+        )}
         style={rowStyle}
       >
-        <td className="user-row-banner-cell relative px-4 py-2.5 align-middle">
+        <td className="user-row-banner-cell relative px-4 py-3 align-middle">
           <div className="relative z-[1] flex items-center gap-2.5">
             <button
               type="button"

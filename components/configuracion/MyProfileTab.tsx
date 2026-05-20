@@ -38,6 +38,7 @@ export function MyProfileTab({ currentUser }: MyProfileTabProps) {
   const { update } = useSession();
   const avatarEffect = useAvatarFrameEffect();
 
+  const [name, setName] = useState(currentUser.name ?? "");
   const [image, setImage] = useState(currentUser.image ?? "");
   const [imageFocusX, setImageFocusX] = useState<number | null>(
     currentUser.imageFocusX ?? null
@@ -63,11 +64,13 @@ export function MyProfileTab({ currentUser }: MyProfileTabProps) {
   const [avatarFocusOpen, setAvatarFocusOpen] = useState(false);
   const [bannerFocusOpen, setBannerFocusOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const trimmedName = name.trim();
   const trimmedImage = image.trim();
   const trimmedBanner = profileBanner.trim();
+  const nameDirty = trimmedName !== (currentUser.name ?? "");
   const imageDirty = trimmedImage !== (currentUser.image ?? "");
   const passwordDirty = password.length > 0;
-  const hasChanges = imageDirty || passwordDirty;
+  const hasChanges = nameDirty || imageDirty || passwordDirty;
 
   const defaultDept = useMemo(
     () =>
@@ -176,9 +179,15 @@ export function MyProfileTab({ currentUser }: MyProfileTabProps) {
       return;
     }
 
+    if (nameDirty && trimmedName.length < 2) {
+      toast.error("El nombre debe tener al menos 2 caracteres");
+      return;
+    }
+
     setSaving(true);
     try {
       const body: Record<string, string> = {};
+      if (nameDirty) body.name = trimmedName;
       if (imageDirty) body.image = trimmedImage;
       if (password) body.password = password;
 
@@ -196,9 +205,12 @@ export function MyProfileTab({ currentUser }: MyProfileTabProps) {
         throw new Error(msg);
       }
 
-      if (imageDirty) {
+      if (nameDirty || imageDirty) {
         await update({
-          image: trimmedImage !== "" ? trimmedImage : null,
+          ...(nameDirty ? { name: trimmedName } : {}),
+          ...(imageDirty
+            ? { image: trimmedImage !== "" ? trimmedImage : null }
+            : {}),
         });
       }
       setPassword("");
@@ -372,6 +384,27 @@ export function MyProfileTab({ currentUser }: MyProfileTabProps) {
           </div>
         </div>
 
+        {/* Nombre */}
+        <div
+          className={cn(
+            "px-6 pt-5 pb-2",
+            L ? "border-t border-zinc-200/80" : "border-t border-white/8"
+          )}
+        >
+          <Input
+            light={L}
+            label="Nombre"
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Tu nombre"
+            autoComplete="name"
+            minLength={2}
+            maxLength={120}
+            required
+          />
+        </div>
+
         {/* URL opcional */}
         <div className="px-6 pt-4">
           <button
@@ -446,14 +479,16 @@ export function MyProfileTab({ currentUser }: MyProfileTabProps) {
               >
                 <div className="relative z-[1] flex items-center gap-2.5">
                   <Avatar
-                    name={currentUser.name}
+                    name={trimmedName || currentUser.name}
                     image={trimmedImage || null}
                     focusX={imageFocusX}
                     focusY={imageFocusY}
                     size="sm"
                   />
                   <div>
-                    <p className="text-sm font-medium text-white">{currentUser.name}</p>
+                    <p className="text-sm font-medium text-white">
+                      {trimmedName || currentUser.name}
+                    </p>
                     <p className="text-xs text-white/55">{currentUser.email}</p>
                   </div>
                 </div>

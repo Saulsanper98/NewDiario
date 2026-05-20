@@ -208,30 +208,41 @@ export function UserProfilePopover({
         </div>
       ) : (
         <>
-          <button
-            type="button"
-            className={cn(
-              "group/banner relative block w-full text-left",
-              display.profileBanner && "cursor-zoom-in"
-            )}
-            disabled={!display.profileBanner}
-            onClick={() => display.profileBanner && setBannerPreview(true)}
-            title={display.profileBanner ? "Ver fondo de perfil" : undefined}
-          >
-            <ProfileMenuBanner
-              bannerUrl={display.profileBanner}
-              focusX={display.bannerFocusX}
-              focusY={display.bannerFocusY}
-              accentColor={accent}
-              blendToColor={cardBg}
-              heightClass="h-[4.5rem]"
-            />
-            {display.profileBanner && (
-              <span className="absolute bottom-2 right-2 rounded-md bg-black/50 px-1.5 py-0.5 text-[9px] font-medium text-white/80 opacity-0 transition-opacity group-hover/banner:opacity-100">
-                Ampliar
-              </span>
-            )}
-          </button>
+          {(() => {
+            // Si el banner es exactamente la misma URL que la foto del avatar,
+            // mostrar solo el degradado decorativo para evitar el efecto de
+            // "foto continua" detrás del avatar.
+            const effectiveBanner =
+              display.profileBanner && display.profileBanner !== display.image
+                ? display.profileBanner
+                : null;
+            return (
+              <button
+                type="button"
+                className={cn(
+                  "group/banner relative block w-full text-left",
+                  effectiveBanner && "cursor-zoom-in"
+                )}
+                disabled={!effectiveBanner}
+                onClick={() => effectiveBanner && setBannerPreview(true)}
+                title={effectiveBanner ? "Ver fondo de perfil" : undefined}
+              >
+                <ProfileMenuBanner
+                  bannerUrl={effectiveBanner}
+                  focusX={display.bannerFocusX}
+                  focusY={display.bannerFocusY}
+                  accentColor={accent}
+                  blendToColor={cardBg}
+                  heightClass="h-[4.5rem]"
+                />
+                {effectiveBanner && (
+                  <span className="absolute bottom-2 right-2 rounded-md bg-black/50 px-1.5 py-0.5 text-[9px] font-medium text-white/80 opacity-0 transition-opacity group-hover/banner:opacity-100">
+                    Ampliar
+                  </span>
+                )}
+              </button>
+            );
+          })()}
 
           <div className="relative px-4 pb-4 pt-0">
             <div className="-mt-9 mb-3 flex items-end justify-between gap-2">
