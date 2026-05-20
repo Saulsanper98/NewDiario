@@ -779,10 +779,13 @@ export function LogEntryDetail({
             return (
               <div
                 className={cn(
-                  "relative flex items-center gap-3 border-b border-white/8 transition-colors",
-                  hasRichBody ? "mb-6 pb-5" : "mb-4 pb-4",
-                  authorBanner &&
-                    "overflow-hidden rounded-xl border border-white/8 mb-6 px-3.5 py-3"
+                  "relative flex items-center gap-3 transition-colors",
+                  authorBanner
+                    ? "overflow-hidden rounded-xl border-0 mb-6 px-3.5 py-3"
+                    : cn(
+                        "border-b border-white/8",
+                        hasRichBody ? "mb-6 pb-5" : "mb-4 pb-4"
+                      )
                 )}
                 style={bannerStyle}
               >

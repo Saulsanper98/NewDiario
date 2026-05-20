@@ -15,6 +15,7 @@ import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
 import { UserProfilePopover } from "@/components/user/UserProfilePopover";
 import { useTheme } from "@/components/layout/ThemeProvider";
+import { useAvatarFrameEffect } from "@/lib/hooks/useAvatarFrameEffect";
 import { cn } from "@/lib/utils";
 import type {
   ChatConversationItem,
@@ -76,6 +77,7 @@ export function ChatView() {
   const L = theme === "light";
   const router = useRouter();
   const searchParams = useSearchParams();
+  const avatarEffect = useAvatarFrameEffect();
 
   const [conversations, setConversations] = useState<ChatConversationItem[]>(
     []
@@ -91,6 +93,7 @@ export function ChatView() {
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const composerRef = useRef<HTMLTextAreaElement>(null);
   const lastMessageAtRef = useRef<string | null>(null);
 
   const activeConv = conversations.find((c) => c.id === activeId) ?? null;
@@ -200,6 +203,15 @@ export function ChatView() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, activeId]);
+
+  // Auto-resize del textarea al escribir. Se ajusta a la altura del contenido
+  // hasta el max-height (gestionado por CSS).
+  useEffect(() => {
+    const el = composerRef.current;
+    if (!el) return;
+    el.style.height = "0px";
+    el.style.height = `${Math.min(el.scrollHeight, 160)}px`;
+  }, [draft]);
 
   async function startChatWith(peerId: string) {
     try {
@@ -382,28 +394,67 @@ export function ChatView() {
             <ul className="space-y-1 p-2">
               {conversations.map((c) => {
                 const active = c.id === activeId;
+                const banner = c.peer.profileBanner?.trim() || null;
+                const bx = c.peer.bannerFocusX ?? 50;
+                const by = c.peer.bannerFocusY ?? 50;
+                // Banner del peer como fondo MUY sutil (mas marcado si esta activo).
+                const itemBgStyle: React.CSSProperties | undefined = banner
+                  ? L
+                    ? {
+                        backgroundImage: `linear-gradient(90deg, rgba(255,255,255,${active ? 0.85 : 0.92}) 0%, rgba(255,255,255,${active ? 0.65 : 0.82}) 100%), url(${banner})`,
+                        backgroundRepeat: "no-repeat, no-repeat",
+                        backgroundSize: "cover, cover",
+                        backgroundPosition: `center, ${bx}% ${by}%`,
+                      }
+                    : {
+                        backgroundImage: `linear-gradient(90deg, rgba(10,15,30,${active ? 0.78 : 0.88}) 0%, rgba(10,15,30,${active ? 0.55 : 0.78}) 60%, rgba(10,15,30,${active ? 0.78 : 0.92}) 100%), url(${banner})`,
+                        backgroundRepeat: "no-repeat, no-repeat",
+                        backgroundSize: "cover, cover",
+                        backgroundPosition: `center, ${bx}% ${by}%`,
+                        imageRendering: "-webkit-optimize-contrast",
+                      }
+                  : undefined;
                 return (
                   <li key={c.id}>
                     <button
                       type="button"
                       onClick={() => selectConversation(c.id)}
                       className={cn(
-                        "flex w-full items-start gap-3 rounded-xl px-3 py-2.5 text-left transition-all",
+                        "group/conv relative flex w-full items-start gap-3 overflow-hidden rounded-xl px-3 py-2.5 text-left transition-all",
                         active
                           ? L
-                            ? "bg-[#ffeb66]/14 ring-1 ring-[#ffeb66]/35 shadow-sm"
-                            : "bg-[#ffeb66]/10 ring-1 ring-[#ffeb66]/25 shadow-[0_0_20px_rgba(255,235,102,0.08)]"
+                            ? "ring-1 ring-[#ffeb66]/45 shadow-sm"
+                            : "ring-1 ring-[#ffeb66]/30 shadow-[0_0_20px_rgba(255,235,102,0.1)]"
                           : L
-                            ? "hover:bg-zinc-50"
-                            : "hover:bg-white/[0.05]"
+                            ? "hover:bg-zinc-50/80 ring-1 ring-transparent hover:ring-zinc-200/60"
+                            : "hover:bg-white/[0.045] ring-1 ring-transparent hover:ring-white/[0.08]",
+                        !banner && active &&
+                          (L ? "bg-[#ffeb66]/14" : "bg-[#ffeb66]/10")
                       )}
+                      style={itemBgStyle}
                     >
-                      <Avatar
-                        name={c.peer.name}
-                        image={c.peer.image}
-                        size="md"
-                      />
-                      <div className="min-w-0 flex-1">
+                      <div className="relative shrink-0">
+                        <Avatar
+                          name={c.peer.name}
+                          image={c.peer.image}
+                          focusX={c.peer.imageFocusX}
+                          focusY={c.peer.imageFocusY}
+                          size="md"
+                        />
+                        {c.unreadCount > 0 && (
+                          <span
+                            className={cn(
+                              "absolute -right-0.5 -top-0.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full px-1 text-[9px] font-bold ring-2",
+                              L
+                                ? "bg-[#ffeb66] text-[#0a0f1e] ring-white"
+                                : "bg-[#ffeb66] text-[#0a0f1e] ring-[#0a0f1e]"
+                            )}
+                          >
+                            {c.unreadCount > 9 ? "9+" : c.unreadCount}
+                          </span>
+                        )}
+                      </div>
+                      <div className="relative z-[1] min-w-0 flex-1">
                         <div className="flex items-baseline justify-between gap-2">
                           <span
                             className={cn(
@@ -416,8 +467,14 @@ export function ChatView() {
                           {c.lastMessage && (
                             <span
                               className={cn(
-                                "shrink-0 text-[10px]",
-                                L ? "text-zinc-400" : "text-white/35"
+                                "shrink-0 text-[10px] tabular-nums",
+                                L
+                                  ? c.unreadCount > 0
+                                    ? "font-semibold text-[#9c7d10]"
+                                    : "text-zinc-400"
+                                  : c.unreadCount > 0
+                                    ? "font-semibold text-[#ffeb66]"
+                                    : "text-white/40"
                               )}
                             >
                               {formatListTime(c.lastMessage.createdAt)}
@@ -433,7 +490,7 @@ export function ChatView() {
                                 : "font-medium text-white/85"
                               : L
                                 ? "text-zinc-500"
-                                : "text-white/40"
+                                : "text-white/45"
                           )}
                         >
                           {c.lastMessage
@@ -443,11 +500,6 @@ export function ChatView() {
                             : "Sin mensajes aún"}
                         </p>
                       </div>
-                      {c.unreadCount > 0 && (
-                        <span className="mt-1 flex h-5 min-w-[1.25rem] shrink-0 items-center justify-center rounded-full bg-[#ffeb66] px-1.5 text-[10px] font-bold text-[#0a0f1e]">
-                          {c.unreadCount > 9 ? "9+" : c.unreadCount}
-                        </span>
-                      )}
                     </button>
                   </li>
                 );
@@ -466,50 +518,88 @@ export function ChatView() {
       >
         {activeConv ? (
           <>
-            <header
-              className={cn(
-                "flex shrink-0 items-center gap-3 border-b px-4 py-3.5",
-                L
-                  ? "border-zinc-200/80 bg-white/80 backdrop-blur-md"
-                  : "border-white/8 bg-[#0a0f1e]/70 backdrop-blur-xl"
-              )}
-            >
-              <button
-                type="button"
-                className={cn(
-                  "md:hidden rounded-lg p-1.5",
-                  L ? "text-zinc-600 hover:bg-zinc-100" : "text-white/60 hover:bg-white/10"
-                )}
-                onClick={() => {
-                  setMobileShowThread(false);
-                  router.replace("/chat", { scroll: false });
-                }}
-                aria-label="Volver a conversaciones"
-              >
-                ←
-              </button>
-              <Avatar
-                name={activeConv.peer.name}
-                image={activeConv.peer.image}
-                size="sm"
-              />
-              <UserProfilePopover
-                userId={activeConv.peer.id}
-                name={activeConv.peer.name}
-                email={activeConv.peer.email}
-                image={activeConv.peer.image}
-              >
-                <button
-                  type="button"
+            {(() => {
+              const banner = activeConv.peer.profileBanner?.trim() || null;
+              const bx = activeConv.peer.bannerFocusX ?? 50;
+              const by = activeConv.peer.bannerFocusY ?? 50;
+              const headerBgStyle: React.CSSProperties | undefined = banner
+                ? L
+                  ? {
+                      backgroundImage: `linear-gradient(180deg, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0.92) 100%), url(${banner})`,
+                      backgroundRepeat: "no-repeat, no-repeat",
+                      backgroundSize: "cover, cover",
+                      backgroundPosition: `center, ${bx}% ${by}%`,
+                    }
+                  : {
+                      backgroundImage: `linear-gradient(180deg, rgba(10,15,30,0.7) 0%, rgba(10,15,30,0.85) 100%), url(${banner})`,
+                      backgroundRepeat: "no-repeat, no-repeat",
+                      backgroundSize: "cover, cover",
+                      backgroundPosition: `center, ${bx}% ${by}%`,
+                      imageRendering: "-webkit-optimize-contrast",
+                    }
+                : undefined;
+              return (
+                <header
                   className={cn(
-                    "text-left text-sm font-semibold transition-colors hover:underline",
-                    L ? "text-zinc-900" : "text-white"
+                    "relative flex shrink-0 items-center gap-3 border-b px-4 py-3.5 backdrop-blur-md",
+                    L
+                      ? banner
+                        ? "border-zinc-200/80"
+                        : "border-zinc-200/80 bg-white/80"
+                      : banner
+                        ? "border-white/8"
+                        : "border-white/8 bg-[#0a0f1e]/70"
                   )}
+                  style={headerBgStyle}
                 >
-                  {activeConv.peer.name}
-                </button>
-              </UserProfilePopover>
-            </header>
+                  <button
+                    type="button"
+                    className={cn(
+                      "md:hidden rounded-lg p-1.5",
+                      L
+                        ? "text-zinc-700 hover:bg-zinc-100"
+                        : "text-white/70 hover:bg-white/10"
+                    )}
+                    onClick={() => {
+                      setMobileShowThread(false);
+                      router.replace("/chat", { scroll: false });
+                    }}
+                    aria-label="Volver a conversaciones"
+                  >
+                    ←
+                  </button>
+                  <Avatar
+                    name={activeConv.peer.name}
+                    image={activeConv.peer.image}
+                    focusX={activeConv.peer.imageFocusX}
+                    focusY={activeConv.peer.imageFocusY}
+                    size="md"
+                    effect={avatarEffect}
+                  />
+                  <div className="min-w-0 flex-1">
+                    <UserProfilePopover
+                      userId={activeConv.peer.id}
+                      name={activeConv.peer.name}
+                      email={activeConv.peer.email}
+                      image={activeConv.peer.image}
+                      profileBanner={activeConv.peer.profileBanner}
+                      nameClassName={cn(
+                        "block truncate text-sm font-semibold transition-colors hover:underline",
+                        L ? "text-zinc-900" : "text-white"
+                      )}
+                    />
+                    <p
+                      className={cn(
+                        "truncate text-[11px]",
+                        L ? "text-zinc-500" : "text-white/45"
+                      )}
+                    >
+                      {activeConv.peer.email}
+                    </p>
+                  </div>
+                </header>
+              );
+            })()}
 
             <div
               ref={messagesContainerRef}
@@ -539,65 +629,126 @@ export function ChatView() {
               ) : (
                 messages.map((m, idx) => {
                   const prev = messages[idx - 1];
+                  const next = messages[idx + 1];
                   const showDay =
                     !prev ||
                     daySeparatorLabel(prev.createdAt) !==
                       daySeparatorLabel(m.createdAt);
+                  // Agrupamos mensajes consecutivos del mismo usuario en un
+                  // intervalo de 5 minutos. Solo el primero muestra avatar y
+                  // solo el ultimo muestra hora.
+                  const sameAsPrev =
+                    !!prev &&
+                    prev.senderId === m.senderId &&
+                    new Date(m.createdAt).getTime() -
+                      new Date(prev.createdAt).getTime() <
+                      5 * 60_000 &&
+                    !showDay;
+                  const sameAsNext =
+                    !!next &&
+                    next.senderId === m.senderId &&
+                    new Date(next.createdAt).getTime() -
+                      new Date(m.createdAt).getTime() <
+                      5 * 60_000;
+                  const showAvatar = !m.isMine && !sameAsPrev;
+                  const showTime = !sameAsNext;
                   return (
-                    <div key={m.id} className="space-y-3">
+                    <div
+                      key={m.id}
+                      className={cn(sameAsPrev ? "space-y-0.5" : "space-y-3")}
+                    >
                       {showDay && (
-                        <div className="flex justify-center py-1">
+                        <div className="flex items-center gap-3 py-1.5">
+                          <div
+                            className={cn(
+                              "h-px flex-1",
+                              L
+                                ? "bg-gradient-to-r from-transparent via-zinc-200 to-transparent"
+                                : "bg-gradient-to-r from-transparent via-white/15 to-transparent"
+                            )}
+                          />
                           <span
                             className={cn(
-                              "rounded-full border px-3 py-0.5 text-[10px] font-medium capitalize",
+                              "rounded-full border px-2.5 py-0.5 text-[10px] font-medium capitalize tracking-wide",
                               L
-                                ? "border-zinc-200/90 bg-zinc-100 text-zinc-500"
-                                : "border-white/10 bg-white/[0.05] text-white/40"
+                                ? "border-zinc-200/90 bg-zinc-50 text-zinc-500"
+                                : "border-white/10 bg-white/[0.04] text-white/50"
                             )}
                           >
                             {daySeparatorLabel(m.createdAt)}
                           </span>
+                          <div
+                            className={cn(
+                              "h-px flex-1",
+                              L
+                                ? "bg-gradient-to-r from-transparent via-zinc-200 to-transparent"
+                                : "bg-gradient-to-r from-transparent via-white/15 to-transparent"
+                            )}
+                          />
                         </div>
                       )}
                       <div
                         className={cn(
-                          "flex gap-2",
+                          "chat-bubble-enter flex items-end gap-2",
                           m.isMine ? "flex-row-reverse" : "flex-row"
                         )}
                       >
                         {!m.isMine && (
-                          <Avatar
-                            name={m.sender.name}
-                            image={m.sender.image}
-                            size="xs"
-                            className="mt-0.5 shrink-0"
-                          />
+                          <div className="w-7 shrink-0">
+                            {showAvatar && (
+                              <Avatar
+                                name={m.sender.name}
+                                image={m.sender.image}
+                                focusX={m.sender.imageFocusX}
+                                focusY={m.sender.imageFocusY}
+                                size="xs"
+                                className={cn(
+                                  L
+                                    ? "ring-1 ring-zinc-200/80"
+                                    : "ring-1 ring-white/10"
+                                )}
+                              />
+                            )}
+                          </div>
                         )}
                         <div
                           className={cn(
-                            "max-w-[min(100%,26rem)] rounded-2xl px-3.5 py-2.5 shadow-sm",
+                            "group/bubble relative max-w-[min(100%,26rem)] px-3.5 py-2.5 text-sm shadow-sm transition-shadow",
                             m.isMine
-                              ? "rounded-br-md border border-[#ffeb66]/30 bg-gradient-to-br from-[#ffeb66]/28 via-[#d4af37]/15 to-[#1a2a42]/90 text-white shadow-[0_4px_24px_rgba(255,235,102,0.14)]"
-                              : L
-                                ? "rounded-bl-md border border-zinc-200/90 bg-white text-zinc-900"
-                                : "rounded-bl-md border border-white/12 bg-[#121a2e]/90 text-white backdrop-blur-sm"
+                              ? cn(
+                                  "border border-[#ffeb66]/30 bg-gradient-to-br from-[#ffeb66]/30 via-[#d4af37]/14 to-[#1a2a42]/88 text-white shadow-[0_4px_22px_rgba(255,235,102,0.16)] hover:shadow-[0_4px_28px_rgba(255,235,102,0.22)]",
+                                  sameAsPrev
+                                    ? "rounded-2xl rounded-tr-md rounded-br-md"
+                                    : "rounded-2xl rounded-br-md"
+                                )
+                              : cn(
+                                  L
+                                    ? "border border-zinc-200/90 bg-white text-zinc-900"
+                                    : "border border-white/10 bg-gradient-to-br from-[#161f33]/95 to-[#0f1729]/95 text-white backdrop-blur-sm",
+                                  sameAsPrev
+                                    ? "rounded-2xl rounded-tl-md rounded-bl-md"
+                                    : "rounded-2xl rounded-bl-md"
+                                )
                           )}
+                          title={formatTime(m.createdAt)}
                         >
-                          <p className="whitespace-pre-wrap break-words text-sm leading-relaxed">
+                          <p className="whitespace-pre-wrap break-words leading-relaxed">
                             {m.body}
                           </p>
-                          <p
-                            className={cn(
-                              "mt-1.5 text-[10px] tabular-nums",
-                              m.isMine
-                                ? "text-white/50"
-                                : L
-                                  ? "text-zinc-400"
-                                  : "text-white/35"
-                            )}
-                          >
-                            {formatTime(m.createdAt)}
-                          </p>
+                          {showTime && (
+                            <p
+                              className={cn(
+                                "mt-1 text-[10px] tabular-nums",
+                                m.isMine
+                                  ? "text-white/55"
+                                  : L
+                                    ? "text-zinc-400"
+                                    : "text-white/40"
+                              )}
+                            >
+                              {formatTime(m.createdAt)}
+                            </p>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -611,18 +762,21 @@ export function ChatView() {
               onSubmit={handleSend}
               className={cn(
                 "shrink-0 border-t p-3 sm:p-4",
-                L ? "border-zinc-200/80 bg-white/90" : "border-white/8 bg-[#060a14]/90"
+                L
+                  ? "border-zinc-200/80 bg-white/90"
+                  : "border-white/8 bg-[#060a14]/90"
               )}
             >
               <div
                 className={cn(
-                  "flex items-end gap-2 rounded-2xl border p-1.5 shadow-inner",
+                  "group/composer flex items-end gap-2 rounded-2xl border p-1.5 shadow-inner transition-all",
                   L
-                    ? "border-zinc-200/90 bg-zinc-50/90"
-                    : "border-white/10 bg-white/[0.03] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
+                    ? "border-zinc-200/90 bg-zinc-50/90 focus-within:border-[#ffeb66]/55 focus-within:ring-2 focus-within:ring-[#ffeb66]/20"
+                    : "border-white/10 bg-white/[0.035] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] focus-within:border-[#ffeb66]/45 focus-within:ring-2 focus-within:ring-[#ffeb66]/15"
                 )}
               >
                 <textarea
+                  ref={composerRef}
                   value={draft}
                   onChange={(e) => setDraft(e.target.value)}
                   onKeyDown={(e) => {
@@ -634,7 +788,7 @@ export function ChatView() {
                   rows={1}
                   placeholder={`Mensaje para ${activeConv.peer.name}…`}
                   className={cn(
-                    "max-h-32 min-h-[2.75rem] flex-1 resize-none border-0 bg-transparent px-2.5 py-2 text-sm outline-none focus:ring-0",
+                    "max-h-40 min-h-[2.75rem] flex-1 resize-none border-0 bg-transparent px-2.5 py-2 text-sm leading-relaxed outline-none focus:ring-0",
                     L
                       ? "text-zinc-900 placeholder:text-zinc-400"
                       : "text-white placeholder:text-white/35"
@@ -645,66 +799,98 @@ export function ChatView() {
                   disabled={!draft.trim() || sending}
                   aria-label="Enviar"
                   className={cn(
-                    "mb-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-all",
-                    "bg-gradient-to-br from-[#ffeb66] to-[#e6c200] text-[#0a0f1e]",
-                    "hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40",
+                    "mb-0.5 relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-all duration-200",
+                    "bg-gradient-to-br from-[#ffeb66] to-[#d4a700] text-[#0a0f1e]",
+                    "shadow-[0_4px_14px_rgba(255,235,102,0.35)]",
+                    "hover:brightness-110 hover:shadow-[0_6px_18px_rgba(255,235,102,0.5)] hover:-translate-y-0.5",
+                    "active:translate-y-0",
+                    "disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none disabled:hover:translate-y-0",
                     sending && "opacity-70"
                   )}
                 >
                   {sending ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
-                    <Send className="h-4 w-4" />
+                    <Send className="h-4 w-4 transition-transform group-hover/composer:translate-x-0.5" />
                   )}
                 </button>
               </div>
-              <p
+              <div
                 className={cn(
-                  "mt-1.5 hidden text-[10px] sm:block",
-                  L ? "text-zinc-400" : "text-white/30"
+                  "mt-1.5 flex items-center justify-between gap-2 text-[10px]",
+                  L ? "text-zinc-400" : "text-white/35"
                 )}
               >
-                Enter para enviar · Mayús+Enter para nueva línea
-              </p>
+                <span className="hidden sm:inline">
+                  Enter para enviar · Mayús+Enter para nueva línea
+                </span>
+                {draft.trim().length > 0 && (
+                  <span className="tabular-nums">
+                    {draft.length} / 4000
+                  </span>
+                )}
+              </div>
             </form>
           </>
         ) : (
           <div
             className={cn(
-              "flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center",
-              L ? "text-zinc-500" : "text-white/40"
+              "relative flex flex-1 flex-col items-center justify-center gap-4 px-6 text-center",
+              L ? "text-zinc-500" : "text-white/45"
             )}
           >
+            {!L && (
+              <div
+                aria-hidden
+                className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_50%_40%,rgba(255,235,102,0.07),transparent_60%)]"
+              />
+            )}
             <div
               className={cn(
-                "flex h-16 w-16 items-center justify-center rounded-2xl border",
+                "relative flex h-20 w-20 items-center justify-center rounded-2xl border shadow-lg",
                 L
-                  ? "border-zinc-200 bg-zinc-50"
-                  : "border-white/10 bg-white/[0.04]"
+                  ? "border-zinc-200 bg-gradient-to-br from-white to-zinc-50"
+                  : "border-[#ffeb66]/20 bg-gradient-to-br from-[#ffeb66]/8 to-white/[0.02] shadow-[0_0_36px_rgba(255,235,102,0.12)]"
               )}
             >
               <Sparkles
-                className={cn("h-8 w-8", L ? "text-zinc-400" : "text-[#ffeb66]/50")}
+                className={cn(
+                  "h-9 w-9 drop-shadow-[0_0_8px_rgba(255,235,102,0.4)]",
+                  L ? "text-amber-500" : "text-[#ffeb66]"
+                )}
               />
             </div>
-            <div>
+            <div className="relative">
               <p
                 className={cn(
-                  "text-sm font-semibold",
-                  L ? "text-zinc-800" : "text-white/85"
+                  "text-base font-semibold tracking-tight",
+                  L ? "text-zinc-900" : "text-white"
                 )}
               >
                 Selecciona una conversación
               </p>
-              <p className="mx-auto mt-1 max-w-sm text-xs leading-relaxed">
-                Pulsa <strong className={L ? "text-zinc-900" : "text-[#ffeb66]/90"}>Nuevo</strong>
-                , elige departamento y compañero.
+              <p
+                className={cn(
+                  "mx-auto mt-1.5 max-w-sm text-xs leading-relaxed",
+                  L ? "text-zinc-500" : "text-white/45"
+                )}
+              >
+                Pulsa{" "}
+                <strong
+                  className={cn(
+                    "font-semibold",
+                    L ? "text-zinc-900" : "text-[#ffeb66]"
+                  )}
+                >
+                  Nuevo
+                </strong>
+                , elige departamento y compañero para empezar a hablar.
               </p>
             </div>
             <Button
               type="button"
               variant="secondary"
-              className="mt-2 md:hidden"
+              className="relative mt-2 md:hidden"
               onClick={() => setNewChatOpen(true)}
             >
               <Plus className="mr-1.5 h-4 w-4" />

@@ -46,7 +46,17 @@ export async function GET(
     take: PAGE_SIZE,
     include: {
       sender: {
-        select: { id: true, name: true, email: true, image: true },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          image: true,
+          imageFocusX: true,
+          imageFocusY: true,
+          profileBanner: true,
+          bannerFocusX: true,
+          bannerFocusY: true,
+        },
       },
     },
   });
@@ -64,6 +74,11 @@ export async function GET(
       name: m.sender.name,
       email: m.sender.email,
       image: m.sender.image,
+      imageFocusX: m.sender.imageFocusX ?? null,
+      imageFocusY: m.sender.imageFocusY ?? null,
+      profileBanner: m.sender.profileBanner ?? null,
+      bannerFocusX: m.sender.bannerFocusX ?? null,
+      bannerFocusY: m.sender.bannerFocusY ?? null,
     },
   }));
 
@@ -104,7 +119,17 @@ export async function POST(
       },
       include: {
         sender: {
-          select: { id: true, name: true, email: true, image: true },
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            image: true,
+            imageFocusX: true,
+            imageFocusY: true,
+            profileBanner: true,
+            bannerFocusX: true,
+            bannerFocusY: true,
+          },
         },
       },
     });
@@ -155,6 +180,11 @@ export async function POST(
       name: message.sender.name,
       email: message.sender.email,
       image: message.sender.image,
+      imageFocusX: message.sender.imageFocusX ?? null,
+      imageFocusY: message.sender.imageFocusY ?? null,
+      profileBanner: message.sender.profileBanner ?? null,
+      bannerFocusX: message.sender.bannerFocusX ?? null,
+      bannerFocusY: message.sender.bannerFocusY ?? null,
     },
   };
 

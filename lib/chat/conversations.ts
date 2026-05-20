@@ -12,7 +12,17 @@ export async function listConversationsForUser(
           participants: {
             include: {
               user: {
-                select: { id: true, name: true, email: true, image: true },
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                  image: true,
+                  imageFocusX: true,
+                  imageFocusY: true,
+                  profileBanner: true,
+                  bannerFocusX: true,
+                  bannerFocusY: true,
+                },
               },
             },
           },
@@ -56,6 +66,11 @@ export async function listConversationsForUser(
         name: peerRow.user.name,
         email: peerRow.user.email,
         image: peerRow.user.image,
+        imageFocusX: peerRow.user.imageFocusX ?? null,
+        imageFocusY: peerRow.user.imageFocusY ?? null,
+        profileBanner: peerRow.user.profileBanner ?? null,
+        bannerFocusX: peerRow.user.bannerFocusX ?? null,
+        bannerFocusY: peerRow.user.bannerFocusY ?? null,
       },
       lastMessage: last
         ? {

@@ -3,6 +3,11 @@ export type ChatPeer = {
   name: string;
   email: string;
   image: string | null;
+  imageFocusX: number | null;
+  imageFocusY: number | null;
+  profileBanner: string | null;
+  bannerFocusX: number | null;
+  bannerFocusY: number | null;
 };
 
 export type ChatConversationItem = {
