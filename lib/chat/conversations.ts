@@ -34,6 +34,7 @@ export async function listConversationsForUser(
               body: true,
               createdAt: true,
               senderId: true,
+              sender: { select: { name: true } },
             },
           },
         },
@@ -46,8 +47,11 @@ export async function listConversationsForUser(
 
   for (const p of participations) {
     const conv = p.conversation;
-    const peerRow = conv.participants.find((x) => x.userId !== userId);
-    if (!peerRow) continue;
+    const isGroup = conv.isGroup;
+    const otherRows = conv.participants.filter((x) => x.userId !== userId);
+
+    // En 1-a-1 necesitamos exactamente un peer; en grupo puede ser N.
+    if (!isGroup && otherRows.length === 0) continue;
 
     const last = conv.messages[0] ?? null;
     const unreadCount = await prisma.chatMessage.count({
@@ -58,26 +62,33 @@ export async function listConversationsForUser(
       },
     });
 
+    const members = otherRows.map((row) => ({
+      id: row.user.id,
+      name: row.user.name,
+      email: row.user.email,
+      image: row.user.image,
+      imageFocusX: row.user.imageFocusX ?? null,
+      imageFocusY: row.user.imageFocusY ?? null,
+      profileBanner: row.user.profileBanner ?? null,
+      bannerFocusX: row.user.bannerFocusX ?? null,
+      bannerFocusY: row.user.bannerFocusY ?? null,
+    }));
+
     items.push({
       id: conv.id,
       updatedAt: conv.updatedAt.toISOString(),
-      peer: {
-        id: peerRow.user.id,
-        name: peerRow.user.name,
-        email: peerRow.user.email,
-        image: peerRow.user.image,
-        imageFocusX: peerRow.user.imageFocusX ?? null,
-        imageFocusY: peerRow.user.imageFocusY ?? null,
-        profileBanner: peerRow.user.profileBanner ?? null,
-        bannerFocusX: peerRow.user.bannerFocusX ?? null,
-        bannerFocusY: peerRow.user.bannerFocusY ?? null,
-      },
+      isGroup,
+      title: conv.title ?? null,
+      image: conv.image ?? null,
+      peer: isGroup ? null : members[0] ?? null,
+      members,
       lastMessage: last
         ? {
             id: last.id,
             body: last.body,
             createdAt: last.createdAt.toISOString(),
             senderId: last.senderId,
+            senderName: last.sender?.name ?? "",
             isMine: last.senderId === userId,
           }
         : null,

@@ -3,13 +3,20 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma/client";
 import { z } from "zod";
 import type { SessionUser } from "@/lib/auth/types";
-import { isSuperAdmin } from "@/lib/auth/permissions";
 import { findDirectConversation } from "@/lib/chat/access";
 import { listConversationsForUser } from "@/lib/chat/conversations";
 
-const createSchema = z.object({
-  userId: z.string().min(1),
-});
+// 1-a-1: solo userId. Grupo: title + userIds (>=2).
+const createSchema = z.union([
+  z.object({
+    userId: z.string().min(1),
+  }),
+  z.object({
+    title: z.string().trim().min(1).max(120),
+    userIds: z.array(z.string().min(1)).min(2).max(50),
+    image: z.string().trim().url().max(1024).optional().nullable(),
+  }),
+]);
 
 export async function GET() {
   const session = await auth();
@@ -35,6 +42,51 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
+  // Grupo (>=2 participantes + 1 creador)
+  if ("userIds" in parsed.data) {
+    const title = parsed.data.title.trim();
+    const image = parsed.data.image?.trim() || null;
+    const uniqueIds = Array.from(
+      new Set(parsed.data.userIds.filter((id) => id !== actor.id))
+    );
+    if (uniqueIds.length < 2) {
+      return NextResponse.json(
+        { error: "Un grupo necesita al menos 2 compañeros (3 personas en total)" },
+        { status: 400 }
+      );
+    }
+    const members = await prisma.user.findMany({
+      where: { id: { in: uniqueIds }, deletedAt: null, isActive: true },
+      select: { id: true },
+    });
+    if (members.length !== uniqueIds.length) {
+      return NextResponse.json(
+        { error: "Algún compañero seleccionado no existe o está inactivo" },
+        { status: 400 }
+      );
+    }
+    const created = await prisma.chatConversation.create({
+      data: {
+        isGroup: true,
+        title,
+        image,
+        createdById: actor.id,
+        participants: {
+          create: [
+            { userId: actor.id },
+            ...members.map((m) => ({ userId: m.id })),
+          ],
+        },
+      },
+      select: { id: true },
+    });
+    return NextResponse.json(
+      { conversationId: created.id },
+      { status: 201 }
+    );
+  }
+
+  // 1-a-1
   const { userId: otherUserId } = parsed.data;
   if (otherUserId === actor.id) {
     return NextResponse.json(
@@ -51,18 +103,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Usuario no encontrado" }, { status: 404 });
   }
 
-  const deptIds = actor.departments.map((d) => d.id);
-  if (!isSuperAdmin(actor) && deptIds.length > 0) {
-    const shared = await prisma.userDepartment.findFirst({
-      where: {
-        userId: otherUserId,
-        departmentId: { in: deptIds },
-      },
-    });
-    if (!shared) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
-  }
+  // El chat es transversal: cualquier usuario puede iniciar una
+  // conversacion 1-a-1 con cualquier otro usuario activo.
 
   const existing = await findDirectConversation(actor.id, otherUserId);
   if (existing) {
@@ -71,6 +113,8 @@ export async function POST(req: NextRequest) {
 
   const created = await prisma.chatConversation.create({
     data: {
+      isGroup: false,
+      createdById: actor.id,
       participants: {
         create: [{ userId: actor.id }, { userId: otherUserId }],
       },

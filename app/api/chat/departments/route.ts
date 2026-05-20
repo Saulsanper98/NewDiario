@@ -1,8 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma/client";
-import type { SessionUser } from "@/lib/auth/types";
-import { isSuperAdmin } from "@/lib/auth/permissions";
 
 export async function GET() {
   const session = await auth();
@@ -10,16 +8,10 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const actor = session.user as SessionUser;
-  const deptIds = actor.departments.map((d) => d.id);
-
+  // El chat es transversal: cualquier usuario (incluido un operador)
+  // puede hablar con cualquier otro, independientemente del departamento.
   const departments = await prisma.department.findMany({
-    where: {
-      isArchived: false,
-      ...(isSuperAdmin(actor) || deptIds.length === 0
-        ? {}
-        : { id: { in: deptIds } }),
-    },
+    where: { isArchived: false },
     select: {
       id: true,
       name: true,

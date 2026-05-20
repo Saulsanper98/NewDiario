@@ -2734,3 +2734,18 @@ textarea::placeholder {
 .chat-messages-scroll:not(:hover)::-webkit-scrollbar-thumb {
   background: transparent;
 }
+
+
+/* Composer del chat: brillo dorado al enfocar el textarea/boton sin que
+   el anillo cambie de forma. Usamos un box-shadow exterior porque el
+   ring de Tailwind, combinado con border y shadow-inner, perdia la
+   curvatura del rounded-2xl en algunos puntos. */
+.chat-composer-shell {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  transition: box-shadow 160ms ease, border-color 160ms ease;
+}
+.chat-composer-shell:focus-within {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 0 0 3px rgba(255, 235, 102, 0.18);
+}

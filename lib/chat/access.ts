@@ -20,6 +20,7 @@ export async function findDirectConversation(
 ) {
   const candidates = await prisma.chatConversation.findMany({
     where: {
+      isGroup: false,
       AND: [
         { participants: { some: { userId } } },
         { participants: { some: { userId: otherUserId } } },

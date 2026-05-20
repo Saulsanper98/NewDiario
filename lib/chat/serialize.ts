@@ -13,12 +13,22 @@ export type ChatPeer = {
 export type ChatConversationItem = {
   id: string;
   updatedAt: string;
-  peer: ChatPeer;
+  /** True si es un grupo (>=3 personas). */
+  isGroup: boolean;
+  /** Titulo del grupo (solo grupos). */
+  title: string | null;
+  /** Imagen del grupo (solo grupos). */
+  image: string | null;
+  /** Para 1-a-1: el otro participante. Para grupos: no se usa (peer es null). */
+  peer: ChatPeer | null;
+  /** Lista de miembros (sin contar al usuario actual). */
+  members: ChatPeer[];
   lastMessage: {
     id: string;
     body: string;
     createdAt: string;
     senderId: string;
+    senderName: string;
     isMine: boolean;
   } | null;
   unreadCount: number;

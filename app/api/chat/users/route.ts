@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma/client";
 import type { SessionUser } from "@/lib/auth/types";
-import { isSuperAdmin } from "@/lib/auth/permissions";
 
 export async function GET(req: NextRequest) {
   const session = await auth();
@@ -14,37 +13,18 @@ export async function GET(req: NextRequest) {
   const q = (req.nextUrl.searchParams.get("q") ?? "").trim();
   const departmentId = req.nextUrl.searchParams.get("departmentId")?.trim() ?? "";
 
-  if (!departmentId) {
-    return NextResponse.json(
-      { error: "Indica departmentId" },
-      { status: 400 }
-    );
-  }
-
-  const actorDeptIds = actor.departments.map((d) => d.id);
-  const canAccessDept =
-    isSuperAdmin(actor) ||
-    actorDeptIds.length === 0 ||
-    actorDeptIds.includes(departmentId);
-
-  if (!canAccessDept) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
-
-  const dept = await prisma.department.findFirst({
-    where: { id: departmentId, isArchived: false },
-    select: { id: true },
-  });
-  if (!dept) {
-    return NextResponse.json({ error: "Departamento no encontrado" }, { status: 404 });
-  }
-
+  // El chat es transversal: cualquier usuario puede hablar con cualquier
+  // otro. Si se indica departmentId se filtra por ese departamento
+  // (para reutilizar el flujo "elegir departamento -> elegir compañero")
+  // pero ya no se exige que el actor pertenezca al mismo.
   const users = await prisma.user.findMany({
     where: {
       deletedAt: null,
       isActive: true,
       id: { not: actor.id },
-      departments: { some: { departmentId } },
+      ...(departmentId
+        ? { departments: { some: { departmentId } } }
+        : {}),
       ...(q.length > 0
         ? {
             OR: [
@@ -54,9 +34,19 @@ export async function GET(req: NextRequest) {
           }
         : {}),
     },
-    select: { id: true, name: true, email: true, image: true },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      image: true,
+      imageFocusX: true,
+      imageFocusY: true,
+      profileBanner: true,
+      bannerFocusX: true,
+      bannerFocusY: true,
+    },
     orderBy: { name: "asc" },
-    take: q.length > 0 ? 30 : 80,
+    take: q.length > 0 ? 40 : 120,
   });
 
   return NextResponse.json({ users });

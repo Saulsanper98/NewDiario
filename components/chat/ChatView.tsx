@@ -20,6 +20,7 @@ import { cn } from "@/lib/utils";
 import type {
   ChatConversationItem,
   ChatMessageItem,
+  ChatPeer,
 } from "@/lib/chat/serialize";
 
 function formatTime(iso: string) {
@@ -56,6 +57,102 @@ function daySeparatorLabel(iso: string) {
     day: "numeric",
     month: "long",
   });
+}
+
+function GroupAvatarStack({
+  members,
+  image,
+  isLight,
+  large = false,
+}: {
+  members: ChatPeer[];
+  image?: string | null;
+  isLight: boolean;
+  large?: boolean;
+}) {
+  // Si el grupo tiene icono propio lo mostramos como avatar unico.
+  if (image?.trim()) {
+    return (
+      <span
+        className={cn(
+          "relative inline-flex shrink-0 overflow-hidden rounded-full",
+          large ? "h-10 w-10" : "h-9 w-9",
+          isLight ? "ring-1 ring-zinc-200" : "ring-1 ring-white/10"
+        )}
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={image}
+          alt=""
+          className="h-full w-full object-cover"
+        />
+      </span>
+    );
+  }
+  // Sin icono: pila de los 2 primeros avatares de los miembros (xs = 24px).
+  const visibles = members.slice(0, 2);
+  return (
+    <div
+      className={cn(
+        "relative shrink-0",
+        large ? "h-10 w-10" : "h-9 w-9"
+      )}
+      aria-label="Grupo"
+    >
+      {visibles.map((m, idx) => (
+        <div
+          key={m.id}
+          className={cn(
+            "absolute rounded-full ring-2",
+            isLight ? "ring-white" : "ring-[#0a0f1e]"
+          )}
+          style={{
+            top: idx === 0 ? 0 : "auto",
+            bottom: idx === 1 ? 0 : "auto",
+            left: idx === 0 ? 0 : "auto",
+            right: idx === 1 ? 0 : "auto",
+            zIndex: idx === 0 ? 1 : 2,
+          }}
+        >
+          <Avatar
+            name={m.name}
+            image={m.image}
+            focusX={m.imageFocusX}
+            focusY={m.imageFocusY}
+            size="xs"
+          />
+        </div>
+      ))}
+      {members.length > 2 && (
+        <span
+          className={cn(
+            "absolute -bottom-0.5 -right-0.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full px-1 text-[9px] font-bold ring-2",
+            isLight
+              ? "bg-zinc-100 text-zinc-700 ring-white"
+              : "bg-white/15 text-white/85 ring-[#0a0f1e]"
+          )}
+        >
+          +{members.length - 1}
+        </span>
+      )}
+    </div>
+  );
+}
+
+function conversationDisplayName(c: ChatConversationItem) {
+  if (c.isGroup) {
+    if (c.title?.trim()) return c.title;
+    const names = c.members.slice(0, 3).map((m) => m.name.split(" ")[0]);
+    return names.join(", ") + (c.members.length > 3 ? " y +" : "");
+  }
+  return c.peer?.name ?? "(sin nombre)";
+}
+
+function conversationSubtitle(c: ChatConversationItem) {
+  if (c.isGroup) {
+    return `${c.members.length + 1} miembros`;
+  }
+  return c.peer?.email ?? "";
 }
 
 function formatListTime(iso: string) {
@@ -364,6 +461,11 @@ export function ChatView() {
               isLight={L}
               onClose={() => setNewChatOpen(false)}
               onSelectUser={(id) => void startChatWith(id)}
+              onCreateGroup={async (conversationId) => {
+                setNewChatOpen(false);
+                await loadConversations();
+                selectConversation(conversationId);
+              }}
             />
           )}
         </div>
@@ -394,9 +496,15 @@ export function ChatView() {
             <ul className="space-y-1 p-2">
               {conversations.map((c) => {
                 const active = c.id === activeId;
-                const banner = c.peer.profileBanner?.trim() || null;
-                const bx = c.peer.bannerFocusX ?? 50;
-                const by = c.peer.bannerFocusY ?? 50;
+                // En grupos no usamos el banner (no hay uno comun) salvo
+                // que se haya subido una imagen al grupo. En 1-a-1
+                // tomamos el banner del peer.
+                const banner = c.isGroup
+                  ? c.image?.trim() || null
+                  : c.peer?.profileBanner?.trim() || null;
+                const bx = c.isGroup ? 50 : c.peer?.bannerFocusX ?? 50;
+                const by = c.isGroup ? 50 : c.peer?.bannerFocusY ?? 50;
+                const displayName = conversationDisplayName(c);
                 // Banner del peer como fondo MUY sutil (mas marcado si esta activo).
                 const itemBgStyle: React.CSSProperties | undefined = banner
                   ? L
@@ -434,13 +542,21 @@ export function ChatView() {
                       style={itemBgStyle}
                     >
                       <div className="relative shrink-0">
-                        <Avatar
-                          name={c.peer.name}
-                          image={c.peer.image}
-                          focusX={c.peer.imageFocusX}
-                          focusY={c.peer.imageFocusY}
-                          size="md"
-                        />
+                        {c.isGroup ? (
+                          <GroupAvatarStack
+                            members={c.members}
+                            image={c.image}
+                            isLight={L}
+                          />
+                        ) : (
+                          <Avatar
+                            name={c.peer?.name ?? "?"}
+                            image={c.peer?.image ?? null}
+                            focusX={c.peer?.imageFocusX}
+                            focusY={c.peer?.imageFocusY}
+                            size="md"
+                          />
+                        )}
                         {c.unreadCount > 0 && (
                           <span
                             className={cn(
@@ -462,7 +578,7 @@ export function ChatView() {
                               L ? "text-zinc-900" : "text-white"
                             )}
                           >
-                            {c.peer.name}
+                            {displayName}
                           </span>
                           {c.lastMessage && (
                             <span
@@ -496,8 +612,12 @@ export function ChatView() {
                           {c.lastMessage
                             ? c.lastMessage.isMine
                               ? `Tú: ${c.lastMessage.body}`
-                              : c.lastMessage.body
-                            : "Sin mensajes aún"}
+                              : c.isGroup && c.lastMessage.senderName
+                                ? `${c.lastMessage.senderName.split(" ")[0]}: ${c.lastMessage.body}`
+                                : c.lastMessage.body
+                            : c.isGroup
+                              ? `Grupo de ${c.members.length + 1} personas`
+                              : "Sin mensajes aún"}
                         </p>
                       </div>
                     </button>
@@ -519,19 +639,25 @@ export function ChatView() {
         {activeConv ? (
           <>
             {(() => {
-              const banner = activeConv.peer.profileBanner?.trim() || null;
-              const bx = activeConv.peer.bannerFocusX ?? 50;
-              const by = activeConv.peer.bannerFocusY ?? 50;
+              const isGroup = activeConv.isGroup;
+              const banner = isGroup
+                ? activeConv.image?.trim() || null
+                : activeConv.peer?.profileBanner?.trim() || null;
+              const bx = isGroup ? 50 : activeConv.peer?.bannerFocusX ?? 50;
+              const by = isGroup ? 50 : activeConv.peer?.bannerFocusY ?? 50;
+              // Gradient que termina en el color de fondo del panel del hilo
+              // para que el banner se funda con el area de mensajes sin dejar
+              // una linea clara en el borde inferior.
               const headerBgStyle: React.CSSProperties | undefined = banner
                 ? L
                   ? {
-                      backgroundImage: `linear-gradient(180deg, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0.92) 100%), url(${banner})`,
+                      backgroundImage: `linear-gradient(180deg, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0.88) 70%, rgba(255,255,255,0.95) 100%), url(${banner})`,
                       backgroundRepeat: "no-repeat, no-repeat",
                       backgroundSize: "cover, cover",
                       backgroundPosition: `center, ${bx}% ${by}%`,
                     }
                   : {
-                      backgroundImage: `linear-gradient(180deg, rgba(10,15,30,0.7) 0%, rgba(10,15,30,0.85) 100%), url(${banner})`,
+                      backgroundImage: `linear-gradient(180deg, rgba(8,13,24,0.65) 0%, rgba(8,13,24,0.82) 60%, rgba(8,13,24,0.96) 92%, rgba(8,13,24,1) 100%), url(${banner})`,
                       backgroundRepeat: "no-repeat, no-repeat",
                       backgroundSize: "cover, cover",
                       backgroundPosition: `center, ${bx}% ${by}%`,
@@ -541,14 +667,14 @@ export function ChatView() {
               return (
                 <header
                   className={cn(
-                    "relative flex shrink-0 items-center gap-3 border-b px-4 py-3.5 backdrop-blur-md",
-                    L
-                      ? banner
-                        ? "border-zinc-200/80"
-                        : "border-zinc-200/80 bg-white/80"
-                      : banner
-                        ? "border-white/8"
-                        : "border-white/8 bg-[#0a0f1e]/70"
+                    "relative flex shrink-0 items-center gap-3 px-4 py-3.5 backdrop-blur-md",
+                    // Solo dibujamos border-b cuando NO hay banner: el degradado
+                    // del banner ya se funde con el resto del panel.
+                    banner
+                      ? ""
+                      : L
+                        ? "border-b border-zinc-200/80 bg-white/80"
+                        : "border-b border-white/8 bg-[#0a0f1e]/70"
                   )}
                   style={headerBgStyle}
                 >
@@ -568,34 +694,71 @@ export function ChatView() {
                   >
                     ←
                   </button>
-                  <Avatar
-                    name={activeConv.peer.name}
-                    image={activeConv.peer.image}
-                    focusX={activeConv.peer.imageFocusX}
-                    focusY={activeConv.peer.imageFocusY}
-                    size="md"
-                    effect={avatarEffect}
-                  />
-                  <div className="min-w-0 flex-1">
-                    <UserProfilePopover
-                      userId={activeConv.peer.id}
-                      name={activeConv.peer.name}
-                      email={activeConv.peer.email}
-                      image={activeConv.peer.image}
-                      profileBanner={activeConv.peer.profileBanner}
-                      nameClassName={cn(
-                        "block truncate text-sm font-semibold transition-colors hover:underline",
-                        L ? "text-zinc-900" : "text-white"
-                      )}
+                  {isGroup ? (
+                    <GroupAvatarStack
+                      members={activeConv.members}
+                      image={activeConv.image}
+                      isLight={L}
+                      large
                     />
-                    <p
-                      className={cn(
-                        "truncate text-[11px]",
-                        L ? "text-zinc-500" : "text-white/45"
-                      )}
-                    >
-                      {activeConv.peer.email}
-                    </p>
+                  ) : (
+                    <Avatar
+                      name={activeConv.peer?.name ?? "?"}
+                      image={activeConv.peer?.image ?? null}
+                      focusX={activeConv.peer?.imageFocusX}
+                      focusY={activeConv.peer?.imageFocusY}
+                      size="md"
+                      effect={avatarEffect}
+                    />
+                  )}
+                  <div className="min-w-0 flex-1">
+                    {isGroup ? (
+                      <>
+                        <span
+                          className={cn(
+                            "block truncate text-sm font-semibold",
+                            L ? "text-zinc-900" : "text-white"
+                          )}
+                        >
+                          {conversationDisplayName(activeConv)}
+                        </span>
+                        <p
+                          className={cn(
+                            "truncate text-[11px]",
+                            L ? "text-zinc-500" : "text-white/45"
+                          )}
+                        >
+                          {conversationSubtitle(activeConv)} ·{" "}
+                          {activeConv.members
+                            .slice(0, 3)
+                            .map((m) => m.name.split(" ")[0])
+                            .join(", ")}
+                          {activeConv.members.length > 3 && "…"}
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <UserProfilePopover
+                          userId={activeConv.peer!.id}
+                          name={activeConv.peer!.name}
+                          email={activeConv.peer!.email}
+                          image={activeConv.peer!.image}
+                          profileBanner={activeConv.peer!.profileBanner}
+                          nameClassName={cn(
+                            "block truncate text-sm font-semibold transition-colors hover:underline",
+                            L ? "text-zinc-900" : "text-white"
+                          )}
+                        />
+                        <p
+                          className={cn(
+                            "truncate text-[11px]",
+                            L ? "text-zinc-500" : "text-white/45"
+                          )}
+                        >
+                          {activeConv.peer!.email}
+                        </p>
+                      </>
+                    )}
                   </div>
                 </header>
               );
@@ -624,7 +787,9 @@ export function ChatView() {
                     L ? "text-zinc-500" : "text-white/40"
                   )}
                 >
-                  Escribe el primer mensaje a {activeConv.peer.name}.
+                  {activeConv.isGroup
+                    ? `Inicia la conversación del grupo "${conversationDisplayName(activeConv)}".`
+                    : `Escribe el primer mensaje a ${activeConv.peer?.name ?? ""}.`}
                 </p>
               ) : (
                 messages.map((m, idx) => {
@@ -732,6 +897,19 @@ export function ChatView() {
                           )}
                           title={formatTime(m.createdAt)}
                         >
+                          {/* En grupos: nombre del remitente en mensajes ajenos */}
+                          {activeConv?.isGroup &&
+                            !m.isMine &&
+                            !sameAsPrev && (
+                              <p
+                                className={cn(
+                                  "mb-0.5 text-[11px] font-semibold",
+                                  L ? "text-[#9c7d10]" : "text-[#ffeb66]/85"
+                                )}
+                              >
+                                {m.sender.name}
+                              </p>
+                            )}
                           <p className="whitespace-pre-wrap break-words leading-relaxed">
                             {m.body}
                           </p>
@@ -769,10 +947,13 @@ export function ChatView() {
             >
               <div
                 className={cn(
-                  "group/composer flex items-end gap-2 rounded-2xl border p-1.5 shadow-inner transition-all",
+                  // Usamos una sola sombra externa para el focus (en lugar de
+                  // `ring` + `border` + `shadow-inner`, que juntos producian
+                  // un anillo de forma cuadrada en algunos puntos).
+                  "chat-composer-shell group/composer flex items-end gap-2 rounded-2xl border p-1.5 transition-all",
                   L
-                    ? "border-zinc-200/90 bg-zinc-50/90 focus-within:border-[#ffeb66]/55 focus-within:ring-2 focus-within:ring-[#ffeb66]/20"
-                    : "border-white/10 bg-white/[0.035] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] focus-within:border-[#ffeb66]/45 focus-within:ring-2 focus-within:ring-[#ffeb66]/15"
+                    ? "border-zinc-200/90 bg-zinc-50/90 focus-within:border-[#ffeb66]/55"
+                    : "border-white/10 bg-white/[0.035] focus-within:border-[#ffeb66]/55"
                 )}
               >
                 <textarea
@@ -786,7 +967,11 @@ export function ChatView() {
                     }
                   }}
                   rows={1}
-                  placeholder={`Mensaje para ${activeConv.peer.name}…`}
+                  placeholder={
+                    activeConv.isGroup
+                      ? `Mensaje a "${conversationDisplayName(activeConv)}"…`
+                      : `Mensaje para ${activeConv.peer?.name ?? ""}…`
+                  }
                   className={cn(
                     "max-h-40 min-h-[2.75rem] flex-1 resize-none border-0 bg-transparent px-2.5 py-2 text-sm leading-relaxed outline-none focus:ring-0",
                     L
