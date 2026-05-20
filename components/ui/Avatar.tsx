@@ -150,9 +150,8 @@ export function Avatar({
         e.currentTarget.style.display = "none";
       }}
       className={cn(
-        "h-full w-full rounded-full object-cover",
-        !framed && "shrink-0 border border-white/10",
-        !framed && sizes[size],
+        "block h-full w-full rounded-full object-cover",
+        !framed && "border border-white/10",
         className
       )}
       style={objectPositionStyle}
@@ -163,8 +162,7 @@ export function Avatar({
       aria-label={name}
       className={cn(
         "flex h-full w-full items-center justify-center rounded-full font-semibold",
-        !framed && "shrink-0 border border-white/10",
-        !framed && sizes[size],
+        !framed && "border border-white/10",
         className
       )}
       style={{
@@ -179,7 +177,12 @@ export function Avatar({
 
   if (!framed) {
     return (
-      <span className="relative inline-flex shrink-0">
+      <span
+        className={cn(
+          "relative inline-flex shrink-0 overflow-hidden rounded-full",
+          sizes[size]
+        )}
+      >
         {imageNode}
         {presenceDot}
       </span>
