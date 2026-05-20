@@ -2214,26 +2214,6 @@ html[data-theme="light"] .chat-page-root .chat-page-inner::before {
 }
 
 /* ── Kanban enhancements (mejoras 27–30) ─────────────────────────────────── */
-/* Forzar cadena de altura para que cada columna tenga su propio scroll
-   incluso si el droppable inner cambia internamente con react-beautiful-dnd. */
-.kanban-board-scroll {
-  display: flex;
-}
-.kanban-board-cols {
-  height: 100%;
-  min-height: 0;
-}
-.kanban-column-shell {
-  height: 100%;
-  min-height: 0;
-}
-.kanban-column-well {
-  /* Garantiza scroll vertical aunque Tailwind no resuelva flex-1 dentro de drop targets */
-  min-height: 0;
-  max-height: 100%;
-  overflow-y: auto;
-  overflow-x: hidden;
-}
 /* mejora 27: column overflow gradient — sticky ::after at scroll bottom */
 .kanban-column-well::after {
   content: '';
