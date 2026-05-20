@@ -3,9 +3,11 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   allowedDevOrigins: ["192.168.12.49", "192.168.12.45"],
   experimental: {
-    proxyClientMaxBodySize: "25mb",
+    // Margen sobre el limite real de 45 MB porque el body multipart anade
+    // overhead (cabeceras, boundaries y codificacion).
+    proxyClientMaxBodySize: "55mb",
     serverActions: {
-      bodySizeLimit: "25mb",
+      bodySizeLimit: "55mb",
     },
   },
   /**

@@ -7,7 +7,7 @@ import { prisma } from "@/lib/prisma/client";
 import { hasProjectAccess } from "@/lib/auth/permissions";
 import type { SessionUser } from "@/lib/auth/types";
 
-const MAX_BYTES = 20 * 1024 * 1024; // 20 MB
+const MAX_BYTES = 45 * 1024 * 1024; // 45 MB
 
 export async function POST(
   req: NextRequest,
@@ -38,7 +38,7 @@ export async function POST(
     return NextResponse.json({ error: "No file provided" }, { status: 400 });
   }
   if (file.size > MAX_BYTES) {
-    return NextResponse.json({ error: "El archivo supera el límite de 20 MB" }, { status: 413 });
+    return NextResponse.json({ error: "El archivo supera el límite de 45 MB" }, { status: 413 });
   }
 
   const customTitle = (formData.get("title") as string | null)?.trim() || "";

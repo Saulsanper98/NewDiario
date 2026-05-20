@@ -375,7 +375,7 @@ function FileUploadZone({
               <p className={cn("text-sm font-medium transition-colors", dragging ? "text-[#ffeb66]" : "text-white/50 group-hover:text-white/70")}>
                 {dragging ? "Suelta para subir" : "Arrastra o haz clic para seleccionar"}
               </p>
-              <p className="text-xs text-white/25 mt-0.5">PDF, imagen, Excel, Word, ZIP · máx. 20 MB</p>
+              <p className="text-xs text-white/25 mt-0.5">PDF, imagen, Excel, Word, ZIP · máx. 45 MB</p>
             </div>
           </div>
         )}

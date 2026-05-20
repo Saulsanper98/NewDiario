@@ -33,7 +33,7 @@ export const IMAGE_UPLOAD_HINT =
   "JPG, PNG, GIF o WebP (los GIF animados desde el PC también valen)";
 
 /** Límite para avatares y fondos de perfil (GIF animados suelen superar 1–5 MB). */
-export const PROFILE_IMAGE_MAX_BYTES = 20 * 1024 * 1024; // 20 MB
+export const PROFILE_IMAGE_MAX_BYTES = 45 * 1024 * 1024; // 45 MB
 
 export function formatUploadMaxMb(bytes: number): string {
   return `${Math.round(bytes / (1024 * 1024))} MB`;

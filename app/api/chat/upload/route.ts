@@ -7,7 +7,7 @@ import { randomUUID } from "crypto";
 const UPLOAD_DIR =
   process.env.UPLOAD_DIR ?? path.join(/*turbopackIgnore: true*/ process.cwd(), "uploads");
 
-const MAX_BYTES = 50 * 1024 * 1024; // 50 MB por adjunto
+const MAX_BYTES = 45 * 1024 * 1024; // 45 MB por adjunto
 
 // Lista blanca de mime types aceptados en el chat.
 const ALLOWED_MIMES = new Set<string>([
@@ -110,7 +110,7 @@ export async function POST(req: NextRequest) {
 
   if (file.size > MAX_BYTES) {
     return NextResponse.json(
-      { error: "Archivo demasiado grande (máx. 50 MB)" },
+      { error: "Archivo demasiado grande (máx. 45 MB)" },
       { status: 413 }
     );
   }
