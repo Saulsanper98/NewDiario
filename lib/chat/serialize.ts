@@ -34,6 +34,22 @@ export type ChatConversationItem = {
   unreadCount: number;
 };
 
+export type ChatAttachmentKind = "FILE" | "IMAGE" | "TASK" | "PROJECT" | "NOTE";
+
+export type ChatAttachmentItem = {
+  id: string;
+  kind: ChatAttachmentKind;
+  // File / image
+  fileName: string | null;
+  fileUrl: string | null;
+  mimeType: string | null;
+  sizeBytes: number | null;
+  // Referencias internas (tarea / proyecto / nota)
+  refId: string | null;
+  refLabel: string | null;
+  refMeta: Record<string, unknown> | null;
+};
+
 export type ChatMessageItem = {
   id: string;
   body: string;
@@ -41,4 +57,5 @@ export type ChatMessageItem = {
   senderId: string;
   isMine: boolean;
   sender: ChatPeer;
+  attachments: ChatAttachmentItem[];
 };

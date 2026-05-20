@@ -3,11 +3,20 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
+  CheckSquare,
+  ClipboardList,
+  Download,
+  FileText,
+  FolderKanban,
+  Image as ImageIcon,
   Loader2,
   MessageCircle,
+  Paperclip,
   Plus,
   Send,
+  Share2,
   Sparkles,
+  X,
 } from "lucide-react";
 import { NewChatPicker } from "@/components/chat/NewChatPicker";
 import toast from "react-hot-toast";
@@ -18,10 +27,23 @@ import { useTheme } from "@/components/layout/ThemeProvider";
 import { useAvatarFrameEffect } from "@/lib/hooks/useAvatarFrameEffect";
 import { cn } from "@/lib/utils";
 import type {
+  ChatAttachmentItem,
+  ChatAttachmentKind,
   ChatConversationItem,
   ChatMessageItem,
   ChatPeer,
 } from "@/lib/chat/serialize";
+
+type ComposerAttachment = {
+  kind: ChatAttachmentKind;
+  fileName: string | null;
+  fileUrl: string | null;
+  mimeType: string | null;
+  sizeBytes: number | null;
+  refId: string | null;
+  refLabel: string | null;
+  refMeta: Record<string, unknown> | null;
+};
 
 function formatTime(iso: string) {
   const d = new Date(iso);
@@ -57,6 +79,468 @@ function daySeparatorLabel(iso: string) {
     day: "numeric",
     month: "long",
   });
+}
+
+function formatBytes(bytes: number | null | undefined) {
+  if (!bytes || bytes <= 0) return "";
+  const kb = bytes / 1024;
+  if (kb < 1024) return `${kb.toFixed(0)} KB`;
+  return `${(kb / 1024).toFixed(1)} MB`;
+}
+
+function attachmentKindIcon(kind: ChatAttachmentKind, className?: string) {
+  const cls = cn("h-4 w-4", className);
+  switch (kind) {
+    case "IMAGE":
+      return <ImageIcon className={cls} />;
+    case "TASK":
+      return <CheckSquare className={cls} />;
+    case "PROJECT":
+      return <FolderKanban className={cls} />;
+    case "NOTE":
+      return <ClipboardList className={cls} />;
+    default:
+      return <FileText className={cls} />;
+  }
+}
+
+function attachmentKindLabel(kind: ChatAttachmentKind) {
+  switch (kind) {
+    case "IMAGE":
+      return "Imagen";
+    case "TASK":
+      return "Tarea";
+    case "PROJECT":
+      return "Proyecto";
+    case "NOTE":
+      return "Nota";
+    default:
+      return "Archivo";
+  }
+}
+
+function attachmentInternalHref(att: ChatAttachmentItem): string | null {
+  if (!att.refId) return null;
+  if (att.kind === "PROJECT") return `/proyectos/${att.refId}`;
+  if (att.kind === "TASK") {
+    const projectId =
+      typeof att.refMeta?.projectId === "string"
+        ? (att.refMeta.projectId as string)
+        : null;
+    if (projectId) return `/proyectos/${projectId}?task=${att.refId}`;
+    return null;
+  }
+  if (att.kind === "NOTE") return `/bitacora/${att.refId}`;
+  return null;
+}
+
+function ComposerAttachmentChip({
+  attachment,
+  isLight,
+  onRemove,
+}: {
+  attachment: ComposerAttachment;
+  isLight: boolean;
+  onRemove: () => void;
+}) {
+  const isMedia = attachment.kind === "IMAGE" || attachment.kind === "FILE";
+  const label = isMedia
+    ? attachment.fileName ?? "Archivo"
+    : attachment.refLabel ?? attachmentKindLabel(attachment.kind);
+  return (
+    <span
+      className={cn(
+        "inline-flex max-w-[18rem] items-center gap-2 rounded-lg border px-2 py-1.5 text-xs",
+        isLight
+          ? "border-zinc-200 bg-white text-zinc-700"
+          : "border-white/12 bg-white/[0.05] text-white/85"
+      )}
+    >
+      {attachment.kind === "IMAGE" && attachment.fileUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={attachment.fileUrl}
+          alt=""
+          className="h-7 w-7 shrink-0 rounded object-cover"
+        />
+      ) : (
+        <span
+          className={cn(
+            "flex h-7 w-7 shrink-0 items-center justify-center rounded",
+            isLight ? "bg-zinc-100 text-zinc-600" : "bg-white/[0.07] text-white/70"
+          )}
+        >
+          {attachmentKindIcon(attachment.kind)}
+        </span>
+      )}
+      <span className="min-w-0 flex-1 truncate">
+        <span className="block truncate font-medium">{label}</span>
+        <span
+          className={cn(
+            "block truncate text-[10px]",
+            isLight ? "text-zinc-500" : "text-white/45"
+          )}
+        >
+          {isMedia
+            ? formatBytes(attachment.sizeBytes)
+            : attachmentKindLabel(attachment.kind)}
+        </span>
+      </span>
+      <button
+        type="button"
+        onClick={onRemove}
+        aria-label="Quitar adjunto"
+        className={cn(
+          "flex h-5 w-5 shrink-0 items-center justify-center rounded",
+          isLight
+            ? "text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700"
+            : "text-white/40 hover:bg-white/10 hover:text-white"
+        )}
+      >
+        <X className="h-3 w-3" />
+      </button>
+    </span>
+  );
+}
+
+type ShareKind = "TASK" | "PROJECT" | "NOTE";
+type ShareItem = {
+  id: string;
+  kind: ShareKind;
+  label: string;
+  meta?: Record<string, unknown>;
+};
+
+function SharePickerPanel({
+  isLight,
+  onSelect,
+  onClose,
+}: {
+  isLight: boolean;
+  onSelect: (item: ShareItem) => void;
+  onClose: () => void;
+}) {
+  const [tab, setTab] = useState<ShareKind>("TASK");
+  const [query, setQuery] = useState("");
+  const [items, setItems] = useState<ShareItem[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    const t = setTimeout(async () => {
+      setLoading(true);
+      try {
+        const params = new URLSearchParams({ kind: tab });
+        if (query.trim()) params.set("q", query.trim());
+        const res = await fetch(`/api/chat/search-ref?${params}`);
+        if (!res.ok) return;
+        const data = (await res.json()) as { items: ShareItem[] };
+        if (!cancelled) setItems(data.items);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }, query ? 240 : 0);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+  }, [tab, query]);
+
+  return (
+    <div
+      className={cn(
+        "absolute bottom-full left-3 right-3 mb-2 overflow-hidden rounded-xl border shadow-2xl",
+        isLight
+          ? "border-zinc-200 bg-white"
+          : "border-white/12 bg-[#0d1427]/95 backdrop-blur-xl"
+      )}
+      role="dialog"
+    >
+      <div
+        className={cn(
+          "flex items-center justify-between border-b px-3 py-2",
+          isLight ? "border-zinc-100 bg-zinc-50/80" : "border-white/8 bg-white/[0.03]"
+        )}
+      >
+        <span
+          className={cn(
+            "text-[11px] font-semibold uppercase tracking-wide",
+            isLight ? "text-zinc-600" : "text-white/55"
+          )}
+        >
+          Compartir contenido
+        </span>
+        <button
+          type="button"
+          onClick={onClose}
+          className={cn(
+            "text-[11px] font-medium",
+            isLight ? "text-zinc-500 hover:text-zinc-800" : "text-white/40 hover:text-white/75"
+          )}
+        >
+          Cerrar
+        </button>
+      </div>
+      <div
+        className={cn(
+          "flex gap-1 border-b p-1.5",
+          isLight ? "border-zinc-100 bg-white" : "border-white/6 bg-white/[0.02]"
+        )}
+      >
+        {(
+          [
+            { id: "TASK", label: "Tareas", icon: <CheckSquare className="h-3.5 w-3.5" /> },
+            { id: "PROJECT", label: "Proyectos", icon: <FolderKanban className="h-3.5 w-3.5" /> },
+            { id: "NOTE", label: "Notas", icon: <ClipboardList className="h-3.5 w-3.5" /> },
+          ] as const
+        ).map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            onClick={() => {
+              setTab(t.id);
+              setQuery("");
+            }}
+            className={cn(
+              "flex flex-1 items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-[11px] font-semibold transition-colors",
+              tab === t.id
+                ? isLight
+                  ? "bg-[#ffeb66]/22 text-zinc-900"
+                  : "bg-[#ffeb66]/15 text-[#ffeb66]"
+                : isLight
+                  ? "text-zinc-500 hover:bg-zinc-100"
+                  : "text-white/50 hover:bg-white/[0.05]"
+            )}
+          >
+            {t.icon}
+            {t.label}
+          </button>
+        ))}
+      </div>
+      <div className="border-b px-2 py-2">
+        <input
+          type="search"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder={`Buscar ${tab === "TASK" ? "tareas" : tab === "PROJECT" ? "proyectos" : "notas"}…`}
+          className={cn(
+            "w-full rounded-lg border px-2.5 py-1.5 text-sm outline-none focus:ring-2 focus:ring-[#ffeb66]/35",
+            isLight
+              ? "border-zinc-200 bg-zinc-50 text-zinc-900"
+              : "border-white/10 bg-white/5 text-white placeholder:text-white/35"
+          )}
+          autoFocus
+        />
+      </div>
+      <div className="max-h-56 overflow-y-auto p-1.5">
+        {loading ? (
+          <p
+            className={cn(
+              "flex items-center justify-center gap-2 py-8 text-xs",
+              isLight ? "text-zinc-500" : "text-white/40"
+            )}
+          >
+            <Loader2 className="h-4 w-4 animate-spin" /> Buscando…
+          </p>
+        ) : items.length === 0 ? (
+          <p
+            className={cn(
+              "py-8 text-center text-xs",
+              isLight ? "text-zinc-500" : "text-white/40"
+            )}
+          >
+            Sin resultados
+          </p>
+        ) : (
+          <ul className="space-y-0.5">
+            {items.map((item) => (
+              <li key={`${item.kind}-${item.id}`}>
+                <button
+                  type="button"
+                  onClick={() => onSelect(item)}
+                  className={cn(
+                    "flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left transition-colors",
+                    isLight ? "hover:bg-zinc-50" : "hover:bg-white/[0.05]"
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "flex h-7 w-7 shrink-0 items-center justify-center rounded-md",
+                      isLight
+                        ? "bg-zinc-100 text-zinc-600"
+                        : "bg-white/[0.07] text-white/70"
+                    )}
+                  >
+                    {attachmentKindIcon(item.kind)}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span
+                      className={cn(
+                        "block truncate text-sm font-medium",
+                        isLight ? "text-zinc-900" : "text-white"
+                      )}
+                    >
+                      {item.label}
+                    </span>
+                    {item.meta && (
+                      <span
+                        className={cn(
+                          "block truncate text-[11px]",
+                          isLight ? "text-zinc-500" : "text-white/40"
+                        )}
+                      >
+                        {item.kind === "TASK" &&
+                          typeof item.meta.projectName === "string" &&
+                          item.meta.projectName}
+                        {item.kind === "PROJECT" &&
+                          typeof item.meta.departmentName === "string" &&
+                          item.meta.departmentName}
+                        {item.kind === "NOTE" &&
+                          typeof item.meta.departmentName === "string" &&
+                          item.meta.departmentName}
+                      </span>
+                    )}
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function MessageAttachments({
+  attachments,
+  isLight,
+  isMine,
+}: {
+  attachments: ChatAttachmentItem[];
+  isLight: boolean;
+  isMine: boolean;
+}) {
+  if (attachments.length === 0) return null;
+  return (
+    <div className="mt-1.5 flex flex-col gap-1.5">
+      {attachments.map((a) => {
+        // Imagen embebida
+        if (a.kind === "IMAGE" && a.fileUrl) {
+          return (
+            <a
+              key={a.id}
+              href={a.fileUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="block max-w-xs overflow-hidden rounded-lg border border-white/10"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={a.fileUrl}
+                alt={a.fileName ?? ""}
+                className="block max-h-56 w-full object-cover"
+              />
+            </a>
+          );
+        }
+        // Archivo descargable
+        if (a.kind === "FILE" && a.fileUrl) {
+          return (
+            <a
+              key={a.id}
+              href={a.fileUrl}
+              target="_blank"
+              rel="noreferrer"
+              className={cn(
+                "flex items-center gap-2.5 rounded-lg border px-2.5 py-2 text-xs transition-colors",
+                isMine
+                  ? "border-white/15 bg-black/15 text-white hover:bg-black/25"
+                  : isLight
+                    ? "border-zinc-200 bg-zinc-50 text-zinc-800 hover:bg-zinc-100"
+                    : "border-white/10 bg-white/[0.04] text-white hover:bg-white/[0.08]"
+              )}
+            >
+              <span
+                className={cn(
+                  "flex h-8 w-8 shrink-0 items-center justify-center rounded",
+                  isMine
+                    ? "bg-white/15"
+                    : isLight
+                      ? "bg-white"
+                      : "bg-white/[0.08]"
+                )}
+              >
+                {attachmentKindIcon(a.kind)}
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate font-medium">
+                  {a.fileName ?? "Archivo"}
+                </span>
+                {a.sizeBytes && (
+                  <span
+                    className={cn(
+                      "block truncate text-[10px] opacity-75"
+                    )}
+                  >
+                    {formatBytes(a.sizeBytes)}
+                  </span>
+                )}
+              </span>
+              <Download className="h-3.5 w-3.5 shrink-0 opacity-70" />
+            </a>
+          );
+        }
+        // Referencia interna (TASK / PROJECT / NOTE)
+        const href = attachmentInternalHref(a);
+        const inner = (
+          <>
+            <span
+              className={cn(
+                "flex h-8 w-8 shrink-0 items-center justify-center rounded",
+                isMine
+                  ? "bg-white/15 text-white"
+                  : isLight
+                    ? "bg-white text-zinc-700"
+                    : "bg-white/[0.07] text-white/80"
+              )}
+            >
+              {attachmentKindIcon(a.kind)}
+            </span>
+            <span className="min-w-0 flex-1">
+              <span
+                className={cn(
+                  "block text-[10px] uppercase tracking-wide opacity-70",
+                  isMine ? "text-white/80" : isLight ? "text-zinc-500" : "text-white/55"
+                )}
+              >
+                {attachmentKindLabel(a.kind)}
+              </span>
+              <span className="block truncate font-medium">
+                {a.refLabel ?? "Sin título"}
+              </span>
+            </span>
+          </>
+        );
+        const className = cn(
+          "flex items-center gap-2.5 rounded-lg border px-2.5 py-2 text-xs transition-colors",
+          isMine
+            ? "border-white/15 bg-black/15 text-white hover:bg-black/25"
+            : isLight
+              ? "border-zinc-200 bg-zinc-50 text-zinc-800 hover:bg-zinc-100"
+              : "border-white/10 bg-white/[0.04] text-white hover:bg-white/[0.08]"
+        );
+        return href ? (
+          <a key={a.id} href={href} className={className}>
+            {inner}
+          </a>
+        ) : (
+          <div key={a.id} className={cn(className, "opacity-80")}>
+            {inner}
+          </div>
+        );
+      })}
+    </div>
+  );
 }
 
 function GroupAvatarStack({
@@ -184,6 +668,13 @@ export function ChatView() {
   const [messages, setMessages] = useState<ChatMessageItem[]>([]);
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [draft, setDraft] = useState("");
+  // Adjuntos pendientes en el composer antes de enviar.
+  const [pendingAttachments, setPendingAttachments] = useState<
+    ComposerAttachment[]
+  >([]);
+  const [uploading, setUploading] = useState(false);
+  const [shareMenuOpen, setShareMenuOpen] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [sending, setSending] = useState(false);
   const [newChatOpen, setNewChatOpen] = useState(false);
   const [mobileShowThread, setMobileShowThread] = useState(false);
@@ -336,9 +827,12 @@ export function ChatView() {
 
   async function handleSend(e: React.FormEvent) {
     e.preventDefault();
-    if (!activeId || !draft.trim() || sending) return;
+    if (!activeId || sending) return;
     const text = draft.trim();
+    if (!text && pendingAttachments.length === 0) return;
+    const sentAttachments = pendingAttachments;
     setDraft("");
+    setPendingAttachments([]);
     setSending(true);
     try {
       const res = await fetch(
@@ -346,7 +840,19 @@ export function ChatView() {
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ body: text }),
+          body: JSON.stringify({
+            body: text,
+            attachments: sentAttachments.map((a) => ({
+              kind: a.kind,
+              fileName: a.fileName,
+              fileUrl: a.fileUrl,
+              mimeType: a.mimeType,
+              sizeBytes: a.sizeBytes,
+              refId: a.refId,
+              refLabel: a.refLabel,
+              refMeta: a.refMeta,
+            })),
+          }),
         }
       );
       const data = (await res.json()) as {
@@ -363,10 +869,72 @@ export function ChatView() {
       await loadConversations();
     } catch (err) {
       setDraft(text);
+      setPendingAttachments(sentAttachments);
       toast.error(err instanceof Error ? err.message : "Error al enviar");
     } finally {
       setSending(false);
     }
+  }
+
+  async function handleFilesPicked(files: FileList | null) {
+    if (!files || files.length === 0) return;
+    setUploading(true);
+    try {
+      for (const file of Array.from(files)) {
+        const fd = new FormData();
+        fd.append("file", file);
+        const res = await fetch("/api/chat/upload", { method: "POST", body: fd });
+        const data = (await res.json()) as {
+          url?: string;
+          fileName?: string;
+          mimeType?: string;
+          sizeBytes?: number;
+          kind?: "FILE" | "IMAGE";
+          error?: string;
+        };
+        if (!res.ok || !data.url) {
+          toast.error(data.error || `No se pudo subir ${file.name}`);
+          continue;
+        }
+        setPendingAttachments((prev) => [
+          ...prev,
+          {
+            kind: data.kind === "IMAGE" ? "IMAGE" : "FILE",
+            fileName: data.fileName ?? file.name,
+            fileUrl: data.url!,
+            mimeType: data.mimeType ?? file.type ?? null,
+            sizeBytes: data.sizeBytes ?? file.size ?? null,
+            refId: null,
+            refLabel: null,
+            refMeta: null,
+          },
+        ]);
+      }
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  function addReferenceAttachment(item: {
+    id: string;
+    kind: "TASK" | "PROJECT" | "NOTE";
+    label: string;
+    meta?: Record<string, unknown>;
+  }) {
+    setPendingAttachments((prev) => [
+      ...prev,
+      {
+        kind: item.kind,
+        fileName: null,
+        fileUrl: null,
+        mimeType: null,
+        sizeBytes: null,
+        refId: item.id,
+        refLabel: item.label,
+        refMeta: item.meta ?? null,
+      },
+    ]);
+    setShareMenuOpen(false);
   }
 
   const listPanelClass = cn(
@@ -609,15 +1177,23 @@ export function ChatView() {
                                 : "text-white/45"
                           )}
                         >
-                          {c.lastMessage
-                            ? c.lastMessage.isMine
-                              ? `Tú: ${c.lastMessage.body}`
-                              : c.isGroup && c.lastMessage.senderName
-                                ? `${c.lastMessage.senderName.split(" ")[0]}: ${c.lastMessage.body}`
-                                : c.lastMessage.body
-                            : c.isGroup
-                              ? `Grupo de ${c.members.length + 1} personas`
-                              : "Sin mensajes aún"}
+                          {(() => {
+                            const lm = c.lastMessage;
+                            if (!lm) {
+                              return c.isGroup
+                                ? `Grupo de ${c.members.length + 1} personas`
+                                : "Sin mensajes aún";
+                            }
+                            const previewBody =
+                              lm.body && lm.body.trim().length > 0
+                                ? lm.body
+                                : "📎 Adjunto";
+                            if (lm.isMine) return `Tú: ${previewBody}`;
+                            if (c.isGroup && lm.senderName) {
+                              return `${lm.senderName.split(" ")[0]}: ${previewBody}`;
+                            }
+                            return previewBody;
+                          })()}
                         </p>
                       </div>
                     </button>
@@ -910,9 +1486,18 @@ export function ChatView() {
                                 {m.sender.name}
                               </p>
                             )}
-                          <p className="whitespace-pre-wrap break-words leading-relaxed">
-                            {m.body}
-                          </p>
+                          {m.body && (
+                            <p className="whitespace-pre-wrap break-words leading-relaxed">
+                              {m.body}
+                            </p>
+                          )}
+                          {m.attachments && m.attachments.length > 0 && (
+                            <MessageAttachments
+                              attachments={m.attachments}
+                              isLight={L}
+                              isMine={m.isMine}
+                            />
+                          )}
                           {showTime && (
                             <p
                               className={cn(
@@ -939,23 +1524,89 @@ export function ChatView() {
             <form
               onSubmit={handleSend}
               className={cn(
-                "shrink-0 border-t p-3 sm:p-4",
+                "relative shrink-0 border-t p-3 sm:p-4",
                 L
                   ? "border-zinc-200/80 bg-white/90"
                   : "border-white/8 bg-[#060a14]/90"
               )}
             >
+              {/* Vista previa de adjuntos pendientes */}
+              {pendingAttachments.length > 0 && (
+                <div className="mb-2 flex flex-wrap gap-2">
+                  {pendingAttachments.map((a, idx) => (
+                    <ComposerAttachmentChip
+                      key={`${a.kind}-${idx}`}
+                      attachment={a}
+                      isLight={L}
+                      onRemove={() =>
+                        setPendingAttachments((prev) =>
+                          prev.filter((_, i) => i !== idx)
+                        )
+                      }
+                    />
+                  ))}
+                </div>
+              )}
+
               <div
                 className={cn(
-                  // Usamos una sola sombra externa para el focus (en lugar de
-                  // `ring` + `border` + `shadow-inner`, que juntos producian
-                  // un anillo de forma cuadrada en algunos puntos).
-                  "chat-composer-shell group/composer flex items-end gap-2 rounded-2xl border p-1.5 transition-all",
+                  "chat-composer-shell group/composer flex items-end gap-1 rounded-2xl border p-1.5 transition-all",
                   L
                     ? "border-zinc-200/90 bg-zinc-50/90 focus-within:border-[#ffeb66]/55"
                     : "border-white/10 bg-white/[0.035] focus-within:border-[#ffeb66]/55"
                 )}
               >
+                {/* Adjuntar archivo */}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  multiple
+                  accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip,.rar,.7z,.mp3,.mp4,.webm,.mov"
+                  onChange={(e) => {
+                    void handleFilesPicked(e.target.files);
+                    e.currentTarget.value = "";
+                  }}
+                  className="hidden"
+                />
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploading || sending}
+                  aria-label="Adjuntar archivo"
+                  className={cn(
+                    "mb-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-colors",
+                    L
+                      ? "text-zinc-500 hover:bg-zinc-200/70 hover:text-zinc-700"
+                      : "text-white/55 hover:bg-white/10 hover:text-white",
+                    (uploading || sending) && "opacity-50"
+                  )}
+                >
+                  {uploading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Paperclip className="h-4 w-4" />
+                  )}
+                </button>
+
+                {/* Compartir contenido interno (tarea/proyecto/nota) */}
+                <button
+                  type="button"
+                  onClick={() => setShareMenuOpen((v) => !v)}
+                  aria-label="Compartir tarea, proyecto o nota"
+                  className={cn(
+                    "mb-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-colors",
+                    shareMenuOpen
+                      ? L
+                        ? "bg-[#ffeb66]/22 text-zinc-900"
+                        : "bg-[#ffeb66]/15 text-[#ffeb66]"
+                      : L
+                        ? "text-zinc-500 hover:bg-zinc-200/70 hover:text-zinc-700"
+                        : "text-white/55 hover:bg-white/10 hover:text-white"
+                  )}
+                >
+                  <Share2 className="h-4 w-4" />
+                </button>
+
                 <textarea
                   ref={composerRef}
                   value={draft}
@@ -973,7 +1624,7 @@ export function ChatView() {
                       : `Mensaje para ${activeConv.peer?.name ?? ""}…`
                   }
                   className={cn(
-                    "max-h-40 min-h-[2.75rem] flex-1 resize-none border-0 bg-transparent px-2.5 py-2 text-sm leading-relaxed outline-none focus:ring-0",
+                    "max-h-40 min-h-[2.75rem] flex-1 resize-none border-0 bg-transparent px-1.5 py-2 text-sm leading-relaxed outline-none focus:ring-0",
                     L
                       ? "text-zinc-900 placeholder:text-zinc-400"
                       : "text-white placeholder:text-white/35"
@@ -981,7 +1632,10 @@ export function ChatView() {
                 />
                 <button
                   type="submit"
-                  disabled={!draft.trim() || sending}
+                  disabled={
+                    (!draft.trim() && pendingAttachments.length === 0) ||
+                    sending
+                  }
                   aria-label="Enviar"
                   className={cn(
                     "mb-0.5 relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-all duration-200",
@@ -1000,6 +1654,16 @@ export function ChatView() {
                   )}
                 </button>
               </div>
+
+              {/* Popover de compartir contenido */}
+              {shareMenuOpen && (
+                <SharePickerPanel
+                  isLight={L}
+                  onSelect={addReferenceAttachment}
+                  onClose={() => setShareMenuOpen(false)}
+                />
+              )}
+
               <div
                 className={cn(
                   "mt-1.5 flex items-center justify-between gap-2 text-[10px]",

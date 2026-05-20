@@ -856,6 +856,14 @@ model ChatParticipant {
   @@index([conversationId])
 }
 
+enum ChatAttachmentKind {
+  FILE
+  IMAGE
+  TASK
+  PROJECT
+  NOTE
+}
+
 model ChatMessage {
   id             String   @id @default(cuid())
   conversationId String
@@ -865,9 +873,34 @@ model ChatMessage {
 
   conversation ChatConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   sender       User             @relation("ChatMessageSender", fields: [senderId], references: [id], onDelete: Cascade)
+  attachments  ChatAttachment[]
 
   @@index([conversationId, createdAt])
   @@index([senderId])
+}
+
+model ChatAttachment {
+  id        String             @id @default(cuid())
+  messageId String
+  kind      ChatAttachmentKind
+
+  // FILE / IMAGE
+  fileName  String?            @db.VarChar(255)
+  fileUrl   String?            @db.VarChar(2048)
+  mimeType  String?            @db.VarChar(120)
+  sizeBytes Int?
+
+  // TASK / PROJECT / NOTE
+  refId     String?
+  refLabel  String?            @db.VarChar(255)
+  refMeta   Json?
+
+  createdAt DateTime           @default(now())
+
+  message   ChatMessage        @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@index([messageId])
+  @@index([kind, refId])
 }
 
 // ─── Bug reports (panel solo administrador de incidencias) ─────────────────────
