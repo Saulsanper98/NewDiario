@@ -108,6 +108,8 @@ model User {
   image          String?
   profileBanner  String?
   role      Role      @default(OPERATOR)
+  /** Solo el propietario puede activarlo; permite a este SuperAdmin asignar / quitar el rol SuperAdmin a otros. */
+  canManageSuperAdmins Boolean @default(false)
   isActive  Boolean   @default(true)
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -121,6 +123,7 @@ model User {
   taskComments         TaskComment[]
   projectComments      ProjectComment[]
   assignedTasks        Task[]           @relation("TaskAssignee")
+  createdTasks         Task[]           @relation("TaskCreatedBy")
   coResponsibleTasks   Task[]           @relation("TaskCoResponsible")
   projectMemberships   ProjectMember[]
   shiftHandoffsAuthored   ShiftHandoff[]   @relation("ShiftHandoffAuthor")
@@ -652,6 +655,8 @@ model Task {
   columnId       String
   projectId      String
   assigneeId     String?
+  /** Autor de la tarea (nulo para tareas creadas antes de añadir el campo). */
+  createdById    String?
   order          Int       @default(0)
   columnEnteredAt DateTime?
   actualHours   Float?
@@ -670,6 +675,7 @@ model Task {
   column         KanbanColumn   @relation(fields: [columnId], references: [id])
   project        Project        @relation(fields: [projectId], references: [id])
   assignee       User?          @relation("TaskAssignee", fields: [assigneeId], references: [id])
+  createdBy      User?          @relation("TaskCreatedBy", fields: [createdById], references: [id])
   contractNotifyUser User?      @relation("TaskContractNotify", fields: [contractNotifyUserId], references: [id])
   coResponsibles User[]         @relation("TaskCoResponsible")
   linkedLogEntry LogEntry?      @relation("TaskLinkedLog", fields: [linkedLogEntryId], references: [id])
@@ -682,6 +688,7 @@ model Task {
   @@index([columnId])
   @@index([projectId])
   @@index([assigneeId])
+  @@index([createdById])
   @@index([priority])
   @@index([dueDate])
   @@index([isShiftTask])

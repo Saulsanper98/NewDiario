@@ -126,9 +126,11 @@ export const TaskDetailPanel = forwardRef<HTMLDivElement, TaskDetailPanelProps>(
     contractNotifyUserId !== (task.contractNotifyUserId ?? null) ||
     contractSlaNote !== (task.contractSlaNote ?? "") ||
     contractImpactNote !== (task.contractImpactNote ?? "");
+  const isBlockedDirty =
+    editingBlocked && blockedDraft.trim() !== blockedReason.trim();
 
   function handleClose() {
-    if (isContractDirty && !savingContract) {
+    if ((isContractDirty || isBlockedDirty) && !savingContract && !savingBlocked) {
       setShowUnsavedWarning(true);
       return;
     }
@@ -669,6 +671,24 @@ export const TaskDetailPanel = forwardRef<HTMLDivElement, TaskDetailPanelProps>(
               dangerouslySetInnerHTML={{ __html: safeDescription }}
             />
           ) : null}
+
+          {/* Autor de la tarea (creador) */}
+          {task.createdBy && (
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/[0.03] border border-white/6 text-[11px] text-white/45">
+              <Avatar
+                name={task.createdBy.name}
+                image={task.createdBy.image}
+                size="xs"
+              />
+              <span className="text-white/35">Creada por</span>
+              <span className="text-white/70 font-medium truncate">
+                {task.createdBy.name}
+              </span>
+              <span className="text-white/25 ml-auto shrink-0">
+                {format(new Date(task.createdAt), "d MMM yyyy", { locale: es })}
+              </span>
+            </div>
+          )}
 
           {/* Meta */}
           <div className="space-y-2.5 p-3 rounded-xl bg-white/3 border border-white/6">
@@ -1376,7 +1396,11 @@ export const TaskDetailPanel = forwardRef<HTMLDivElement, TaskDetailPanelProps>(
       <ConfirmModal
         variant="warning"
         title="Cambios sin guardar"
-        message="El contrato tiene cambios sin guardar. ¿Descartarlos y cerrar?"
+        message={
+          isBlockedDirty
+            ? "Estás editando el motivo de bloqueo y no lo has guardado. ¿Descartarlo y cerrar?"
+            : "El contrato tiene cambios sin guardar. ¿Descartarlos y cerrar?"
+        }
         confirmLabel="Descartar y cerrar"
         cancelLabel="Volver"
         onConfirm={() => { setShowUnsavedWarning(false); onClose(); }}

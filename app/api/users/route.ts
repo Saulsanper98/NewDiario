@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma/client";
 import {
+  canManageSuperAdminRoleOn,
   isAdminOrAbove,
   isAdminOfDepartment,
   isPlatformOwnerUser,
@@ -70,16 +71,26 @@ export async function POST(req: NextRequest) {
   }
 
   const globalRole = maxRole(departments.map((d) => d.role));
+  const targetEmailLower = email.toLowerCase().trim();
 
-  if (globalRole === "SUPERADMIN" && !isPlatformOwnerUser(actor)) {
+  if (
+    globalRole === "SUPERADMIN" &&
+    !canManageSuperAdminRoleOn(actor, targetEmailLower)
+  ) {
     return NextResponse.json(
-      { error: "Solo el propietario de la plataforma puede crear usuarios SuperAdmin" },
+      {
+        error:
+          "No tienes permiso para crear usuarios SuperAdmin. Pídelo al propietario.",
+      },
       { status: 403 }
     );
   }
 
   for (const d of departments) {
-    if (d.role === "SUPERADMIN" && !isPlatformOwnerUser(actor)) {
+    if (
+      d.role === "SUPERADMIN" &&
+      !canManageSuperAdminRoleOn(actor, targetEmailLower)
+    ) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
     if (!isAdminOfDepartment(actor, d.departmentId)) {

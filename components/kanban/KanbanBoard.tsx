@@ -71,6 +71,8 @@ function taskBoardSig(t: ProjectKanbanTask): string {
     cnu: t.contractNotifyUserId ?? "",
     csla: strBoardSig(t.contractSlaNote ?? ""),
     cimp: strBoardSig(t.contractImpactNote ?? ""),
+    blk: strBoardSig(t.blockedReason ?? ""),
+    cb: t.createdById ?? "",
   });
 }
 
@@ -662,7 +664,7 @@ export function KanbanBoard({ project, allUsers }: KanbanBoardProps) {
         />
       )}
       {/* Kanban filters */}
-      <div className="kanban-filters-bar px-4 py-2 border-b border-white/6 flex items-center gap-3 shrink-0">
+      <div className="kanban-filters-bar px-4 py-3 mt-2 border-b border-white/6 flex flex-wrap items-center gap-x-3 gap-y-2 shrink-0">
         <select
           value={priorityFilter}
           onChange={(e) => setPriorityFilter(e.target.value)}
@@ -736,7 +738,7 @@ export function KanbanBoard({ project, allUsers }: KanbanBoardProps) {
       <div
         role="region"
         aria-label="Tablero Kanban"
-        className="min-h-0 min-w-0 flex-1 overflow-x-auto overflow-y-auto kanban-scroll-hint relative"
+        className="min-h-0 min-w-0 flex-1 overflow-x-auto overflow-y-hidden kanban-scroll-hint relative"
       >
         <DragDropContext onDragStart={onDragStart} onDragEnd={onDragEnd}>
           <Droppable
@@ -748,7 +750,7 @@ export function KanbanBoard({ project, allUsers }: KanbanBoardProps) {
               <div
                 ref={provided.innerRef}
                 {...provided.droppableProps}
-                className="flex items-start gap-3 p-4 min-w-max"
+                className="flex h-full items-stretch gap-3 p-4 min-w-max"
               >
                 {filteredColumns.map((col, colIndex) => {
                   const fullCol = columns.find((c) => c.id === col.id);
@@ -775,7 +777,7 @@ export function KanbanBoard({ project, allUsers }: KanbanBoardProps) {
                         ref={colDraggable.innerRef}
                         {...colDraggable.draggableProps}
                         className={cn(
-                          "flex flex-col shrink-0 transition-all duration-200",
+                          "flex flex-col shrink-0 min-h-0 max-h-full transition-all duration-200",
                           collapsedCols.has(col.id) ? "w-12" : "w-72"
                         )}
                       >
@@ -942,7 +944,7 @@ export function KanbanBoard({ project, allUsers }: KanbanBoardProps) {
                               ref={taskDrop.innerRef}
                               {...taskDrop.droppableProps}
                               className={cn(
-                                "kanban-column-well scrollbar-hidden min-h-20 min-w-0 overflow-visible flex flex-col gap-2 p-2 rounded-xl transition-all duration-200 border",
+                                "kanban-column-well scrollbar-hidden min-h-20 min-w-0 flex-1 overflow-y-auto overflow-x-hidden flex flex-col gap-2 p-2 rounded-xl transition-all duration-200 border",
                                 collapsedCols.has(col.id) ? "hidden" : "",
                                 snapshot.isDraggingOver
                                   ? "kanban-column-well-drag border-[#ffeb66]/15"

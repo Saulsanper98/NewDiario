@@ -29,6 +29,7 @@ const credentialProvider = Credentials({
         },
       },
     });
+    const canManage = (user as { canManageSuperAdmins?: boolean } | null)?.canManageSuperAdmins ?? false;
 
     if (!user || !user.password) return null;
 
@@ -46,6 +47,7 @@ const credentialProvider = Credentials({
       image: user.image,
       profileBanner: user.profileBanner,
       role: user.role,
+      canManageSuperAdmins: canManage,
       departments: user.departments.map((d: { departmentId: string; department: { name: string; slug: string; accentColor: string }; role: string; isDefault: boolean }) => ({
         id: d.departmentId,
         name: d.department.name,

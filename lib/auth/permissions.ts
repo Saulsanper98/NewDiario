@@ -15,6 +15,16 @@ export function isDelegatedSuperAdmin(user: SessionUser): boolean {
   return isSuperAdmin(user) && !isPlatformOwner(user);
 }
 
+/** Puede asignar o quitar el rol SuperAdmin a otros usuarios. */
+export function canManageSuperAdminRoleOn(
+  actor: SessionUser,
+  targetEmail: string
+): boolean {
+  if (isPlatformOwnerEmail(targetEmail)) return false;
+  if (isPlatformOwner(actor)) return true;
+  return isSuperAdmin(actor) && actor.canManageSuperAdmins === true;
+}
+
 export function isAdminOrAbove(user: SessionUser): boolean {
   return user.role === "SUPERADMIN" || user.role === "ADMIN";
 }

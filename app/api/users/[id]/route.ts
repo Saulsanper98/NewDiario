@@ -3,13 +3,14 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma/client";
 import type { Prisma } from "@/app/generated/prisma/client";
 import {
+  canManageSuperAdminRoleOn,
   canManageTargetUser,
   isAdminOrAbove,
   isPlatformOwnerUser,
   isSelfProfilePatch,
   isSuperAdmin,
 } from "@/lib/auth/permissions";
-import { isPlatformOwnerEmail } from "@/lib/platform-owner";
+import { isPlatformOwner, isPlatformOwnerEmail } from "@/lib/platform-owner";
 import type { SessionUser } from "@/lib/auth/types";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
@@ -25,6 +26,7 @@ const patchUserSchema = z
       .union([z.string().max(2048), z.literal(""), z.null()])
       .optional(),
     password: z.string().min(8).optional(),
+    canManageSuperAdmins: z.boolean().optional(),
   })
   .strict();
 
@@ -58,13 +60,6 @@ export async function PATCH(
     );
   }
 
-  if (body.role === "SUPERADMIN" && !isPlatformOwnerUser(actor)) {
-    return NextResponse.json(
-      { error: "Solo el propietario de la plataforma puede asignar SuperAdmin" },
-      { status: 403 }
-    );
-  }
-
   const target = await prisma.user.findUnique({
     where: { id },
     include: {
@@ -79,12 +74,34 @@ export async function PATCH(
   if (
     body.role !== undefined &&
     body.role !== target.role &&
-    !isPlatformOwnerUser(actor) &&
-    (body.role === "SUPERADMIN" || target.role === "SUPERADMIN")
+    (body.role === "SUPERADMIN" || target.role === "SUPERADMIN") &&
+    !canManageSuperAdminRoleOn(actor, target.email)
   ) {
     return NextResponse.json(
-      { error: "Solo el propietario puede cambiar roles SuperAdmin" },
+      {
+        error:
+          "No tienes permiso para asignar / quitar el rol SuperAdmin. Pídelo al propietario.",
+      },
       { status: 403 }
+    );
+  }
+
+  if (body.canManageSuperAdmins !== undefined && !isPlatformOwner(actor)) {
+    return NextResponse.json(
+      {
+        error:
+          "Solo el propietario puede modificar el permiso de gestión de SuperAdmin.",
+      },
+      { status: 403 }
+    );
+  }
+  if (
+    body.canManageSuperAdmins !== undefined &&
+    isPlatformOwnerEmail(target.email)
+  ) {
+    return NextResponse.json(
+      { error: "La cuenta del propietario ya tiene control total." },
+      { status: 400 }
     );
   }
 
@@ -132,6 +149,9 @@ export async function PATCH(
   }
   if (body.password !== undefined) {
     data.password = await bcrypt.hash(body.password, 10);
+  }
+  if (body.canManageSuperAdmins !== undefined) {
+    data.canManageSuperAdmins = body.canManageSuperAdmins;
   }
 
   if (Object.keys(data).length === 0) {

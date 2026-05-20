@@ -116,6 +116,9 @@ export const edgeAuthConfig: NextAuthConfig = {
         session.user.profileBanner = token.profileBanner as string | null;
       }
       if (token.role) session.user.role = token.role;
+      if (token.canManageSuperAdmins !== undefined) {
+        session.user.canManageSuperAdmins = token.canManageSuperAdmins;
+      }
       if (token.departments) session.user.departments = token.departments;
       if (token.activeDepartmentId !== undefined) {
         session.user.activeDepartmentId = token.activeDepartmentId;

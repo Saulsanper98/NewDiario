@@ -16,6 +16,7 @@ export async function refreshTokenUserFromDb(
       image: true,
       profileBanner: true,
       role: true,
+      canManageSuperAdmins: true,
       isActive: true,
       deletedAt: true,
       departments: {
@@ -35,6 +36,7 @@ export async function refreshTokenUserFromDb(
   token.image = dbUser.image;
   token.profileBanner = dbUser.profileBanner;
   token.role = dbUser.role;
+  token.canManageSuperAdmins = dbUser.canManageSuperAdmins;
   token.departments = dbUser.departments.map(
     (d): UserDepartment => ({
       id: d.departmentId,

@@ -164,9 +164,11 @@ export async function POST(
       order: nextOrder,
       priority: priority ?? "MEDIUM",
       assigneeId: assigneeId ?? null,
+      createdById: user.id,
     },
     include: {
       assignee: { select: { id: true, name: true, image: true } },
+      createdBy: { select: { id: true, name: true, image: true } },
       subtasks: true,
       tags: true,
       _count: { select: { comments: true } },

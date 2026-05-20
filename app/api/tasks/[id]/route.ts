@@ -43,6 +43,7 @@ async function loadTaskWithProject(id: string) {
     where: { id, deletedAt: null },
     include: {
       assignee: { select: { id: true, name: true, image: true } },
+      createdBy: { select: { id: true, name: true, image: true } },
       contractNotifyUser: {
         select: { id: true, name: true, image: true },
       },

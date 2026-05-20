@@ -16,6 +16,8 @@ export interface SessionUser {
   image?: string | null;
   profileBanner?: string | null;
   role: Role;
+  /** Solo el propietario puede activar este permiso para otros SuperAdmin. */
+  canManageSuperAdmins?: boolean;
   departments: UserDepartment[];
   activeDepartmentId: string | null;
 }
@@ -32,6 +34,7 @@ declare module "next-auth/jwt" {
     image?: string | null;
     profileBanner?: string | null;
     role?: Role;
+    canManageSuperAdmins?: boolean;
     departments?: UserDepartment[];
     activeDepartmentId?: string | null;
   }
