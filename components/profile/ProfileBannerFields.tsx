@@ -51,7 +51,7 @@ export function ProfileBannerFields({
       const url = await uploadProfileBannerFile(file);
       await saveBanner(url);
       toast.success("Fondo actualizado");
-      setFocusOpen(true);
+      if (!compact) setFocusOpen(true);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Error al subir");
     } finally {
@@ -150,16 +150,18 @@ export function ProfileBannerFields({
         </button>
         {value.trim() ? (
           <>
-            <button
-              type="button"
-              disabled={busy}
-              onClick={() => setFocusOpen(true)}
-              className={btnClass}
-              title="Ajustar qué parte del fondo se ve"
-            >
-              <Crosshair className="h-3.5 w-3.5" />
-              Enfoque
-            </button>
+            {!compact && (
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => setFocusOpen(true)}
+                className={btnClass}
+                title="Ajustar qué parte del fondo se ve"
+              >
+                <Crosshair className="h-3.5 w-3.5" />
+                Enfoque
+              </button>
+            )}
             <button
               type="button"
               disabled={busy}

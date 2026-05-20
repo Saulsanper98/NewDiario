@@ -421,19 +421,9 @@ export function MyProfileTab({ currentUser }: MyProfileTabProps) {
           <p className={cn("mt-1 text-xs", L ? "text-zinc-500" : "text-white/35")}>
             Se muestra en la cabecera de esta página y al abrir tu perfil en el menú lateral.
           </p>
-          <div className="mt-3 overflow-hidden rounded-xl border border-white/10">
-            <ProfileMenuBanner
-              bannerUrl={trimmedBanner || null}
-              focusX={bannerFocusX}
-              focusY={bannerFocusY}
-              accentColor={defaultDept?.accentColor}
-              heightClass="h-20"
-            />
-          </div>
-
           {/* Vista previa: cómo se verá el fondo en la fila de Usuarios */}
           {trimmedBanner && (
-            <div className="mt-4">
+            <div className="mt-3">
               <p
                 className={cn(
                   "mb-1.5 text-[11px] uppercase tracking-wide",
@@ -447,17 +437,13 @@ export function MyProfileTab({ currentUser }: MyProfileTabProps) {
                   "relative flex items-center gap-2.5 overflow-hidden rounded-lg border px-3 py-2.5",
                   L ? "border-zinc-200" : "border-white/10"
                 )}
+                style={{
+                  backgroundImage: `linear-gradient(90deg, rgba(10,15,30,0.92) 0%, rgba(10,15,30,0.55) 35%, rgba(10,15,30,0.45) 65%, rgba(10,15,30,0.92) 100%), url(${trimmedBanner})`,
+                  backgroundRepeat: "no-repeat, no-repeat",
+                  backgroundSize: "cover, cover",
+                  backgroundPosition: `center, ${bannerFocusX ?? 50}% ${bannerFocusY ?? 50}%`,
+                }}
               >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={trimmedBanner}
-                  alt=""
-                  className="absolute inset-0 h-full w-full object-cover"
-                  style={{
-                    objectPosition: `${bannerFocusX ?? 50}% ${bannerFocusY ?? 50}%`,
-                  }}
-                />
-                <span className="absolute inset-0 bg-gradient-to-r from-[#0a0f1e]/95 via-[#0a0f1e]/55 to-[#0a0f1e]/15" />
                 <div className="relative z-[1] flex items-center gap-2.5">
                   <Avatar
                     name={currentUser.name}

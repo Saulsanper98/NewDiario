@@ -420,7 +420,12 @@ export function Sidebar({
           signingOut={signingOut}
           onSignOut={() => {
             setSigningOut(true);
-            void signOut({ callbackUrl: "/login" });
+            // Evitamos pasar callbackUrl para que Auth.js no lo resuelva contra
+            // NEXTAUTH_URL (que puede apuntar a localhost). Redirigimos a mano
+            // al /login del host actual.
+            void signOut({ redirect: false }).finally(() => {
+              window.location.href = "/login";
+            });
           }}
         />
         {/* Mode picker */}
