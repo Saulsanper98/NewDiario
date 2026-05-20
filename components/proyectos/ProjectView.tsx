@@ -666,7 +666,7 @@ export function ProjectView({ project, allUsers }: ProjectViewProps) {
               currentUser={sessionUser}
               initialSnapshots={project.boardSnapshots}
             />
-            <div className="min-h-0 flex-1 overflow-hidden">
+            <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
               <KanbanBoard project={project} allUsers={allUsers} />
             </div>
           </div>

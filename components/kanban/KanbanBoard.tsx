@@ -619,7 +619,7 @@ export function KanbanBoard({ project, allUsers }: KanbanBoardProps) {
   }, [selectedTask, filteredColumns]);
 
   return (
-    <div className="kanban-board-root flex min-h-0 flex-1 flex-col overflow-hidden">
+    <div className="kanban-board-root flex h-full min-h-0 flex-1 flex-col overflow-hidden">
       {archiveOpen && (
         <div className="kanban-archive-overlay fixed inset-0 z-50 flex items-center justify-center bg-black/55 px-4">
           <div className="kanban-archive-modal w-full max-w-2xl rounded-xl border border-white/12 bg-[#0c1325] p-4 shadow-2xl">
