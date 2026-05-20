@@ -252,12 +252,14 @@ export function UserProfilePopover({
                 onClick={() => display.image && setAvatarPreview(true)}
                 title={display.image ? "Ver foto de perfil" : undefined}
                 className={cn(
-                  "group/avatar rounded-full ring-4 transition-transform hover:scale-[1.02] focus:outline-none focus-visible:ring-[#ffeb66]/60",
+                  "group/avatar relative rounded-full ring-[3px] transition-transform hover:scale-[1.02] focus:outline-none focus-visible:ring-[#ffeb66]/60",
                   isLight ? "ring-[#f4f4f5]" : "ring-[#0d1427]",
                   display.image ? "cursor-zoom-in" : "cursor-default"
                 )}
                 style={{
-                  boxShadow: `0 0 0 2px ${accent}aa, 0 10px 24px rgba(0,0,0,0.55)`,
+                  // Borde fino del color del departamento + sombra
+                  // simétrica que no se proyecta hacia abajo (offset Y = 0).
+                  boxShadow: `0 0 0 2px ${accent}aa, 0 0 18px rgba(0,0,0,0.5)`,
                 }}
               >
                 <Avatar

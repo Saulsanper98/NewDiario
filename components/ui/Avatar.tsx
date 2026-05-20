@@ -135,11 +135,15 @@ export function Avatar({
 
   const framed = effect !== "none";
 
+  // Si el usuario ha configurado un enfoque concreto lo usamos; si no,
+  // anclamos el foco al tercio superior (`50% 30%`). Las caras suelen
+  // estar arriba en las fotos de retrato, así que esto evita que en
+  // avatares circulares quede "cortada" la cabeza por defecto.
   const hasFocus =
     typeof focusX === "number" && typeof focusY === "number";
-  const objectPositionStyle = hasFocus
-    ? { objectPosition: `${focusX}% ${focusY}%` }
-    : undefined;
+  const objectPositionStyle = {
+    objectPosition: hasFocus ? `${focusX}% ${focusY}%` : "50% 30%",
+  };
 
   const imageNode = image ? (
     /* eslint-disable-next-line @next/next/no-img-element -- avatares dinámicos */
@@ -179,7 +183,9 @@ export function Avatar({
     return (
       <span
         className={cn(
-          "relative inline-flex shrink-0 overflow-hidden rounded-full",
+          // bg-[#0d1427] garantiza que si la imagen tiene transparencia
+          // o tarda en cargar, no se vea lo que hay detrás (banner, etc.).
+          "relative inline-flex shrink-0 overflow-hidden rounded-full bg-[#0d1427]",
           sizes[size]
         )}
       >
