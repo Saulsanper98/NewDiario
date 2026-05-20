@@ -504,6 +504,19 @@ select option {
   outline-offset: 0;
 }
 
+/* Composer del chat: mismo motivo que tags-composer-shell. El borde/anillo
+   amarillo lo dibuja .chat-composer-shell entero; el outline global del
+   :focus-visible pintaba un rectangulo cuadrado dentro del textarea. */
+.chat-composer-shell textarea:focus,
+.chat-composer-shell textarea:focus-visible,
+.chat-composer-shell input:focus,
+.chat-composer-shell input:focus-visible,
+.chat-composer-shell button:focus,
+.chat-composer-shell button:focus-visible {
+  outline: none;
+  outline-offset: 0;
+}
+
 /* Anillo de foco legible sobre fondos amarillos (CTA primario) */
 .focus-ring-on-accent:focus-visible {
   outline: 2px solid #0a0f1e;
