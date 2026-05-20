@@ -257,9 +257,10 @@ export function UserProfilePopover({
                   display.image ? "cursor-zoom-in" : "cursor-default"
                 )}
                 style={{
-                  // Borde fino del color del departamento + sombra
-                  // simétrica que no se proyecta hacia abajo (offset Y = 0).
-                  boxShadow: `0 0 0 2px ${accent}aa, 0 0 18px rgba(0,0,0,0.5)`,
+                  // Solo sombra suave simetrica. No anadir un anillo de color
+                  // de departamento porque cuando el avatar ya lleva su propio
+                  // efecto de marco se ve como una linea extra detras.
+                  boxShadow: "0 0 18px rgba(0,0,0,0.5)",
                 }}
               >
                 <Avatar
