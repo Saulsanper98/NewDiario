@@ -15,6 +15,7 @@ import toast from "react-hot-toast";
 import { Avatar } from "@/components/ui/Avatar";
 import { AvatarImagePreview } from "@/components/ui/AvatarImagePreview";
 import { ProfileMenuBanner } from "@/components/ui/ProfileMenuBanner";
+import { useAvatarFrameEffect } from "@/lib/hooks/useAvatarFrameEffect";
 import type { PublicUserProfile } from "@/lib/types/public-user-profile";
 import { ROLE_LABELS, cn } from "@/lib/utils";
 import { useTheme } from "@/components/layout/ThemeProvider";
@@ -44,6 +45,7 @@ export function UserProfilePopover({
 }: UserProfilePopoverProps) {
   const { theme } = useTheme();
   const isLight = theme === "light";
+  const avatarEffect = useAvatarFrameEffect();
   const cardBg = isLight ? "#f4f4f5" : "#0d1427";
   const triggerRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -269,6 +271,7 @@ export function UserProfilePopover({
                   focusX={display.imageFocusX}
                   focusY={display.imageFocusY}
                   size="xl"
+                  effect={avatarEffect}
                 />
               </button>
             </div>

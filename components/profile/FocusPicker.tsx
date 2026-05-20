@@ -26,13 +26,14 @@ const MAX_ZOOM = 5;
 const ZOOM_STEP = 0.25;
 
 /**
- * Modal de "modo enfoque" con zoom:
+ * Modal de "modo enfoque" con zoom y panning.
  *
- * Muestra la imagen COMPLETA (sin recortar) y permite al usuario marcar
- * sobre ella qué punto debe quedar como centro focal cuando la imagen se
- * recorte (object-cover) en su marco real. Permite hacer zoom (rueda del
- * ratón o botones) para elegir el foco con más precisión. Una
- * previsualización en vivo a la derecha enseña cómo quedará el recorte.
+ * - Muestra la imagen completa (sin recortar) y escala según el zoom.
+ * - El usuario pincha (o arrastra) sobre la imagen para fijar el centro focal.
+ * - La imagen se reposiciona instantáneamente para que el punto focal
+ *   actual quede siempre en el centro de la zona de selección.
+ * - El zoom (rueda, slider, botones) amplía la imagen alrededor del foco.
+ * - Una vista previa a la derecha muestra el recorte final.
  */
 export function FocusPicker({
   open,
@@ -50,7 +51,15 @@ export function FocusPicker({
   const [saving, setSaving] = useState(false);
   const [naturalRatio, setNaturalRatio] = useState<number | null>(null);
   const imgRef = useRef<HTMLDivElement | null>(null);
-  const draggingRef = useRef<boolean>(false);
+  // Estado del arrastre. Guardamos foco y posicion iniciales del raton para
+  // que el delta sea siempre relativo al inicio (sin acumular).
+  const dragRef = useRef<{
+    startFocusX: number;
+    startFocusY: number;
+    startPx: number;
+    startPy: number;
+    moved: boolean;
+  } | null>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -73,43 +82,62 @@ export function FocusPicker({
   const clamp = (v: number, min = 0, max = 100) =>
     Math.max(min, Math.min(max, v));
 
-  /**
-   * Calcula el nuevo (focusX, focusY) a partir de la posición del puntero,
-   * compensando el zoom actual. Cuando el zoom es 1 es equivalente a usar
-   * la posición del puntero directamente como porcentaje. Con zoom > 1 la
-   * imagen visible es solo una porción centrada en el foco actual, así que
-   * el desplazamiento del puntero respecto al centro se divide por el zoom.
-   */
-  function updateFromPointer(clientX: number, clientY: number) {
+  function pointerToPercent(clientX: number, clientY: number) {
     const el = imgRef.current;
-    if (!el) return;
+    if (!el) return null;
     const rect = el.getBoundingClientRect();
     const px = ((clientX - rect.left) / rect.width) * 100;
     const py = ((clientY - rect.top) / rect.height) * 100;
-    const dx = (px - 50) / zoom;
-    const dy = (py - 50) / zoom;
-    setFocusX(clamp(focusX + dx));
-    setFocusY(clamp(focusY + dy));
+    return { px, py };
   }
 
   function handlePointerDown(e: React.PointerEvent<HTMLDivElement>) {
-    draggingRef.current = true;
+    const c = pointerToPercent(e.clientX, e.clientY);
+    if (!c) return;
+    dragRef.current = {
+      startFocusX: focusX,
+      startFocusY: focusY,
+      startPx: c.px,
+      startPy: c.py,
+      moved: false,
+    };
     (e.target as Element).setPointerCapture?.(e.pointerId);
-    updateFromPointer(e.clientX, e.clientY);
   }
 
   function handlePointerMove(e: React.PointerEvent<HTMLDivElement>) {
-    if (!draggingRef.current) return;
-    updateFromPointer(e.clientX, e.clientY);
+    if (!dragRef.current) return;
+    const c = pointerToPercent(e.clientX, e.clientY);
+    if (!c) return;
+    const dx = c.px - dragRef.current.startPx;
+    const dy = c.py - dragRef.current.startPy;
+    if (Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5) {
+      dragRef.current.moved = true;
+    }
+    // Drag: el foco se desplaza desde el foco inicial siguiendo al raton.
+    // Cuanto mayor el zoom, menor el desplazamiento real del foco (mas precision).
+    setFocusX(clamp(dragRef.current.startFocusX + dx / zoom));
+    setFocusY(clamp(dragRef.current.startFocusY + dy / zoom));
   }
 
   function handlePointerUp(e: React.PointerEvent<HTMLDivElement>) {
-    draggingRef.current = false;
+    if (dragRef.current && !dragRef.current.moved) {
+      // Click sin drag: el punto clicado se convierte en el nuevo foco.
+      const nx = clamp(
+        dragRef.current.startFocusX +
+          (dragRef.current.startPx - 50) / zoom
+      );
+      const ny = clamp(
+        dragRef.current.startFocusY +
+          (dragRef.current.startPy - 50) / zoom
+      );
+      setFocusX(nx);
+      setFocusY(ny);
+    }
+    dragRef.current = null;
     (e.target as Element).releasePointerCapture?.(e.pointerId);
   }
 
   function handleWheel(e: React.WheelEvent<HTMLDivElement>) {
-    e.preventDefault();
     const delta = e.deltaY > 0 ? -ZOOM_STEP : ZOOM_STEP;
     setZoom((z) => Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, z + delta)));
   }
@@ -146,6 +174,12 @@ export function FocusPicker({
   const pickerAspect = naturalRatio ?? 16 / 9;
   const objectPosition = `${focusX}% ${focusY}%`;
 
+  // Transformacion de la imagen: la escalamos por `zoom` desde la esquina
+  // superior izquierda y luego la trasladamos para que el punto focal
+  // (focusX%, focusY%) de la imagen original quede en el centro de la vista.
+  const tx = 50 - focusX * zoom;
+  const ty = 50 - focusY * zoom;
+
   return (
     <div
       className="fixed inset-0 z-[80] flex items-center justify-center bg-black/65 px-4 py-6 overflow-auto"
@@ -169,12 +203,12 @@ export function FocusPicker({
         </div>
 
         <p className="mb-3 text-[11px] text-white/45">
-          Marca sobre la foto el punto que quieres centrar. Usa el zoom (rueda
-          del ratón o los botones +/−) para más precisión.
+          Pulsa o arrastra sobre la foto para elegir el centro focal. Usa la
+          rueda del ratón, el slider o los botones +/− para acercarte.
         </p>
 
         <div className="grid gap-4 md:grid-cols-[1fr_220px] md:items-start">
-          {/* Zona de selección — imagen entera con su aspect ratio real */}
+          {/* Zona de selección — imagen completa */}
           <div className="space-y-2">
             <div
               ref={imgRef}
@@ -197,21 +231,20 @@ export function FocusPicker({
                     setNaturalRatio(img.naturalWidth / img.naturalHeight);
                   }
                 }}
-                className="pointer-events-none absolute inset-0 h-full w-full object-fill transition-transform duration-100"
+                className="pointer-events-none absolute inset-0 h-full w-full object-fill"
                 style={{
-                  transform: `scale(${zoom})`,
-                  transformOrigin: `${focusX}% ${focusY}%`,
+                  transform: `translate(${tx}%, ${ty}%) scale(${zoom})`,
+                  transformOrigin: "0 0",
                 }}
                 decoding="async"
               />
-              {/* Cruceta del centro focal — fija en el centro porque el zoom se centra ahí */}
+              {/* Cruceta del centro focal (siempre en el centro de la vista) */}
               <span
                 aria-hidden
                 className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
               >
                 <span className="block h-6 w-6 rounded-full border-2 border-white/95 bg-[#ffeb66]/40 shadow-[0_0_0_4px_rgba(0,0,0,0.45)]" />
               </span>
-              {/* Líneas guía */}
               <span
                 aria-hidden
                 className="pointer-events-none absolute left-1/2 top-0 bottom-0 w-px -translate-x-1/2 bg-white/25"
@@ -220,7 +253,6 @@ export function FocusPicker({
                 aria-hidden
                 className="pointer-events-none absolute top-1/2 left-0 right-0 h-px -translate-y-1/2 bg-white/25"
               />
-              {/* Indicador de zoom */}
               <span className="pointer-events-none absolute right-2 top-2 rounded-md bg-black/60 px-1.5 py-0.5 text-[10px] font-semibold text-white/80">
                 {zoom.toFixed(2)}x
               </span>

@@ -288,9 +288,7 @@ export function MyProfileTab({ currentUser }: MyProfileTabProps) {
                 L ? "ring-[#fafafa]" : "ring-[#0d1427]"
               )}
               style={{
-                boxShadow: defaultDept?.accentColor
-                  ? `0 0 0 1px ${defaultDept.accentColor}55, 0 8px 20px rgba(0,0,0,0.35)`
-                  : undefined,
+                boxShadow: "0 6px 16px rgba(0,0,0,0.35)",
               }}
             >
               <Avatar
