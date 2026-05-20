@@ -51,6 +51,7 @@ import { LogEntryPollsCard } from "@/components/bitacora/LogEntryPollsCard";
 import { useAccentForUi } from "@/lib/hooks/useAccentForUi";
 import { BackgroundOrbs } from "@/components/layout/BackgroundOrbs";
 import { useTheme } from "@/components/layout/ThemeProvider";
+import { SHOW_AUTHOR_BANNER_IN_NOTE } from "@/lib/feature-flags";
 import { bitacoraReadingProseClass } from "@/lib/bitacora-html-prose";
 import { bitacoraProseRootProps } from "@/lib/bitacora-prose-constants";
 import { useDeptMentionAutocomplete } from "@/hooks/use-dept-mention-autocomplete";
@@ -759,52 +760,89 @@ export function LogEntryDetail({
           </div>
 
           {/* Author + B52 reading time */}
-          <div
-            className={cn(
-              "flex items-center gap-3 border-b border-white/8",
-              hasRichBody ? "mb-6 pb-5" : "mb-4 pb-4"
-            )}
-          >
-            <UserProfilePopover
-              userId={entry.author.id}
-              name={entry.author.name}
-              image={entry.author.image}
-              className="min-w-0 flex-1"
-            >
-              <Avatar
-                name={entry.author.name}
-                image={entry.author.image}
-                size="sm"
-              />
-              <div className="min-w-0 flex-1 text-left">
-                <span className="block text-sm font-medium text-white/85">
-                  {entry.author.name}
-                </span>
-                <span className="block text-xs text-white/40">
-                  {formatDate(entry.createdAt)}
-                  {entry.editHistory.length > 0 &&
-                    ` · Editado ${formatRelative(
-                      entry.editHistory[0].createdAt
-                    )}`}
-                </span>
+          {(() => {
+            const authorBanner =
+              SHOW_AUTHOR_BANNER_IN_NOTE && entry.author.profileBanner
+                ? entry.author.profileBanner.trim()
+                : null;
+            const bx = entry.author.bannerFocusX ?? 50;
+            const by = entry.author.bannerFocusY ?? 50;
+            const bannerStyle: React.CSSProperties | undefined = authorBanner
+              ? {
+                  backgroundImage: `linear-gradient(90deg, rgba(10,15,30,0.92) 0%, rgba(10,15,30,0.5) 35%, rgba(10,15,30,0.4) 65%, rgba(10,15,30,0.92) 100%), url(${authorBanner})`,
+                  backgroundRepeat: "no-repeat, no-repeat",
+                  backgroundSize: "cover, cover",
+                  backgroundPosition: `center, ${bx}% ${by}%`,
+                  imageRendering: "-webkit-optimize-contrast",
+                }
+              : undefined;
+            return (
+              <div
+                className={cn(
+                  "relative flex items-center gap-3 border-b border-white/8 transition-colors",
+                  hasRichBody ? "mb-6 pb-5" : "mb-4 pb-4",
+                  authorBanner &&
+                    "overflow-hidden rounded-xl border border-white/8 mb-6 px-3.5 py-3"
+                )}
+                style={bannerStyle}
+              >
+                <UserProfilePopover
+                  userId={entry.author.id}
+                  name={entry.author.name}
+                  image={entry.author.image}
+                  profileBanner={entry.author.profileBanner ?? null}
+                  className="relative z-[1] min-w-0 flex-1"
+                >
+                  <Avatar
+                    name={entry.author.name}
+                    image={entry.author.image}
+                    focusX={entry.author.imageFocusX}
+                    focusY={entry.author.imageFocusY}
+                    size="sm"
+                  />
+                  <div className="min-w-0 flex-1 text-left">
+                    <span className="block text-sm font-medium text-white/90">
+                      {entry.author.name}
+                    </span>
+                    <span className="block text-xs text-white/55">
+                      {formatDate(entry.createdAt)}
+                      {entry.editHistory.length > 0 &&
+                        ` · Editado ${formatRelative(
+                          entry.editHistory[0].createdAt
+                        )}`}
+                    </span>
+                  </div>
+                </UserProfilePopover>
+                <div className="relative z-[1] ml-auto flex items-center gap-3">
+                  {/* B52: Reading time (solo si hay cuerpo con texto) */}
+                  {hasRichBody && (
+                    <span
+                      className={cn(
+                        "flex items-center gap-1.5 text-xs",
+                        authorBanner ? "text-white/55" : "text-white/30"
+                      )}
+                    >
+                      <BookOpen className="w-3.5 h-3.5" />~{readingMinutes} min
+                    </span>
+                  )}
+                  <span
+                    className={cn(
+                      "flex items-center gap-1.5 text-xs",
+                      authorBanner ? "text-white/65" : "text-white/30"
+                    )}
+                  >
+                    <span
+                      className="w-2 h-2 rounded-full shrink-0"
+                      style={{
+                        backgroundColor: accent(entry.department.accentColor),
+                      }}
+                    />
+                    {entry.department.name}
+                  </span>
+                </div>
               </div>
-            </UserProfilePopover>
-            <div className="ml-auto flex items-center gap-3">
-              {/* B52: Reading time (solo si hay cuerpo con texto) */}
-              {hasRichBody && (
-                <span className="flex items-center gap-1.5 text-xs text-white/30">
-                  <BookOpen className="w-3.5 h-3.5" />~{readingMinutes} min
-                </span>
-              )}
-              <span className="flex items-center gap-1.5 text-xs text-white/30">
-                <span
-                  className="w-2 h-2 rounded-full shrink-0"
-                  style={{ backgroundColor: accent(entry.department.accentColor) }}
-                />
-                {entry.department.name}
-              </span>
-            </div>
-          </div>
+            );
+          })()}
 
           {/* B54: Table of contents */}
           {toc.length >= 2 && (

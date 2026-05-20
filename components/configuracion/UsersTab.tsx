@@ -37,6 +37,7 @@ import {
   validateProfileImageFile,
 } from "@/lib/upload-file";
 import { isPlatformOwnerEmail } from "@/lib/platform-owner";
+import { USER_ROW_BANNER_HD } from "@/lib/feature-flags";
 
 interface UsersTabProps {
   users: ConfigPageUser[];
@@ -474,20 +475,32 @@ export function UsersTab({
           backgroundRepeat: "no-repeat, no-repeat",
           backgroundSize: "cover, cover",
           backgroundPosition: `center, ${bannerFocusX}% ${bannerFocusY}%`,
-          // Mejor renderizado del navegador al escalar fotos/gifs.
-          imageRendering: "auto",
+          // Mejora la nitidez percibida al escalar fotos. Si no gusta,
+          // poner USER_ROW_BANNER_HD = false en lib/feature-flags.ts.
+          imageRendering: USER_ROW_BANNER_HD ? "-webkit-optimize-contrast" : "auto",
         }
       : undefined;
+    const rowHeightClass = bannerUrl
+      ? USER_ROW_BANNER_HD
+        ? "h-20"
+        : "h-16"
+      : "";
+    const cellPaddingY = USER_ROW_BANNER_HD ? "py-4" : "py-3";
     return (
       <tr
         key={rowKey}
         className={cn(
           "user-row border-b border-white/6 transition-colors hover:brightness-110",
-          bannerUrl ? "h-16" : ""
+          rowHeightClass
         )}
         style={rowStyle}
       >
-        <td className="user-row-banner-cell relative px-4 py-3 align-middle">
+        <td
+          className={cn(
+            "user-row-banner-cell relative px-4 align-middle",
+            cellPaddingY
+          )}
+        >
           <div className="relative z-[1] flex items-center gap-2.5">
             <button
               type="button"

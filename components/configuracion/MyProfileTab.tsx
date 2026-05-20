@@ -22,6 +22,7 @@ import { cn } from "@/lib/utils";
 import type { SessionUser } from "@/lib/auth/types";
 import { useAvatarFrameEffect } from "@/lib/hooks/useAvatarFrameEffect";
 import { useTheme } from "@/components/layout/ThemeProvider";
+import { USER_ROW_BANNER_HD } from "@/lib/feature-flags";
 import {
   IMAGE_UPLOAD_ACCEPT,
   IMAGE_UPLOAD_HINT,
@@ -465,14 +466,16 @@ export function MyProfileTab({ currentUser }: MyProfileTabProps) {
               </p>
               <div
                 className={cn(
-                  "relative flex items-center gap-2.5 overflow-hidden rounded-lg border px-3 py-2.5",
+                  "relative flex items-center gap-2.5 overflow-hidden rounded-lg border px-3",
+                  USER_ROW_BANNER_HD ? "py-3.5" : "py-2.5",
                   L ? "border-zinc-200" : "border-white/10"
                 )}
                 style={{
-                  backgroundImage: `linear-gradient(90deg, rgba(10,15,30,0.92) 0%, rgba(10,15,30,0.55) 35%, rgba(10,15,30,0.45) 65%, rgba(10,15,30,0.92) 100%), url(${trimmedBanner})`,
+                  backgroundImage: `linear-gradient(90deg, rgba(10,15,30,0.92) 0%, rgba(10,15,30,0.5) 35%, rgba(10,15,30,0.4) 65%, rgba(10,15,30,0.92) 100%), url(${trimmedBanner})`,
                   backgroundRepeat: "no-repeat, no-repeat",
                   backgroundSize: "cover, cover",
                   backgroundPosition: `center, ${bannerFocusX ?? 50}% ${bannerFocusY ?? 50}%`,
+                  imageRendering: USER_ROW_BANNER_HD ? "-webkit-optimize-contrast" : "auto",
                 }}
               >
                 <div className="relative z-[1] flex items-center gap-2.5">

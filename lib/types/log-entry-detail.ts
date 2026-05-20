@@ -1,14 +1,36 @@
 import type { Prisma } from "@/app/generated/prisma/client";
 
 export const logEntryDetailPageInclude = {
-  author: { select: { id: true, name: true, image: true } },
+  author: {
+    select: {
+      id: true,
+      name: true,
+      image: true,
+      imageFocusX: true,
+      imageFocusY: true,
+      profileBanner: true,
+      bannerFocusX: true,
+      bannerFocusY: true,
+    },
+  },
   department: { select: { id: true, name: true, accentColor: true } },
   tags: true,
   attachments: true,
   comments: {
     where: { deletedAt: null },
     include: {
-      author: { select: { id: true, name: true, image: true } },
+      author: {
+        select: {
+          id: true,
+          name: true,
+          image: true,
+          imageFocusX: true,
+          imageFocusY: true,
+          profileBanner: true,
+          bannerFocusX: true,
+          bannerFocusY: true,
+        },
+      },
     },
     orderBy: { createdAt: "asc" as const },
   },
