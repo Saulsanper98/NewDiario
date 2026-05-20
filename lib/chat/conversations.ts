@@ -5,7 +5,7 @@ export async function listConversationsForUser(
   userId: string
 ): Promise<ChatConversationItem[]> {
   const participations = await prisma.chatParticipant.findMany({
-    where: { userId },
+    where: { userId, leftAt: null },
     include: {
       conversation: {
         include: {

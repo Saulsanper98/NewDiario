@@ -9,6 +9,7 @@ import {
   Loader2,
   MessageCircle,
   Search,
+  Sparkles,
   Users,
   UsersRound,
 } from "lucide-react";
@@ -56,7 +57,6 @@ export function NewChatPicker({
   const [groupTitle, setGroupTitle] = useState("");
   const [creating, setCreating] = useState(false);
 
-  // Cargar departamentos al abrir
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -75,7 +75,6 @@ export function NewChatPicker({
     };
   }, []);
 
-  // Cargar usuarios según el step actual
   useEffect(() => {
     if (step !== "user" && step !== "all-users") return;
     const q = query.trim();
@@ -104,8 +103,7 @@ export function NewChatPicker({
     if (!q) return users;
     return users.filter(
       (u) =>
-        u.name.toLowerCase().includes(q) ||
-        u.email.toLowerCase().includes(q)
+        u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q)
     );
   }, [users, query]);
 
@@ -165,67 +163,76 @@ export function NewChatPicker({
   }
 
   const shell = cn(
-    "mt-3 overflow-hidden rounded-xl border shadow-lg",
+    "mt-3 flex max-h-[calc(100vh-12rem)] flex-col overflow-hidden rounded-2xl border shadow-2xl",
     isLight
-      ? "border-zinc-200/90 bg-white"
-      : "border-white/12 bg-[#0d1427]/95 backdrop-blur-xl"
+      ? "border-zinc-200 bg-white"
+      : "border-white/12 bg-[#0c1224]/95 backdrop-blur-2xl"
   );
+
+  const stepLabel =
+    step === "department"
+      ? mode === "group"
+        ? "Elige un departamento (o busca a todos)"
+        : "Elige un departamento"
+      : mode === "group"
+        ? "Selecciona los compañeros del grupo"
+        : "Selecciona el compañero";
 
   return (
     <div className={shell}>
-      <div
+      {/* Header con icono grande + titulo + cerrar */}
+      <header
         className={cn(
-          "flex items-center justify-between gap-2 border-b px-3 py-2.5",
-          isLight ? "border-zinc-100 bg-zinc-50/80" : "border-white/8 bg-white/[0.03]"
+          "relative flex items-start gap-3 px-5 py-4",
+          isLight
+            ? "border-b border-zinc-100 bg-gradient-to-br from-zinc-50 to-white"
+            : "border-b border-white/8 bg-gradient-to-br from-[#ffeb66]/10 via-[#101a32]/20 to-transparent"
         )}
       >
-        <div className="flex min-w-0 items-center gap-2">
-          {(step === "user" || step === "all-users") && (
-            <button
-              type="button"
-              onClick={() => {
-                setStep("department");
-                setSelectedDept(null);
-                setQuery("");
-                setUsers([]);
-              }}
-              className={cn(
-                "rounded-lg p-1 transition-colors",
-                isLight
-                  ? "text-zinc-600 hover:bg-zinc-200"
-                  : "text-white/60 hover:bg-white/10"
-              )}
-              aria-label="Atrás"
-            >
-              <ArrowLeft className="h-4 w-4" />
-            </button>
+        <span
+          className={cn(
+            "flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-[#0a0f1e] shadow-lg",
+            "bg-gradient-to-br from-[#ffeb66] to-[#d4a700]"
           )}
+        >
+          {mode === "group" ? (
+            <UsersRound className="h-5 w-5" />
+          ) : (
+            <Sparkles className="h-5 w-5" />
+          )}
+        </span>
+        <div className="min-w-0 flex-1">
           <p
             className={cn(
-              "truncate text-xs font-semibold uppercase tracking-wide",
-              isLight ? "text-zinc-600" : "text-white/55"
+              "text-[10px] font-semibold uppercase tracking-[0.14em]",
+              isLight ? "text-zinc-500" : "text-white/45"
             )}
           >
-            {mode === "group"
-              ? step === "department"
-                ? "Nuevo grupo · 1 · Departamento"
-                : "Nuevo grupo · 2 · Compañeros"
-              : step === "department"
-                ? "Nuevo chat · 1 · Departamento"
-                : "Nuevo chat · 2 · Compañero"}
+            {mode === "group" ? "Nuevo grupo" : "Nuevo chat"}
           </p>
+          <h3
+            className={cn(
+              "mt-0.5 truncate text-base font-semibold tracking-tight",
+              isLight ? "text-zinc-900" : "text-white"
+            )}
+          >
+            {stepLabel}
+          </h3>
         </div>
         <button
           type="button"
           onClick={onClose}
+          aria-label="Cerrar"
           className={cn(
-            "text-[11px] font-medium",
-            isLight ? "text-zinc-500 hover:text-zinc-800" : "text-white/40 hover:text-white/70"
+            "ml-1 inline-flex h-7 items-center justify-center rounded-md px-2 text-[11px] font-medium transition-colors",
+            isLight
+              ? "text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900"
+              : "text-white/55 hover:bg-white/8 hover:text-white"
           )}
         >
           Cerrar
         </button>
-      </div>
+      </header>
 
       {/* Tabs Directo / Grupo */}
       <div
@@ -234,45 +241,54 @@ export function NewChatPicker({
           isLight ? "border-zinc-100 bg-white" : "border-white/6 bg-white/[0.02]"
         )}
       >
-        <button
-          type="button"
+        <ModeTab
+          active={mode === "direct"}
           onClick={() => mode !== "direct" && switchMode("direct")}
-          className={cn(
-            "flex flex-1 items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-[11px] font-semibold transition-colors",
-            mode === "direct"
-              ? isLight
-                ? "bg-[#ffeb66]/22 text-zinc-900"
-                : "bg-[#ffeb66]/15 text-[#ffeb66]"
-              : isLight
-                ? "text-zinc-500 hover:bg-zinc-100"
-                : "text-white/50 hover:bg-white/[0.05]"
-          )}
-        >
-          <MessageCircle className="h-3.5 w-3.5" />
-          Chat directo
-        </button>
-        <button
-          type="button"
+          icon={<MessageCircle className="h-4 w-4" />}
+          label="Chat directo"
+          isLight={isLight}
+        />
+        <ModeTab
+          active={mode === "group"}
           onClick={() => mode !== "group" && switchMode("group")}
+          icon={<UsersRound className="h-4 w-4" />}
+          label="Nuevo grupo"
+          isLight={isLight}
+        />
+      </div>
+
+      {/* Stepper visual */}
+      <div
+        className={cn(
+          "flex items-center gap-2 border-b px-4 py-2.5 text-[11px]",
+          isLight ? "border-zinc-100 bg-zinc-50/60" : "border-white/6 bg-white/[0.02]"
+        )}
+      >
+        <StepperPill
+          active={step === "department"}
+          done={step !== "department"}
+          isLight={isLight}
+          label="Origen"
+          num={1}
+        />
+        <span
           className={cn(
-            "flex flex-1 items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-[11px] font-semibold transition-colors",
-            mode === "group"
-              ? isLight
-                ? "bg-[#ffeb66]/22 text-zinc-900"
-                : "bg-[#ffeb66]/15 text-[#ffeb66]"
-              : isLight
-                ? "text-zinc-500 hover:bg-zinc-100"
-                : "text-white/50 hover:bg-white/[0.05]"
+            "h-px flex-1",
+            isLight ? "bg-zinc-200" : "bg-white/10"
           )}
-        >
-          <UsersRound className="h-3.5 w-3.5" />
-          Nuevo grupo
-        </button>
+        />
+        <StepperPill
+          active={step !== "department"}
+          done={false}
+          isLight={isLight}
+          label={mode === "group" ? "Compañeros" : "Compañero"}
+          num={2}
+        />
       </div>
 
       {step === "department" ? (
-        <div className="max-h-56 overflow-y-auto p-1.5">
-          {/* Acceso rapido para grupos: ver TODOS los usuarios */}
+        <div className="flex-1 overflow-y-auto p-2">
+          {/* Acceso rapido en modo grupo: todos los compañeros */}
           {mode === "group" && (
             <button
               type="button"
@@ -282,29 +298,39 @@ export function NewChatPicker({
                 setQuery("");
               }}
               className={cn(
-                "mb-1 flex w-full items-center gap-3 rounded-lg border px-3 py-2 text-left transition-colors",
+                "mb-1 flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition-all",
                 isLight
-                  ? "border-zinc-200/80 hover:bg-zinc-50"
-                  : "border-white/8 hover:bg-white/[0.05]"
+                  ? "border-zinc-200 bg-gradient-to-br from-white to-zinc-50 hover:border-[#ffeb66]/50 hover:shadow-md"
+                  : "border-white/10 bg-white/[0.02] hover:border-[#ffeb66]/30 hover:bg-white/[0.04]"
               )}
             >
               <span
                 className={cn(
-                  "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg",
+                  "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg",
                   isLight
-                    ? "bg-zinc-100 text-zinc-700"
-                    : "bg-white/[0.07] text-white/70"
+                    ? "bg-[#ffeb66]/20 text-[#9c7d10]"
+                    : "bg-[#ffeb66]/15 text-[#ffeb66]"
                 )}
               >
                 <Users className="h-4 w-4" />
               </span>
-              <span
-                className={cn(
-                  "min-w-0 flex-1 text-sm font-medium",
-                  isLight ? "text-zinc-900" : "text-white"
-                )}
-              >
-                Todos los compañeros
+              <span className="min-w-0 flex-1">
+                <span
+                  className={cn(
+                    "block text-sm font-semibold",
+                    isLight ? "text-zinc-900" : "text-white"
+                  )}
+                >
+                  Todos los compañeros
+                </span>
+                <span
+                  className={cn(
+                    "block text-[11px]",
+                    isLight ? "text-zinc-500" : "text-white/45"
+                  )}
+                >
+                  Búsqueda global por nombre o email
+                </span>
               </span>
               <ChevronRight
                 className={cn(
@@ -314,10 +340,11 @@ export function NewChatPicker({
               />
             </button>
           )}
+
           {loadingDepts ? (
             <p
               className={cn(
-                "flex items-center justify-center gap-2 py-8 text-xs",
+                "flex items-center justify-center gap-2 py-12 text-xs",
                 isLight ? "text-zinc-500" : "text-white/40"
               )}
             >
@@ -327,14 +354,14 @@ export function NewChatPicker({
           ) : departments.length === 0 ? (
             <p
               className={cn(
-                "py-8 text-center text-xs",
+                "py-12 text-center text-xs",
                 isLight ? "text-zinc-500" : "text-white/40"
               )}
             >
               No hay departamentos disponibles
             </p>
           ) : (
-            <ul className="space-y-0.5">
+            <ul className="grid grid-cols-1 gap-1 sm:grid-cols-2">
               {departments.map((d) => (
                 <li key={d.id}>
                   <button
@@ -345,15 +372,17 @@ export function NewChatPicker({
                       setQuery("");
                     }}
                     className={cn(
-                      "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors",
-                      isLight ? "hover:bg-zinc-50" : "hover:bg-white/[0.05]"
+                      "group/dept flex w-full items-center gap-2.5 rounded-xl border px-3 py-2.5 text-left transition-all",
+                      isLight
+                        ? "border-zinc-200 hover:border-zinc-300 hover:bg-zinc-50 hover:shadow-sm"
+                        : "border-white/10 hover:border-white/20 hover:bg-white/[0.05]"
                     )}
                   >
                     <span
                       className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border"
                       style={{
-                        borderColor: `${d.accentColor}44`,
-                        backgroundColor: `${d.accentColor}18`,
+                        borderColor: `${d.accentColor}55`,
+                        backgroundColor: `${d.accentColor}1f`,
                         color: d.accentColor,
                       }}
                     >
@@ -369,7 +398,7 @@ export function NewChatPicker({
                     </span>
                     <ChevronRight
                       className={cn(
-                        "h-4 w-4 shrink-0",
+                        "h-4 w-4 shrink-0 transition-transform group-hover/dept:translate-x-0.5",
                         isLight ? "text-zinc-400" : "text-white/30"
                       )}
                     />
@@ -381,69 +410,124 @@ export function NewChatPicker({
         </div>
       ) : (
         <>
-          {selectedDept && (
-            <div
+          {/* Cabecera de contexto: depto seleccionado o "todos" */}
+          <div
+            className={cn(
+              "flex items-center gap-2 border-b px-4 py-2",
+              isLight ? "border-zinc-100 bg-zinc-50/60" : "border-white/6 bg-white/[0.02]"
+            )}
+          >
+            <button
+              type="button"
+              onClick={() => {
+                setStep("department");
+                setSelectedDept(null);
+                setQuery("");
+                setUsers([]);
+              }}
               className={cn(
-                "flex items-center gap-2 border-b px-3 py-2",
-                isLight ? "border-zinc-100" : "border-white/6"
+                "inline-flex items-center gap-1.5 rounded-md px-1.5 py-1 text-[11px] font-medium transition-colors",
+                isLight
+                  ? "text-zinc-600 hover:bg-zinc-200/70 hover:text-zinc-900"
+                  : "text-white/60 hover:bg-white/10 hover:text-white"
               )}
             >
-              <span
-                className="h-2 w-2 shrink-0 rounded-full"
-                style={{ backgroundColor: selectedDept.accentColor }}
-              />
+              <ArrowLeft className="h-3.5 w-3.5" />
+              Volver
+            </button>
+            <span
+              className={cn(
+                "h-3 w-px shrink-0",
+                isLight ? "bg-zinc-200" : "bg-white/15"
+              )}
+            />
+            {selectedDept ? (
+              <>
+                <span
+                  className="h-2 w-2 shrink-0 rounded-full"
+                  style={{ backgroundColor: selectedDept.accentColor }}
+                />
+                <span
+                  className={cn(
+                    "truncate text-xs font-medium",
+                    isLight ? "text-zinc-700" : "text-white/70"
+                  )}
+                >
+                  {selectedDept.name}
+                </span>
+              </>
+            ) : (
               <span
                 className={cn(
                   "truncate text-xs font-medium",
                   isLight ? "text-zinc-700" : "text-white/70"
                 )}
               >
-                {selectedDept.name}
+                Todos los compañeros
               </span>
-            </div>
-          )}
+            )}
+          </div>
+
+          {/* Editor de nombre + chips de seleccionados (solo en grupo) */}
           {mode === "group" && (
             <div
               className={cn(
-                "border-b px-3 py-2",
+                "border-b px-4 py-3",
                 isLight ? "border-zinc-100" : "border-white/6"
               )}
             >
+              <label
+                className={cn(
+                  "mb-1 block text-[10px] font-semibold uppercase tracking-[0.14em]",
+                  isLight ? "text-zinc-500" : "text-white/45"
+                )}
+              >
+                Nombre del grupo
+              </label>
               <input
                 type="text"
                 value={groupTitle}
                 onChange={(e) => setGroupTitle(e.target.value)}
-                placeholder="Nombre del grupo…"
+                placeholder="Ej. Mantenimiento turno tarde"
                 maxLength={120}
                 className={cn(
-                  "w-full rounded-lg border px-2.5 py-1.5 text-sm outline-none transition-colors focus:border-[#ffeb66]/50",
+                  "w-full rounded-lg border px-3 py-2 text-sm outline-none transition-colors focus:border-[#ffeb66]/55",
                   isLight
                     ? "border-zinc-200 bg-white text-zinc-900 placeholder:text-zinc-400"
-                    : "border-white/10 bg-white/5 text-white placeholder:text-white/35"
+                    : "border-white/12 bg-white/[0.04] text-white placeholder:text-white/30"
                 )}
               />
               {selected.length > 0 && (
-                <div className="mt-2 flex flex-wrap gap-1.5">
+                <div className="mt-2.5 flex flex-wrap gap-1.5">
                   {selected.map((u) => (
                     <span
                       key={u.id}
                       className={cn(
-                        "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px]",
+                        "inline-flex items-center gap-1.5 rounded-full border py-0.5 pl-0.5 pr-2 text-[11px]",
                         isLight
                           ? "border-zinc-200 bg-zinc-50 text-zinc-700"
-                          : "border-white/12 bg-white/[0.05] text-white/75"
+                          : "border-white/12 bg-white/[0.05] text-white/85"
                       )}
                     >
-                      {u.name.split(" ")[0]}
+                      <Avatar
+                        name={u.name}
+                        image={u.image}
+                        focusX={u.imageFocusX}
+                        focusY={u.imageFocusY}
+                        size="xs"
+                      />
+                      <span className="max-w-[8rem] truncate">
+                        {u.name.split(" ")[0]}
+                      </span>
                       <button
                         type="button"
                         onClick={() => toggleSelected(u)}
                         aria-label={`Quitar a ${u.name}`}
                         className={cn(
-                          "rounded-full px-1 leading-none",
+                          "rounded-full px-1 leading-none transition-colors",
                           isLight
-                            ? "text-zinc-400 hover:bg-zinc-200"
-                            : "text-white/45 hover:bg-white/10"
+                            ? "text-zinc-400 hover:bg-zinc-200 hover:text-zinc-700"
+                            : "text-white/45 hover:bg-white/10 hover:text-white"
                         )}
                       >
                         ×
@@ -454,11 +538,18 @@ export function NewChatPicker({
               )}
             </div>
           )}
-          <div className="border-b px-2 py-2">
+
+          {/* Buscador */}
+          <div
+            className={cn(
+              "border-b px-3 py-2.5",
+              isLight ? "border-zinc-100" : "border-white/6"
+            )}
+          >
             <div className="relative">
               <Search
                 className={cn(
-                  "pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2",
+                  "pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2",
                   isLight ? "text-zinc-400" : "text-white/35"
                 )}
               />
@@ -466,21 +557,23 @@ export function NewChatPicker({
                 type="search"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Buscar por nombre…"
+                placeholder="Buscar por nombre o email…"
                 className={cn(
-                  "w-full rounded-lg border py-2 pl-8 pr-3 text-sm outline-none focus:ring-2 focus:ring-[#ffeb66]/35",
+                  "w-full rounded-lg border py-2 pl-9 pr-3 text-sm outline-none transition-colors focus:border-[#ffeb66]/55",
                   isLight
                     ? "border-zinc-200 bg-zinc-50 text-zinc-900"
-                    : "border-white/10 bg-white/5 text-white placeholder:text-white/35"
+                    : "border-white/10 bg-white/[0.04] text-white placeholder:text-white/30"
                 )}
               />
             </div>
           </div>
-          <div className="max-h-52 overflow-y-auto p-1.5">
+
+          {/* Lista de usuarios */}
+          <div className="flex-1 overflow-y-auto p-2">
             {loadingUsers ? (
               <p
                 className={cn(
-                  "flex items-center justify-center gap-2 py-8 text-xs",
+                  "flex items-center justify-center gap-2 py-12 text-xs",
                   isLight ? "text-zinc-500" : "text-white/40"
                 )}
               >
@@ -490,11 +583,11 @@ export function NewChatPicker({
             ) : filteredUsers.length === 0 ? (
               <p
                 className={cn(
-                  "flex flex-col items-center gap-2 py-8 text-center text-xs",
+                  "flex flex-col items-center gap-2 py-12 text-center text-xs",
                   isLight ? "text-zinc-500" : "text-white/40"
                 )}
               >
-                <Users className="h-6 w-6 opacity-40" />
+                <Users className="h-7 w-7 opacity-40" />
                 {query.trim()
                   ? "Sin resultados"
                   : "No hay usuarios"}
@@ -518,8 +611,8 @@ export function NewChatPicker({
                           "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors",
                           mode === "group" && checked
                             ? isLight
-                              ? "bg-[#ffeb66]/14 ring-1 ring-[#ffeb66]/30"
-                              : "bg-[#ffeb66]/12 ring-1 ring-[#ffeb66]/25"
+                              ? "bg-[#ffeb66]/14 ring-1 ring-[#ffeb66]/35"
+                              : "bg-[#ffeb66]/12 ring-1 ring-[#ffeb66]/30"
                             : isLight
                               ? "hover:bg-zinc-50"
                               : "hover:bg-white/[0.05]"
@@ -553,7 +646,7 @@ export function NewChatPicker({
                         {mode === "group" && (
                           <span
                             className={cn(
-                              "flex h-5 w-5 shrink-0 items-center justify-center rounded border",
+                              "flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition-colors",
                               checked
                                 ? "border-[#ffeb66] bg-[#ffeb66] text-[#0a0f1e]"
                                 : isLight
@@ -571,11 +664,13 @@ export function NewChatPicker({
               </ul>
             )}
           </div>
+
+          {/* Pie con boton de crear (solo grupo) */}
           {mode === "group" && (
             <div
               className={cn(
-                "flex items-center justify-between gap-2 border-t px-3 py-2.5",
-                isLight ? "border-zinc-100 bg-zinc-50/70" : "border-white/6 bg-white/[0.02]"
+                "flex items-center justify-between gap-2 border-t px-4 py-3",
+                isLight ? "border-zinc-100 bg-zinc-50/70" : "border-white/8 bg-white/[0.03]"
               )}
             >
               <span
@@ -585,6 +680,7 @@ export function NewChatPicker({
                 )}
               >
                 {selected.length} seleccionado{selected.length === 1 ? "" : "s"}
+                {selected.length < 2 && " · mínimo 2"}
               </span>
               <button
                 type="button"
@@ -593,18 +689,115 @@ export function NewChatPicker({
                   creating || selected.length < 2 || !groupTitle.trim()
                 }
                 className={cn(
-                  "rounded-md px-3 py-1.5 text-xs font-semibold transition-all",
+                  "inline-flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-xs font-semibold transition-all",
                   "bg-gradient-to-br from-[#ffeb66] to-[#d4a700] text-[#0a0f1e]",
-                  "shadow-[0_4px_12px_rgba(255,235,102,0.3)] hover:brightness-110",
-                  "disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none"
+                  "shadow-[0_6px_18px_rgba(255,235,102,0.32)] hover:brightness-110 hover:-translate-y-0.5",
+                  "disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none disabled:hover:translate-y-0"
                 )}
               >
-                {creating ? "Creando…" : "Crear grupo"}
+                {creating ? (
+                  <>
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    Creando…
+                  </>
+                ) : (
+                  <>
+                    <UsersRound className="h-3.5 w-3.5" />
+                    Crear grupo
+                  </>
+                )}
               </button>
             </div>
           )}
         </>
       )}
     </div>
+  );
+}
+
+function ModeTab({
+  active,
+  onClick,
+  icon,
+  label,
+  isLight,
+}: {
+  active: boolean;
+  onClick: () => void;
+  icon: React.ReactNode;
+  label: string;
+  isLight: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "flex flex-1 items-center justify-center gap-2 rounded-md px-2.5 py-2 text-xs font-semibold transition-all",
+        active
+          ? isLight
+            ? "bg-gradient-to-br from-[#ffeb66]/35 to-[#ffeb66]/20 text-zinc-900 shadow-sm"
+            : "bg-gradient-to-br from-[#ffeb66]/22 to-[#ffeb66]/8 text-[#ffeb66] shadow-[0_2px_10px_rgba(255,235,102,0.18)]"
+          : isLight
+            ? "text-zinc-500 hover:bg-zinc-100"
+            : "text-white/55 hover:bg-white/[0.05]"
+      )}
+    >
+      {icon}
+      {label}
+    </button>
+  );
+}
+
+function StepperPill({
+  num,
+  label,
+  active,
+  done,
+  isLight,
+}: {
+  num: number;
+  label: string;
+  active: boolean;
+  done: boolean;
+  isLight: boolean;
+}) {
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide",
+        active
+          ? isLight
+            ? "text-zinc-900"
+            : "text-[#ffeb66]"
+          : done
+            ? isLight
+              ? "text-zinc-500"
+              : "text-white/55"
+            : isLight
+              ? "text-zinc-400"
+              : "text-white/30"
+      )}
+    >
+      <span
+        className={cn(
+          "flex h-4 w-4 items-center justify-center rounded-full text-[9px]",
+          active
+            ? isLight
+              ? "bg-[#ffeb66]/35 text-zinc-900 ring-1 ring-[#ffeb66]/55"
+              : "bg-[#ffeb66]/20 text-[#ffeb66] ring-1 ring-[#ffeb66]/45"
+            : done
+              ? isLight
+                ? "bg-zinc-200 text-zinc-700"
+                : "bg-white/15 text-white/70"
+              : isLight
+                ? "bg-zinc-100 text-zinc-400"
+                : "bg-white/[0.05] text-white/30"
+        )}
+      >
+        {done ? <Check className="h-2.5 w-2.5" /> : num}
+      </span>
+      {label}
+    </span>
   );
 }

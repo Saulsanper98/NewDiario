@@ -45,13 +45,28 @@ interface NavItem {
   exact?: boolean;
 }
 
-const navItems: NavItem[] = [
-  { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, exact: true },
-  { label: "Bitácora", href: "/bitacora/dia", icon: BookOpen },
-  { label: "Proyectos", href: "/proyectos", icon: FolderKanban },
-  { label: "Traspaso", href: "/traspaso", icon: ArrowLeftRight, exact: true },
-  { label: "Disponibilidad", href: "/disponibilidad", icon: CalendarOff, exact: true },
-  { label: "Mensajes", href: "/chat", icon: MessageCircle, exact: true },
+interface NavSection {
+  title: string;
+  items: NavItem[];
+}
+
+const navSections: NavSection[] = [
+  {
+    title: "Operativa",
+    items: [
+      { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, exact: true },
+      { label: "Bitácora", href: "/bitacora/dia", icon: BookOpen },
+      { label: "Traspaso", href: "/traspaso", icon: ArrowLeftRight, exact: true },
+      { label: "Disponibilidad", href: "/disponibilidad", icon: CalendarOff, exact: true },
+    ],
+  },
+  {
+    title: "Colaboración",
+    items: [
+      { label: "Proyectos", href: "/proyectos", icon: FolderKanban },
+      { label: "Mensajes", href: "/chat", icon: MessageCircle, exact: true },
+    ],
+  },
 ];
 
 const STORAGE_KEY = "cc-ops-sidebar-mode";
@@ -258,149 +273,164 @@ export function Sidebar({
 
       {/* Navigation */}
       <nav
-        className="flex-1 p-2 space-y-0.5 overflow-y-auto overflow-x-hidden"
+        className="flex-1 p-2 overflow-y-auto overflow-x-hidden"
         aria-label="Secciones"
       >
-        {navItems.map((item, i) => {
-          const Icon = item.icon;
-          const active = isActive(item);
-          const badge =
-            item.href === "/bitacora/dia" && pendingFollowups > 0
-              ? pendingFollowups
-              : item.href === "/chat" && unreadChatMessages > 0
-                ? unreadChatMessages
-                : 0;
-          const bitacoraHint =
-            badge > 0
-              ? `${badge} entrada(s) con seguimiento pendiente: abre el filtro para verlas y marca «atendido» en cada una (no se quita solo al leer).`
-              : undefined;
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              style={navStagger ? { animationDelay: `${(i + 1) * 40}ms` } : undefined}
-              aria-label={
-                !isExpanded
-                  ? badge > 0
-                    ? `${item.label} — ${badge} seguimiento${badge !== 1 ? "s" : ""} pendiente${badge !== 1 ? "s" : ""}`
-                    : item.label
-                  : undefined
-              }
-              title={
-                !isExpanded
-                  ? badge > 0
-                    ? `${item.label} — ${badge} seguimiento${badge !== 1 ? "s" : ""} pendiente${badge !== 1 ? "s" : ""}`
-                    : item.label
-                  : bitacoraHint
-              }
+        {/* Construimos las secciones de la navegacion. Cuando el sidebar esta
+            expandido mostramos un titulo pequeno por seccion. Cuando esta
+            contraido usamos solo un separador visual. */}
+        {(() => {
+          // Construimos secciones dinamicas anadiendo "Sistema" condicionalmente.
+          const sections: NavSection[] = [
+            ...navSections,
+            {
+              title: "Sistema",
+              items: [
+                ...(isBugReportsAdmin
+                  ? [{ label: "Incidencias", href: "/bugs", icon: Bug } as NavItem]
+                  : []),
+                {
+                  label: isAdmin ? "Configuración" : "Mi cuenta",
+                  href: "/configuracion",
+                  icon: Settings,
+                },
+              ],
+            },
+          ];
+
+          let runningIndex = 0;
+          return sections.map((section, sIdx) => (
+            <div
+              key={section.title}
               className={cn(
-                "sidebar-nav-link relative flex items-center rounded-lg text-sm font-medium transition-all w-full overflow-hidden",
-                isExpanded ? "gap-3 px-3 py-2.5" : "justify-center gap-0 px-0 py-2.5",
-                active
-                  ? isExpanded
-                    ? "sidebar-nav-link-active bg-[#ffeb66]/12 text-[#ffeb66] border border-[#ffeb66]/20"
-                    : "sidebar-nav-link-active bg-[#ffeb66]/12 text-[#ffeb66] ring-2 ring-[#ffeb66]/25 ring-inset border border-transparent"
-                  : "text-white/55 hover:text-white hover:bg-white/6 border border-transparent",
-                navStagger && "sidebar-nav-enter"
+                sIdx > 0 && "mt-3 pt-3",
+                sIdx > 0 && (isExpanded ? "" : "border-t border-white/5")
               )}
             >
-              {active && <span className="sidebar-active-bar" aria-hidden />}
-              <span className="relative shrink-0 flex items-center justify-center">
-                <Icon className="w-4 h-4" />
-                {badge > 0 && (
-                  <span className="absolute -top-1 -right-1 min-w-[14px] h-3.5 px-0.5 rounded-full bg-amber-400 text-[#0a0f1e] text-[8px] font-bold flex items-center justify-center leading-none">
-                    {badge > 9 ? "9+" : badge}
-                  </span>
-                )}
-              </span>
-              {isExpanded && (
-                <span className="flex-1 flex items-center justify-between gap-2 min-w-0 overflow-hidden">
-                  <span className="truncate whitespace-nowrap">{item.label}</span>
-                  {badge > 0 && (
-                    <span
-                      title={bitacoraHint}
-                      className="ml-auto shrink-0 text-[9px] font-semibold uppercase tracking-wide bg-amber-400/15 text-amber-400 px-1.5 py-0.5 rounded-full leading-none"
-                    >
-                      {badge} seg.
-                    </span>
+              {/* Titulo de seccion (solo expandido) */}
+              {isExpanded ? (
+                <p
+                  className={cn(
+                    "px-3 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.14em]",
+                    isLight ? "text-zinc-400" : "text-white/30"
                   )}
+                >
+                  {section.title}
+                </p>
+              ) : sIdx > 0 ? (
+                <span aria-hidden className="sr-only">
+                  {section.title}
                 </span>
-              )}
-            </Link>
-          );
-        })}
+              ) : null}
 
-        {isBugReportsAdmin && (
-          <Link
-            href="/bugs"
-            aria-label={
-              !isExpanded
-                ? openBugReports > 0
-                  ? `Reportes de bugs — ${openBugReports} pendiente${openBugReports !== 1 ? "s" : ""}`
-                  : "Reportes de bugs"
-                : undefined
-            }
-            title={
-              !isExpanded && openBugReports > 0
-                ? `${openBugReports} bug${openBugReports !== 1 ? "s" : ""} pendiente${openBugReports !== 1 ? "s" : ""}`
-                : undefined
-            }
-            className={cn(
-              "sidebar-nav-link relative flex items-center rounded-lg text-sm font-medium transition-all w-full overflow-hidden",
-              isExpanded ? "gap-3 px-3 py-2.5" : "justify-center gap-0 px-0 py-2.5",
-              pathname.startsWith("/bugs")
-                ? isExpanded
-                  ? "sidebar-nav-link-active bg-[#ffeb66]/12 text-[#ffeb66] border border-[#ffeb66]/20"
-                  : "sidebar-nav-link-active bg-[#ffeb66]/12 text-[#ffeb66] ring-2 ring-[#ffeb66]/25 ring-inset border border-transparent"
-                : "text-white/55 hover:text-white hover:bg-white/6 border border-transparent"
-            )}
-          >
-            {pathname.startsWith("/bugs") && (
-              <span className="sidebar-active-bar" aria-hidden />
-            )}
-            <span className="relative shrink-0 flex items-center justify-center">
-              <Bug className="w-4 h-4" />
-              {openBugReports > 0 && (
-                <span className="absolute -top-1 -right-1 min-w-[14px] h-3.5 px-0.5 rounded-full bg-red-400 text-[#0a0f1e] text-[8px] font-bold flex items-center justify-center leading-none">
-                  {openBugReports > 9 ? "9+" : openBugReports}
-                </span>
-              )}
-            </span>
-            {isExpanded && (
-              <span className="flex-1 flex items-center justify-between gap-2 min-w-0 overflow-hidden">
-                <span className="truncate whitespace-nowrap">Incidencias</span>
-                {openBugReports > 0 && (
-                  <span className="ml-auto shrink-0 text-[9px] font-semibold uppercase tracking-wide bg-red-400/15 text-red-300 px-1.5 py-0.5 rounded-full leading-none">
-                    {openBugReports}
-                  </span>
-                )}
-              </span>
-            )}
-          </Link>
-        )}
+              <div className="space-y-0.5">
+                {section.items.map((item) => {
+                  const Icon = item.icon;
+                  const active =
+                    item.href === "/bugs"
+                      ? pathname.startsWith("/bugs")
+                      : item.href === "/configuracion"
+                        ? pathname.startsWith("/configuracion")
+                        : isActive(item);
 
-        <Link
-            href="/configuracion"
-            aria-label={!isExpanded ? (isAdmin ? "Configuración" : "Mi cuenta") : undefined}
-            title={!isExpanded ? (isAdmin ? "Configuración" : "Mi cuenta") : undefined}
-            className={cn(
-              "sidebar-nav-link relative flex items-center rounded-lg text-sm font-medium transition-all w-full overflow-hidden",
-              isExpanded ? "gap-3 px-3 py-2.5" : "justify-center gap-0 px-0 py-2.5",
-              pathname.startsWith("/configuracion")
-                ? isExpanded
-                  ? "sidebar-nav-link-active bg-[#ffeb66]/12 text-[#ffeb66] border border-[#ffeb66]/20"
-                  : "sidebar-nav-link-active bg-[#ffeb66]/12 text-[#ffeb66] ring-2 ring-[#ffeb66]/25 ring-inset border border-transparent"
-                : "text-white/55 hover:text-white hover:bg-white/6 border border-transparent"
-            )}
-          >
-            {pathname.startsWith("/configuracion") && <span className="sidebar-active-bar" aria-hidden />}
-            <Settings className="w-4 h-4 shrink-0" />
-            {isExpanded && (
-              <span className="overflow-hidden whitespace-nowrap">
-                {isAdmin ? "Configuración" : "Mi cuenta"}
-              </span>
-            )}
-          </Link>
+                  const badge =
+                    item.href === "/bitacora/dia" && pendingFollowups > 0
+                      ? pendingFollowups
+                      : item.href === "/chat" && unreadChatMessages > 0
+                        ? unreadChatMessages
+                        : item.href === "/bugs" && openBugReports > 0
+                          ? openBugReports
+                          : 0;
+                  const badgeIsBug = item.href === "/bugs";
+                  const bitacoraHint =
+                    item.href === "/bitacora/dia" && badge > 0
+                      ? `${badge} entrada(s) con seguimiento pendiente: abre el filtro para verlas y marca «atendido» en cada una (no se quita solo al leer).`
+                      : undefined;
+
+                  runningIndex += 1;
+                  const animDelay = navStagger
+                    ? { animationDelay: `${runningIndex * 40}ms` }
+                    : undefined;
+
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      style={animDelay}
+                      aria-label={
+                        !isExpanded
+                          ? badge > 0
+                            ? `${item.label} — ${badge} pendiente${badge !== 1 ? "s" : ""}`
+                            : item.label
+                          : undefined
+                      }
+                      title={
+                        !isExpanded
+                          ? badge > 0
+                            ? `${item.label} — ${badge} pendiente${badge !== 1 ? "s" : ""}`
+                            : item.label
+                          : bitacoraHint
+                      }
+                      className={cn(
+                        "sidebar-nav-link relative flex items-center rounded-lg text-sm font-medium transition-all w-full overflow-hidden",
+                        isExpanded
+                          ? "gap-3 px-3 py-2.5"
+                          : "justify-center gap-0 px-0 py-2.5",
+                        active
+                          ? isExpanded
+                            ? "sidebar-nav-link-active bg-[#ffeb66]/12 text-[#ffeb66] border border-[#ffeb66]/20"
+                            : "sidebar-nav-link-active bg-[#ffeb66]/12 text-[#ffeb66] ring-2 ring-[#ffeb66]/25 ring-inset border border-transparent"
+                          : "text-white/55 hover:text-white hover:bg-white/6 border border-transparent",
+                        navStagger && "sidebar-nav-enter"
+                      )}
+                    >
+                      {active && <span className="sidebar-active-bar" aria-hidden />}
+                      <span className="relative shrink-0 flex items-center justify-center">
+                        <Icon className="w-4 h-4" />
+                        {badge > 0 && (
+                          <span
+                            className={cn(
+                              "absolute -top-1 -right-1 min-w-[14px] h-3.5 px-0.5 rounded-full text-[8px] font-bold flex items-center justify-center leading-none",
+                              badgeIsBug
+                                ? "bg-red-400 text-[#0a0f1e]"
+                                : "bg-amber-400 text-[#0a0f1e]"
+                            )}
+                          >
+                            {badge > 9 ? "9+" : badge}
+                          </span>
+                        )}
+                      </span>
+                      {isExpanded && (
+                        <span className="flex-1 flex items-center justify-between gap-2 min-w-0 overflow-hidden">
+                          <span className="truncate whitespace-nowrap">
+                            {item.label}
+                          </span>
+                          {badge > 0 && (
+                            <span
+                              title={bitacoraHint}
+                              className={cn(
+                                "ml-auto shrink-0 text-[9px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded-full leading-none",
+                                badgeIsBug
+                                  ? "bg-red-400/15 text-red-300"
+                                  : "bg-amber-400/15 text-amber-400"
+                              )}
+                            >
+                              {badgeIsBug
+                                ? badge
+                                : item.href === "/bitacora/dia"
+                                  ? `${badge} seg.`
+                                  : badge}
+                            </span>
+                          )}
+                        </span>
+                      )}
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          ));
+        })()}
       </nav>
 
       {/* Bottom section: perfil + modo del menú */}

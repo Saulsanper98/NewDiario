@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useSession } from "next-auth/react";
 import {
   CheckSquare,
   ClipboardList,
@@ -9,6 +10,7 @@ import {
   FileText,
   FolderKanban,
   Image as ImageIcon,
+  Info,
   Loader2,
   MessageCircle,
   Paperclip,
@@ -16,9 +18,11 @@ import {
   Send,
   Share2,
   Sparkles,
+  Trash2,
   X,
 } from "lucide-react";
 import { NewChatPicker } from "@/components/chat/NewChatPicker";
+import { GroupDetailDialog } from "@/components/chat/GroupDetailDialog";
 import toast from "react-hot-toast";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
@@ -543,83 +547,74 @@ function MessageAttachments({
   );
 }
 
+function groupColorFromString(s: string) {
+  // Hash determinista a una paleta de colores suaves.
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
+  const palette = [
+    ["#f59e0b", "#d97706"],
+    ["#10b981", "#047857"],
+    ["#3b82f6", "#1d4ed8"],
+    ["#8b5cf6", "#6d28d9"],
+    ["#ec4899", "#be185d"],
+    ["#14b8a6", "#0f766e"],
+    ["#ef4444", "#b91c1c"],
+    ["#a855f7", "#7e22ce"],
+  ];
+  return palette[Math.abs(h) % palette.length];
+}
+
 function GroupAvatarStack({
   members,
   image,
+  title,
   isLight,
   large = false,
 }: {
   members: ChatPeer[];
   image?: string | null;
+  title?: string | null;
   isLight: boolean;
   large?: boolean;
 }) {
+  const sizeClass = large ? "h-10 w-10" : "h-9 w-9";
+  const textClass = large ? "text-sm" : "text-xs";
+
   // Si el grupo tiene icono propio lo mostramos como avatar unico.
   if (image?.trim()) {
     return (
       <span
         className={cn(
           "relative inline-flex shrink-0 overflow-hidden rounded-full",
-          large ? "h-10 w-10" : "h-9 w-9",
+          sizeClass,
           isLight ? "ring-1 ring-zinc-200" : "ring-1 ring-white/10"
         )}
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={image}
-          alt=""
-          className="h-full w-full object-cover"
-        />
+        <img src={image} alt="" className="h-full w-full object-cover" />
       </span>
     );
   }
-  // Sin icono: pila de los 2 primeros avatares de los miembros (xs = 24px).
-  const visibles = members.slice(0, 2);
+
+  // Sin icono: circulo plano con inicial del grupo + color generado.
+  const display = title?.trim() || members[0]?.name || "?";
+  const initial = display.trim().charAt(0).toUpperCase() || "?";
+  const [c1, c2] = groupColorFromString(display);
   return (
-    <div
+    <span
       className={cn(
-        "relative shrink-0",
-        large ? "h-10 w-10" : "h-9 w-9"
+        "relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full font-semibold text-white shadow-inner",
+        sizeClass,
+        textClass,
+        isLight ? "ring-1 ring-zinc-200" : "ring-1 ring-white/10"
       )}
+      style={{
+        backgroundImage: `linear-gradient(135deg, ${c1}, ${c2})`,
+      }}
       aria-label="Grupo"
     >
-      {visibles.map((m, idx) => (
-        <div
-          key={m.id}
-          className={cn(
-            "absolute rounded-full ring-2",
-            isLight ? "ring-white" : "ring-[#0a0f1e]"
-          )}
-          style={{
-            top: idx === 0 ? 0 : "auto",
-            bottom: idx === 1 ? 0 : "auto",
-            left: idx === 0 ? 0 : "auto",
-            right: idx === 1 ? 0 : "auto",
-            zIndex: idx === 0 ? 1 : 2,
-          }}
-        >
-          <Avatar
-            name={m.name}
-            image={m.image}
-            focusX={m.imageFocusX}
-            focusY={m.imageFocusY}
-            size="xs"
-          />
-        </div>
-      ))}
-      {members.length > 2 && (
-        <span
-          className={cn(
-            "absolute -bottom-0.5 -right-0.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full px-1 text-[9px] font-bold ring-2",
-            isLight
-              ? "bg-zinc-100 text-zinc-700 ring-white"
-              : "bg-white/15 text-white/85 ring-[#0a0f1e]"
-          )}
-        >
-          +{members.length - 1}
-        </span>
-      )}
-    </div>
+      {initial}
+    </span>
   );
 }
 
@@ -667,7 +662,10 @@ export function ChatView() {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessageItem[]>([]);
   const [loadingMessages, setLoadingMessages] = useState(false);
+  const { data: sessionData } = useSession();
+  const currentUser = sessionData?.user ?? null;
   const [draft, setDraft] = useState("");
+  const [groupDialogOpen, setGroupDialogOpen] = useState(false);
   // Adjuntos pendientes en el composer antes de enviar.
   const [pendingAttachments, setPendingAttachments] = useState<
     ComposerAttachment[]
@@ -820,6 +818,33 @@ export function ChatView() {
       setNewChatOpen(false);
       await loadConversations();
       selectConversation(data.conversationId);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Error");
+    }
+  }
+
+  async function deleteConversation(c: ChatConversationItem) {
+    const msg = c.isGroup
+      ? `¿Salir del grupo "${c.title?.trim() || "sin nombre"}"? Dejarás de recibir mensajes.`
+      : `¿Eliminar el chat con ${c.peer?.name ?? "este usuario"}? Esta acción no se puede deshacer.`;
+    if (!window.confirm(msg)) return;
+    try {
+      const res = await fetch(`/api/chat/conversations/${c.id}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        const data = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(
+          typeof data.error === "string" ? data.error : "No se pudo eliminar"
+        );
+      }
+      toast.success(c.isGroup ? "Has salido del grupo" : "Chat eliminado");
+      if (activeId === c.id) {
+        // Si el chat eliminado era el activo, lo cerramos.
+        setActiveId(null);
+        setMessages([]);
+      }
+      await loadConversations();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Error");
     }
@@ -1091,12 +1116,19 @@ export function ChatView() {
                       }
                   : undefined;
                 return (
-                  <li key={c.id}>
-                    <button
-                      type="button"
+                  <li key={c.id} className="group/conv relative">
+                    <div
+                      role="button"
+                      tabIndex={0}
                       onClick={() => selectConversation(c.id)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          selectConversation(c.id);
+                        }
+                      }}
                       className={cn(
-                        "group/conv relative flex w-full items-start gap-3 overflow-hidden rounded-xl px-3 py-2.5 text-left transition-all",
+                        "relative flex w-full cursor-pointer items-start gap-3 overflow-hidden rounded-xl px-3 py-2.5 text-left transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ffeb66]/45",
                         active
                           ? L
                             ? "ring-1 ring-[#ffeb66]/45 shadow-sm"
@@ -1114,6 +1146,7 @@ export function ChatView() {
                           <GroupAvatarStack
                             members={c.members}
                             image={c.image}
+                            title={c.title}
                             isLight={L}
                           />
                         ) : (
@@ -1196,6 +1229,29 @@ export function ChatView() {
                           })()}
                         </p>
                       </div>
+                    </div>
+                    {/* Boton flotante: eliminar conversacion */}
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        void deleteConversation(c);
+                      }}
+                      aria-label={
+                        c.isGroup ? "Salir del grupo" : "Eliminar chat"
+                      }
+                      title={
+                        c.isGroup ? "Salir del grupo" : "Eliminar chat"
+                      }
+                      className={cn(
+                        "absolute right-1.5 top-1.5 z-[2] flex h-7 w-7 items-center justify-center rounded-md opacity-0 transition-all",
+                        "group-hover/conv:opacity-100 focus:opacity-100",
+                        L
+                          ? "bg-white/85 text-zinc-500 ring-1 ring-zinc-200 hover:bg-red-50 hover:text-red-600"
+                          : "bg-[#0a0f1e]/80 text-white/55 ring-1 ring-white/10 hover:bg-red-500/15 hover:text-red-400"
+                      )}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
                     </button>
                   </li>
                 );
@@ -1271,12 +1327,20 @@ export function ChatView() {
                     ←
                   </button>
                   {isGroup ? (
-                    <GroupAvatarStack
-                      members={activeConv.members}
-                      image={activeConv.image}
-                      isLight={L}
-                      large
-                    />
+                    <button
+                      type="button"
+                      onClick={() => setGroupDialogOpen(true)}
+                      className="rounded-full transition-transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-[#ffeb66]/45"
+                      aria-label="Ver detalles del grupo"
+                    >
+                      <GroupAvatarStack
+                        members={activeConv.members}
+                        image={activeConv.image}
+                        title={activeConv.title}
+                        isLight={L}
+                        large
+                      />
+                    </button>
                   ) : (
                     <Avatar
                       name={activeConv.peer?.name ?? "?"}
@@ -1290,14 +1354,24 @@ export function ChatView() {
                   <div className="min-w-0 flex-1">
                     {isGroup ? (
                       <>
-                        <span
+                        <button
+                          type="button"
+                          onClick={() => setGroupDialogOpen(true)}
                           className={cn(
-                            "block truncate text-sm font-semibold",
-                            L ? "text-zinc-900" : "text-white"
+                            "group/grouphdr -ml-1 inline-flex max-w-full items-center gap-1.5 rounded-md px-1 py-0.5 text-sm font-semibold tracking-tight transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ffeb66]/45",
+                            L ? "text-zinc-900 hover:bg-zinc-100" : "text-white hover:bg-white/[0.07]"
                           )}
                         >
-                          {conversationDisplayName(activeConv)}
-                        </span>
+                          <span className="truncate">
+                            {conversationDisplayName(activeConv)}
+                          </span>
+                          <Info
+                            className={cn(
+                              "h-3.5 w-3.5 shrink-0 opacity-0 transition-opacity group-hover/grouphdr:opacity-100",
+                              L ? "text-zinc-400" : "text-white/55"
+                            )}
+                          />
+                        </button>
                         <p
                           className={cn(
                             "truncate text-[11px]",
@@ -1748,6 +1822,25 @@ export function ChatView() {
           </div>
         )}
       </section>
+
+      {/* Modal de detalle de grupo */}
+      {groupDialogOpen && activeConv?.isGroup && (
+        <GroupDetailDialog
+          conversation={activeConv}
+          currentUserName={currentUser?.name ?? null}
+          isLight={L}
+          onClose={() => setGroupDialogOpen(false)}
+          onUpdated={async () => {
+            await loadConversations();
+          }}
+          onLeft={async () => {
+            setGroupDialogOpen(false);
+            setActiveId(null);
+            setMessages([]);
+            await loadConversations();
+          }}
+        />
+      )}
     </div>
   );
 }

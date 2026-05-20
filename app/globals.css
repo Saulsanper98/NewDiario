@@ -2741,11 +2741,17 @@ textarea::placeholder {
    ring de Tailwind, combinado con border y shadow-inner, perdia la
    curvatura del rounded-2xl en algunos puntos. */
 .chat-composer-shell {
+  /* Sutil iluminacion interior superior, mismo shape que el contenedor. */
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
-  transition: box-shadow 160ms ease, border-color 160ms ease;
+  transition: box-shadow 180ms ease, border-color 180ms ease;
 }
+/* En focus: SOLO endurecemos el borde existente (1px) y anadimos un
+   resplandor difuso (blur) en lugar de un anillo de spread, para que la
+   forma se mantenga IDENTICA al contenedor (rounded-2xl). */
 .chat-composer-shell:focus-within {
+  border-color: rgba(255, 235, 102, 0.6);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.04),
-    0 0 0 3px rgba(255, 235, 102, 0.18);
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 0 0 1px rgba(255, 235, 102, 0.45),
+    0 0 16px -2px rgba(255, 235, 102, 0.25);
 }
