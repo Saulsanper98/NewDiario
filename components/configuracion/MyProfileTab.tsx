@@ -430,6 +430,50 @@ export function MyProfileTab({ currentUser }: MyProfileTabProps) {
               heightClass="h-20"
             />
           </div>
+
+          {/* Vista previa: cómo se verá el fondo en la fila de Usuarios */}
+          {trimmedBanner && (
+            <div className="mt-4">
+              <p
+                className={cn(
+                  "mb-1.5 text-[11px] uppercase tracking-wide",
+                  L ? "text-zinc-500" : "text-white/40"
+                )}
+              >
+                Vista previa en la lista de usuarios
+              </p>
+              <div
+                className={cn(
+                  "relative flex items-center gap-2.5 overflow-hidden rounded-lg border px-3 py-2.5",
+                  L ? "border-zinc-200" : "border-white/10"
+                )}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={trimmedBanner}
+                  alt=""
+                  className="absolute inset-0 h-full w-full object-cover"
+                  style={{
+                    objectPosition: `${bannerFocusX ?? 50}% ${bannerFocusY ?? 50}%`,
+                  }}
+                />
+                <span className="absolute inset-0 bg-gradient-to-r from-[#0a0f1e]/95 via-[#0a0f1e]/55 to-[#0a0f1e]/15" />
+                <div className="relative z-[1] flex items-center gap-2.5">
+                  <Avatar
+                    name={currentUser.name}
+                    image={trimmedImage || null}
+                    focusX={imageFocusX}
+                    focusY={imageFocusY}
+                    size="sm"
+                  />
+                  <div>
+                    <p className="text-sm font-medium text-white">{currentUser.name}</p>
+                    <p className="text-xs text-white/55">{currentUser.email}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
           <div className="mt-3">
             <ProfileBannerFields
               userId={currentUser.id}

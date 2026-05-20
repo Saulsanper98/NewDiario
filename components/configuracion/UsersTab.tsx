@@ -468,22 +468,30 @@ export function UsersTab({
     const bannerUrl = user.profileBanner?.trim();
     const bannerFocusX = user.bannerFocusX ?? 50;
     const bannerFocusY = user.bannerFocusY ?? 50;
-    const rowStyle = bannerUrl
-      ? ({
-          backgroundImage: `linear-gradient(90deg, rgba(10,15,30,0.92) 0%, rgba(10,15,30,0.62) 50%, rgba(10,15,30,0.88) 100%), url(${bannerUrl})`,
-          backgroundSize: "cover, cover",
-          backgroundRepeat: "no-repeat, no-repeat",
-          backgroundPosition: `center, ${bannerFocusX}% ${bannerFocusY}%`,
-        } as React.CSSProperties)
-      : undefined;
     return (
       <tr
         key={rowKey}
-        className="border-b border-white/4 transition-colors hover:bg-white/[0.04]"
-        style={rowStyle}
+        className="user-row group border-b border-white/4 transition-colors hover:bg-white/[0.04]"
       >
-        <td className="relative px-4 py-2.5 align-middle">
-          <div className="flex items-center gap-2.5">
+        <td className="user-row-banner-cell relative px-4 py-2.5 align-middle">
+          {bannerUrl && (
+            <span
+              aria-hidden
+              className="pointer-events-none absolute inset-0 z-0 overflow-hidden"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={bannerUrl}
+                alt=""
+                decoding="async"
+                loading="lazy"
+                className="absolute inset-0 h-full w-full object-cover"
+                style={{ objectPosition: `${bannerFocusX}% ${bannerFocusY}%` }}
+              />
+              <span className="absolute inset-0 bg-gradient-to-r from-[#0a0f1e]/95 via-[#0a0f1e]/55 to-[#0a0f1e]/15" />
+            </span>
+          )}
+          <div className="relative z-[1] flex items-center gap-2.5">
             <button
               type="button"
               onClick={() => openAvatarPreview(user)}
