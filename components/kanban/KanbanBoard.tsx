@@ -738,7 +738,7 @@ export function KanbanBoard({ project, allUsers }: KanbanBoardProps) {
       <div
         role="region"
         aria-label="Tablero Kanban"
-        className="min-h-0 min-w-0 flex-1 overflow-x-auto overflow-y-auto kanban-scroll-hint relative"
+        className="min-h-0 min-w-0 flex-1 overflow-x-auto overflow-y-hidden kanban-scroll-hint relative"
       >
         <DragDropContext onDragStart={onDragStart} onDragEnd={onDragEnd}>
           <Droppable
@@ -750,7 +750,7 @@ export function KanbanBoard({ project, allUsers }: KanbanBoardProps) {
               <div
                 ref={provided.innerRef}
                 {...provided.droppableProps}
-                className="flex items-start gap-3 p-4 min-w-max"
+                className="flex h-full items-stretch gap-3 p-4 min-w-max"
               >
                 {filteredColumns.map((col, colIndex) => {
                   const fullCol = columns.find((c) => c.id === col.id);
@@ -777,7 +777,7 @@ export function KanbanBoard({ project, allUsers }: KanbanBoardProps) {
                         ref={colDraggable.innerRef}
                         {...colDraggable.draggableProps}
                         className={cn(
-                          "flex flex-col shrink-0 transition-all duration-200",
+                          "flex h-full min-h-0 flex-col shrink-0 transition-all duration-200",
                           collapsedCols.has(col.id) ? "w-12" : "w-72"
                         )}
                       >
@@ -944,7 +944,7 @@ export function KanbanBoard({ project, allUsers }: KanbanBoardProps) {
                               ref={taskDrop.innerRef}
                               {...taskDrop.droppableProps}
                               className={cn(
-                                "kanban-column-well scrollbar-hidden min-h-20 min-w-0 overflow-x-hidden overflow-y-auto flex flex-col gap-2 p-2 rounded-xl transition-all duration-200 border",
+                                "kanban-column-well scrollbar-hidden min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto flex flex-col gap-2 p-2 rounded-xl transition-all duration-200 border",
                                 collapsedCols.has(col.id) ? "hidden" : "",
                                 snapshot.isDraggingOver
                                   ? "kanban-column-well-drag border-[#ffeb66]/15"
