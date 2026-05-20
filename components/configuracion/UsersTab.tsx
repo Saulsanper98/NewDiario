@@ -13,8 +13,10 @@ import {
   UserRoundSearch,
   Trash2,
   Upload,
+  Crosshair,
 } from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
+import { FocusPicker } from "@/components/profile/FocusPicker";
 import { UserProfilePopover } from "@/components/user/UserProfilePopover";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -77,6 +79,9 @@ export function UsersTab({
   const [editName, setEditName] = useState("");
   const [editEmail, setEditEmail] = useState("");
   const [editImage, setEditImage] = useState("");
+  const [editImageFocusX, setEditImageFocusX] = useState<number | null>(null);
+  const [editImageFocusY, setEditImageFocusY] = useState<number | null>(null);
+  const [editFocusOpen, setEditFocusOpen] = useState(false);
   const [editRole, setEditRole] = useState<Role>("OPERATOR");
   const [editPassword, setEditPassword] = useState("");
   const [editSaving, setEditSaving] = useState(false);
@@ -112,7 +117,12 @@ export function UsersTab({
         throw new Error(data.error ?? "No se pudo subir el avatar");
       }
       if (target === "create") setImage(data.url);
-      else setEditImage(data.url);
+      else {
+        setEditImage(data.url);
+        setEditImageFocusX(null);
+        setEditImageFocusY(null);
+        setEditFocusOpen(true);
+      }
       toast.success("Avatar subido");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Error al subir avatar");
@@ -231,10 +241,34 @@ export function UsersTab({
     setEditName(user.name);
     setEditEmail(user.email);
     setEditImage(user.image ?? "");
+    setEditImageFocusX(user.imageFocusX ?? null);
+    setEditImageFocusY(user.imageFocusY ?? null);
     setEditRole(user.role as Role);
     setEditPassword("");
     setEditCanManageSA(user.canManageSuperAdmins ?? false);
     setEditOpen(true);
+  }
+
+  async function persistEditFocus(x: number, y: number) {
+    if (!editId) return;
+    const res = await fetch(`/api/users/${editId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ imageFocusX: x, imageFocusY: y }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const msg =
+        typeof data?.error === "string" ? data.error : "No se pudo guardar el enfoque";
+      throw new Error(msg);
+    }
+    setEditImageFocusX(x);
+    setEditImageFocusY(y);
+    if (editId === currentUser.id) {
+      await update({ imageFocusX: x, imageFocusY: y });
+    }
+    toast.success("Enfoque del avatar guardado");
+    router.refresh();
   }
 
   async function handleEditUser(e: React.FormEvent) {
@@ -431,12 +465,24 @@ export function UsersTab({
   }
 
   function renderUserTableRow(user: ConfigPageUser, rowKey: string) {
+    const bannerUrl = user.profileBanner?.trim();
+    const bannerFocusX = user.bannerFocusX ?? 50;
+    const bannerFocusY = user.bannerFocusY ?? 50;
+    const rowStyle = bannerUrl
+      ? ({
+          backgroundImage: `linear-gradient(90deg, rgba(10,15,30,0.92) 0%, rgba(10,15,30,0.62) 50%, rgba(10,15,30,0.88) 100%), url(${bannerUrl})`,
+          backgroundSize: "cover, cover",
+          backgroundRepeat: "no-repeat, no-repeat",
+          backgroundPosition: `center, ${bannerFocusX}% ${bannerFocusY}%`,
+        } as React.CSSProperties)
+      : undefined;
     return (
       <tr
         key={rowKey}
-        className="border-b border-white/4 hover:bg-white/2 transition-colors"
+        className="border-b border-white/4 transition-colors hover:bg-white/[0.04]"
+        style={rowStyle}
       >
-        <td className="px-4 py-2.5 align-middle">
+        <td className="relative px-4 py-2.5 align-middle">
           <div className="flex items-center gap-2.5">
             <button
               type="button"
@@ -448,7 +494,13 @@ export function UsersTab({
                 user.image && "cursor-zoom-in"
               )}
             >
-              <Avatar name={user.name} image={user.image} size="sm" />
+              <Avatar
+                name={user.name}
+                image={user.image}
+                focusX={user.imageFocusX}
+                focusY={user.imageFocusY}
+                size="sm"
+              />
             </button>
             <div>
               <UserProfilePopover
@@ -456,6 +508,7 @@ export function UsersTab({
                 name={user.name}
                 email={user.email}
                 image={user.image}
+                profileBanner={user.profileBanner}
                 nameClassName="text-sm font-medium text-white"
               />
               <p className="text-xs text-white/40">{user.email}</p>
@@ -844,34 +897,58 @@ export function UsersTab({
               L ? "border-zinc-200 bg-zinc-50/80" : "border-white/10 bg-white/3"
             )}
           >
-            <Avatar name={editName || "Usuario"} image={editImage.trim() || null} size="sm" />
+            <Avatar
+              name={editName || "Usuario"}
+              image={editImage.trim() || null}
+              focusX={editImageFocusX}
+              focusY={editImageFocusY}
+              size="sm"
+            />
             <span className={cn("text-xs", L ? "text-zinc-500" : "text-white/40")}>
               Vista previa del avatar
             </span>
-            <label className="ml-auto">
-              <input
-                type="file"
-                accept={IMAGE_UPLOAD_ACCEPT}
-                className="hidden"
-                onChange={(e) => {
-                  const f = e.target.files?.[0];
-                  if (f) void uploadAvatar(f, "edit");
-                  e.currentTarget.value = "";
-                }}
-              />
-              <span
-                className={cn(
-                  "inline-flex cursor-pointer items-center gap-1 rounded-md border px-2 py-1 text-xs",
-                  L
-                    ? "border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-100"
-                    : "border-white/20 bg-white/5 text-white/70 hover:bg-white/10",
-                  uploadingEditAvatar && "pointer-events-none opacity-60"
-                )}
-              >
-                <Upload className="h-3 w-3" />
-                {uploadingEditAvatar ? "Subiendo..." : "Subir"}
-              </span>
-            </label>
+            <div className="ml-auto flex items-center gap-1.5">
+              {editImage.trim() && (
+                <button
+                  type="button"
+                  onClick={() => setEditFocusOpen(true)}
+                  className={cn(
+                    "inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs",
+                    L
+                      ? "border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-100"
+                      : "border-white/20 bg-white/5 text-white/70 hover:bg-white/10"
+                  )}
+                  title="Ajustar qué parte de la foto se ve"
+                >
+                  <Crosshair className="h-3 w-3" />
+                  Enfoque
+                </button>
+              )}
+              <label>
+                <input
+                  type="file"
+                  accept={IMAGE_UPLOAD_ACCEPT}
+                  className="hidden"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) void uploadAvatar(f, "edit");
+                    e.currentTarget.value = "";
+                  }}
+                />
+                <span
+                  className={cn(
+                    "inline-flex cursor-pointer items-center gap-1 rounded-md border px-2 py-1 text-xs",
+                    L
+                      ? "border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-100"
+                      : "border-white/20 bg-white/5 text-white/70 hover:bg-white/10",
+                    uploadingEditAvatar && "pointer-events-none opacity-60"
+                  )}
+                >
+                  <Upload className="h-3 w-3" />
+                  {uploadingEditAvatar ? "Subiendo..." : "Subir"}
+                </span>
+              </label>
+            </div>
           </div>
           <div className="flex flex-col gap-1.5">
             <label
@@ -1144,6 +1221,18 @@ export function UsersTab({
         imageUrl={avatarPreview?.image ?? null}
         onClose={() => setAvatarPreview(null)}
       />
+
+      {editImage.trim() && (
+        <FocusPicker
+          open={editFocusOpen}
+          onClose={() => setEditFocusOpen(false)}
+          imageUrl={editImage.trim()}
+          variant="avatar"
+          initialFocusX={editImageFocusX}
+          initialFocusY={editImageFocusY}
+          onSave={persistEditFocus}
+        />
+      )}
     </div>
   );
 }

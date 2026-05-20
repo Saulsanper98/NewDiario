@@ -22,9 +22,13 @@ const patchUserSchema = z
     isActive: z.boolean().optional(),
     role: z.enum(["SUPERADMIN", "ADMIN", "OPERATOR"]).optional(),
     image: z.union([z.string().max(2048), z.literal(""), z.null()]).optional(),
+    imageFocusX: z.union([z.number().min(0).max(100), z.null()]).optional(),
+    imageFocusY: z.union([z.number().min(0).max(100), z.null()]).optional(),
     profileBanner: z
       .union([z.string().max(2048), z.literal(""), z.null()])
       .optional(),
+    bannerFocusX: z.union([z.number().min(0).max(100), z.null()]).optional(),
+    bannerFocusY: z.union([z.number().min(0).max(100), z.null()]).optional(),
     password: z.string().min(8).optional(),
     canManageSuperAdmins: z.boolean().optional(),
   })
@@ -141,12 +145,16 @@ export async function PATCH(
   if (body.image !== undefined) {
     data.image = body.image === "" || body.image === null ? null : body.image;
   }
+  if (body.imageFocusX !== undefined) data.imageFocusX = body.imageFocusX;
+  if (body.imageFocusY !== undefined) data.imageFocusY = body.imageFocusY;
   if (body.profileBanner !== undefined) {
     data.profileBanner =
       body.profileBanner === "" || body.profileBanner === null
         ? null
         : body.profileBanner;
   }
+  if (body.bannerFocusX !== undefined) data.bannerFocusX = body.bannerFocusX;
+  if (body.bannerFocusY !== undefined) data.bannerFocusY = body.bannerFocusY;
   if (body.password !== undefined) {
     data.password = await bcrypt.hash(body.password, 10);
   }

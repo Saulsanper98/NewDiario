@@ -4,6 +4,10 @@ import { cn } from "@/lib/utils";
 
 interface ProfileMenuBannerProps {
   bannerUrl?: string | null;
+  /** Posición horizontal del foco (0–100). */
+  focusX?: number | null;
+  /** Posición vertical del foco (0–100). */
+  focusY?: number | null;
   accentColor?: string;
   /** Color al que funde el degradado por defecto (fondo de la tarjeta) */
   blendToColor?: string;
@@ -14,12 +18,19 @@ interface ProfileMenuBannerProps {
 /** Cabecera del menú de perfil: imagen personalizada o degradado por departamento. */
 export function ProfileMenuBanner({
   bannerUrl,
+  focusX,
+  focusY,
   accentColor = "#ffeb66",
   blendToColor = "#0d1427",
   className,
   heightClass = "h-[52px]",
 }: ProfileMenuBannerProps) {
   const trimmed = bannerUrl?.trim();
+  const hasFocus =
+    typeof focusX === "number" && typeof focusY === "number";
+  const objectPositionStyle = hasFocus
+    ? { objectPosition: `${focusX}% ${focusY}%` }
+    : undefined;
 
   if (trimmed) {
     return (
@@ -31,6 +42,7 @@ export function ProfileMenuBanner({
           src={trimmed}
           alt=""
           className="absolute inset-0 h-full w-full object-cover"
+          style={objectPositionStyle}
         />
         <div
           className="absolute inset-0 bg-gradient-to-b from-black/15 via-black/25 to-black/55"

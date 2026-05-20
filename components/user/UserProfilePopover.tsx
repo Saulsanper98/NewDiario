@@ -72,7 +72,11 @@ export function UserProfilePopover({
         name,
         email: email ?? "",
         image: image ?? null,
+        imageFocusX: null,
+        imageFocusY: null,
         profileBanner: profileBanner ?? null,
+        bannerFocusX: null,
+        bannerFocusY: null,
         role: "OPERATOR",
         departmentName: null,
         departmentAccent: null,
@@ -155,7 +159,11 @@ export function UserProfilePopover({
     name,
     email: email ?? "",
     image: image ?? null,
+    imageFocusX: null as number | null,
+    imageFocusY: null as number | null,
     profileBanner: profileBanner ?? null,
+    bannerFocusX: null as number | null,
+    bannerFocusY: null as number | null,
     role: "OPERATOR" as const,
     departmentName: null,
     departmentAccent: null,
@@ -212,6 +220,8 @@ export function UserProfilePopover({
           >
             <ProfileMenuBanner
               bannerUrl={display.profileBanner}
+              focusX={display.bannerFocusX}
+              focusY={display.bannerFocusY}
               accentColor={accent}
               blendToColor={cardBg}
               heightClass="h-[4.5rem]"
@@ -239,7 +249,13 @@ export function UserProfilePopover({
                   boxShadow: `0 0 0 1px ${accent}55, 0 8px 20px rgba(0,0,0,0.35)`,
                 }}
               >
-                <Avatar name={display.name} image={display.image} size="xl" />
+                <Avatar
+                  name={display.name}
+                  image={display.image}
+                  focusX={display.imageFocusX}
+                  focusY={display.imageFocusY}
+                  size="xl"
+                />
               </button>
             </div>
 

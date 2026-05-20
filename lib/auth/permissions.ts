@@ -68,7 +68,11 @@ const PROFILE_SELF_FIELDS = [
   "name",
   "email",
   "image",
+  "imageFocusX",
+  "imageFocusY",
   "profileBanner",
+  "bannerFocusX",
+  "bannerFocusY",
   "password",
 ] as const;
 

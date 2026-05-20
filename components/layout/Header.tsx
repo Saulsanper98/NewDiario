@@ -537,6 +537,8 @@ export function Header({ user, breadcrumb }: HeaderProps) {
       <ClickableAvatar
         name={user.name}
         image={user.image}
+        focusX={user.imageFocusX}
+        focusY={user.imageFocusY}
         size="sm"
         effect={avatarEffect}
       />

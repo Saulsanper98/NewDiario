@@ -2,9 +2,10 @@
 
 import { useRef, useState } from "react";
 import { useSession } from "next-auth/react";
-import { ImageIcon, Loader2 } from "lucide-react";
+import { Crosshair, ImageIcon, Loader2 } from "lucide-react";
 import toast from "react-hot-toast";
 import { patchProfileBanner, uploadProfileBannerFile } from "@/lib/profile-banner";
+import { FocusPicker } from "@/components/profile/FocusPicker";
 import { cn } from "@/lib/utils";
 import { IMAGE_UPLOAD_ACCEPT } from "@/lib/upload-file";
 
@@ -15,6 +16,10 @@ interface ProfileBannerFieldsProps {
   isLight: boolean;
   /** Panel compacto para el menú lateral */
   compact?: boolean;
+  focusX?: number | null;
+  focusY?: number | null;
+  /** Callback opcional para sincronizar el foco con el padre tras guardarlo. */
+  onFocusChange?: (x: number, y: number) => void;
 }
 
 export function ProfileBannerFields({
@@ -23,11 +28,15 @@ export function ProfileBannerFields({
   onChange,
   isLight,
   compact = false,
+  focusX,
+  focusY,
+  onFocusChange,
 }: ProfileBannerFieldsProps) {
   const { update } = useSession();
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [savingUrl, setSavingUrl] = useState(false);
+  const [focusOpen, setFocusOpen] = useState(false);
 
   async function saveBanner(url: string | null) {
     const trimmed = url?.trim() ?? "";
@@ -42,11 +51,29 @@ export function ProfileBannerFields({
       const url = await uploadProfileBannerFile(file);
       await saveBanner(url);
       toast.success("Fondo actualizado");
+      setFocusOpen(true);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Error al subir");
     } finally {
       setUploading(false);
     }
+  }
+
+  async function persistFocus(x: number, y: number) {
+    const res = await fetch(`/api/users/${userId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ bannerFocusX: x, bannerFocusY: y }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const msg =
+        typeof data?.error === "string" ? data.error : "No se pudo guardar el enfoque";
+      throw new Error(msg);
+    }
+    await update({ bannerFocusX: x, bannerFocusY: y });
+    onFocusChange?.(x, y);
+    toast.success("Enfoque del fondo guardado");
   }
 
   async function applyUrl() {
@@ -122,14 +149,26 @@ export function ProfileBannerFields({
           {uploading ? "Subiendo…" : "Subir imagen"}
         </button>
         {value.trim() ? (
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => void removeBanner()}
-            className={cn(btnClass, "text-red-400 hover:bg-red-500/10")}
-          >
-            Quitar
-          </button>
+          <>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => setFocusOpen(true)}
+              className={btnClass}
+              title="Ajustar qué parte del fondo se ve"
+            >
+              <Crosshair className="h-3.5 w-3.5" />
+              Enfoque
+            </button>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => void removeBanner()}
+              className={cn(btnClass, "text-red-400 hover:bg-red-500/10")}
+            >
+              Quitar
+            </button>
+          </>
         ) : null}
       </div>
 
@@ -158,6 +197,18 @@ export function ProfileBannerFields({
           {savingUrl ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Aplicar"}
         </button>
       </div>
+
+      {value.trim() && (
+        <FocusPicker
+          open={focusOpen}
+          onClose={() => setFocusOpen(false)}
+          imageUrl={value.trim()}
+          variant="banner"
+          initialFocusX={focusX ?? null}
+          initialFocusY={focusY ?? null}
+          onSave={persistFocus}
+        />
+      )}
     </div>
   );
 }

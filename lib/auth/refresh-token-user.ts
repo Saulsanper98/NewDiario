@@ -14,7 +14,11 @@ export async function refreshTokenUserFromDb(
       name: true,
       email: true,
       image: true,
+      imageFocusX: true,
+      imageFocusY: true,
       profileBanner: true,
+      bannerFocusX: true,
+      bannerFocusY: true,
       role: true,
       canManageSuperAdmins: true,
       isActive: true,
@@ -34,7 +38,11 @@ export async function refreshTokenUserFromDb(
   token.name = dbUser.name;
   token.email = dbUser.email;
   token.image = dbUser.image;
+  token.imageFocusX = dbUser.imageFocusX;
+  token.imageFocusY = dbUser.imageFocusY;
   token.profileBanner = dbUser.profileBanner;
+  token.bannerFocusX = dbUser.bannerFocusX;
+  token.bannerFocusY = dbUser.bannerFocusY;
   token.role = dbUser.role;
   token.canManageSuperAdmins = dbUser.canManageSuperAdmins;
   token.departments = dbUser.departments.map(

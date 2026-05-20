@@ -5,6 +5,7 @@ import { useSession } from "next-auth/react";
 import {
   Camera,
   ChevronDown,
+  Crosshair,
   KeyRound,
   Loader2,
   Sparkles,
@@ -13,6 +14,7 @@ import toast from "react-hot-toast";
 import { Avatar } from "@/components/ui/Avatar";
 import { AvatarImagePreview } from "@/components/ui/AvatarImagePreview";
 import { ProfileBannerFields } from "@/components/profile/ProfileBannerFields";
+import { FocusPicker } from "@/components/profile/FocusPicker";
 import { ProfileMenuBanner } from "@/components/ui/ProfileMenuBanner";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -37,8 +39,20 @@ export function MyProfileTab({ currentUser }: MyProfileTabProps) {
   const avatarEffect = useAvatarFrameEffect();
 
   const [image, setImage] = useState(currentUser.image ?? "");
+  const [imageFocusX, setImageFocusX] = useState<number | null>(
+    currentUser.imageFocusX ?? null
+  );
+  const [imageFocusY, setImageFocusY] = useState<number | null>(
+    currentUser.imageFocusY ?? null
+  );
   const [profileBanner, setProfileBanner] = useState(
     currentUser.profileBanner ?? ""
+  );
+  const [bannerFocusX, setBannerFocusX] = useState<number | null>(
+    currentUser.bannerFocusX ?? null
+  );
+  const [bannerFocusY, setBannerFocusY] = useState<number | null>(
+    currentUser.bannerFocusY ?? null
   );
   const [password, setPassword] = useState("");
   const [password2, setPassword2] = useState("");
@@ -46,6 +60,8 @@ export function MyProfileTab({ currentUser }: MyProfileTabProps) {
   const [uploading, setUploading] = useState(false);
   const [showImageUrl, setShowImageUrl] = useState(true);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [avatarFocusOpen, setAvatarFocusOpen] = useState(false);
+  const [bannerFocusOpen, setBannerFocusOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const trimmedImage = image.trim();
   const trimmedBanner = profileBanner.trim();
@@ -99,11 +115,48 @@ export function MyProfileTab({ currentUser }: MyProfileTabProps) {
       setImage(data.url);
       await persistImage(data.url);
       toast.success("Foto de perfil actualizada");
+      setAvatarFocusOpen(true);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Error al subir");
     } finally {
       setUploading(false);
     }
+  }
+
+  async function saveAvatarFocus(x: number, y: number) {
+    const res = await fetch(`/api/users/${currentUser.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ imageFocusX: x, imageFocusY: y }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const msg =
+        typeof data?.error === "string" ? data.error : "No se pudo guardar el enfoque";
+      throw new Error(msg);
+    }
+    setImageFocusX(x);
+    setImageFocusY(y);
+    await update({ imageFocusX: x, imageFocusY: y });
+    toast.success("Enfoque del avatar guardado");
+  }
+
+  async function saveBannerFocus(x: number, y: number) {
+    const res = await fetch(`/api/users/${currentUser.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ bannerFocusX: x, bannerFocusY: y }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const msg =
+        typeof data?.error === "string" ? data.error : "No se pudo guardar el enfoque";
+      throw new Error(msg);
+    }
+    setBannerFocusX(x);
+    setBannerFocusY(y);
+    await update({ bannerFocusX: x, bannerFocusY: y });
+    toast.success("Enfoque del fondo guardado");
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -191,6 +244,8 @@ export function MyProfileTab({ currentUser }: MyProfileTabProps) {
         >
           <ProfileMenuBanner
             bannerUrl={trimmedBanner || null}
+            focusX={bannerFocusX}
+            focusY={bannerFocusY}
             accentColor={defaultDept?.accentColor}
             blendToColor={L ? "#fafafa" : "#0d1427"}
             heightClass="h-28 sm:h-32"
@@ -229,29 +284,49 @@ export function MyProfileTab({ currentUser }: MyProfileTabProps) {
               <Avatar
                 name={currentUser.name}
                 image={trimmedImage || null}
+                focusX={imageFocusX}
+                focusY={imageFocusY}
                 size="xl"
                 effect={avatarEffect}
               />
             </button>
-            <button
-              type="button"
-              disabled={uploading}
-              onClick={() => fileInputRef.current?.click()}
-              className={cn(
-                "inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors",
-                L
-                  ? "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50"
-                  : "border-white/15 bg-white/5 text-white/75 hover:bg-white/10",
-                uploading && "pointer-events-none opacity-60"
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              <button
+                type="button"
+                disabled={uploading}
+                onClick={() => fileInputRef.current?.click()}
+                className={cn(
+                  "inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors",
+                  L
+                    ? "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50"
+                    : "border-white/15 bg-white/5 text-white/75 hover:bg-white/10",
+                  uploading && "pointer-events-none opacity-60"
+                )}
+              >
+                {uploading ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Camera className="h-3.5 w-3.5" />
+                )}
+                {uploading ? "Subiendo…" : "Cambiar foto"}
+              </button>
+              {trimmedImage && !uploading && (
+                <button
+                  type="button"
+                  onClick={() => setAvatarFocusOpen(true)}
+                  className={cn(
+                    "inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors",
+                    L
+                      ? "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50"
+                      : "border-white/15 bg-white/5 text-white/75 hover:bg-white/10"
+                  )}
+                  title="Ajustar qué parte de la foto se ve"
+                >
+                  <Crosshair className="h-3.5 w-3.5" />
+                  Ajustar enfoque
+                </button>
               )}
-            >
-              {uploading ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <Camera className="h-3.5 w-3.5" />
-              )}
-              {uploading ? "Subiendo…" : "Cambiar foto"}
-            </button>
+            </div>
           </div>
 
           <p
@@ -349,6 +424,8 @@ export function MyProfileTab({ currentUser }: MyProfileTabProps) {
           <div className="mt-3 overflow-hidden rounded-xl border border-white/10">
             <ProfileMenuBanner
               bannerUrl={trimmedBanner || null}
+              focusX={bannerFocusX}
+              focusY={bannerFocusY}
               accentColor={defaultDept?.accentColor}
               heightClass="h-20"
             />
@@ -359,8 +436,30 @@ export function MyProfileTab({ currentUser }: MyProfileTabProps) {
               value={profileBanner}
               onChange={setProfileBanner}
               isLight={L}
+              focusX={bannerFocusX}
+              focusY={bannerFocusY}
+              onFocusChange={(x, y) => {
+                setBannerFocusX(x);
+                setBannerFocusY(y);
+              }}
             />
           </div>
+          {trimmedBanner && (
+            <button
+              type="button"
+              onClick={() => setBannerFocusOpen(true)}
+              className={cn(
+                "mt-3 inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors",
+                L
+                  ? "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50"
+                  : "border-white/15 bg-white/5 text-white/75 hover:bg-white/10"
+              )}
+              title="Ajustar qué parte del fondo se ve"
+            >
+              <Crosshair className="h-3.5 w-3.5" />
+              Ajustar enfoque del fondo
+            </button>
+          )}
         </div>
 
         {/* Contraseña */}
@@ -447,6 +546,29 @@ export function MyProfileTab({ currentUser }: MyProfileTabProps) {
         imageUrl={trimmedImage || null}
         onClose={() => setPreviewOpen(false)}
       />
+
+      {trimmedImage && (
+        <FocusPicker
+          open={avatarFocusOpen}
+          onClose={() => setAvatarFocusOpen(false)}
+          imageUrl={trimmedImage}
+          variant="avatar"
+          initialFocusX={imageFocusX}
+          initialFocusY={imageFocusY}
+          onSave={saveAvatarFocus}
+        />
+      )}
+      {trimmedBanner && (
+        <FocusPicker
+          open={bannerFocusOpen}
+          onClose={() => setBannerFocusOpen(false)}
+          imageUrl={trimmedBanner}
+          variant="banner"
+          initialFocusX={bannerFocusX}
+          initialFocusY={bannerFocusY}
+          onSave={saveBannerFocus}
+        />
+      )}
     </div>
   );
 }

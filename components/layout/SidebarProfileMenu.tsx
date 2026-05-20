@@ -111,6 +111,8 @@ export function SidebarProfileMenu({
         <Avatar
           name={user.name}
           image={user.image}
+          focusX={user.imageFocusX}
+          focusY={user.imageFocusY}
           size="sm"
           effect={avatarEffect}
         />
@@ -138,6 +140,8 @@ export function SidebarProfileMenu({
         >
           <ProfileMenuBanner
             bannerUrl={bannerDraft || user.profileBanner}
+            focusX={user.bannerFocusX}
+            focusY={user.bannerFocusY}
             accentColor={bannerColor}
             blendToColor={isLight ? "#f4f4f5" : "#0d1427"}
           />
@@ -157,6 +161,8 @@ export function SidebarProfileMenu({
                 <Avatar
                   name={user.name}
                   image={user.image}
+                  focusX={user.imageFocusX}
+                  focusY={user.imageFocusY}
                   size="lg"
                   effect={avatarEffect}
                 />

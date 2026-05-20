@@ -106,7 +106,15 @@ model User {
   email     String    @unique
   password  String?
   image          String?
+  /** Posición horizontal del foco del avatar como porcentaje 0–100. */
+  imageFocusX    Float?
+  /** Posición vertical del foco del avatar como porcentaje 0–100. */
+  imageFocusY    Float?
   profileBanner  String?
+  /** Posición horizontal del foco del fondo de perfil como porcentaje 0–100. */
+  bannerFocusX   Float?
+  /** Posición vertical del foco del fondo de perfil como porcentaje 0–100. */
+  bannerFocusY   Float?
   role      Role      @default(OPERATOR)
   /** Solo el propietario puede activarlo; permite a este SuperAdmin asignar / quitar el rol SuperAdmin a otros. */
   canManageSuperAdmins Boolean @default(false)

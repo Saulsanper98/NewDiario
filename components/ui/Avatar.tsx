@@ -11,6 +11,10 @@ import {
 interface AvatarProps {
   name: string;
   image?: string | null;
+  /** Posición horizontal del foco de la imagen (0–100). */
+  focusX?: number | null;
+  /** Posición vertical del foco de la imagen (0–100). */
+  focusY?: number | null;
   size?: "xs" | "sm" | "md" | "lg" | "xl";
   className?: string;
   presence?: "online" | "away" | "offline";
@@ -99,6 +103,8 @@ function AvatarFrameShell({
 export function Avatar({
   name,
   image,
+  focusX,
+  focusY,
   size = "md",
   className,
   presence,
@@ -129,6 +135,12 @@ export function Avatar({
 
   const framed = effect !== "none";
 
+  const hasFocus =
+    typeof focusX === "number" && typeof focusY === "number";
+  const objectPositionStyle = hasFocus
+    ? { objectPosition: `${focusX}% ${focusY}%` }
+    : undefined;
+
   const imageNode = image ? (
     /* eslint-disable-next-line @next/next/no-img-element -- avatares dinámicos */
     <img
@@ -143,6 +155,7 @@ export function Avatar({
         !framed && sizes[size],
         className
       )}
+      style={objectPositionStyle}
     />
   ) : (
     <span

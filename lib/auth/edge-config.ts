@@ -76,7 +76,11 @@ export const edgeAuthConfig: NextAuthConfig = {
         token.name = u.name;
         token.email = u.email;
         token.image = u.image ?? null;
+        token.imageFocusX = u.imageFocusX ?? null;
+        token.imageFocusY = u.imageFocusY ?? null;
         token.profileBanner = u.profileBanner ?? null;
+        token.bannerFocusX = u.bannerFocusX ?? null;
+        token.bannerFocusY = u.bannerFocusY ?? null;
         token.role = u.role;
         token.departments = u.departments;
         token.activeDepartmentId = u.activeDepartmentId;
@@ -92,11 +96,23 @@ export const edgeAuthConfig: NextAuthConfig = {
         if (typeof s.image === "string" || s.image === null) {
           token.image = s.image as string | null;
         }
+        if (typeof s.imageFocusX === "number" || s.imageFocusX === null) {
+          token.imageFocusX = s.imageFocusX as number | null;
+        }
+        if (typeof s.imageFocusY === "number" || s.imageFocusY === null) {
+          token.imageFocusY = s.imageFocusY as number | null;
+        }
         if (
           typeof s.profileBanner === "string" ||
           s.profileBanner === null
         ) {
           token.profileBanner = s.profileBanner as string | null;
+        }
+        if (typeof s.bannerFocusX === "number" || s.bannerFocusX === null) {
+          token.bannerFocusX = s.bannerFocusX as number | null;
+        }
+        if (typeof s.bannerFocusY === "number" || s.bannerFocusY === null) {
+          token.bannerFocusY = s.bannerFocusY as number | null;
         }
         if (typeof s.activeDepartmentId === "string") {
           token.activeDepartmentId = s.activeDepartmentId;
@@ -112,8 +128,20 @@ export const edgeAuthConfig: NextAuthConfig = {
       if (typeof token.name === "string") session.user.name = token.name;
       if (typeof token.email === "string") session.user.email = token.email;
       if (token.image !== undefined) session.user.image = token.image as string | null;
+      if (token.imageFocusX !== undefined) {
+        session.user.imageFocusX = token.imageFocusX as number | null;
+      }
+      if (token.imageFocusY !== undefined) {
+        session.user.imageFocusY = token.imageFocusY as number | null;
+      }
       if (token.profileBanner !== undefined) {
         session.user.profileBanner = token.profileBanner as string | null;
+      }
+      if (token.bannerFocusX !== undefined) {
+        session.user.bannerFocusX = token.bannerFocusX as number | null;
+      }
+      if (token.bannerFocusY !== undefined) {
+        session.user.bannerFocusY = token.bannerFocusY as number | null;
       }
       if (token.role) session.user.role = token.role;
       if (token.canManageSuperAdmins !== undefined) {

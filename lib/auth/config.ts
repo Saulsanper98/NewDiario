@@ -45,7 +45,11 @@ const credentialProvider = Credentials({
       name: user.name,
       email: user.email,
       image: user.image,
+      imageFocusX: user.imageFocusX ?? null,
+      imageFocusY: user.imageFocusY ?? null,
       profileBanner: user.profileBanner,
+      bannerFocusX: user.bannerFocusX ?? null,
+      bannerFocusY: user.bannerFocusY ?? null,
       role: user.role,
       canManageSuperAdmins: canManage,
       departments: user.departments.map((d: { departmentId: string; department: { name: string; slug: string; accentColor: string }; role: string; isDefault: boolean }) => ({
@@ -129,7 +133,11 @@ export const authConfig = {
             token.name = dbUser.name;
             token.email = dbUser.email;
             token.image = dbUser.image;
+            token.imageFocusX = dbUser.imageFocusX ?? null;
+            token.imageFocusY = dbUser.imageFocusY ?? null;
             token.profileBanner = dbUser.profileBanner;
+            token.bannerFocusX = dbUser.bannerFocusX ?? null;
+            token.bannerFocusY = dbUser.bannerFocusY ?? null;
             token.role = dbUser.role;
             token.departments = dbUser.departments.map((d) => ({
               id: d.departmentId,
@@ -151,7 +159,11 @@ export const authConfig = {
         token.name = u.name;
         token.email = u.email;
         token.image = u.image ?? null;
+        token.imageFocusX = u.imageFocusX ?? null;
+        token.imageFocusY = u.imageFocusY ?? null;
         token.profileBanner = u.profileBanner ?? null;
+        token.bannerFocusX = u.bannerFocusX ?? null;
+        token.bannerFocusY = u.bannerFocusY ?? null;
         token.role = u.role;
         token.departments = u.departments;
         token.activeDepartmentId = u.activeDepartmentId;
@@ -167,11 +179,23 @@ export const authConfig = {
         if (typeof s.image === "string" || s.image === null) {
           token.image = s.image as string | null;
         }
+        if (typeof s.imageFocusX === "number" || s.imageFocusX === null) {
+          token.imageFocusX = s.imageFocusX as number | null;
+        }
+        if (typeof s.imageFocusY === "number" || s.imageFocusY === null) {
+          token.imageFocusY = s.imageFocusY as number | null;
+        }
         if (
           typeof s.profileBanner === "string" ||
           s.profileBanner === null
         ) {
           token.profileBanner = s.profileBanner as string | null;
+        }
+        if (typeof s.bannerFocusX === "number" || s.bannerFocusX === null) {
+          token.bannerFocusX = s.bannerFocusX as number | null;
+        }
+        if (typeof s.bannerFocusY === "number" || s.bannerFocusY === null) {
+          token.bannerFocusY = s.bannerFocusY as number | null;
         }
         if (typeof s.activeDepartmentId === "string") {
           token.activeDepartmentId = s.activeDepartmentId;

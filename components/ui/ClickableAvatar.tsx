@@ -9,6 +9,8 @@ import { cn } from "@/lib/utils";
 interface ClickableAvatarProps {
   name: string;
   image?: string | null;
+  focusX?: number | null;
+  focusY?: number | null;
   size?: "xs" | "sm" | "md" | "lg" | "xl";
   effect?: AvatarFrameEffect;
   className?: string;
@@ -19,6 +21,8 @@ interface ClickableAvatarProps {
 export function ClickableAvatar({
   name,
   image,
+  focusX,
+  focusY,
   size = "md",
   effect = "none",
   className,
@@ -50,7 +54,14 @@ export function ClickableAvatar({
           className
         )}
       >
-        <Avatar name={name} image={image} size={size} effect={effect} />
+        <Avatar
+          name={name}
+          image={image}
+          focusX={focusX}
+          focusY={focusY}
+          size={size}
+          effect={effect}
+        />
       </button>
       <AvatarImagePreview
         open={previewOpen}

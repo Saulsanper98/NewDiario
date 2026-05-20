@@ -14,7 +14,11 @@ export interface SessionUser {
   name: string;
   email: string;
   image?: string | null;
+  imageFocusX?: number | null;
+  imageFocusY?: number | null;
   profileBanner?: string | null;
+  bannerFocusX?: number | null;
+  bannerFocusY?: number | null;
   role: Role;
   /** Solo el propietario puede activar este permiso para otros SuperAdmin. */
   canManageSuperAdmins?: boolean;
@@ -32,7 +36,11 @@ declare module "next-auth/jwt" {
   interface JWT {
     id?: string;
     image?: string | null;
+    imageFocusX?: number | null;
+    imageFocusY?: number | null;
     profileBanner?: string | null;
+    bannerFocusX?: number | null;
+    bannerFocusY?: number | null;
     role?: Role;
     canManageSuperAdmins?: boolean;
     departments?: UserDepartment[];
