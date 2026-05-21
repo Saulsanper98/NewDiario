@@ -48,37 +48,6 @@ function clearStaleAuthCookies(req: Request, res: NextResponse) {
 export default auth((req) => {
   const { auth: session, nextUrl } = req;
 
-  /**
-   * Redirección a la URL pública en HTTPS.
-   *
-   * Si el usuario entra al puerto del Next directo (`http://IP:3000`)
-   * sin pasar por el proxy IIS, las cookies con flag `Secure` no se envían
-   * y el CSRF falla. Si NEXTAUTH_URL apunta a un host público en HTTPS,
-   * redirigimos al usuario allí con el mismo path para que use la ruta
-   * por proxy en todo momento.
-   *
-   * Detectamos "viene del proxy" cuando hay `x-forwarded-proto`. En ese
-   * caso, NO redirigimos: el host interno del proxy ya está colocado por
-   * IIS y todo viaja en HTTPS desde el navegador.
-   */
-  const forwardedProto = req.headers.get("x-forwarded-proto");
-  const publicUrlRaw = process.env.NEXTAUTH_URL ?? "";
-  const currentHost = req.headers.get("host") ?? "";
-  // Redirigimos cuando la URL pública es HTTPS pero el cliente NO está
-  // entrando por HTTPS. Comparamos contra "https" porque Node/Next puede
-  // poner `x-forwarded-proto: http` (no undefined) en accesos directos.
-  if (publicUrlRaw.startsWith("https://") && forwardedProto !== "https") {
-    try {
-      const publicUrl = new URL(publicUrlRaw);
-      if (currentHost !== publicUrl.host) {
-        const target = new URL(nextUrl.pathname + nextUrl.search, publicUrl);
-        return Response.redirect(target.toString(), 308);
-      }
-    } catch {
-      /* NEXTAUTH_URL no parseable: continuamos sin redirect. */
-    }
-  }
-
   /* Recurso estático; sin bypass puede aplicarse redirect a /login y el <img> no pinta el SVG. */
   if (
     nextUrl.pathname === "/logo.svg" ||
