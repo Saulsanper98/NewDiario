@@ -1,11 +1,20 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import {
+  Archive,
+  ArchiveRestore,
+  ArrowDown,
+  Bell,
+  BellOff,
   Check,
   CheckSquare,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  ChevronUp,
   ClipboardList,
   CornerUpLeft,
   Download,
@@ -17,9 +26,13 @@ import {
   Loader2,
   MessageCircle,
   MoreHorizontal,
+  MoreVertical,
   Paperclip,
   Pencil,
+  Pin,
+  PinOff,
   Plus,
+  Search,
   Send,
   Share2,
   SmilePlus,
@@ -473,10 +486,14 @@ function MessageAttachments({
   attachments,
   isLight,
   isMine,
+  onImageClick,
 }: {
   attachments: ChatAttachmentItem[];
   isLight: boolean;
   isMine: boolean;
+  /** Si se proporciona, al hacer click en una imagen se invoca este callback
+   *  en lugar de abrir el enlace en una pestaña nueva. */
+  onImageClick?: (url: string) => void;
 }) {
   if (attachments.length === 0) return null;
   return (
@@ -484,6 +501,28 @@ function MessageAttachments({
       {attachments.map((a) => {
         // Imagen embebida
         if (a.kind === "IMAGE" && a.fileUrl) {
+          const img = (
+            <img
+              src={a.fileUrl}
+              alt={a.fileName ?? ""}
+              loading="lazy"
+              decoding="async"
+              className="block max-h-56 w-full object-cover"
+            />
+          );
+          if (onImageClick) {
+            return (
+              <button
+                key={a.id}
+                type="button"
+                onClick={() => onImageClick(a.fileUrl!)}
+                className="block max-w-xs overflow-hidden rounded-lg border border-white/10 text-left"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                {img}
+              </button>
+            );
+          }
           return (
             <a
               key={a.id}
@@ -493,11 +532,7 @@ function MessageAttachments({
               className="block max-w-xs overflow-hidden rounded-lg border border-white/10"
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={a.fileUrl}
-                alt={a.fileName ?? ""}
-                className="block max-h-56 w-full object-cover"
-              />
+              {img}
             </a>
           );
         }
@@ -799,6 +834,138 @@ function MessageReactions({
   );
 }
 
+/** Modal a pantalla completa para visualizar imagenes del hilo con flechas
+ *  para navegar entre todas las del thread, descarga y cierre con Esc. */
+function ImageLightbox({
+  images,
+  index,
+  onClose,
+  onIndexChange,
+}: {
+  images: { url: string; name: string | null }[];
+  index: number;
+  onClose: () => void;
+  onIndexChange: (next: number) => void;
+}) {
+  useEffect(() => {
+    function key(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+      else if (e.key === "ArrowLeft" && index > 0) onIndexChange(index - 1);
+      else if (e.key === "ArrowRight" && index < images.length - 1)
+        onIndexChange(index + 1);
+    }
+    window.addEventListener("keydown", key);
+    return () => window.removeEventListener("keydown", key);
+  }, [index, images.length, onClose, onIndexChange]);
+
+  const current = images[index];
+  if (!current) return null;
+
+  return (
+    <div
+      className="fixed inset-0 z-[200] flex items-center justify-center bg-black/85 backdrop-blur-sm"
+      role="dialog"
+      aria-label="Visor de imagen"
+      onClick={onClose}
+    >
+      <button
+        type="button"
+        onClick={onClose}
+        aria-label="Cerrar"
+        className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20"
+      >
+        <X className="h-5 w-5" />
+      </button>
+      <a
+        href={current.url}
+        target="_blank"
+        rel="noreferrer"
+        onClick={(e) => e.stopPropagation()}
+        aria-label="Descargar imagen"
+        className="absolute right-16 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20"
+      >
+        <Download className="h-5 w-5" />
+      </a>
+      {index > 0 && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onIndexChange(index - 1);
+          }}
+          aria-label="Anterior"
+          className="absolute left-4 flex h-12 w-12 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20"
+        >
+          <ChevronLeft className="h-6 w-6" />
+        </button>
+      )}
+      {index < images.length - 1 && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onIndexChange(index + 1);
+          }}
+          aria-label="Siguiente"
+          className="absolute right-4 flex h-12 w-12 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20"
+        >
+          <ChevronRight className="h-6 w-6" />
+        </button>
+      )}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={current.url}
+        alt={current.name ?? ""}
+        onClick={(e) => e.stopPropagation()}
+        className="max-h-[90vh] max-w-[92vw] rounded-lg object-contain shadow-2xl"
+      />
+      {images.length > 1 && (
+        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 rounded-full bg-black/40 px-3 py-1 text-xs font-medium text-white/90 backdrop-blur-sm">
+          {index + 1} / {images.length}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Skeleton de un item de la lista de conversaciones. */
+function ConversationListSkeleton({ isLight }: { isLight: boolean }) {
+  return (
+    <ul className="space-y-1 p-2">
+      {Array.from({ length: 6 }).map((_, i) => (
+        <li
+          key={i}
+          className={cn(
+            "flex animate-pulse items-start gap-3 rounded-xl px-3 py-2.5",
+            isLight ? "bg-zinc-100/60" : "bg-white/[0.03]"
+          )}
+        >
+          <span
+            className={cn(
+              "h-9 w-9 shrink-0 rounded-full",
+              isLight ? "bg-zinc-200" : "bg-white/10"
+            )}
+          />
+          <span className="min-w-0 flex-1 space-y-2">
+            <span
+              className={cn(
+                "block h-3 w-2/3 rounded",
+                isLight ? "bg-zinc-200" : "bg-white/10"
+              )}
+            />
+            <span
+              className={cn(
+                "block h-2.5 w-5/6 rounded",
+                isLight ? "bg-zinc-200/70" : "bg-white/[0.07]"
+              )}
+            />
+          </span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 function formatListTime(iso: string) {
   const d = new Date(iso);
   const now = new Date();
@@ -850,6 +1017,49 @@ export function ChatView() {
   const [reactionPickerFor, setReactionPickerFor] = useState<string | null>(null);
   const [actionMenuFor, setActionMenuFor] = useState<string | null>(null);
   const [highlightedMessageId, setHighlightedMessageId] = useState<string | null>(null);
+
+  // Estado de lista (pin/mute/archive, menus, busqueda, archivados).
+  const [convMenuFor, setConvMenuFor] = useState<string | null>(null);
+  const [showArchived, setShowArchived] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchResults, setSearchResults] = useState<{
+    conversations: {
+      id: string;
+      isGroup: boolean;
+      title: string | null;
+      image: string | null;
+      members: {
+        id: string;
+        name: string;
+        email: string;
+        image: string | null;
+        imageFocusX: number | null;
+        imageFocusY: number | null;
+      }[];
+    }[];
+    messages: {
+      id: string;
+      body: string;
+      createdAt: string;
+      conversationId: string;
+      conversationLabel: string;
+      isGroup: boolean;
+      senderName: string;
+    }[];
+  }>({ conversations: [], messages: [] });
+
+  // Lightbox de imagenes del thread activo.
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+
+  // Botton scroll-to-bottom: cuantos mensajes nuevos llegaron mientras
+  // el usuario estaba leyendo arriba.
+  const [isAtBottom, setIsAtBottom] = useState(true);
+  const [newMessagesWhileScrolledUp, setNewMessagesWhileScrolledUp] = useState(0);
+
+  // Drag&drop: cuando el usuario esta arrastrando un fichero sobre el panel.
+  const [dragOver, setDragOver] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
@@ -963,9 +1173,73 @@ export function ChatView() {
     return () => clearInterval(t);
   }, [activeId, loadMessages, loadConversations]);
 
+  // Solo hacemos scroll automatico cuando el usuario YA esta al fondo. Si
+  // esta leyendo historial mas arriba no le arrastramos al final cuando
+  // llega un mensaje nuevo; aparece el boton flotante "Bajar".
   useEffect(() => {
+    if (!isAtBottom) return;
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, activeId]);
+  }, [messages, activeId, isAtBottom]);
+
+  // Al cambiar de conversacion forzamos scroll al final (esto SI siempre).
+  useEffect(() => {
+    setNewMessagesWhileScrolledUp(0);
+    setIsAtBottom(true);
+    requestAnimationFrame(() => {
+      messagesEndRef.current?.scrollIntoView({ block: "end" });
+    });
+  }, [activeId]);
+
+  // Listener de scroll: actualiza isAtBottom (con margen de 80px).
+  useEffect(() => {
+    const el = messagesContainerRef.current;
+    if (!el) return;
+    function handler() {
+      if (!el) return;
+      const distance = el.scrollHeight - el.scrollTop - el.clientHeight;
+      const atBottom = distance < 80;
+      setIsAtBottom(atBottom);
+      if (atBottom) setNewMessagesWhileScrolledUp(0);
+    }
+    el.addEventListener("scroll", handler, { passive: true });
+    return () => el.removeEventListener("scroll", handler);
+  }, [activeId]);
+
+  // Cuenta cuantos mensajes llegaron mientras el usuario estaba leyendo
+  // arriba. Solo contamos mensajes ajenos (los propios siempre nos llevan
+  // al fondo igualmente).
+  const lastMessageIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    const last = messages[messages.length - 1];
+    const prevLastId = lastMessageIdRef.current;
+    lastMessageIdRef.current = last?.id ?? null;
+    if (!last || !prevLastId || prevLastId === last.id) return;
+    if (last.isMine) return;
+    if (!isAtBottom) {
+      setNewMessagesWhileScrolledUp((n) => n + 1);
+    }
+  }, [messages, isAtBottom]);
+
+  function scrollToBottom() {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    setNewMessagesWhileScrolledUp(0);
+  }
+
+  // Lista plana de imagenes del hilo activo para el lightbox. Reactiva ante
+  // cambios en messages: si llegan nuevas imagenes, el lightbox abierto las
+  // recogera al cambiar de pagina.
+  const threadImages = useMemo(() => {
+    const list: { url: string; name: string | null }[] = [];
+    for (const m of messages) {
+      if (m.isDeleted) continue;
+      for (const a of m.attachments) {
+        if (a.kind === "IMAGE" && a.fileUrl) {
+          list.push({ url: a.fileUrl, name: a.fileName });
+        }
+      }
+    }
+    return list;
+  }, [messages]);
 
   // Auto-resize del textarea al escribir. Se ajusta a la altura del contenido
   // hasta el max-height (gestionado por CSS).
@@ -975,6 +1249,35 @@ export function ChatView() {
     el.style.height = "0px";
     el.style.height = `${Math.min(el.scrollHeight, 160)}px`;
   }, [draft]);
+
+  // Borrador persistente por conversacion en localStorage. Al cambiar de
+  // chat, restauramos lo que hubiera. Al escribir, lo guardamos (debounced
+  // implicitamente por el render).
+  useEffect(() => {
+    if (!activeId || typeof window === "undefined") {
+      setDraft("");
+      return;
+    }
+    try {
+      const saved = window.localStorage.getItem(`chat-draft:${activeId}`);
+      setDraft(saved ?? "");
+    } catch {
+      setDraft("");
+    }
+  }, [activeId]);
+
+  useEffect(() => {
+    if (!activeId || typeof window === "undefined") return;
+    try {
+      if (draft) {
+        window.localStorage.setItem(`chat-draft:${activeId}`, draft);
+      } else {
+        window.localStorage.removeItem(`chat-draft:${activeId}`);
+      }
+    } catch {
+      /* localStorage puede estar bloqueado en modo incognito */
+    }
+  }, [draft, activeId]);
 
   async function startChatWith(peerId: string) {
     try {
@@ -1026,6 +1329,81 @@ export function ChatView() {
       toast.error(err instanceof Error ? err.message : "Error");
     }
   }
+
+  async function updateConversationState(
+    conversationId: string,
+    patch: { pinned?: boolean; archived?: boolean; muteDurationMs?: number }
+  ) {
+    // Optimistic: aplicamos el cambio en local de inmediato.
+    setConversations((prev) =>
+      prev.map((c) => {
+        if (c.id !== conversationId) return c;
+        const next = { ...c };
+        if (patch.pinned !== undefined) next.pinned = patch.pinned;
+        if (patch.archived !== undefined) {
+          next.archived = patch.archived;
+          if (patch.archived) next.pinned = false;
+        }
+        if (patch.muteDurationMs !== undefined) {
+          if (patch.muteDurationMs > 0) {
+            next.muted = true;
+            next.mutedUntil = new Date(
+              Date.now() + patch.muteDurationMs
+            ).toISOString();
+          } else {
+            next.muted = false;
+            next.mutedUntil = null;
+          }
+        }
+        return next;
+      })
+    );
+    try {
+      const res = await fetch(
+        `/api/chat/conversations/${conversationId}/state`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(patch),
+        }
+      );
+      if (!res.ok) {
+        throw new Error("No se pudo actualizar la conversación");
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Error");
+      void loadConversations();
+    }
+  }
+
+  // Busqueda global con debounce. Se dispara siempre que el usuario tipea.
+  useEffect(() => {
+    if (!searchOpen) return;
+    const q = searchQuery.trim();
+    if (q.length < 2) {
+      setSearchResults({ conversations: [], messages: [] });
+      setSearchLoading(false);
+      return;
+    }
+    let cancelled = false;
+    const t = setTimeout(async () => {
+      setSearchLoading(true);
+      try {
+        const res = await fetch(
+          `/api/chat/search?q=${encodeURIComponent(q)}`
+        );
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!cancelled) setSearchResults(data);
+      } finally {
+        if (!cancelled) setSearchLoading(false);
+      }
+    }, 260);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+  }, [searchQuery, searchOpen]);
 
   /**
    * Hace scroll a un mensaje concreto del hilo y lo resalta brevemente. Si el
@@ -1087,6 +1465,20 @@ export function ChatView() {
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, [reactionPickerFor, actionMenuFor]);
+
+  // Cierra el menu de conversacion al hacer click fuera del item.
+  useEffect(() => {
+    if (!convMenuFor) return;
+    function handler(e: MouseEvent) {
+      const target = e.target as Element | null;
+      if (!target) return;
+      if (!target.closest(".group\\/conv")) {
+        setConvMenuFor(null);
+      }
+    }
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [convMenuFor]);
 
   /** Empieza a responder un mensaje: pone el chip arriba del composer y
    *  enfoca el textarea. */
@@ -1299,10 +1691,71 @@ export function ChatView() {
     if (!text && pendingAttachments.length === 0) return;
     const sentAttachments = pendingAttachments;
     const replyId = replyTarget?.id ?? null;
+    const replyAtSend = replyTarget;
+
+    // Construimos un mensaje optimista con id temporal. Se mostrara
+    // inmediatamente en la conversacion como "enviando..." mientras esperamos
+    // al servidor. Si hay error, el mensaje se queda con pending="failed"
+    // para que el usuario lo vea y pueda decidir.
+    const tmpId = `tmp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const optimistic: ChatMessageItem & { pending?: "sending" | "failed" } = {
+      id: tmpId,
+      body: text,
+      createdAt: new Date().toISOString(),
+      senderId: currentUser?.id ?? "",
+      isMine: true,
+      sender: {
+        id: currentUser?.id ?? "",
+        name: currentUser?.name ?? "Tu",
+        email: currentUser?.email ?? "",
+        image: currentUser?.image ?? null,
+        imageFocusX: null,
+        imageFocusY: null,
+        profileBanner: null,
+        bannerFocusX: null,
+        bannerFocusY: null,
+      },
+      attachments: sentAttachments.map((a, i) => ({
+        id: `tmp-att-${i}`,
+        kind: a.kind,
+        fileName: a.fileName,
+        fileUrl: a.fileUrl,
+        mimeType: a.mimeType,
+        sizeBytes: a.sizeBytes,
+        refId: a.refId,
+        refLabel: a.refLabel,
+        refMeta: a.refMeta,
+      })),
+      editedAt: null,
+      isDeleted: false,
+      replyTo: replyAtSend
+        ? {
+            id: replyAtSend.id,
+            body: replyAtSend.body,
+            senderId: replyAtSend.senderId,
+            senderName: replyAtSend.sender.name,
+            attachmentHint: replyAtSend.attachments[0]?.kind ?? null,
+            isDeleted: replyAtSend.isDeleted,
+          }
+        : null,
+      reactions: [],
+      pending: "sending",
+    };
+
     setDraft("");
     setPendingAttachments([]);
     setReplyTarget(null);
     setSending(true);
+    setMessages((prev) => [...prev, optimistic]);
+    // Limpia el borrador persistido tan pronto como decidimos enviar.
+    if (activeId && typeof window !== "undefined") {
+      try {
+        window.localStorage.removeItem(`chat-draft:${activeId}`);
+      } catch {
+        /* localStorage puede no estar disponible */
+      }
+    }
+
     try {
       const res = await fetch(
         `/api/chat/conversations/${activeId}/messages`,
@@ -1334,18 +1787,102 @@ export function ChatView() {
           typeof data.error === "string" ? data.error : "No se pudo enviar"
         );
       }
-      setMessages((prev) => [...prev, data.message!]);
+      // Reemplaza el optimista por el real (o lo elimina si el real ya
+      // entro por polling).
+      setMessages((prev) => {
+        const realAlready = prev.some((m) => m.id === data.message!.id);
+        if (realAlready) {
+          return prev.filter((m) => m.id !== tmpId);
+        }
+        return prev.map((m) => (m.id === tmpId ? data.message! : m));
+      });
       lastMessageAtRef.current = data.message.createdAt;
-      await loadConversations();
+      void loadConversations();
     } catch (err) {
+      // Mantiene el mensaje pero marcado como failed para que el usuario
+      // sepa que algo paso. No lo borramos para no perder el contenido.
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === tmpId
+            ? ({ ...m, pending: "failed" } as ChatMessageItem & {
+                pending: "failed";
+              })
+            : m
+        )
+      );
       setDraft(text);
       setPendingAttachments(sentAttachments);
-      if (replyId && messages.find((mm) => mm.id === replyId)) {
-        setReplyTarget(messages.find((mm) => mm.id === replyId) ?? null);
-      }
+      if (replyAtSend) setReplyTarget(replyAtSend);
       toast.error(err instanceof Error ? err.message : "Error al enviar");
     } finally {
       setSending(false);
+    }
+  }
+
+  /** Re-intenta enviar un mensaje cuyo envio fallo. Lo elimina del listado
+   *  y reinyecta su contenido en el composer para que el usuario decida. */
+  function retrySend(failedId: string) {
+    const m = messages.find((mm) => mm.id === failedId);
+    if (!m) return;
+    setMessages((prev) => prev.filter((mm) => mm.id !== failedId));
+    setDraft(m.body ?? "");
+    setPendingAttachments(
+      m.attachments.map((a) => ({
+        kind: a.kind,
+        fileName: a.fileName,
+        fileUrl: a.fileUrl,
+        mimeType: a.mimeType,
+        sizeBytes: a.sizeBytes,
+        refId: a.refId,
+        refLabel: a.refLabel,
+        refMeta: a.refMeta,
+      }))
+    );
+    if (m.replyTo) {
+      const ref = messages.find((mm) => mm.id === m.replyTo!.id);
+      if (ref) setReplyTarget(ref);
+    }
+    setTimeout(() => composerRef.current?.focus(), 30);
+  }
+
+  /** Descarta un mensaje cuyo envio fallo (sin reintentar). */
+  function discardFailed(failedId: string) {
+    setMessages((prev) => prev.filter((mm) => mm.id !== failedId));
+  }
+
+  /**
+   * Recoge archivos pegados desde el portapapeles. Cuando el usuario hace
+   * Cmd/Ctrl+V con una captura o un fichero en el portapapeles, lo subimos
+   * directamente como adjunto pendiente.
+   */
+  function handlePaste(e: React.ClipboardEvent<HTMLTextAreaElement>) {
+    const items = e.clipboardData?.items;
+    if (!items || items.length === 0) return;
+    const files: File[] = [];
+    for (let i = 0; i < items.length; i++) {
+      const it = items[i];
+      if (it.kind === "file") {
+        const f = it.getAsFile();
+        if (f) files.push(f);
+      }
+    }
+    if (files.length > 0) {
+      e.preventDefault();
+      const dt = new DataTransfer();
+      files.forEach((f) => dt.items.add(f));
+      void handleFilesPicked(dt.files);
+    }
+  }
+
+  /** Handler de drop en el panel del thread. Reusa el flujo de adjuntos. */
+  function handleThreadDrop(e: React.DragEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOver(false);
+    if (!activeId) return;
+    const files = e.dataTransfer?.files;
+    if (files && files.length > 0) {
+      void handleFilesPicked(files);
     }
   }
 
@@ -1408,6 +1945,296 @@ export function ChatView() {
       },
     ]);
     setShareMenuOpen(false);
+  }
+
+  /** Render de un item de la lista de conversaciones. Se llama desde cada
+   *  seccion (Fijados / Conversaciones / Archivados) y aplica el banner del
+   *  peer como fondo, el menu de acciones (...) y el badge de no leidos. */
+  function renderConvItem(c: ChatConversationItem) {
+    const active = c.id === activeId;
+    const banner = c.isGroup
+      ? c.image?.trim() || null
+      : c.peer?.profileBanner?.trim() || null;
+    const bx = c.isGroup ? 50 : c.peer?.bannerFocusX ?? 50;
+    const by = c.isGroup ? 50 : c.peer?.bannerFocusY ?? 50;
+    const displayName = conversationDisplayName(c);
+    const itemBgStyle: React.CSSProperties | undefined = banner
+      ? L
+        ? {
+            backgroundImage: `linear-gradient(90deg, rgba(255,255,255,${active ? 0.85 : 0.92}) 0%, rgba(255,255,255,${active ? 0.65 : 0.82}) 100%), url(${banner})`,
+            backgroundRepeat: "no-repeat, no-repeat",
+            backgroundSize: "cover, cover",
+            backgroundPosition: `center, ${bx}% ${by}%`,
+          }
+        : {
+            backgroundImage: `linear-gradient(90deg, rgba(10,15,30,${active ? 0.78 : 0.88}) 0%, rgba(10,15,30,${active ? 0.55 : 0.78}) 60%, rgba(10,15,30,${active ? 0.78 : 0.92}) 100%), url(${banner})`,
+            backgroundRepeat: "no-repeat, no-repeat",
+            backgroundSize: "cover, cover",
+            backgroundPosition: `center, ${bx}% ${by}%`,
+            imageRendering: "-webkit-optimize-contrast",
+          }
+      : undefined;
+    // Mostramos el contador de no leidos solo si la conversacion NO esta
+    // silenciada (de lo contrario el usuario ya pidio no ser molestado).
+    const showUnread = c.unreadCount > 0 && !c.muted;
+    return (
+      <li key={c.id} className="group/conv relative">
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={() => selectConversation(c.id)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              selectConversation(c.id);
+            }
+          }}
+          className={cn(
+            "relative flex w-full cursor-pointer items-start gap-3 overflow-hidden rounded-xl px-3 py-2.5 text-left transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ffeb66]/45",
+            active
+              ? L
+                ? "ring-1 ring-[#ffeb66]/45 shadow-sm"
+                : "ring-1 ring-[#ffeb66]/30 shadow-[0_0_20px_rgba(255,235,102,0.1)]"
+              : L
+                ? "hover:bg-zinc-50/80 ring-1 ring-transparent hover:ring-zinc-200/60"
+                : "hover:bg-white/[0.045] ring-1 ring-transparent hover:ring-white/[0.08]",
+            !banner && active && (L ? "bg-[#ffeb66]/14" : "bg-[#ffeb66]/10"),
+            c.archived && "opacity-75"
+          )}
+          style={itemBgStyle}
+        >
+          <div className="relative shrink-0">
+            {c.isGroup ? (
+              <GroupAvatarStack
+                members={c.members}
+                image={c.image}
+                title={c.title}
+                isLight={L}
+              />
+            ) : (
+              <Avatar
+                name={c.peer?.name ?? "?"}
+                image={c.peer?.image ?? null}
+                focusX={c.peer?.imageFocusX}
+                focusY={c.peer?.imageFocusY}
+                size="md"
+              />
+            )}
+            {showUnread && (
+              <span
+                className={cn(
+                  "absolute -right-0.5 -top-0.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full px-1 text-[9px] font-bold ring-2",
+                  L
+                    ? "bg-[#ffeb66] text-[#0a0f1e] ring-white"
+                    : "bg-[#ffeb66] text-[#0a0f1e] ring-[#0a0f1e]"
+                )}
+              >
+                {c.unreadCount > 9 ? "9+" : c.unreadCount}
+              </span>
+            )}
+            {c.unreadCount > 0 && c.muted && (
+              <span
+                className={cn(
+                  "absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full ring-2",
+                  L
+                    ? "bg-zinc-300 text-zinc-700 ring-white"
+                    : "bg-white/20 text-white/85 ring-[#0a0f1e]"
+                )}
+              >
+                <span className="block h-1 w-1 rounded-full bg-current" />
+              </span>
+            )}
+          </div>
+          <div className="relative z-[1] min-w-0 flex-1">
+            <div className="flex items-baseline justify-between gap-2">
+              <span
+                className={cn(
+                  "flex min-w-0 items-center gap-1 truncate text-sm font-semibold",
+                  L ? "text-zinc-900" : "text-white"
+                )}
+              >
+                {c.pinned && (
+                  <Pin
+                    className={cn(
+                      "h-3 w-3 shrink-0",
+                      L ? "text-[#9c7d10]" : "text-[#ffeb66]"
+                    )}
+                  />
+                )}
+                {c.muted && (
+                  <BellOff
+                    className={cn(
+                      "h-3 w-3 shrink-0",
+                      L ? "text-zinc-400" : "text-white/45"
+                    )}
+                  />
+                )}
+                <span className="truncate">{displayName}</span>
+              </span>
+              {c.lastMessage && (
+                <span
+                  className={cn(
+                    "shrink-0 text-[10px] tabular-nums",
+                    L
+                      ? showUnread
+                        ? "font-semibold text-[#9c7d10]"
+                        : "text-zinc-400"
+                      : showUnread
+                        ? "font-semibold text-[#ffeb66]"
+                        : "text-white/40"
+                  )}
+                >
+                  {formatListTime(c.lastMessage.createdAt)}
+                </span>
+              )}
+            </div>
+            <p
+              className={cn(
+                "mt-0.5 truncate text-xs",
+                showUnread
+                  ? L
+                    ? "font-medium text-zinc-800"
+                    : "font-medium text-white/85"
+                  : L
+                    ? "text-zinc-500"
+                    : "text-white/45"
+              )}
+            >
+              {(() => {
+                const lm = c.lastMessage;
+                if (!lm) {
+                  return c.isGroup
+                    ? `Grupo de ${c.members.length + 1} personas`
+                    : "Sin mensajes aún";
+                }
+                if (lm.isDeleted) return "Mensaje eliminado";
+                const previewBody =
+                  lm.body && lm.body.trim().length > 0
+                    ? lm.body
+                    : "📎 Adjunto";
+                if (lm.isMine) return `Tú: ${previewBody}`;
+                if (c.isGroup && lm.senderName) {
+                  return `${lm.senderName.split(" ")[0]}: ${previewBody}`;
+                }
+                return previewBody;
+              })()}
+            </p>
+          </div>
+        </div>
+        {/* Boton de acciones (...) */}
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            setConvMenuFor((cur) => (cur === c.id ? null : c.id));
+          }}
+          aria-label="Acciones de la conversación"
+          className={cn(
+            "absolute right-1.5 top-1.5 z-[2] flex h-7 w-7 items-center justify-center rounded-md opacity-0 transition-all",
+            "group-hover/conv:opacity-100 focus:opacity-100",
+            convMenuFor === c.id && "opacity-100",
+            L
+              ? "bg-white/90 text-zinc-600 ring-1 ring-zinc-200 hover:bg-zinc-50"
+              : "bg-[#0a0f1e]/85 text-white/70 ring-1 ring-white/10 hover:bg-[#0a0f1e]"
+          )}
+        >
+          <MoreVertical className="h-3.5 w-3.5" />
+        </button>
+        {/* Menu desplegable de acciones */}
+        {convMenuFor === c.id && (
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className={cn(
+              "absolute right-1.5 top-9 z-30 w-48 overflow-hidden rounded-lg border shadow-xl",
+              L
+                ? "border-zinc-200 bg-white"
+                : "border-white/12 bg-[#0d1427]"
+            )}
+          >
+            <button
+              type="button"
+              onClick={() => {
+                void updateConversationState(c.id, { pinned: !c.pinned });
+                setConvMenuFor(null);
+              }}
+              className={cn(
+                "flex w-full items-center gap-2 px-3 py-2 text-[12px] font-medium transition-colors",
+                L
+                  ? "text-zinc-700 hover:bg-zinc-50"
+                  : "text-white/85 hover:bg-white/[0.06]"
+              )}
+            >
+              {c.pinned ? (
+                <PinOff className="h-3.5 w-3.5" />
+              ) : (
+                <Pin className="h-3.5 w-3.5" />
+              )}
+              {c.pinned ? "Quitar de fijados" : "Fijar"}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                void updateConversationState(c.id, {
+                  // 8h por defecto al silenciar. Si ya estaba silenciada, la
+                  // re-activamos (muteDurationMs = 0).
+                  muteDurationMs: c.muted ? 0 : 8 * 60 * 60 * 1000,
+                });
+                setConvMenuFor(null);
+              }}
+              className={cn(
+                "flex w-full items-center gap-2 px-3 py-2 text-[12px] font-medium transition-colors",
+                L
+                  ? "text-zinc-700 hover:bg-zinc-50"
+                  : "text-white/85 hover:bg-white/[0.06]"
+              )}
+            >
+              {c.muted ? (
+                <Bell className="h-3.5 w-3.5" />
+              ) : (
+                <BellOff className="h-3.5 w-3.5" />
+              )}
+              {c.muted ? "Reactivar notificaciones" : "Silenciar 8 h"}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                void updateConversationState(c.id, { archived: !c.archived });
+                setConvMenuFor(null);
+              }}
+              className={cn(
+                "flex w-full items-center gap-2 px-3 py-2 text-[12px] font-medium transition-colors",
+                L
+                  ? "text-zinc-700 hover:bg-zinc-50"
+                  : "text-white/85 hover:bg-white/[0.06]"
+              )}
+            >
+              {c.archived ? (
+                <ArchiveRestore className="h-3.5 w-3.5" />
+              ) : (
+                <Archive className="h-3.5 w-3.5" />
+              )}
+              {c.archived ? "Restaurar" : "Archivar"}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setConvMenuFor(null);
+                void deleteConversation(c);
+              }}
+              className={cn(
+                "flex w-full items-center gap-2 border-t px-3 py-2 text-[12px] font-medium transition-colors",
+                L
+                  ? "border-zinc-100 text-red-600 hover:bg-red-50"
+                  : "border-white/8 text-red-400 hover:bg-red-500/10"
+              )}
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              {c.isGroup ? "Salir del grupo" : "Eliminar chat"}
+            </button>
+          </div>
+        )}
+      </li>
+    );
   }
 
   const listPanelClass = cn(
@@ -1477,24 +2304,50 @@ export function ChatView() {
                 </p>
               </div>
             </div>
-            <button
-              type="button"
-              onClick={() => setNewChatOpen((v) => !v)}
-              className={cn(
-                "flex h-9 items-center gap-1.5 rounded-xl border px-3 text-xs font-semibold transition-all",
-                newChatOpen
-                  ? L
-                    ? "border-zinc-300 bg-zinc-100 text-zinc-800"
-                    : "border-white/20 bg-white/10 text-white"
-                  : L
-                    ? "border-[#ffeb66]/45 bg-[#ffeb66]/18 text-zinc-900 hover:bg-[#ffeb66]/28"
-                    : "border-[#ffeb66]/35 bg-[#ffeb66]/12 text-[#ffeb66] hover:bg-[#ffeb66]/20 shadow-[0_0_16px_rgba(255,235,102,0.1)]"
-              )}
-              title="Nueva conversación"
-            >
-              <Plus className="h-3.5 w-3.5" />
-              Nuevo
-            </button>
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchOpen((v) => !v);
+                  if (newChatOpen) setNewChatOpen(false);
+                }}
+                aria-label="Buscar"
+                title="Buscar conversaciones y mensajes"
+                className={cn(
+                  "flex h-9 w-9 items-center justify-center rounded-xl border transition-all",
+                  searchOpen
+                    ? L
+                      ? "border-zinc-300 bg-zinc-100 text-zinc-800"
+                      : "border-white/20 bg-white/10 text-white"
+                    : L
+                      ? "border-zinc-200/80 bg-white/70 text-zinc-600 hover:bg-zinc-50"
+                      : "border-white/12 bg-white/[0.04] text-white/60 hover:bg-white/[0.08] hover:text-white"
+                )}
+              >
+                <Search className="h-3.5 w-3.5" />
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setNewChatOpen((v) => !v);
+                  if (searchOpen) setSearchOpen(false);
+                }}
+                className={cn(
+                  "flex h-9 items-center gap-1.5 rounded-xl border px-3 text-xs font-semibold transition-all",
+                  newChatOpen
+                    ? L
+                      ? "border-zinc-300 bg-zinc-100 text-zinc-800"
+                      : "border-white/20 bg-white/10 text-white"
+                    : L
+                      ? "border-[#ffeb66]/45 bg-[#ffeb66]/18 text-zinc-900 hover:bg-[#ffeb66]/28"
+                      : "border-[#ffeb66]/35 bg-[#ffeb66]/12 text-[#ffeb66] hover:bg-[#ffeb66]/20 shadow-[0_0_16px_rgba(255,235,102,0.1)]"
+                )}
+                title="Nueva conversación"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                Nuevo
+              </button>
+            </div>
           </div>
 
           {newChatOpen && (
@@ -1509,19 +2362,225 @@ export function ChatView() {
               }}
             />
           )}
+
+          {searchOpen && (
+            <div className="mt-3">
+              <div className="relative">
+                <Search
+                  className={cn(
+                    "pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2",
+                    L ? "text-zinc-400" : "text-white/35"
+                  )}
+                />
+                <input
+                  type="search"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Buscar conversaciones y mensajes…"
+                  autoFocus
+                  className={cn(
+                    "w-full rounded-lg border pl-8 pr-8 py-1.5 text-sm outline-none transition-colors focus:ring-2 focus:ring-[#ffeb66]/35",
+                    L
+                      ? "border-zinc-200 bg-white text-zinc-900 placeholder:text-zinc-400"
+                      : "border-white/10 bg-white/5 text-white placeholder:text-white/40"
+                  )}
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery("")}
+                    aria-label="Limpiar busqueda"
+                    className={cn(
+                      "absolute right-2 top-1/2 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded",
+                      L
+                        ? "text-zinc-400 hover:bg-zinc-100"
+                        : "text-white/40 hover:bg-white/10"
+                    )}
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto">
           {loadingList ? (
-            <p
-              className={cn(
-                "flex items-center justify-center gap-2 py-12 text-sm",
-                L ? "text-zinc-500" : "text-white/40"
+            <ConversationListSkeleton isLight={L} />
+          ) : searchOpen ? (
+            // === BUSQUEDA GLOBAL ===
+            <div className="p-2">
+              {searchQuery.trim().length < 2 ? (
+                <p
+                  className={cn(
+                    "px-3 py-8 text-center text-xs",
+                    L ? "text-zinc-500" : "text-white/40"
+                  )}
+                >
+                  Escribe al menos 2 caracteres para buscar.
+                </p>
+              ) : searchLoading ? (
+                <p
+                  className={cn(
+                    "flex items-center justify-center gap-2 py-8 text-xs",
+                    L ? "text-zinc-500" : "text-white/40"
+                  )}
+                >
+                  <Loader2 className="h-4 w-4 animate-spin" /> Buscando…
+                </p>
+              ) : searchResults.conversations.length === 0 &&
+                searchResults.messages.length === 0 ? (
+                <p
+                  className={cn(
+                    "px-3 py-8 text-center text-xs",
+                    L ? "text-zinc-500" : "text-white/40"
+                  )}
+                >
+                  Sin resultados para &ldquo;{searchQuery}&rdquo;.
+                </p>
+              ) : (
+                <>
+                  {searchResults.conversations.length > 0 && (
+                    <>
+                      <p
+                        className={cn(
+                          "px-2 pb-1.5 pt-1 text-[10px] font-semibold uppercase tracking-wide",
+                          L ? "text-zinc-500" : "text-white/45"
+                        )}
+                      >
+                        Conversaciones
+                      </p>
+                      <ul className="mb-2 space-y-0.5">
+                        {searchResults.conversations.map((c) => {
+                          const peer = !c.isGroup ? c.members[0] : null;
+                          return (
+                            <li key={c.id}>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setSearchOpen(false);
+                                  setSearchQuery("");
+                                  selectConversation(c.id);
+                                }}
+                                className={cn(
+                                  "flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-left transition-colors",
+                                  L
+                                    ? "hover:bg-zinc-50"
+                                    : "hover:bg-white/[0.05]"
+                                )}
+                              >
+                                {c.isGroup ? (
+                                  <GroupAvatarStack
+                                    members={c.members as ChatPeer[]}
+                                    image={c.image}
+                                    title={c.title}
+                                    isLight={L}
+                                  />
+                                ) : peer ? (
+                                  <Avatar
+                                    name={peer.name}
+                                    image={peer.image}
+                                    focusX={peer.imageFocusX}
+                                    focusY={peer.imageFocusY}
+                                    size="xs"
+                                  />
+                                ) : null}
+                                <span className="min-w-0 flex-1">
+                                  <span
+                                    className={cn(
+                                      "block truncate text-sm font-medium",
+                                      L ? "text-zinc-900" : "text-white"
+                                    )}
+                                  >
+                                    {c.isGroup
+                                      ? c.title?.trim() ||
+                                        c.members
+                                          .map((m) => m.name.split(" ")[0])
+                                          .join(", ")
+                                      : peer?.name ?? "?"}
+                                  </span>
+                                  <span
+                                    className={cn(
+                                      "block truncate text-[11px]",
+                                      L ? "text-zinc-500" : "text-white/45"
+                                    )}
+                                  >
+                                    {c.isGroup
+                                      ? `Grupo · ${c.members.length + 1} miembros`
+                                      : peer?.email ?? ""}
+                                  </span>
+                                </span>
+                              </button>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </>
+                  )}
+                  {searchResults.messages.length > 0 && (
+                    <>
+                      <p
+                        className={cn(
+                          "px-2 pb-1.5 pt-1 text-[10px] font-semibold uppercase tracking-wide",
+                          L ? "text-zinc-500" : "text-white/45"
+                        )}
+                      >
+                        Mensajes
+                      </p>
+                      <ul className="space-y-0.5">
+                        {searchResults.messages.map((m) => (
+                          <li key={m.id}>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSearchOpen(false);
+                                setSearchQuery("");
+                                pendingJumpRef.current = m.id;
+                                if (m.conversationId === activeId) {
+                                  jumpToMessage(m.id);
+                                } else {
+                                  selectConversation(m.conversationId);
+                                }
+                              }}
+                              className={cn(
+                                "flex w-full flex-col gap-0.5 rounded-lg px-2.5 py-1.5 text-left transition-colors",
+                                L
+                                  ? "hover:bg-zinc-50"
+                                  : "hover:bg-white/[0.05]"
+                              )}
+                            >
+                              <span
+                                className={cn(
+                                  "flex items-center gap-2 truncate text-[11px] font-semibold",
+                                  L ? "text-zinc-600" : "text-white/55"
+                                )}
+                              >
+                                <span className="truncate">
+                                  {m.conversationLabel}
+                                </span>
+                                <span className="opacity-60">·</span>
+                                <span className="truncate opacity-70">
+                                  {m.senderName}
+                                </span>
+                              </span>
+                              <span
+                                className={cn(
+                                  "line-clamp-2 text-xs",
+                                  L ? "text-zinc-800" : "text-white/85"
+                                )}
+                              >
+                                {m.body}
+                              </span>
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    </>
+                  )}
+                </>
               )}
-            >
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Cargando…
-            </p>
+            </div>
           ) : conversations.length === 0 ? (
             <p
               className={cn(
@@ -1534,177 +2593,83 @@ export function ChatView() {
               Pulsa + para escribir a un compañero.
             </p>
           ) : (
-            <ul className="space-y-1 p-2">
-              {conversations.map((c) => {
-                const active = c.id === activeId;
-                // En grupos no usamos el banner (no hay uno comun) salvo
-                // que se haya subido una imagen al grupo. En 1-a-1
-                // tomamos el banner del peer.
-                const banner = c.isGroup
-                  ? c.image?.trim() || null
-                  : c.peer?.profileBanner?.trim() || null;
-                const bx = c.isGroup ? 50 : c.peer?.bannerFocusX ?? 50;
-                const by = c.isGroup ? 50 : c.peer?.bannerFocusY ?? 50;
-                const displayName = conversationDisplayName(c);
-                // Banner del peer como fondo MUY sutil (mas marcado si esta activo).
-                const itemBgStyle: React.CSSProperties | undefined = banner
-                  ? L
-                    ? {
-                        backgroundImage: `linear-gradient(90deg, rgba(255,255,255,${active ? 0.85 : 0.92}) 0%, rgba(255,255,255,${active ? 0.65 : 0.82}) 100%), url(${banner})`,
-                        backgroundRepeat: "no-repeat, no-repeat",
-                        backgroundSize: "cover, cover",
-                        backgroundPosition: `center, ${bx}% ${by}%`,
-                      }
-                    : {
-                        backgroundImage: `linear-gradient(90deg, rgba(10,15,30,${active ? 0.78 : 0.88}) 0%, rgba(10,15,30,${active ? 0.55 : 0.78}) 60%, rgba(10,15,30,${active ? 0.78 : 0.92}) 100%), url(${banner})`,
-                        backgroundRepeat: "no-repeat, no-repeat",
-                        backgroundSize: "cover, cover",
-                        backgroundPosition: `center, ${bx}% ${by}%`,
-                        imageRendering: "-webkit-optimize-contrast",
-                      }
-                  : undefined;
-                return (
-                  <li key={c.id} className="group/conv relative">
-                    <div
-                      role="button"
-                      tabIndex={0}
-                      onClick={() => selectConversation(c.id)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" || e.key === " ") {
-                          e.preventDefault();
-                          selectConversation(c.id);
-                        }
-                      }}
-                      className={cn(
-                        "relative flex w-full cursor-pointer items-start gap-3 overflow-hidden rounded-xl px-3 py-2.5 text-left transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ffeb66]/45",
-                        active
-                          ? L
-                            ? "ring-1 ring-[#ffeb66]/45 shadow-sm"
-                            : "ring-1 ring-[#ffeb66]/30 shadow-[0_0_20px_rgba(255,235,102,0.1)]"
-                          : L
-                            ? "hover:bg-zinc-50/80 ring-1 ring-transparent hover:ring-zinc-200/60"
-                            : "hover:bg-white/[0.045] ring-1 ring-transparent hover:ring-white/[0.08]",
-                        !banner && active &&
-                          (L ? "bg-[#ffeb66]/14" : "bg-[#ffeb66]/10")
-                      )}
-                      style={itemBgStyle}
-                    >
-                      <div className="relative shrink-0">
-                        {c.isGroup ? (
-                          <GroupAvatarStack
-                            members={c.members}
-                            image={c.image}
-                            title={c.title}
-                            isLight={L}
-                          />
-                        ) : (
-                          <Avatar
-                            name={c.peer?.name ?? "?"}
-                            image={c.peer?.image ?? null}
-                            focusX={c.peer?.imageFocusX}
-                            focusY={c.peer?.imageFocusY}
-                            size="md"
-                          />
+            (() => {
+              // Agrupamos en tres bloques visuales: fijados, normales y
+              // archivados. El backend ya devuelve la lista ordenada con esa
+              // misma logica; aqui solo separamos para insertar cabeceras.
+              const pinned = conversations.filter(
+                (c) => c.pinned && !c.archived
+              );
+              const normal = conversations.filter(
+                (c) => !c.pinned && !c.archived
+              );
+              const archived = conversations.filter((c) => c.archived);
+              return (
+                <div className="p-2">
+                  {pinned.length > 0 && (
+                    <>
+                      <p
+                        className={cn(
+                          "flex items-center gap-1.5 px-2 pb-1.5 pt-1 text-[10px] font-semibold uppercase tracking-wide",
+                          L ? "text-zinc-500" : "text-white/45"
                         )}
-                        {c.unreadCount > 0 && (
-                          <span
-                            className={cn(
-                              "absolute -right-0.5 -top-0.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full px-1 text-[9px] font-bold ring-2",
-                              L
-                                ? "bg-[#ffeb66] text-[#0a0f1e] ring-white"
-                                : "bg-[#ffeb66] text-[#0a0f1e] ring-[#0a0f1e]"
-                            )}
-                          >
-                            {c.unreadCount > 9 ? "9+" : c.unreadCount}
-                          </span>
-                        )}
-                      </div>
-                      <div className="relative z-[1] min-w-0 flex-1">
-                        <div className="flex items-baseline justify-between gap-2">
-                          <span
-                            className={cn(
-                              "truncate text-sm font-semibold",
-                              L ? "text-zinc-900" : "text-white"
-                            )}
-                          >
-                            {displayName}
-                          </span>
-                          {c.lastMessage && (
-                            <span
-                              className={cn(
-                                "shrink-0 text-[10px] tabular-nums",
-                                L
-                                  ? c.unreadCount > 0
-                                    ? "font-semibold text-[#9c7d10]"
-                                    : "text-zinc-400"
-                                  : c.unreadCount > 0
-                                    ? "font-semibold text-[#ffeb66]"
-                                    : "text-white/40"
-                              )}
-                            >
-                              {formatListTime(c.lastMessage.createdAt)}
-                            </span>
-                          )}
-                        </div>
+                      >
+                        <Pin className="h-3 w-3" /> Fijados
+                      </p>
+                      <ul className="mb-2 space-y-1">
+                        {pinned.map((c) => renderConvItem(c))}
+                      </ul>
+                    </>
+                  )}
+                  {normal.length > 0 && (
+                    <>
+                      {pinned.length > 0 && (
                         <p
                           className={cn(
-                            "mt-0.5 truncate text-xs",
-                            c.unreadCount > 0
-                              ? L
-                                ? "font-medium text-zinc-800"
-                                : "font-medium text-white/85"
-                              : L
-                                ? "text-zinc-500"
-                                : "text-white/45"
+                            "px-2 pb-1.5 pt-1 text-[10px] font-semibold uppercase tracking-wide",
+                            L ? "text-zinc-500" : "text-white/45"
                           )}
                         >
-                          {(() => {
-                            const lm = c.lastMessage;
-                            if (!lm) {
-                              return c.isGroup
-                                ? `Grupo de ${c.members.length + 1} personas`
-                                : "Sin mensajes aún";
-                            }
-                            const previewBody =
-                              lm.body && lm.body.trim().length > 0
-                                ? lm.body
-                                : "📎 Adjunto";
-                            if (lm.isMine) return `Tú: ${previewBody}`;
-                            if (c.isGroup && lm.senderName) {
-                              return `${lm.senderName.split(" ")[0]}: ${previewBody}`;
-                            }
-                            return previewBody;
-                          })()}
+                          Conversaciones
                         </p>
-                      </div>
-                    </div>
-                    {/* Boton flotante: eliminar conversacion */}
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        void deleteConversation(c);
-                      }}
-                      aria-label={
-                        c.isGroup ? "Salir del grupo" : "Eliminar chat"
-                      }
-                      title={
-                        c.isGroup ? "Salir del grupo" : "Eliminar chat"
-                      }
-                      className={cn(
-                        "absolute right-1.5 top-1.5 z-[2] flex h-7 w-7 items-center justify-center rounded-md opacity-0 transition-all",
-                        "group-hover/conv:opacity-100 focus:opacity-100",
-                        L
-                          ? "bg-white/85 text-zinc-500 ring-1 ring-zinc-200 hover:bg-red-50 hover:text-red-600"
-                          : "bg-[#0a0f1e]/80 text-white/55 ring-1 ring-white/10 hover:bg-red-500/15 hover:text-red-400"
                       )}
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
+                      <ul className="space-y-1">
+                        {normal.map((c) => renderConvItem(c))}
+                      </ul>
+                    </>
+                  )}
+                  {archived.length > 0 && (
+                    <div className="mt-3">
+                      <button
+                        type="button"
+                        onClick={() => setShowArchived((v) => !v)}
+                        className={cn(
+                          "flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wide transition-colors",
+                          L
+                            ? "text-zinc-500 hover:bg-zinc-100"
+                            : "text-white/45 hover:bg-white/[0.04]"
+                        )}
+                      >
+                        <span className="flex items-center gap-1.5">
+                          <Archive className="h-3 w-3" /> Archivados (
+                          {archived.length})
+                        </span>
+                        {showArchived ? (
+                          <ChevronUp className="h-3.5 w-3.5" />
+                        ) : (
+                          <ChevronDown className="h-3.5 w-3.5" />
+                        )}
+                      </button>
+                      {showArchived && (
+                        <ul className="mt-1 space-y-1">
+                          {archived.map((c) => renderConvItem(c))}
+                        </ul>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })()
           )}
         </div>
       </aside>
@@ -1713,9 +2678,44 @@ export function ChatView() {
       <section
         className={cn(
           threadPanelClass,
-          !mobileShowThread && "hidden md:flex"
+          !mobileShowThread && "hidden md:flex",
+          "relative"
         )}
+        onDragEnter={(e) => {
+          if (!activeId) return;
+          if (e.dataTransfer?.types?.includes("Files")) {
+            e.preventDefault();
+            setDragOver(true);
+          }
+        }}
+        onDragOver={(e) => {
+          if (!activeId) return;
+          if (e.dataTransfer?.types?.includes("Files")) {
+            e.preventDefault();
+          }
+        }}
+        onDragLeave={(e) => {
+          // Solo cerramos el overlay si salimos REALMENTE de la zona.
+          if (e.currentTarget === e.target) setDragOver(false);
+        }}
+        onDrop={handleThreadDrop}
       >
+        {/* Overlay de drag&drop */}
+        {dragOver && activeId && (
+          <div
+            className={cn(
+              "pointer-events-none absolute inset-0 z-50 flex flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed",
+              L
+                ? "border-[#ffeb66]/70 bg-[#ffeb66]/15 text-zinc-700"
+                : "border-[#ffeb66]/70 bg-[#0a0f1e]/85 text-white"
+            )}
+          >
+            <Paperclip className="h-8 w-8" />
+            <p className="text-sm font-semibold">
+              Suelta los archivos para adjuntarlos
+            </p>
+          </div>
+        )}
         {activeConv ? (
           <>
             {(() => {
@@ -1862,10 +2862,38 @@ export function ChatView() {
               );
             })()}
 
+            <div className="relative min-h-0 flex-1">
+            {!isAtBottom && (
+              <button
+                type="button"
+                onClick={scrollToBottom}
+                aria-label="Ir al último mensaje"
+                className={cn(
+                  "absolute bottom-3 right-3 z-20 flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold shadow-lg transition-all",
+                  L
+                    ? "border-zinc-200 bg-white text-zinc-800 hover:bg-zinc-50"
+                    : "border-white/15 bg-[#0d1427] text-white hover:bg-[#161f33]"
+                )}
+              >
+                <ArrowDown className="h-3.5 w-3.5" />
+                {newMessagesWhileScrolledUp > 0 && (
+                  <span
+                    className={cn(
+                      "flex h-4 min-w-[1rem] items-center justify-center rounded-full px-1 text-[9px] font-bold",
+                      L ? "bg-[#ffeb66] text-[#0a0f1e]" : "bg-[#ffeb66] text-[#0a0f1e]"
+                    )}
+                  >
+                    {newMessagesWhileScrolledUp > 9
+                      ? "9+"
+                      : newMessagesWhileScrolledUp}
+                  </span>
+                )}
+              </button>
+            )}
             <div
               ref={messagesContainerRef}
               className={cn(
-                "chat-messages-scroll min-h-0 flex-1 overflow-y-auto px-4 py-5 space-y-3",
+                "chat-messages-scroll h-full overflow-y-auto px-4 py-5 space-y-3",
                 !L && "bg-[radial-gradient(ellipse_at_50%_0%,rgba(255,235,102,0.06),transparent_55%)]"
               )}
             >
@@ -2112,6 +3140,12 @@ export function ChatView() {
                                     attachments={m.attachments}
                                     isLight={L}
                                     isMine={m.isMine}
+                                    onImageClick={(url) => {
+                                      const idx = threadImages.findIndex(
+                                        (it) => it.url === url
+                                      );
+                                      if (idx >= 0) setLightboxIndex(idx);
+                                    }}
                                   />
                                 )}
                               </>
@@ -2134,11 +3168,48 @@ export function ChatView() {
                                   </span>
                                 )}
                                 <span>{formatTime(m.createdAt)}</span>
+                                {(m as ChatMessageItem & {
+                                  pending?: "sending" | "failed";
+                                }).pending === "sending" && (
+                                  <Loader2 className="h-3 w-3 animate-spin opacity-80" />
+                                )}
+                                {(m as ChatMessageItem & {
+                                  pending?: "sending" | "failed";
+                                }).pending === "failed" && (
+                                  <span className="font-semibold text-red-400">
+                                    No enviado
+                                  </span>
+                                )}
                               </p>
                             )}
 
+                            {(m as ChatMessageItem & {
+                              pending?: "sending" | "failed";
+                            }).pending === "failed" && (
+                              <div className="mt-1 flex items-center justify-end gap-1.5">
+                                <button
+                                  type="button"
+                                  onClick={() => retrySend(m.id)}
+                                  className="rounded-md bg-[#ffeb66] px-2 py-0.5 text-[10px] font-semibold text-[#0a0f1e] hover:brightness-105"
+                                >
+                                  Reintentar
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => discardFailed(m.id)}
+                                  className="text-[10px] font-semibold text-white/65 hover:text-white"
+                                >
+                                  Descartar
+                                </button>
+                              </div>
+                            )}
+
                             {/* Toolbar flotante con acciones por mensaje */}
-                            {!m.isDeleted && editingMessageId !== m.id && (
+                            {!m.isDeleted &&
+                              editingMessageId !== m.id &&
+                              !(m as ChatMessageItem & {
+                                pending?: "sending" | "failed";
+                              }).pending && (
                               <div
                                 className={cn(
                                   "absolute -top-3 z-10 hidden items-center gap-0.5 rounded-full border shadow-lg group-hover/bubble:flex",
@@ -2311,6 +3382,7 @@ export function ChatView() {
               )}
               <div ref={messagesEndRef} />
             </div>
+            </div>
 
             <form
               onSubmit={handleSend}
@@ -2456,6 +3528,7 @@ export function ChatView() {
                   ref={composerRef}
                   value={draft}
                   onChange={(e) => setDraft(e.target.value)}
+                  onPaste={handlePaste}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && !e.shiftKey) {
                       e.preventDefault();
@@ -2610,6 +3683,16 @@ export function ChatView() {
             setMessages([]);
             await loadConversations();
           }}
+        />
+      )}
+
+      {/* Lightbox de imagenes del hilo */}
+      {lightboxIndex !== null && threadImages.length > 0 && (
+        <ImageLightbox
+          images={threadImages}
+          index={Math.min(lightboxIndex, threadImages.length - 1)}
+          onClose={() => setLightboxIndex(null)}
+          onIndexChange={(n) => setLightboxIndex(n)}
         />
       )}
     </div>

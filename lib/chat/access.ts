@@ -36,8 +36,21 @@ export async function findDirectConversation(
 }
 
 export async function countUnreadChatMessages(userId: string): Promise<number> {
+  const now = new Date();
+  // Excluimos:
+  //  - participaciones que el usuario abandono (leftAt) o oculto (hiddenAt).
+  //  - participaciones silenciadas activas (mutedUntil > now): el usuario
+  //    no quiere que cuenten para el badge global.
+  //  - participaciones archivadas (archivedAt): el usuario las saco de la
+  //    vista principal a proposito; no deben hacer que parpadee el badge.
   const participations = await prisma.chatParticipant.findMany({
-    where: { userId },
+    where: {
+      userId,
+      leftAt: null,
+      hiddenAt: null,
+      archivedAt: null,
+      OR: [{ mutedUntil: null }, { mutedUntil: { lte: now } }],
+    },
     select: {
       conversationId: true,
       lastReadAt: true,
@@ -51,6 +64,7 @@ export async function countUnreadChatMessages(userId: string): Promise<number> {
       where: {
         conversationId: p.conversationId,
         senderId: { not: userId },
+        deletedAt: null,
         ...(p.lastReadAt ? { createdAt: { gt: p.lastReadAt } } : {}),
       },
     });

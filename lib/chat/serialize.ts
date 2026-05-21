@@ -34,6 +34,12 @@ export type ChatConversationItem = {
     isDeleted?: boolean;
   } | null;
   unreadCount: number;
+  /** Estado personal de cada usuario sobre la conversacion. */
+  pinned: boolean;
+  archived: boolean;
+  muted: boolean;
+  /** ISO si esta silenciada y todavia no ha caducado el mute. */
+  mutedUntil: string | null;
 };
 
 export type ChatAttachmentKind = "FILE" | "IMAGE" | "TASK" | "PROJECT" | "NOTE";

@@ -850,8 +850,16 @@ model ChatParticipant {
       en SU lista, pero los mensajes se conservan para el otro. Si llega un
       mensaje nuevo se vuelve a poner a null para restaurarla. */
   hiddenAt       DateTime?
-  /** El usuario silencio las notificaciones del chat. */
+  /** El usuario silencio las notificaciones del chat. Si esta seteado a una
+      fecha futura, NO entra en el badge global ni dispara notificaciones,
+      pero la conversacion sigue mostrandose en la lista. */
   mutedUntil     DateTime?
+  /** Conversacion fijada para este usuario (aparece en seccion "Fijados"
+      arriba del todo, ordenada por pinnedAt desc). */
+  pinnedAt       DateTime?
+  /** Conversacion archivada para este usuario (oculta de la lista principal,
+      visible en seccion "Archivados" colapsable). */
+  archivedAt     DateTime?
 
   conversation ChatConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   user         User             @relation(fields: [userId], references: [id], onDelete: Cascade)

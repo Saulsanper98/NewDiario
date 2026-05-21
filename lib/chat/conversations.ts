@@ -45,6 +45,7 @@ export async function listConversationsForUser(
   });
 
   const items: ChatConversationItem[] = [];
+  const now = Date.now();
 
   for (const p of participations) {
     const conv = p.conversation;
@@ -59,6 +60,7 @@ export async function listConversationsForUser(
       where: {
         conversationId: conv.id,
         senderId: { not: userId },
+        deletedAt: null,
         ...(p.lastReadAt ? { createdAt: { gt: p.lastReadAt } } : {}),
       },
     });
@@ -74,6 +76,8 @@ export async function listConversationsForUser(
       bannerFocusX: row.user.bannerFocusX ?? null,
       bannerFocusY: row.user.bannerFocusY ?? null,
     }));
+
+    const mutedActive = !!p.mutedUntil && p.mutedUntil.getTime() > now;
 
     items.push({
       id: conv.id,
@@ -95,13 +99,22 @@ export async function listConversationsForUser(
           }
         : null,
       unreadCount,
+      pinned: !!p.pinnedAt,
+      archived: !!p.archivedAt,
+      muted: mutedActive,
+      mutedUntil: mutedActive ? p.mutedUntil!.toISOString() : null,
     });
   }
 
-  items.sort(
-    (a, b) =>
-      new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
-  );
+  // Orden final:
+  //  1. Fijados primero (mas reciente primero).
+  //  2. No fijados despues, ordenados por updatedAt.
+  //  3. Archivados al final (vuelven a estar ordenados por updatedAt).
+  items.sort((a, b) => {
+    if (a.archived !== b.archived) return a.archived ? 1 : -1;
+    if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
+    return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+  });
 
   return items;
 }

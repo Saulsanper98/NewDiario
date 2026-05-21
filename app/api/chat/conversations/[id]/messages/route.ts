@@ -315,8 +315,17 @@ export async function POST(
       data: { hiddenAt: null },
     });
 
+    // Receptores que SI deben recibir notificacion: estan activos en la
+    // conversacion (leftAt: null) y no la tienen silenciada actualmente.
+    // No filtramos por hiddenAt porque al llegar mensaje se va a restaurar.
+    const now = new Date();
     const others = await tx.chatParticipant.findMany({
-      where: { conversationId, userId: { not: user.id } },
+      where: {
+        conversationId,
+        userId: { not: user.id },
+        leftAt: null,
+        OR: [{ mutedUntil: null }, { mutedUntil: { lte: now } }],
+      },
       select: { userId: true },
     });
 
