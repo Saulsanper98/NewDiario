@@ -4,7 +4,13 @@ import { useState, useEffect, useRef, startTransition, useCallback } from "react
 import { createPortal } from "react-dom";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { playCategory } from "@/lib/notifications/sound-player";
+import {
+  playCategory,
+  setLocalPrefs,
+  setUserSoundsCache,
+  type SoundPreferences,
+  type UserSoundLite,
+} from "@/lib/notifications/sound-player";
 import {
   Eye,
   EyeOff,
@@ -1084,11 +1090,47 @@ export default function LoginPage() {
       localStorage.removeItem(STORAGE_ATTEMPTS);
     } catch { }
     setAttempts(0);
+
+    // Sonido de bienvenida: hay que tener cuidado con un detalle sutil. El
+    // cache local de preferencias (`sound-prefs-v1`), la biblioteca de
+    // audios del usuario (`user-sounds-cache-v1`) y el toggle del chat
+    // (`chat-sound-enabled`) viven en localStorage, que es POR ORIGEN, no
+    // por usuario. Si el usuario anterior dejó configurado un sonido y
+    // ahora entra otra persona en el mismo navegador, sonaría el sonido
+    // del anterior.
+    //
+    // Antes de reproducir nada, descartamos cualquier cache previo y
+    // cargamos las preferencias del usuario que acaba de iniciar sesión
+    // (la cookie de sesión ya está set tras `signIn`). Limitamos el fetch
+    // a 800ms para no bloquear el login si el servidor tarda; pasada esa
+    // ventana sonará el preset por defecto del sistema.
+    try {
+      setLocalPrefs({});
+      setUserSoundsCache([]);
+      window.localStorage.removeItem("chat-sound-enabled");
+    } catch { /* localStorage bloqueado */ }
+    try {
+      const ac = new AbortController();
+      const to = setTimeout(() => ac.abort(), 800);
+      const r = await fetch("/api/me/sounds", {
+        cache: "no-store",
+        signal: ac.signal,
+      }).catch(() => null);
+      clearTimeout(to);
+      if (r && r.ok) {
+        const data = (await r.json()) as {
+          sounds?: UserSoundLite[];
+          preferences?: SoundPreferences;
+        };
+        setUserSoundsCache(data.sounds ?? []);
+        setLocalPrefs(data.preferences ?? {});
+      }
+    } catch {
+      /* sin red o timeout: caemos al preset por defecto */
+    }
+
     setLoginPhase("redirecting");
     setWiping(true);
-    // Sonido de bienvenida: usa la preferencia que el usuario tenga guardada
-    // (cacheada en localStorage tras su última visita) o el preset por
-    // defecto ("triada ascendente") si es la primera vez.
     try {
       playCategory("login");
     } catch {

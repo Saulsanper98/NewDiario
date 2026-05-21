@@ -450,6 +450,15 @@ export function Sidebar({
           signingOut={signingOut}
           onSignOut={() => {
             setSigningOut(true);
+            // Limpieza de caches asociados al usuario que cierra sesión.
+            // Estos caches viven en localStorage (por ORIGEN, no por
+            // usuario), así que si otro usuario inicia sesión en el mismo
+            // navegador heredaría los sonidos / preferencias del anterior.
+            try {
+              window.localStorage.removeItem("sound-prefs-v1");
+              window.localStorage.removeItem("user-sounds-cache-v1");
+              window.localStorage.removeItem("chat-sound-enabled");
+            } catch { /* localStorage bloqueado */ }
             // Evitamos pasar callbackUrl para que Auth.js no lo resuelva contra
             // NEXTAUTH_URL (que puede apuntar a localhost). Redirigimos a mano
             // al /login del host actual.
