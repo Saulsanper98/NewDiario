@@ -542,13 +542,19 @@ function SharePickerPanel({
             type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder={`Buscar ${tab === "TASK" ? "tareas" : tab === "PROJECT" ? "proyectos" : "notas"}…`}
+            placeholder={
+              tab === "TASK"
+                ? "Buscar por título de tarea o proyecto…"
+                : tab === "PROJECT"
+                  ? "Buscar por título de proyecto o departamento…"
+                  : "Buscar por título de nota o departamento…"
+            }
             className={cn(
               "w-full rounded-lg border pl-8 pr-8 py-2 text-sm outline-none transition-all",
               "focus:border-[#ffeb66]/55 focus:shadow-[0_0_0_3px_rgba(255,235,102,0.12)]",
               isLight
                 ? "border-zinc-200 bg-zinc-50/70 text-zinc-900 placeholder:text-zinc-400"
-                : "border-white/10 bg-white/[0.04] text-white placeholder:text-white/35"
+                : "border-white/10 bg-white/[0.04] text-white placeholder:text-white/50"
             )}
             autoFocus
           />
@@ -570,11 +576,37 @@ function SharePickerPanel({
         </div>
       </div>
 
+      {/* CONTADOR DE RESULTADOS */}
+      {!loading && items.length > 0 && query.trim() && (
+        <div
+          className={cn(
+            "border-b px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wide",
+            isLight
+              ? "border-zinc-100 bg-zinc-50/70 text-zinc-500"
+              : "border-white/6 bg-white/[0.02] text-white/45"
+          )}
+        >
+          {items.length}{" "}
+          {items.length === 1 ? "resultado" : "resultados"}
+          {query.trim() && (
+            <span
+              className={cn(
+                "ml-1 normal-case tracking-normal",
+                isLight ? "text-zinc-400" : "text-white/35"
+              )}
+            >
+              · &ldquo;{query.trim()}&rdquo;
+            </span>
+          )}
+        </div>
+      )}
+
       {/* LISTA */}
-      <div className="chat-messages-scroll max-h-64 overflow-y-auto p-1.5">
+      <div className="relative">
+        <div className="chat-messages-scroll max-h-80 overflow-y-auto p-1.5">
         {loading ? (
           <ul className="space-y-1.5 px-1.5 py-2">
-            {[0, 1, 2].map((i) => (
+            {[0, 1, 2, 3].map((i) => (
               <li
                 key={i}
                 className="flex items-center gap-2 rounded-lg px-1 py-1"
@@ -590,7 +622,7 @@ function SharePickerPanel({
                     className={cn(
                       "chat-skeleton block h-3 rounded-md",
                       isLight && "is-light",
-                      i === 0 ? "w-3/5" : i === 1 ? "w-4/5" : "w-2/3"
+                      i === 0 ? "w-3/5" : i === 1 ? "w-4/5" : i === 2 ? "w-2/3" : "w-1/2"
                     )}
                   />
                   <span
@@ -644,74 +676,110 @@ function SharePickerPanel({
           </div>
         ) : (
           <ul className="space-y-0.5">
-            {items.map((item) => (
-              <li key={`${item.kind}-${item.id}`}>
-                <button
-                  type="button"
-                  onClick={() => onSelect(item)}
-                  className={cn(
-                    "group/share flex w-full items-center gap-2.5 rounded-lg border border-transparent px-2.5 py-2 text-left transition-all",
-                    isLight
-                      ? "hover:border-zinc-200 hover:bg-zinc-50"
-                      : "hover:border-white/10 hover:bg-white/[0.05]"
-                  )}
-                >
-                  <span
+            {items.map((item) => {
+              // Color de acento del item segun su tipo. Lo usamos en el
+              // borde del hover para reforzar el codigo visual de tabs.
+              const accent =
+                item.kind === "TASK"
+                  ? {
+                      chip: isLight
+                        ? "bg-amber-50 text-amber-700"
+                        : "bg-amber-400/12 text-amber-300",
+                      hoverBorder: isLight
+                        ? "hover:border-amber-200/80 hover:bg-amber-50/40"
+                        : "hover:border-amber-400/25 hover:bg-amber-400/[0.04]",
+                    }
+                  : item.kind === "PROJECT"
+                    ? {
+                        chip: isLight
+                          ? "bg-violet-50 text-violet-700"
+                          : "bg-violet-400/12 text-violet-300",
+                        hoverBorder: isLight
+                          ? "hover:border-violet-200/80 hover:bg-violet-50/40"
+                          : "hover:border-violet-400/25 hover:bg-violet-400/[0.04]",
+                      }
+                    : {
+                        chip: isLight
+                          ? "bg-sky-50 text-sky-700"
+                          : "bg-sky-400/12 text-sky-300",
+                        hoverBorder: isLight
+                          ? "hover:border-sky-200/80 hover:bg-sky-50/40"
+                          : "hover:border-sky-400/25 hover:bg-sky-400/[0.04]",
+                      };
+              return (
+                <li key={`${item.kind}-${item.id}`}>
+                  <button
+                    type="button"
+                    onClick={() => onSelect(item)}
                     className={cn(
-                      "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-transform group-hover/share:scale-105",
-                      item.kind === "TASK"
-                        ? isLight
-                          ? "bg-amber-50 text-amber-700"
-                          : "bg-amber-400/12 text-amber-300"
-                        : item.kind === "PROJECT"
-                          ? isLight
-                            ? "bg-violet-50 text-violet-700"
-                            : "bg-violet-400/12 text-violet-300"
-                          : isLight
-                            ? "bg-sky-50 text-sky-700"
-                            : "bg-sky-400/12 text-sky-300"
+                      "group/share flex w-full items-center gap-2.5 rounded-lg border border-transparent px-2.5 py-2 text-left transition-all",
+                      accent.hoverBorder
                     )}
                   >
-                    {attachmentKindIcon(item.kind)}
-                  </span>
-                  <span className="min-w-0 flex-1">
                     <span
                       className={cn(
-                        "block truncate text-sm font-medium",
-                        isLight ? "text-zinc-900" : "text-white"
+                        "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-transform group-hover/share:scale-105",
+                        accent.chip
                       )}
                     >
-                      {item.label}
+                      {attachmentKindIcon(item.kind)}
                     </span>
-                    {item.meta && (
+                    <span className="min-w-0 flex-1">
                       <span
                         className={cn(
-                          "block truncate text-[11px]",
-                          isLight ? "text-zinc-500" : "text-white/45"
+                          "block truncate text-sm font-medium",
+                          isLight ? "text-zinc-900" : "text-white"
                         )}
                       >
-                        {item.kind === "TASK" &&
-                          typeof item.meta.projectName === "string" &&
-                          item.meta.projectName}
-                        {item.kind === "PROJECT" &&
-                          typeof item.meta.departmentName === "string" &&
-                          item.meta.departmentName}
-                        {item.kind === "NOTE" &&
-                          typeof item.meta.departmentName === "string" &&
-                          item.meta.departmentName}
+                        {item.label}
                       </span>
-                    )}
-                  </span>
-                  <ChevronRight
-                    className={cn(
-                      "h-3.5 w-3.5 shrink-0 transition-transform group-hover/share:translate-x-0.5",
-                      isLight ? "text-zinc-300" : "text-white/25"
-                    )}
-                  />
-                </button>
-              </li>
-            ))}
+                      {item.meta && (
+                        <span
+                          className={cn(
+                            "block truncate text-[11px]",
+                            isLight ? "text-zinc-500" : "text-white/45"
+                          )}
+                        >
+                          {item.kind === "TASK" &&
+                            typeof item.meta.projectName === "string" &&
+                            item.meta.projectName}
+                          {item.kind === "PROJECT" &&
+                            typeof item.meta.departmentName === "string" &&
+                            item.meta.departmentName}
+                          {item.kind === "NOTE" &&
+                            typeof item.meta.departmentName === "string" &&
+                            item.meta.departmentName}
+                        </span>
+                      )}
+                    </span>
+                    {/* Etiqueta "Adjuntar" + flecha aparecen solo en hover. */}
+                    <span
+                      className={cn(
+                        "flex shrink-0 items-center gap-1 text-[10px] font-semibold uppercase tracking-wide opacity-0 transition-opacity group-hover/share:opacity-100",
+                        isLight ? "text-zinc-500" : "text-white/55"
+                      )}
+                    >
+                      Adjuntar
+                      <ChevronRight className="h-3 w-3" />
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
           </ul>
+        )}
+        </div>
+        {/* Fade en el bottom para insinuar scroll cuando hay mas items.
+            Pointer-events:none para no bloquear la rueda. */}
+        {!loading && items.length > 4 && (
+          <div
+            className={cn(
+              "pointer-events-none absolute inset-x-0 bottom-0 h-8",
+              isLight
+                ? "bg-gradient-to-t from-white to-transparent"
+                : "bg-gradient-to-t from-[#0d1427] to-transparent"
+            )}
+          />
         )}
       </div>
     </div>
