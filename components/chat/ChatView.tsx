@@ -188,11 +188,35 @@ function daySeparatorLabel(iso: string) {
   const diff = startOfDay(now) - startOfDay(d);
   if (diff === 0) return "Hoy";
   if (diff === 86_400_000) return "Ayer";
+  const oneWeek = 7 * 86_400_000;
+  if (diff > 0 && diff < oneWeek) {
+    // En la ultima semana mostramos el dia de la semana (Lunes, Martes...).
+    return d.toLocaleDateString("es-ES", { weekday: "long" });
+  }
   return d.toLocaleDateString("es-ES", {
     weekday: "long",
     day: "numeric",
     month: "long",
   });
+}
+
+/**
+ * Fecha + hora completa para el tooltip de la hora del mensaje.
+ *   "lunes, 12 de mayo de 2026, 14:35"
+ */
+function formatFullDateTime(iso: string) {
+  const d = new Date(iso);
+  const date = d.toLocaleDateString("es-ES", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+  const time = d.toLocaleTimeString("es-ES", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+  return `${date} · ${time}`;
 }
 
 function formatBytes(bytes: number | null | undefined) {
@@ -835,11 +859,17 @@ function MessageReactions({
   reactions,
   isMine,
   isLight,
+  members,
+  currentUserId,
   onToggle,
 }: {
   reactions: ChatReactionSummary[];
   isMine: boolean;
   isLight: boolean;
+  /** Mapa userId -> nombre para construir el tooltip "X, Y reaccionaron". */
+  members?: Record<string, string>;
+  /** Id del usuario actual: se reemplaza por "Tu" en el tooltip. */
+  currentUserId?: string;
   onToggle: (emoji: string) => void;
 }) {
   if (reactions.length === 0) return null;
@@ -850,29 +880,48 @@ function MessageReactions({
         isMine ? "justify-end" : "justify-start"
       )}
     >
-      {reactions.map((r) => (
-        <button
-          key={r.emoji}
-          type="button"
-          onClick={() => onToggle(r.emoji)}
-          className={cn(
-            "inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-xs leading-none transition-colors",
-            r.mine
-              ? isLight
-                ? "border-[#ffeb66]/55 bg-[#ffeb66]/22 text-zinc-900"
-                : "border-[#ffeb66]/45 bg-[#ffeb66]/15 text-[#ffeb66]"
-              : isLight
-                ? "border-zinc-200 bg-white/90 text-zinc-700 hover:bg-zinc-50"
-                : "border-white/15 bg-white/[0.05] text-white/80 hover:bg-white/[0.09]"
-          )}
-          aria-label={`${r.emoji} ${r.count}`}
-        >
-          <span aria-hidden>{r.emoji}</span>
-          <span className="tabular-nums text-[10px] font-semibold">
-            {r.count}
-          </span>
-        </button>
-      ))}
+      {reactions.map((r) => {
+        // Tooltip con los nombres de quienes reaccionaron. Si "yo" estoy
+        // dentro, lo mostramos como "Tu" en lugar de mi propio nombre.
+        const names = members
+          ? r.userIds
+              .map((uid) => {
+                if (currentUserId && uid === currentUserId) return "Tú";
+                return members[uid];
+              })
+              .filter((x): x is string => typeof x === "string" && x.length > 0)
+          : [];
+        const tooltip =
+          names.length > 0
+            ? `${names.slice(0, 8).join(", ")}${
+                names.length > 8 ? ` y ${names.length - 8} más` : ""
+              } · ${r.emoji}`
+            : `${r.emoji} ${r.count}`;
+        return (
+          <button
+            key={r.emoji}
+            type="button"
+            onClick={() => onToggle(r.emoji)}
+            title={tooltip}
+            className={cn(
+              "inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-xs leading-none transition-colors",
+              r.mine
+                ? isLight
+                  ? "border-[#ffeb66]/55 bg-[#ffeb66]/22 text-zinc-900"
+                  : "border-[#ffeb66]/45 bg-[#ffeb66]/15 text-[#ffeb66]"
+                : isLight
+                  ? "border-zinc-200 bg-white/90 text-zinc-700 hover:bg-zinc-50"
+                  : "border-white/15 bg-white/[0.05] text-white/80 hover:bg-white/[0.09]"
+            )}
+            aria-label={tooltip}
+          >
+            <span aria-hidden>{r.emoji}</span>
+            <span className="tabular-nums text-[10px] font-semibold">
+              {r.count}
+            </span>
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -1200,9 +1249,37 @@ export function ChatView() {
   const isAtBottomRef = useRef<boolean>(true);
   /** Throttle del POST /typing: maximo 1 envio cada 3.5s. */
   const lastTypingSentRef = useRef(0);
+  /**
+   * Numero de mensajes sin leer en cada conversacion en el momento de
+   * entrar. Sirve para insertar la linea "N mensajes nuevos" en la
+   * posicion adecuada del historial. Se resetea al volver a entrar.
+   */
+  const unreadCutoffByConvRef = useRef<Map<string, number>>(new Map());
   const highlightTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const activeConv = conversations.find((c) => c.id === activeId) ?? null;
+
+  /**
+   * Mapa userId -> nombre de los miembros de la conversacion activa. Lo
+   * usamos para construir el tooltip "X e Y reaccionaron" en los chips de
+   * reaccion. Para 1-a-1 lo formamos a partir del peer + el propio usuario;
+   * en grupos viene resuelto en `activeConv.members`.
+   */
+  const reactionUserMap = useMemo<Record<string, string>>(() => {
+    const map: Record<string, string> = {};
+    if (!activeConv) return map;
+    if (activeConv.isGroup && activeConv.members) {
+      for (const m of activeConv.members) {
+        if (m.name) map[m.id] = m.name;
+      }
+    } else if (activeConv.peer) {
+      map[activeConv.peer.id] = activeConv.peer.name;
+    }
+    if (currentUser?.id && currentUser.name) {
+      map[currentUser.id] = currentUser.name;
+    }
+    return map;
+  }, [activeConv, currentUser?.id, currentUser?.name]);
 
   const loadConversations = useCallback(async () => {
     try {
@@ -1276,13 +1353,22 @@ export function ChatView() {
 
   const selectConversation = useCallback(
     (id: string) => {
+      // Memorizamos los mensajes no leidos ANTES de marcar la conv como
+      // leida; la linea "N mensajes nuevos" se dibujara delante del
+      // primero de esos N.
+      const conv = conversations.find((c) => c.id === id);
+      if (conv && conv.unreadCount > 0) {
+        unreadCutoffByConvRef.current.set(id, conv.unreadCount);
+      } else {
+        unreadCutoffByConvRef.current.delete(id);
+      }
       setActiveId(id);
       setMobileShowThread(true);
       router.replace(`/chat?c=${id}`, { scroll: false });
       void loadMessages(id);
       void markRead(id);
     },
-    [loadMessages, markRead, router]
+    [conversations, loadMessages, markRead, router]
   );
 
   useEffect(() => {
@@ -1294,12 +1380,18 @@ export function ChatView() {
   useEffect(() => {
     const c = searchParams.get("c");
     if (c && c !== activeId) {
+      const conv = conversations.find((cc) => cc.id === c);
+      if (conv && conv.unreadCount > 0) {
+        unreadCutoffByConvRef.current.set(c, conv.unreadCount);
+      } else {
+        unreadCutoffByConvRef.current.delete(c);
+      }
       setActiveId(c);
       setMobileShowThread(true);
       void loadMessages(c);
       void markRead(c);
     }
-  }, [searchParams, activeId, loadMessages, markRead]);
+  }, [searchParams, activeId, conversations, loadMessages, markRead]);
 
   // Sincronizamos refs auxiliares para que el listener SSE (subscrito una
   // sola vez) siempre lea los ultimos valores sin re-suscribirse.
@@ -3021,16 +3113,48 @@ export function ChatView() {
               )}
             </div>
           ) : conversations.length === 0 ? (
-            <p
+            <div
               className={cn(
-                "px-4 py-12 text-center text-sm",
-                L ? "text-zinc-500" : "text-white/40"
+                "mx-auto flex max-w-xs flex-col items-center gap-3 px-4 py-12 text-center",
+                L ? "text-zinc-500" : "text-white/55"
               )}
             >
-              Aún no tienes conversaciones.
-              <br />
-              Pulsa + para escribir a un compañero.
-            </p>
+              <div
+                className={cn(
+                  "flex h-14 w-14 items-center justify-center rounded-2xl border shadow-sm",
+                  L
+                    ? "border-zinc-200/90 bg-white text-zinc-500"
+                    : "border-white/12 bg-white/[0.04] text-white/55"
+                )}
+              >
+                <MessageCircle className="h-6 w-6" />
+              </div>
+              <p
+                className={cn(
+                  "text-sm font-semibold",
+                  L ? "text-zinc-700" : "text-white/85"
+                )}
+              >
+                Aún no tienes conversaciones
+              </p>
+              <p className="text-xs leading-relaxed">
+                Pulsa <span className="font-semibold">Nuevo</span> arriba a la
+                derecha para escribir a un compañero o crear un grupo.
+              </p>
+              <button
+                type="button"
+                onClick={() => setNewChatOpen(true)}
+                className={cn(
+                  "mt-1 inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-semibold transition-all",
+                  L
+                    ? "border-[#ffeb66]/45 bg-[#ffeb66]/18 text-zinc-900 hover:bg-[#ffeb66]/28"
+                    : "border-[#ffeb66]/35 bg-[#ffeb66]/12 text-[#ffeb66] hover:bg-[#ffeb66]/20"
+                )}
+              >
+                <Plus className="h-3.5 w-3.5" />
+                Iniciar conversación
+              </button>
+            </div>
           ) : (
             (() => {
               // Agrupamos en tres bloques visuales: fijados, normales y
@@ -3358,24 +3482,57 @@ export function ChatView() {
                   <Loader2 className="h-5 w-5 animate-spin" />
                 </p>
               ) : messages.length === 0 ? (
-                <p
+                <div
                   className={cn(
-                    "py-12 text-center text-sm",
-                    L ? "text-zinc-500" : "text-white/40"
+                    "mx-auto flex max-w-sm flex-col items-center gap-3 px-6 py-14 text-center",
+                    L ? "text-zinc-500" : "text-white/55"
                   )}
                 >
-                  {activeConv.isGroup
-                    ? `Inicia la conversación del grupo "${conversationDisplayName(activeConv)}".`
-                    : `Escribe el primer mensaje a ${activeConv.peer?.name ?? ""}.`}
-                </p>
+                  <div
+                    className={cn(
+                      "flex h-14 w-14 items-center justify-center rounded-2xl border shadow-sm",
+                      L
+                        ? "border-[#ffeb66]/45 bg-[#ffeb66]/15 text-[#a16207]"
+                        : "border-[#ffeb66]/35 bg-[#ffeb66]/10 text-[#ffeb66]"
+                    )}
+                  >
+                    <Sparkles className="h-6 w-6" />
+                  </div>
+                  <p
+                    className={cn(
+                      "text-sm font-semibold",
+                      L ? "text-zinc-700" : "text-white/80"
+                    )}
+                  >
+                    {activeConv.isGroup
+                      ? `Aún no hay mensajes en "${conversationDisplayName(activeConv)}"`
+                      : `Aún no has hablado con ${activeConv.peer?.name ?? ""}`}
+                  </p>
+                  <p className="text-xs leading-relaxed">
+                    {activeConv.isGroup
+                      ? "Rompe el hielo: comparte un objetivo, sube un fichero o etiqueta a alguien con @."
+                      : "Saluda, comparte un fichero o etiqueta un proyecto con el icono de adjuntos."}
+                  </p>
+                </div>
               ) : (
-                messages.map((m, idx) => {
+                (() => {
+                  // Primer mensaje "nuevo" segun el contador capturado al
+                  // entrar; lo usamos para pintar "N mensajes nuevos".
+                  const unreadCount = activeId
+                    ? unreadCutoffByConvRef.current.get(activeId) ?? 0
+                    : 0;
+                  const firstUnreadId =
+                    unreadCount > 0 && unreadCount <= messages.length
+                      ? messages[messages.length - unreadCount]?.id ?? null
+                      : null;
+                  return messages.map((m, idx) => {
                   const prev = messages[idx - 1];
                   const next = messages[idx + 1];
                   const showDay =
                     !prev ||
                     daySeparatorLabel(prev.createdAt) !==
                       daySeparatorLabel(m.createdAt);
+                  const isFirstUnread = firstUnreadId === m.id && !m.isMine;
                   // Agrupamos mensajes consecutivos del mismo usuario en un
                   // intervalo de 5 minutos. Solo el primero muestra avatar y
                   // solo el ultimo muestra hora.
@@ -3411,10 +3568,10 @@ export function ChatView() {
                           />
                           <span
                             className={cn(
-                              "rounded-full border px-2.5 py-0.5 text-[10px] font-medium capitalize tracking-wide",
+                              "rounded-full border px-2.5 py-0.5 text-[10px] font-medium capitalize tracking-wide shadow-sm",
                               L
-                                ? "border-zinc-200/90 bg-zinc-50 text-zinc-500"
-                                : "border-white/10 bg-white/[0.04] text-white/50"
+                                ? "border-zinc-200/90 bg-white/95 text-zinc-500 backdrop-blur"
+                                : "border-white/10 bg-[#0a0f1e]/85 text-white/55 backdrop-blur"
                             )}
                           >
                             {daySeparatorLabel(m.createdAt)}
@@ -3425,6 +3582,39 @@ export function ChatView() {
                               L
                                 ? "bg-gradient-to-r from-transparent via-zinc-200 to-transparent"
                                 : "bg-gradient-to-r from-transparent via-white/15 to-transparent"
+                            )}
+                          />
+                        </div>
+                      )}
+                      {isFirstUnread && (
+                        <div
+                          className="flex items-center gap-3 py-1.5"
+                          aria-label="Mensajes nuevos"
+                        >
+                          <div
+                            className={cn(
+                              "h-px flex-1",
+                              L
+                                ? "bg-gradient-to-r from-transparent via-[#f59e0b] to-transparent"
+                                : "bg-gradient-to-r from-transparent via-[#ffeb66] to-transparent"
+                            )}
+                          />
+                          <span
+                            className={cn(
+                              "rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider shadow-sm",
+                              L
+                                ? "border-[#f59e0b]/50 bg-[#fffbeb] text-[#a16207]"
+                                : "border-[#ffeb66]/45 bg-[#ffeb66]/12 text-[#ffeb66]"
+                            )}
+                          >
+                            Nuevos mensajes
+                          </span>
+                          <div
+                            className={cn(
+                              "h-px flex-1",
+                              L
+                                ? "bg-gradient-to-r from-transparent via-[#f59e0b] to-transparent"
+                                : "bg-gradient-to-r from-transparent via-[#ffeb66] to-transparent"
                             )}
                           />
                         </div>
@@ -3456,40 +3646,44 @@ export function ChatView() {
                           </div>
                         )}
                         <div className="flex max-w-[min(100%,26rem)] min-w-0 flex-col">
+                          {(() => {
+                            // Agrupacion visual estilo Telegram: las esquinas
+                            // del lado de la "cola" (right si es mio, left
+                            // si es ajeno) se aplanan SOLO entre mensajes
+                            // consecutivos del mismo emisor. La esquina
+                            // opuesta siempre se mantiene redondeada.
+                            const cornerTail = m.isMine
+                              ? cn(
+                                  sameAsPrev ? "rounded-tr-md" : "rounded-tr-2xl",
+                                  sameAsNext ? "rounded-br-md" : "rounded-br-2xl"
+                                )
+                              : cn(
+                                  sameAsPrev ? "rounded-tl-md" : "rounded-tl-2xl",
+                                  sameAsNext ? "rounded-bl-md" : "rounded-bl-2xl"
+                                );
+                            const cornerFar = m.isMine
+                              ? "rounded-tl-2xl rounded-bl-2xl"
+                              : "rounded-tr-2xl rounded-br-2xl";
+                            return (
                           <div
                             className={cn(
                               "group/bubble relative px-3.5 py-2.5 text-sm shadow-sm transition-shadow",
+                              cornerFar,
+                              cornerTail,
                               m.isDeleted
                                 ? cn(
                                     "border italic",
                                     L
                                       ? "border-zinc-200 bg-zinc-50 text-zinc-500"
-                                      : "border-white/8 bg-white/[0.03] text-white/45",
-                                    sameAsPrev
-                                      ? m.isMine
-                                        ? "rounded-2xl rounded-tr-md rounded-br-md"
-                                        : "rounded-2xl rounded-tl-md rounded-bl-md"
-                                      : m.isMine
-                                        ? "rounded-2xl rounded-br-md"
-                                        : "rounded-2xl rounded-bl-md"
+                                      : "border-white/8 bg-white/[0.03] text-white/45"
                                   )
                                 : m.isMine
-                                  ? cn(
-                                      "border border-[#ffeb66]/30 bg-gradient-to-br from-[#ffeb66]/30 via-[#d4af37]/14 to-[#1a2a42]/88 text-white shadow-[0_4px_22px_rgba(255,235,102,0.16)] hover:shadow-[0_4px_28px_rgba(255,235,102,0.22)]",
-                                      sameAsPrev
-                                        ? "rounded-2xl rounded-tr-md rounded-br-md"
-                                        : "rounded-2xl rounded-br-md"
-                                    )
-                                  : cn(
-                                      L
-                                        ? "border border-zinc-200/90 bg-white text-zinc-900"
-                                        : "border border-white/10 bg-gradient-to-br from-[#161f33]/95 to-[#0f1729]/95 text-white backdrop-blur-sm",
-                                      sameAsPrev
-                                        ? "rounded-2xl rounded-tl-md rounded-bl-md"
-                                        : "rounded-2xl rounded-bl-md"
-                                    )
+                                  ? "border border-[#ffeb66]/30 bg-gradient-to-br from-[#ffeb66]/30 via-[#d4af37]/14 to-[#1a2a42]/88 text-white shadow-[0_4px_22px_rgba(255,235,102,0.16)] hover:shadow-[0_4px_28px_rgba(255,235,102,0.22)]"
+                                  : L
+                                    ? "border border-zinc-200/90 bg-white text-zinc-900"
+                                    : "border border-white/10 bg-gradient-to-br from-[#161f33]/95 to-[#0f1729]/95 text-white backdrop-blur-sm"
                             )}
-                            title={formatTime(m.createdAt)}
+                            title={formatFullDateTime(m.createdAt)}
                           >
                             {/* En grupos: nombre del remitente en mensajes ajenos */}
                             {activeConv?.isGroup &&
@@ -3856,6 +4050,8 @@ export function ChatView() {
                               </div>
                             )}
                           </div>
+                            );
+                          })()}
 
                           {/* Reacciones agrupadas */}
                           {!m.isDeleted && m.reactions.length > 0 && (
@@ -3863,6 +4059,8 @@ export function ChatView() {
                               reactions={m.reactions}
                               isMine={m.isMine}
                               isLight={L}
+                              members={reactionUserMap}
+                              currentUserId={currentUser?.id}
                               onToggle={(emoji) => void toggleReaction(m.id, emoji)}
                             />
                           )}
@@ -3870,7 +4068,8 @@ export function ChatView() {
                       </div>
                     </div>
                   );
-                })
+                });
+                })()
               )}
               {(() => {
                 const map = activeId ? typingByConv[activeId] : null;
