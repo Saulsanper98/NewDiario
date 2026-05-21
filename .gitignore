@@ -50,3 +50,5 @@ next-prod.err.log
 next-env.d.ts
 
 /app/generated/prisma
+
+.test-cookies.txt
