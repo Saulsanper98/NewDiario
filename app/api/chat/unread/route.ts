@@ -11,5 +11,9 @@ export async function GET() {
 
   const user = session.user as SessionUser;
   const unread = await countUnreadChatMessages(user.id);
-  return NextResponse.json({ unread });
+  // Devolvemos ambos nombres por compatibilidad: `unread` (preferido) y
+  // `unreadCount` (usado por el ChatNotifier histórico). De esta forma
+  // cualquier consumidor recibe el contador correcto sin tener que tocar
+  // su contrato.
+  return NextResponse.json({ unread, unreadCount: unread });
 }

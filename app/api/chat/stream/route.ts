@@ -34,6 +34,8 @@ export async function GET(req: NextRequest) {
   const stream = new ReadableStream<Uint8Array>({
     start(controller) {
       let closed = false;
+      let cleanup: (() => void) | null = null;
+
       const close = () => {
         if (closed) return;
         closed = true;
@@ -42,6 +44,18 @@ export async function GET(req: NextRequest) {
         } catch {
           /* ya cerrado */
         }
+        // Limpieza explícita: si el enqueue falla (cliente con conexión
+        // semi-rota detrás de un proxy poco fiable), AbortSignal puede no
+        // dispararse jamás. Sin esto el cliente queda como fantasma en el
+        // bus y seguimos publicándole eventos para siempre (leak).
+        if (cleanup) {
+          try {
+            cleanup();
+          } catch {
+            /* ignore */
+          }
+          cleanup = null;
+        }
       };
 
       const enqueue = (chunk: string) => {
@@ -49,7 +63,7 @@ export async function GET(req: NextRequest) {
         try {
           controller.enqueue(encoder.encode(chunk));
         } catch {
-          closed = true;
+          close();
         }
       };
 
@@ -70,14 +84,18 @@ export async function GET(req: NextRequest) {
 
       const pingInterval = setInterval(() => client.ping(), 25_000);
 
-      const onAbort = () => {
+      cleanup = () => {
         clearInterval(pingInterval);
         unsubscribe();
+      };
+
+      const onAbort = () => {
         close();
       };
 
       // El AbortSignal se dispara cuando el cliente cierra la pestana o
-      // se cae la conexion. Es nuestra unica via fiable para limpiar.
+      // se cae la conexion. Es nuestra via principal de limpieza, pero ya
+      // no la única: `close()` también la dispara si enqueue lanza.
       req.signal.addEventListener("abort", onAbort);
     },
   });

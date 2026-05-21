@@ -318,11 +318,16 @@ export async function POST(
       data: { updatedAt: new Date() },
     });
 
+    // Avanzamos el lastReadAt del autor por encima del mensaje recién
+    // creado para que el contador de no leídos del propio autor sea 0 y,
+    // sobre todo, para que los demás participantes vean en realtime que
+    // el autor ya tiene leído hasta este punto (importante en grupos).
+    const authorReadAt = new Date(created.createdAt.getTime() + 1);
     await tx.chatParticipant.update({
       where: {
         conversationId_userId: { conversationId, userId: user.id },
       },
-      data: { lastReadAt: new Date(), hiddenAt: null },
+      data: { lastReadAt: authorReadAt, hiddenAt: null },
     });
 
     await tx.chatParticipant.updateMany({
@@ -375,6 +380,7 @@ export async function POST(
       created,
       notifyUserIds: others.map((o) => o.userId),
       preview,
+      authorReadAt,
     };
   });
 
@@ -391,6 +397,20 @@ export async function POST(
       type: "message:new",
       conversationId,
       message: serialized,
+    },
+    user.id
+  ).catch(() => {});
+
+  // Publicamos también el avance de lectura del autor: en grupos sirve
+  // para que el resto de emisores vea el tic azul en sus mensajes sin
+  // esperar a que el receptor abra explícitamente la conversación.
+  void publishToConversation(
+    conversationId,
+    {
+      type: "read:update",
+      conversationId,
+      userId: user.id,
+      lastReadAt: result.authorReadAt.toISOString(),
     },
     user.id
   ).catch(() => {});

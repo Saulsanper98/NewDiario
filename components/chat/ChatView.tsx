@@ -58,6 +58,7 @@ import {
   isChatSoundEnabled,
   setChatSoundEnabled,
 } from "@/lib/notifications/sound";
+import { playCategory } from "@/lib/notifications/sound-player";
 import {
   disablePush,
   ensurePushSubscription,
@@ -1616,8 +1617,22 @@ export function ChatView() {
   const activeIdRef = useRef<string | null>(null);
   const currentUserIdRef = useRef<string | undefined>(undefined);
   const isAtBottomRef = useRef<boolean>(true);
+  // Cache de conversaciones para que el handler SSE pueda saber si una
+  // conversación está silenciada sin re-suscribirse cuando cambia la lista.
+  const conversationsRef = useRef<ChatConversationItem[]>([]);
+  // Throttle del evento "typing" POR conversación (no global) — si no, al
+  // cambiar de conv mientras todavía está caliente el throttle anterior se
+  // suprimiría el primer evento en la nueva.
+  const lastTypingSentByConvRef = useRef<Map<string, number>>(new Map());
+  // Guarda síncrona para evitar duplicar el envío de un mensaje cuando el
+  // usuario pulsa Enter dos veces antes de que React aplique `setSending`.
+  const sendingRef = useRef(false);
+  // Refs con la última identidad de funciones del componente para usarlas
+  // desde lugares cuya identidad no debe cambiar (listeners SSE, scroll,
+  // etc.) sin tener que añadirlas a sus dependencias.
+  const markReadRef = useRef<((conversationId: string) => Promise<void>) | null>(null);
+  const loadConversationsRef = useRef<(() => Promise<void>) | null>(null);
   /** Throttle del POST /typing: maximo 1 envio cada 3.5s. */
-  const lastTypingSentRef = useRef(0);
   /**
    * Numero de mensajes sin leer en cada conversacion en el momento de
    * entrar. Sirve para insertar la linea "N mensajes nuevos" en la
@@ -1676,6 +1691,13 @@ export function ChatView() {
           `/api/chat/conversations/${conversationId}/messages${qs}`
         );
         if (!res.ok) return;
+        // Race protection: si entre la petición y la respuesta el usuario
+        // cambió de conversación, NO sobreescribimos `messages`/`readState`
+        // con datos de la conversación equivocada (causaría mezclar
+        // mensajes y pintar el doble tic en el chat erróneo).
+        if (activeIdRef.current && activeIdRef.current !== conversationId) {
+          return;
+        }
         const data = (await res.json()) as {
           messages: ChatMessageItem[];
           readState?: { userId: string; lastReadAt: string | null }[];
@@ -1731,8 +1753,17 @@ export function ChatView() {
       } else {
         unreadCutoffByConvRef.current.delete(id);
       }
+      // Actualizamos el ref inmediatamente para que la race-protection de
+      // `loadMessages` (que compara contra activeIdRef.current) funcione
+      // desde el primer fetch sin esperar al render.
+      activeIdRef.current = id;
       setActiveId(id);
       setMobileShowThread(true);
+      // Cerramos popups/menus de la conversación anterior para que no se
+      // queden flotando sobre la nueva.
+      setConvMenuFor(null);
+      setReactionPickerFor(null);
+      setActionMenuFor(null);
       router.replace(`/chat?c=${id}`, { scroll: false });
       void loadMessages(id);
       void markRead(id);
@@ -1773,6 +1804,15 @@ export function ChatView() {
   useEffect(() => {
     isAtBottomRef.current = isAtBottom;
   }, [isAtBottom]);
+  useEffect(() => {
+    conversationsRef.current = conversations;
+  }, [conversations]);
+  useEffect(() => {
+    markReadRef.current = markRead;
+  }, [markRead]);
+  useEffect(() => {
+    loadConversationsRef.current = loadConversations;
+  }, [loadConversations]);
 
   // Polling de seguridad: con SSE recibimos en directo, pero mantenemos un
   // reloj lento por si la conexion se pierde (proxies con buffering muy
@@ -1825,7 +1865,20 @@ export function ChatView() {
             mine: myId ? r.userIds.includes(myId) : false,
           })),
         };
-        if (activeIdRef.current === data.conversationId) {
+        const isFromMe = incoming.isMine;
+        // Al llegar un mensaje del remitente, cualquier indicador "X está
+        // escribiendo…" para ese usuario en esa conv ya no es válido.
+        if (!isFromMe) {
+          setTypingByConv((prev) => {
+            const forConv = prev[data.conversationId];
+            if (!forConv || !forConv[incoming.senderId]) return prev;
+            const nextForConv = { ...forConv };
+            delete nextForConv[incoming.senderId];
+            return { ...prev, [data.conversationId]: nextForConv };
+          });
+        }
+        const isActiveConv = activeIdRef.current === data.conversationId;
+        if (isActiveConv) {
           setMessages((prev) =>
             prev.some((m) => m.id === incoming.id) ? prev : [...prev, incoming]
           );
@@ -1833,11 +1886,35 @@ export function ChatView() {
           // Si el usuario esta leyendo activamente, marcamos como leido al
           // instante para que el remitente vea el tick azul sin demora.
           if (
+            !isFromMe &&
             isAtBottomRef.current &&
             typeof document !== "undefined" &&
             !document.hidden
           ) {
             void markRead(data.conversationId);
+          }
+        }
+        // Sonido al recibir mensaje ajeno. Reglas:
+        //   - Nunca para mensajes propios (eco SSE).
+        //   - Nunca si la conversación está silenciada por el usuario.
+        //   - Suena siempre que el usuario NO esté "leyendo activamente" la
+        //     conv (otra conv activa, tab oculto, o no al fondo).
+        if (!isFromMe) {
+          const conv = conversationsRef.current.find(
+            (c) => c.id === data.conversationId
+          );
+          const muted = conv?.muted === true;
+          const isReadingNow =
+            isActiveConv &&
+            isAtBottomRef.current &&
+            typeof document !== "undefined" &&
+            !document.hidden;
+          if (!muted && !isReadingNow) {
+            try {
+              playCategory("chat");
+            } catch {
+              /* AudioContext sin gesto previo: ignoramos */
+            }
           }
         }
         // Refrescamos lista (badge, ultimo mensaje, orden).
@@ -1952,7 +2029,14 @@ export function ChatView() {
     });
 
     return () => es.close();
-  }, [currentUser?.id, loadConversations, markRead]);
+    // IMPORTANTE: este effect solo debe re-suscribirse cuando cambia el
+    // usuario logueado. Las funciones `loadConversations` y `markRead` se
+    // referencian a través de `loadConversationsRef` / `markReadRef` para
+    // que su identidad no fuerce a cerrar/abrir el EventSource (lo cual
+    // generaría flapping de presencia y pérdida de eventos durante el
+    // reconnect).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUser?.id]);
 
   // Limpieza periodica de indicadores "escribiendo..." expirados.
   useEffect(() => {
@@ -1979,12 +2063,15 @@ export function ChatView() {
     return () => clearInterval(t);
   }, []);
 
-  /** Notifica al servidor que el usuario esta escribiendo (max. cada 3.5s). */
+  /** Notifica al servidor que el usuario esta escribiendo (max. cada 3.5s
+   *  POR conversación, no global, para que cambiar de chat no se trague
+   *  el primer evento en la nueva mientras el throttle aún está caliente). */
   const notifyTyping = useCallback((conversationId: string | null) => {
     if (!conversationId) return;
     const now = Date.now();
-    if (now - lastTypingSentRef.current < 3500) return;
-    lastTypingSentRef.current = now;
+    const last = lastTypingSentByConvRef.current.get(conversationId) ?? 0;
+    if (now - last < 3500) return;
+    lastTypingSentByConvRef.current.set(conversationId, now);
     void fetch(`/api/chat/conversations/${conversationId}/typing`, {
       method: "POST",
     }).catch(() => {});
@@ -2015,8 +2102,17 @@ export function ChatView() {
       if (!el) return;
       const distance = el.scrollHeight - el.scrollTop - el.clientHeight;
       const atBottom = distance < 80;
+      const wasAtBottom = isAtBottomRef.current;
       setIsAtBottom(atBottom);
-      if (atBottom) setNewMessagesWhileScrolledUp(0);
+      if (atBottom) {
+        setNewMessagesWhileScrolledUp(0);
+        // Al pasar de "estaba arriba" a "ya estoy abajo", marcamos como
+        // leído: si no, los mensajes que llegaron mientras leíamos hacia
+        // arriba quedarían sin ack y el remitente nunca vería el tic azul.
+        if (!wasAtBottom && activeIdRef.current) {
+          void markReadRef.current?.(activeIdRef.current);
+        }
+      }
     }
     el.addEventListener("scroll", handler, { passive: true });
     return () => el.removeEventListener("scroll", handler);
@@ -2040,6 +2136,11 @@ export function ChatView() {
   function scrollToBottom() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     setNewMessagesWhileScrolledUp(0);
+    // El usuario pulsa "Bajar": marcamos como leído al instante, sin
+    // esperar a que el scroll listener detecte el final.
+    if (activeIdRef.current) {
+      void markReadRef.current?.(activeIdRef.current);
+    }
   }
 
   // Lista plana de imagenes del hilo activo para el lightbox. Reactiva ante
@@ -2066,6 +2167,16 @@ export function ChatView() {
     el.style.height = "0px";
     el.style.height = `${Math.min(el.scrollHeight, 160)}px`;
   }, [draft]);
+
+  // Mismo auto-resize para la textarea de edición in-place. Sin esto los
+  // mensajes largos quedan en una caja de una sola línea con scroll
+  // interno, que es bastante mala UX.
+  useEffect(() => {
+    const el = editingTextareaRef.current;
+    if (!el) return;
+    el.style.height = "0px";
+    el.style.height = `${Math.min(el.scrollHeight, 200)}px`;
+  }, [editingDraft]);
 
   // Borrador persistente por conversacion en localStorage. Al cambiar de
   // chat, restauramos lo que hubiera. Al escribir, lo guardamos (debounced
@@ -2504,9 +2615,18 @@ export function ChatView() {
 
   async function handleSend(e: React.FormEvent) {
     e.preventDefault();
-    if (!activeId || sending) return;
+    if (!activeId) return;
+    // Guarda síncrona: si el usuario pulsa Enter dos veces antes de que
+    // React aplique `setSending(true)`, el `sending` del cierre todavía
+    // ve `false` y el mensaje se enviaría duplicado. Un ref se actualiza
+    // en el mismo tick y bloquea el segundo envío.
+    if (sendingRef.current) return;
+    sendingRef.current = true;
     const text = draft.trim();
-    if (!text && pendingAttachments.length === 0) return;
+    if (!text && pendingAttachments.length === 0) {
+      sendingRef.current = false;
+      return;
+    }
     const sentAttachments = pendingAttachments;
     const replyId = replyTarget?.id ?? null;
     const replyAtSend = replyTarget;
@@ -2634,6 +2754,7 @@ export function ChatView() {
       toast.error(err instanceof Error ? err.message : "Error al enviar");
     } finally {
       setSending(false);
+      sendingRef.current = false;
     }
   }
 
@@ -2657,8 +2778,38 @@ export function ChatView() {
       }))
     );
     if (m.replyTo) {
-      const ref = messages.find((mm) => mm.id === m.replyTo!.id);
-      if (ref) setReplyTarget(ref);
+      const refMsg = messages.find((mm) => mm.id === m.replyTo!.id);
+      if (refMsg) {
+        setReplyTarget(refMsg);
+      } else {
+        // El mensaje original ya no está cargado (scroll/eviction). Lo
+        // reconstruimos a partir del snippet conservado para no perder la
+        // referencia de respuesta al reintentar.
+        const r = m.replyTo;
+        setReplyTarget({
+          id: r.id,
+          body: r.body ?? "",
+          createdAt: new Date().toISOString(),
+          senderId: r.senderId,
+          isMine: r.senderId === currentUser?.id,
+          sender: {
+            id: r.senderId,
+            name: r.senderName,
+            email: "",
+            image: null,
+            imageFocusX: null,
+            imageFocusY: null,
+            profileBanner: null,
+            bannerFocusX: null,
+            bannerFocusY: null,
+          },
+          attachments: [],
+          editedAt: null,
+          isDeleted: r.isDeleted,
+          replyTo: null,
+          reactions: [],
+        });
+      }
     }
     setTimeout(() => composerRef.current?.focus(), 30);
   }
@@ -2962,7 +3113,16 @@ export function ChatView() {
         const fd = new FormData();
         fd.append("file", file);
         const res = await fetch("/api/chat/upload", { method: "POST", body: fd });
-        const data = (await res.json()) as {
+        // Rate-limit del servidor: cortamos el bucle aquí en vez de seguir
+        // intentando con el resto (cada intento mostraría su propio toast
+        // y todos fallarían de la misma forma).
+        if (res.status === 429) {
+          toast.error("Estás subiendo demasiado rápido. Inténtalo en unos segundos.", {
+            id: "chat-upload-rl",
+          });
+          break;
+        }
+        const data = (await res.json().catch(() => ({}))) as {
           url?: string;
           fileName?: string;
           mimeType?: string;
