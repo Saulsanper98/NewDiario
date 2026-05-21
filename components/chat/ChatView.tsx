@@ -39,6 +39,8 @@ import {
   SmilePlus,
   Sparkles,
   Trash2,
+  Volume2,
+  VolumeX,
   X,
 } from "lucide-react";
 import { NewChatPicker } from "@/components/chat/NewChatPicker";
@@ -53,6 +55,12 @@ import {
   isChatSoundEnabled,
   setChatSoundEnabled,
 } from "@/lib/notifications/sound";
+import {
+  disablePush,
+  ensurePushSubscription,
+  getPushPermission,
+  isPushSupported,
+} from "@/lib/notifications/push-client";
 import { cn } from "@/lib/utils";
 import type {
   ChatAttachmentItem,
@@ -1080,6 +1088,65 @@ export function ChatView() {
   useEffect(() => {
     setSoundOn(isChatSoundEnabled());
   }, []);
+  /**
+   * Estado del permiso de notificaciones push del navegador.
+   *  - "unsupported": el navegador no soporta Service Worker / PushManager.
+   *  - "default":   permiso aun no concedido; podemos pedirlo.
+   *  - "granted":   ya hay permiso, normalmente el SW esta suscrito.
+   *  - "denied":    el usuario lo bloqueo; no podemos volver a pedirlo.
+   */
+  const [pushState, setPushState] = useState<
+    "unsupported" | "default" | "granted" | "denied"
+  >("unsupported");
+  const [pushBusy, setPushBusy] = useState(false);
+  useEffect(() => {
+    if (!isPushSupported()) {
+      setPushState("unsupported");
+      return;
+    }
+    setPushState(getPushPermission() as "default" | "granted" | "denied");
+  }, []);
+  const togglePush = useCallback(async () => {
+    if (pushBusy) return;
+    setPushBusy(true);
+    try {
+      if (pushState === "granted") {
+        await disablePush();
+        setPushState("default");
+        toast.success("Notificaciones del navegador desactivadas", {
+          id: "chat-push",
+        });
+      } else {
+        const r = await ensurePushSubscription();
+        if (r === "subscribed") {
+          setPushState("granted");
+          toast.success("Notificaciones del navegador activadas", {
+            id: "chat-push",
+          });
+        } else if (r === "denied") {
+          setPushState("denied");
+          toast.error(
+            "Permiso bloqueado en el navegador. Cambialo desde la barra de direccion.",
+            { id: "chat-push", duration: 5000 }
+          );
+        } else if (r === "insecure") {
+          toast.error("Las notificaciones requieren HTTPS", {
+            id: "chat-push",
+          });
+        } else if (r === "unsupported") {
+          toast.error("Tu navegador no soporta notificaciones push", {
+            id: "chat-push",
+          });
+        } else {
+          toast.error("No se pudo activar las notificaciones", {
+            id: "chat-push",
+          });
+        }
+      }
+    } finally {
+      setPushBusy(false);
+    }
+  }, [pushBusy, pushState]);
   const [searchResults, setSearchResults] = useState<{
     conversations: {
       id: string;
@@ -2653,11 +2720,51 @@ export function ChatView() {
                 )}
               >
                 {soundOn ? (
-                  <Bell className="h-3.5 w-3.5" />
+                  <Volume2 className="h-3.5 w-3.5" />
                 ) : (
-                  <BellOff className="h-3.5 w-3.5" />
+                  <VolumeX className="h-3.5 w-3.5" />
                 )}
               </button>
+              {pushState !== "unsupported" && (
+                <button
+                  type="button"
+                  onClick={() => void togglePush()}
+                  disabled={pushBusy || pushState === "denied"}
+                  aria-label={
+                    pushState === "granted"
+                      ? "Desactivar notificaciones del navegador"
+                      : "Activar notificaciones del navegador"
+                  }
+                  title={
+                    pushState === "denied"
+                      ? "Permiso bloqueado en el navegador. Cambialo desde la barra de direccion."
+                      : pushState === "granted"
+                        ? "Desactivar notificaciones del navegador"
+                        : "Activar notificaciones del navegador"
+                  }
+                  className={cn(
+                    "flex h-9 w-9 items-center justify-center rounded-xl border transition-all",
+                    pushBusy && "opacity-60 cursor-progress",
+                    pushState === "granted"
+                      ? L
+                        ? "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+                        : "border-emerald-400/35 bg-emerald-400/10 text-emerald-300 hover:bg-emerald-400/20"
+                      : pushState === "denied"
+                        ? L
+                          ? "border-zinc-200/80 bg-white/70 text-zinc-400"
+                          : "border-white/10 bg-white/[0.03] text-white/30"
+                        : L
+                          ? "border-zinc-200/80 bg-white/70 text-zinc-600 hover:bg-zinc-50"
+                          : "border-white/12 bg-white/[0.04] text-white/60 hover:bg-white/[0.08] hover:text-white"
+                  )}
+                >
+                  {pushState === "granted" ? (
+                    <Bell className="h-3.5 w-3.5" />
+                  ) : (
+                    <BellOff className="h-3.5 w-3.5" />
+                  )}
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => {

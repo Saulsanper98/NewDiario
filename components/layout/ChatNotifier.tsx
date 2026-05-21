@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import { setFaviconBadge } from "@/lib/notifications/favicon";
 import { playNotificationSound } from "@/lib/notifications/sound";
+import { refreshPushSubscriptionSilently } from "@/lib/notifications/push-client";
 
 /**
  * Componente "fantasma" que vive en el layout y, mientras el usuario esta
@@ -28,6 +29,11 @@ export function ChatNotifier({ initialUnread }: { initialUnread: number }) {
     }
     setFaviconBadge(initialUnread);
     updateTitle(initialUnread);
+
+    // Re-envia la suscripcion Web Push si la tenemos para mantenerla
+    // vigente en el servidor. Si el permiso esta en "default" / "denied"
+    // no hace nada y no aparece ningun prompt.
+    void refreshPushSubscriptionSilently().catch(() => {});
 
     let cancelled = false;
 

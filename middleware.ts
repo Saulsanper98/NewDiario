@@ -50,6 +50,6 @@ export const config = {
    * Si el middleware aplica redirección a login, el <img> del formulario recibe HTML y el logo no se ve.
    */
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|public|logo\\.svg|roque-nublo-silhouette\\.svg|roque-nublo-silhouette\\.png|roque-nublo-vector\\.svg|roque-nublo-silhouette-only\\.svg).*)",
+    "/((?!_next/static|_next/image|favicon.ico|public|logo\\.svg|chat-sw\\.js|roque-nublo-silhouette\\.svg|roque-nublo-silhouette\\.png|roque-nublo-vector\\.svg|roque-nublo-silhouette-only\\.svg).*)",
   ],
 };

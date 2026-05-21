@@ -15,6 +15,7 @@ import type {
 import type { Prisma } from "@/app/generated/prisma/client";
 import { checkRateLimit } from "@/lib/chat/rate-limit";
 import { publishToConversation } from "@/lib/chat/realtime-bus";
+import { sendChatPush } from "@/lib/chat/push";
 
 const attachmentSchema = z.object({
   kind: z.enum(["FILE", "IMAGE", "TASK", "PROJECT", "NOTE"]),
@@ -284,7 +285,7 @@ export async function POST(
     // eliminado" en la cita). No bloqueamos por ello.
   }
 
-  const message = await prisma.$transaction(async (tx) => {
+  const result = await prisma.$transaction(async (tx) => {
     const created = await tx.chatMessage.create({
       data: {
         conversationId,
@@ -370,9 +371,14 @@ export async function POST(
       });
     }
 
-    return created;
+    return {
+      created,
+      notifyUserIds: others.map((o) => o.userId),
+      preview,
+    };
   });
 
+  const message = result.created;
   const serialized = serializeMessage(message, user.id);
 
   // Notificamos en tiempo real al resto de participantes (el autor ya tiene
@@ -388,6 +394,19 @@ export async function POST(
     },
     user.id
   ).catch(() => {});
+
+  // Notificaciones Web Push del navegador: solo a quien no ha silenciado y
+  // sin bloquear la respuesta. Si Web Push no esta configurado, sendChatPush
+  // no hace nada.
+  if (result.notifyUserIds.length > 0) {
+    void sendChatPush(result.notifyUserIds, {
+      title: `${user.name}`,
+      body: result.preview,
+      conversationId,
+      messageId: message.id,
+      url: `/chat?c=${conversationId}&m=${message.id}`,
+    }).catch(() => {});
+  }
 
   return NextResponse.json({ message: serialized }, { status: 201 });
 }

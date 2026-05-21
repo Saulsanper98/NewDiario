@@ -153,10 +153,32 @@ model User {
   chatParticipants      ChatParticipant[]
   chatMessagesSent      ChatMessage[]       @relation("ChatMessageSender")
   chatMessageReactions  ChatMessageReaction[]
+  pushSubscriptions     PushSubscription[]
 
   @@index([email])
   @@index([role])
   @@index([isActive])
+}
+
+/**
+ * Suscripcion de Web Push (RFC 8030 / VAPID) de un dispositivo / navegador del
+ * usuario. Cada `endpoint` es unico a nivel global; el mismo usuario puede
+ * tener varios (movil, escritorio, otros navegadores). Cuando un endpoint
+ * deja de ser valido (HTTP 404/410), lo borramos.
+ */
+model PushSubscription {
+  id         String   @id @default(cuid())
+  userId     String
+  endpoint   String   @unique
+  p256dh     String
+  auth       String
+  userAgent  String?
+  createdAt  DateTime @default(now())
+  lastSeenAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model Department {
