@@ -12,6 +12,7 @@ import {
   Sparkles,
   Users,
   UsersRound,
+  X,
 } from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
 import { cn } from "@/lib/utils";
@@ -163,9 +164,9 @@ export function NewChatPicker({
   }
 
   const shell = cn(
-    "mt-3 flex max-h-[calc(100vh-12rem)] flex-col overflow-hidden rounded-2xl border shadow-2xl",
+    "chat-share-panel mt-3 flex max-h-[calc(100vh-12rem)] flex-col overflow-hidden rounded-2xl border shadow-2xl",
     isLight
-      ? "border-zinc-200 bg-white"
+      ? "border-zinc-200/90 bg-white"
       : "border-white/12 bg-[#0c1224]/95 backdrop-blur-2xl"
   );
 
@@ -224,13 +225,13 @@ export function NewChatPicker({
           onClick={onClose}
           aria-label="Cerrar"
           className={cn(
-            "ml-1 inline-flex h-7 items-center justify-center rounded-md px-2 text-[11px] font-medium transition-colors",
+            "ml-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-colors",
             isLight
               ? "text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900"
-              : "text-white/55 hover:bg-white/8 hover:text-white"
+              : "text-white/55 hover:bg-white/10 hover:text-white"
           )}
         >
-          Cerrar
+          <X className="h-3.5 w-3.5" />
         </button>
       </header>
 
@@ -287,7 +288,7 @@ export function NewChatPicker({
       </div>
 
       {step === "department" ? (
-        <div className="flex-1 overflow-y-auto p-2">
+        <div className="chat-messages-scroll flex-1 overflow-y-auto p-2">
           {/* Acceso rapido en modo grupo: todos los compañeros */}
           {mode === "group" && (
             <button
@@ -298,17 +299,17 @@ export function NewChatPicker({
                 setQuery("");
               }}
               className={cn(
-                "mb-1 flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition-all",
+                "group/quick mb-1.5 flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition-all",
                 isLight
-                  ? "border-zinc-200 bg-gradient-to-br from-white to-zinc-50 hover:border-[#ffeb66]/50 hover:shadow-md"
-                  : "border-white/10 bg-white/[0.02] hover:border-[#ffeb66]/30 hover:bg-white/[0.04]"
+                  ? "border-zinc-200 bg-gradient-to-br from-white to-zinc-50 hover:border-[#ffeb66]/55 hover:shadow-md"
+                  : "border-white/10 bg-white/[0.02] hover:border-[#ffeb66]/35 hover:bg-white/[0.04]"
               )}
             >
               <span
                 className={cn(
-                  "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg",
+                  "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-transform group-hover/quick:scale-105",
                   isLight
-                    ? "bg-[#ffeb66]/20 text-[#9c7d10]"
+                    ? "bg-[#ffeb66]/22 text-[#9c7d10]"
                     : "bg-[#ffeb66]/15 text-[#ffeb66]"
                 )}
               >
@@ -332,34 +333,65 @@ export function NewChatPicker({
                   Búsqueda global por nombre o email
                 </span>
               </span>
-              <ChevronRight
+              <span
                 className={cn(
-                  "h-4 w-4 shrink-0",
-                  isLight ? "text-zinc-400" : "text-white/30"
+                  "flex shrink-0 items-center gap-1 text-[10px] font-semibold uppercase tracking-wide opacity-0 transition-opacity group-hover/quick:opacity-100",
+                  isLight ? "text-zinc-600" : "text-white/65"
                 )}
-              />
+              >
+                Buscar
+                <ChevronRight className="h-3 w-3" />
+              </span>
             </button>
           )}
 
           {loadingDepts ? (
-            <p
-              className={cn(
-                "flex items-center justify-center gap-2 py-12 text-xs",
-                isLight ? "text-zinc-500" : "text-white/40"
-              )}
-            >
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Cargando departamentos…
-            </p>
+            <ul className="grid grid-cols-1 gap-1 sm:grid-cols-2">
+              {[0, 1, 2, 3].map((i) => (
+                <li
+                  key={i}
+                  className="flex items-center gap-2.5 rounded-xl border border-transparent px-3 py-2.5"
+                >
+                  <span
+                    className={cn(
+                      "chat-skeleton h-9 w-9 shrink-0 rounded-lg",
+                      isLight && "is-light"
+                    )}
+                  />
+                  <span
+                    className={cn(
+                      "chat-skeleton block h-3 flex-1 rounded-md",
+                      isLight && "is-light",
+                      i % 2 === 0 ? "w-3/5" : "w-2/3"
+                    )}
+                  />
+                </li>
+              ))}
+            </ul>
           ) : departments.length === 0 ? (
-            <p
+            <div
               className={cn(
-                "py-12 text-center text-xs",
-                isLight ? "text-zinc-500" : "text-white/40"
+                "mx-auto flex max-w-xs flex-col items-center gap-2 py-12 text-center",
+                isLight ? "text-zinc-500" : "text-white/45"
               )}
             >
-              No hay departamentos disponibles
-            </p>
+              <div
+                className={cn(
+                  "flex h-9 w-9 items-center justify-center rounded-xl",
+                  isLight
+                    ? "bg-zinc-100 text-zinc-500"
+                    : "bg-white/[0.05] text-white/45"
+                )}
+              >
+                <Building2 className="h-4 w-4" />
+              </div>
+              <p className="text-xs font-medium">
+                No hay departamentos disponibles
+              </p>
+              <p className="text-[11px] opacity-70">
+                Pídele a un administrador que cree uno en Configuración.
+              </p>
+            </div>
           ) : (
             <ul className="grid grid-cols-1 gap-1 sm:grid-cols-2">
               {departments.map((d) => (
@@ -371,15 +403,25 @@ export function NewChatPicker({
                       setStep("user");
                       setQuery("");
                     }}
+                    style={
+                      {
+                        // Variable CSS para el hover: el borde adopta el
+                        // accentColor del departamento. Aplicado via inline
+                        // style + className condicional con currentColor no
+                        // funciona; lo hacemos con onMouseEnter/Leave
+                        // implicitos via grupo y custom property.
+                        ["--dept-accent" as string]: d.accentColor,
+                      } as React.CSSProperties
+                    }
                     className={cn(
                       "group/dept flex w-full items-center gap-2.5 rounded-xl border px-3 py-2.5 text-left transition-all",
                       isLight
-                        ? "border-zinc-200 hover:border-zinc-300 hover:bg-zinc-50 hover:shadow-sm"
-                        : "border-white/10 hover:border-white/20 hover:bg-white/[0.05]"
+                        ? "border-zinc-200 hover:border-[var(--dept-accent)] hover:bg-zinc-50 hover:shadow-sm"
+                        : "border-white/10 hover:border-[var(--dept-accent)] hover:bg-white/[0.05]"
                     )}
                   >
                     <span
-                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border"
+                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border transition-transform group-hover/dept:scale-105"
                       style={{
                         borderColor: `${d.accentColor}55`,
                         backgroundColor: `${d.accentColor}1f`,
@@ -559,39 +601,99 @@ export function NewChatPicker({
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Buscar por nombre o email…"
                 className={cn(
-                  "w-full rounded-lg border py-2 pl-9 pr-3 text-sm outline-none transition-colors focus:border-[#ffeb66]/55",
+                  "w-full rounded-lg border py-2 pl-9 pr-9 text-sm outline-none transition-all",
+                  "focus:border-[#ffeb66]/55 focus:shadow-[0_0_0_3px_rgba(255,235,102,0.12)]",
                   isLight
-                    ? "border-zinc-200 bg-zinc-50 text-zinc-900"
-                    : "border-white/10 bg-white/[0.04] text-white placeholder:text-white/30"
+                    ? "border-zinc-200 bg-zinc-50/70 text-zinc-900 placeholder:text-zinc-400"
+                    : "border-white/10 bg-white/[0.04] text-white placeholder:text-white/50"
                 )}
               />
+              {query && (
+                <button
+                  type="button"
+                  onClick={() => setQuery("")}
+                  aria-label="Limpiar"
+                  className={cn(
+                    "absolute right-1.5 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-md transition-colors",
+                    isLight
+                      ? "text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700"
+                      : "text-white/40 hover:bg-white/10 hover:text-white"
+                  )}
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              )}
             </div>
           </div>
 
           {/* Lista de usuarios */}
-          <div className="flex-1 overflow-y-auto p-2">
+          <div className="chat-messages-scroll flex-1 overflow-y-auto p-2">
             {loadingUsers ? (
-              <p
-                className={cn(
-                  "flex items-center justify-center gap-2 py-12 text-xs",
-                  isLight ? "text-zinc-500" : "text-white/40"
-                )}
-              >
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Cargando compañeros…
-              </p>
+              <ul className="space-y-1.5 px-1 py-1">
+                {[0, 1, 2, 3, 4].map((i) => (
+                  <li
+                    key={i}
+                    className="flex items-center gap-3 rounded-lg px-2 py-2"
+                  >
+                    <span
+                      className={cn(
+                        "chat-skeleton h-9 w-9 shrink-0 rounded-full",
+                        isLight && "is-light"
+                      )}
+                    />
+                    <span className="flex-1 space-y-1.5">
+                      <span
+                        className={cn(
+                          "chat-skeleton block h-3 rounded-md",
+                          isLight && "is-light",
+                          i % 3 === 0 ? "w-3/5" : i % 3 === 1 ? "w-4/5" : "w-2/3"
+                        )}
+                      />
+                      <span
+                        className={cn(
+                          "chat-skeleton block h-2 w-2/5 rounded-md",
+                          isLight && "is-light"
+                        )}
+                      />
+                    </span>
+                  </li>
+                ))}
+              </ul>
             ) : filteredUsers.length === 0 ? (
-              <p
+              <div
                 className={cn(
-                  "flex flex-col items-center gap-2 py-12 text-center text-xs",
-                  isLight ? "text-zinc-500" : "text-white/40"
+                  "mx-auto flex max-w-xs flex-col items-center gap-2 px-4 py-10 text-center",
+                  isLight ? "text-zinc-500" : "text-white/45"
                 )}
               >
-                <Users className="h-7 w-7 opacity-40" />
-                {query.trim()
-                  ? "Sin resultados"
-                  : "No hay usuarios"}
-              </p>
+                <div
+                  className={cn(
+                    "flex h-9 w-9 items-center justify-center rounded-xl",
+                    isLight
+                      ? "bg-zinc-100 text-zinc-500"
+                      : "bg-white/[0.05] text-white/45"
+                  )}
+                >
+                  <Users className="h-4 w-4" />
+                </div>
+                <p className="text-xs font-medium">
+                  {query.trim()
+                    ? `Sin resultados para "${query.trim()}"`
+                    : "No hay usuarios en este origen"}
+                </p>
+                {query.trim() && (
+                  <button
+                    type="button"
+                    onClick={() => setQuery("")}
+                    className={cn(
+                      "text-[11px] font-semibold underline-offset-2 hover:underline",
+                      isLight ? "text-zinc-600" : "text-white/70"
+                    )}
+                  >
+                    Limpiar búsqueda
+                  </button>
+                )}
+              </div>
             ) : (
               <ul className="space-y-0.5">
                 {filteredUsers.map((u) => {
@@ -608,14 +710,14 @@ export function NewChatPicker({
                           }
                         }}
                         className={cn(
-                          "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors",
+                          "group/user flex w-full items-center gap-3 rounded-lg border border-transparent px-3 py-2.5 text-left transition-all",
                           mode === "group" && checked
                             ? isLight
-                              ? "bg-[#ffeb66]/14 ring-1 ring-[#ffeb66]/35"
-                              : "bg-[#ffeb66]/12 ring-1 ring-[#ffeb66]/30"
+                              ? "border-[#ffeb66]/45 bg-[#ffeb66]/14"
+                              : "border-[#ffeb66]/35 bg-[#ffeb66]/12"
                             : isLight
-                              ? "hover:bg-zinc-50"
-                              : "hover:bg-white/[0.05]"
+                              ? "hover:border-[#ffeb66]/35 hover:bg-[#ffeb66]/8"
+                              : "hover:border-[#ffeb66]/25 hover:bg-[#ffeb66]/6"
                         )}
                       >
                         <Avatar
@@ -637,24 +739,34 @@ export function NewChatPicker({
                           <span
                             className={cn(
                               "block truncate text-[11px]",
-                              isLight ? "text-zinc-500" : "text-white/40"
+                              isLight ? "text-zinc-500" : "text-white/45"
                             )}
                           >
                             {u.email}
                           </span>
                         </span>
-                        {mode === "group" && (
+                        {mode === "group" ? (
                           <span
                             className={cn(
-                              "flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition-colors",
+                              "flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition-all",
                               checked
-                                ? "border-[#ffeb66] bg-[#ffeb66] text-[#0a0f1e]"
+                                ? "border-[#ffeb66] bg-[#ffeb66] text-[#0a0f1e] shadow-[0_0_0_3px_rgba(255,235,102,0.18)]"
                                 : isLight
-                                  ? "border-zinc-300"
-                                  : "border-white/20"
+                                  ? "border-zinc-300 group-hover/user:border-[#ffeb66]/55"
+                                  : "border-white/20 group-hover/user:border-[#ffeb66]/55"
                             )}
                           >
                             {checked && <Check className="h-3 w-3" />}
+                          </span>
+                        ) : (
+                          <span
+                            className={cn(
+                              "flex shrink-0 items-center gap-1 text-[10px] font-semibold uppercase tracking-wide opacity-0 transition-opacity group-hover/user:opacity-100",
+                              isLight ? "text-zinc-600" : "text-white/65"
+                            )}
+                          >
+                            Iniciar
+                            <ChevronRight className="h-3 w-3" />
                           </span>
                         )}
                       </button>
@@ -675,10 +787,17 @@ export function NewChatPicker({
             >
               <span
                 className={cn(
-                  "text-[11px]",
-                  isLight ? "text-zinc-500" : "text-white/45"
+                  "inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-[11px] font-medium",
+                  selected.length >= 2
+                    ? isLight
+                      ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200"
+                      : "bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-400/25"
+                    : isLight
+                      ? "bg-zinc-100 text-zinc-600"
+                      : "bg-white/[0.05] text-white/55"
                 )}
               >
+                <UsersRound className="h-3 w-3" />
                 {selected.length} seleccionado{selected.length === 1 ? "" : "s"}
                 {selected.length < 2 && " · mínimo 2"}
               </span>
