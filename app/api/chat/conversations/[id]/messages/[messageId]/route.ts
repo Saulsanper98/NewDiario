@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma/client";
 import { z } from "zod";
 import type { SessionUser } from "@/lib/auth/types";
 import { assertChatParticipant } from "@/lib/chat/access";
+import { publishToConversation } from "@/lib/chat/realtime-bus";
 
 /**
  * Ventana en la que el autor puede editar su mensaje. Pasado ese tiempo el
@@ -97,11 +98,23 @@ export async function PATCH(
     },
   });
 
-  return NextResponse.json({
+  const payload = {
     id: updated.id,
     body: updated.body ?? "",
     editedAt: updated.editedAt?.toISOString() ?? null,
-  });
+  };
+
+  void publishToConversation(
+    conversationId,
+    {
+      type: "message:update",
+      conversationId,
+      message: payload,
+    },
+    user.id
+  ).catch(() => {});
+
+  return NextResponse.json(payload);
 }
 
 /**
@@ -161,6 +174,16 @@ export async function DELETE(
     await tx.chatAttachment.deleteMany({ where: { messageId } });
     await tx.chatMessageReaction.deleteMany({ where: { messageId } });
   });
+
+  void publishToConversation(
+    conversationId,
+    {
+      type: "message:delete",
+      conversationId,
+      messageId,
+    },
+    user.id
+  ).catch(() => {});
 
   return NextResponse.json({ ok: true, deleted: true });
 }

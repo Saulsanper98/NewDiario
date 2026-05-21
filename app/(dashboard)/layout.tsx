@@ -6,6 +6,7 @@ import { KeyboardShortcuts } from "@/components/layout/KeyboardShortcuts";
 import { SkipToMain } from "@/components/layout/SkipToMain";
 import { MobileNav } from "@/components/layout/MobileNav";
 import { PageTransition } from "@/components/layout/PageTransition";
+import { ChatNotifier } from "@/components/layout/ChatNotifier";
 import { isAdminOrAbove, getActiveDepartmentId } from "@/lib/auth/permissions";
 import { isBugReportsAdmin } from "@/lib/bug-reports";
 import type { SessionUser } from "@/lib/auth/types";
@@ -78,6 +79,7 @@ export default async function DashboardLayout({
       </main>
       <KeyboardShortcuts />
       <MobileNav pendingFollowups={pendingFollowups} />
+      <ChatNotifier initialUnread={unreadChatMessages} />
     </div>
   );
 }

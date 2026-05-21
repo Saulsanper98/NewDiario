@@ -10,6 +10,7 @@ import {
   Bell,
   BellOff,
   Check,
+  CheckCheck,
   CheckSquare,
   ChevronDown,
   ChevronLeft,
@@ -48,6 +49,10 @@ import { Button } from "@/components/ui/Button";
 import { UserProfilePopover } from "@/components/user/UserProfilePopover";
 import { useTheme } from "@/components/layout/ThemeProvider";
 import { useAvatarFrameEffect } from "@/lib/hooks/useAvatarFrameEffect";
+import {
+  isChatSoundEnabled,
+  setChatSoundEnabled,
+} from "@/lib/notifications/sound";
 import { cn } from "@/lib/utils";
 import type {
   ChatAttachmentItem,
@@ -91,6 +96,36 @@ function canEditMessage(m: ChatMessageItem, currentUserId: string | undefined) {
   if (m.isDeleted) return false;
   if (Date.now() - new Date(m.createdAt).getTime() > EDIT_WINDOW_MS) return false;
   return true;
+}
+
+/**
+ * Calcula el estado de "recibo de lectura" de un mensaje propio en funcion
+ * del `lastReadAt` de los OTROS participantes activos de la conversacion.
+ *
+ *   - "sent": ningun otro participante lo ha leido todavia.
+ *   - "delivered": al menos uno lo ha leido, pero no todos.
+ *   - "read": TODOS los otros participantes lo han leido (✓✓ azul).
+ *
+ * Si la conversacion no tiene otros participantes activos devolvemos "sent"
+ * (no hay a quien leer). Para 1-a-1 efectivamente colapsa a sent / read.
+ */
+function computeReceipt(
+  msgCreatedAt: string,
+  readState: Record<string, string | null>
+): { status: "sent" | "delivered" | "read"; readCount: number; total: number } {
+  const t = new Date(msgCreatedAt).getTime();
+  const others = Object.values(readState);
+  if (others.length === 0) {
+    return { status: "sent", readCount: 0, total: 0 };
+  }
+  let readCount = 0;
+  for (const r of others) {
+    if (r && new Date(r).getTime() >= t) readCount += 1;
+  }
+  const total = others.length;
+  if (readCount === 0) return { status: "sent", readCount, total };
+  if (readCount >= total) return { status: "read", readCount, total };
+  return { status: "delivered", readCount, total };
 }
 
 /** Snippet textual de un mensaje al que estamos respondiendo. */
@@ -994,6 +1029,23 @@ export function ChatView() {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessageItem[]>([]);
   const [loadingMessages, setLoadingMessages] = useState(false);
+  /**
+   * Estado de lectura de los OTROS participantes activos de la conversacion.
+   * Indexado por userId -> lastReadAt ISO. Lo usamos para pintar los ticks
+   * (enviado / entregado / leido) sobre los mensajes propios.
+   */
+  const [readState, setReadState] = useState<Record<string, string | null>>({});
+  /**
+   * Indicadores de "X esta escribiendo..." en directo. Indexado por
+   * conversationId -> userId -> {userName, expiresAt(ms)}. Cada evento
+   * "typing" del bus reinicia su expiracion (5s); un timer global limpia
+   * entradas caducadas. Se muestra solo en la conversacion activa.
+   */
+  const [typingByConv, setTypingByConv] = useState<
+    Record<string, Record<string, { userName: string; expiresAt: number }>>
+  >({});
+  /** Usuarios actualmente conectados (presencia). Recibido por SSE. */
+  const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
   const { data: sessionData } = useSession();
   const currentUser = sessionData?.user ?? null;
   const [draft, setDraft] = useState("");
@@ -1024,6 +1076,10 @@ export function ChatView() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchLoading, setSearchLoading] = useState(false);
+  const [soundOn, setSoundOn] = useState(true);
+  useEffect(() => {
+    setSoundOn(isChatSoundEnabled());
+  }, []);
   const [searchResults, setSearchResults] = useState<{
     conversations: {
       id: string;
@@ -1067,6 +1123,16 @@ export function ChatView() {
   const lastMessageAtRef = useRef<string | null>(null);
   const editingTextareaRef = useRef<HTMLTextAreaElement>(null);
   const pendingJumpRef = useRef<string | null>(null);
+  /**
+   * Refs auxiliares para que el listener SSE (montado una sola vez por
+   * sesion) pueda leer el valor mas reciente de activeId / currentUser /
+   * isAtBottom sin necesidad de re-subscribirse en cada cambio.
+   */
+  const activeIdRef = useRef<string | null>(null);
+  const currentUserIdRef = useRef<string | undefined>(undefined);
+  const isAtBottomRef = useRef<boolean>(true);
+  /** Throttle del POST /typing: maximo 1 envio cada 3.5s. */
+  const lastTypingSentRef = useRef(0);
   const highlightTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const activeConv = conversations.find((c) => c.id === activeId) ?? null;
@@ -1097,7 +1163,10 @@ export function ChatView() {
           `/api/chat/conversations/${conversationId}/messages${qs}`
         );
         if (!res.ok) return;
-        const data = (await res.json()) as { messages: ChatMessageItem[] };
+        const data = (await res.json()) as {
+          messages: ChatMessageItem[];
+          readState?: { userId: string; lastReadAt: string | null }[];
+        };
         if (opts?.after) {
           if (data.messages.length > 0) {
             setMessages((prev) => {
@@ -1111,6 +1180,12 @@ export function ChatView() {
           }
         } else {
           setMessages(data.messages);
+        }
+        // Siempre refrescamos el readState (los demas podrian haber leido).
+        if (data.readState) {
+          const next: Record<string, string | null> = {};
+          for (const r of data.readState) next[r.userId] = r.lastReadAt;
+          setReadState(next);
         }
         const last = data.messages[data.messages.length - 1];
         if (last) lastMessageAtRef.current = last.createdAt;
@@ -1159,6 +1234,21 @@ export function ChatView() {
     }
   }, [searchParams, activeId, loadMessages, markRead]);
 
+  // Sincronizamos refs auxiliares para que el listener SSE (subscrito una
+  // sola vez) siempre lea los ultimos valores sin re-suscribirse.
+  useEffect(() => {
+    activeIdRef.current = activeId;
+  }, [activeId]);
+  useEffect(() => {
+    currentUserIdRef.current = currentUser?.id;
+  }, [currentUser?.id]);
+  useEffect(() => {
+    isAtBottomRef.current = isAtBottom;
+  }, [isAtBottom]);
+
+  // Polling de seguridad: con SSE recibimos en directo, pero mantenemos un
+  // reloj lento por si la conexion se pierde (proxies con buffering muy
+  // agresivo, suspension del navegador, etc). 30s es suficiente.
   useEffect(() => {
     if (!activeId) return;
     const t = setInterval(() => {
@@ -1169,9 +1259,208 @@ export function ChatView() {
         void loadMessages(activeId, { silent: true });
       }
       void loadConversations();
-    }, 4_000);
+    }, 30_000);
     return () => clearInterval(t);
   }, [activeId, loadMessages, loadConversations]);
+
+  // Conexion SSE persistente. Se monta una sola vez por sesion y permanece
+  // viva mientras el usuario tenga la pestana abierta.
+  useEffect(() => {
+    if (!currentUser?.id) return;
+    // Snapshot inicial de presencia para que los puntos verdes aparezcan
+    // sin esperar a un evento de conexion/desconexion.
+    void (async () => {
+      try {
+        const res = await fetch("/api/chat/presence", { cache: "no-store" });
+        if (!res.ok) return;
+        const data = (await res.json()) as { online?: string[] };
+        if (data.online) setOnlineUsers(new Set(data.online));
+      } catch {
+        /* ignore */
+      }
+    })();
+
+    const es = new EventSource("/api/chat/stream");
+
+    es.addEventListener("message:new", (ev) => {
+      try {
+        const data = JSON.parse((ev as MessageEvent).data) as {
+          conversationId: string;
+          message: ChatMessageItem & { senderId: string };
+        };
+        const myId = currentUserIdRef.current;
+        const incoming: ChatMessageItem = {
+          ...data.message,
+          isMine: data.message.senderId === myId,
+          reactions: (data.message.reactions ?? []).map((r) => ({
+            ...r,
+            mine: myId ? r.userIds.includes(myId) : false,
+          })),
+        };
+        if (activeIdRef.current === data.conversationId) {
+          setMessages((prev) =>
+            prev.some((m) => m.id === incoming.id) ? prev : [...prev, incoming]
+          );
+          lastMessageAtRef.current = incoming.createdAt;
+          // Si el usuario esta leyendo activamente, marcamos como leido al
+          // instante para que el remitente vea el tick azul sin demora.
+          if (
+            isAtBottomRef.current &&
+            typeof document !== "undefined" &&
+            !document.hidden
+          ) {
+            void markRead(data.conversationId);
+          }
+        }
+        // Refrescamos lista (badge, ultimo mensaje, orden).
+        void loadConversations();
+      } catch {
+        /* ignore */
+      }
+    });
+
+    es.addEventListener("message:update", (ev) => {
+      try {
+        const data = JSON.parse((ev as MessageEvent).data) as {
+          conversationId: string;
+          message: Partial<ChatMessageItem> & { id: string };
+        };
+        const myId = currentUserIdRef.current;
+        setMessages((prev) =>
+          prev.map((m) => {
+            if (m.id !== data.message.id) return m;
+            const patch: ChatMessageItem = { ...m };
+            if (data.message.body !== undefined) patch.body = data.message.body ?? "";
+            if (data.message.editedAt !== undefined) patch.editedAt = data.message.editedAt;
+            if (data.message.reactions !== undefined) {
+              patch.reactions = data.message.reactions.map((r) => ({
+                ...r,
+                mine: myId ? r.userIds.includes(myId) : false,
+              }));
+            }
+            return patch;
+          })
+        );
+      } catch {
+        /* ignore */
+      }
+    });
+
+    es.addEventListener("message:delete", (ev) => {
+      try {
+        const data = JSON.parse((ev as MessageEvent).data) as {
+          conversationId: string;
+          messageId: string;
+        };
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === data.messageId
+              ? {
+                  ...m,
+                  isDeleted: true,
+                  body: "",
+                  attachments: [],
+                  reactions: [],
+                }
+              : m
+          )
+        );
+      } catch {
+        /* ignore */
+      }
+    });
+
+    es.addEventListener("read:update", (ev) => {
+      try {
+        const data = JSON.parse((ev as MessageEvent).data) as {
+          conversationId: string;
+          userId: string;
+          lastReadAt: string;
+        };
+        if (activeIdRef.current !== data.conversationId) return;
+        setReadState((prev) => ({ ...prev, [data.userId]: data.lastReadAt }));
+      } catch {
+        /* ignore */
+      }
+    });
+
+    es.addEventListener("typing", (ev) => {
+      try {
+        const data = JSON.parse((ev as MessageEvent).data) as {
+          conversationId: string;
+          userId: string;
+          userName: string;
+          until: string;
+        };
+        if (data.userId === currentUserIdRef.current) return;
+        const expiresAt = new Date(data.until).getTime();
+        setTypingByConv((prev) => ({
+          ...prev,
+          [data.conversationId]: {
+            ...(prev[data.conversationId] ?? {}),
+            [data.userId]: { userName: data.userName, expiresAt },
+          },
+        }));
+      } catch {
+        /* ignore */
+      }
+    });
+
+    es.addEventListener("presence", (ev) => {
+      try {
+        const data = JSON.parse((ev as MessageEvent).data) as {
+          userId: string;
+          online: boolean;
+        };
+        setOnlineUsers((prev) => {
+          const next = new Set(prev);
+          if (data.online) next.add(data.userId);
+          else next.delete(data.userId);
+          return next;
+        });
+      } catch {
+        /* ignore */
+      }
+    });
+
+    return () => es.close();
+  }, [currentUser?.id, loadConversations, markRead]);
+
+  // Limpieza periodica de indicadores "escribiendo..." expirados.
+  useEffect(() => {
+    const t = setInterval(() => {
+      setTypingByConv((prev) => {
+        const now = Date.now();
+        let changed = false;
+        const next: typeof prev = {};
+        for (const [convId, users] of Object.entries(prev)) {
+          const filtered: Record<
+            string,
+            { userName: string; expiresAt: number }
+          > = {};
+          for (const [uid, info] of Object.entries(users)) {
+            if (info.expiresAt > now) filtered[uid] = info;
+            else changed = true;
+          }
+          if (Object.keys(filtered).length > 0) next[convId] = filtered;
+          else changed = true;
+        }
+        return changed ? next : prev;
+      });
+    }, 1_000);
+    return () => clearInterval(t);
+  }, []);
+
+  /** Notifica al servidor que el usuario esta escribiendo (max. cada 3.5s). */
+  const notifyTyping = useCallback((conversationId: string | null) => {
+    if (!conversationId) return;
+    const now = Date.now();
+    if (now - lastTypingSentRef.current < 3500) return;
+    lastTypingSentRef.current = now;
+    void fetch(`/api/chat/conversations/${conversationId}/typing`, {
+      method: "POST",
+    }).catch(() => {});
+  }, []);
 
   // Solo hacemos scroll automatico cuando el usuario YA esta al fondo. Si
   // esta leyendo historial mas arriba no le arrastramos al final cuando
@@ -1323,6 +1612,7 @@ export function ChatView() {
         // Si el chat eliminado era el activo, lo cerramos.
         setActiveId(null);
         setMessages([]);
+        setReadState({});
       }
       await loadConversations();
     } catch (err) {
@@ -2012,13 +2302,21 @@ export function ChatView() {
                 isLight={L}
               />
             ) : (
-              <Avatar
-                name={c.peer?.name ?? "?"}
-                image={c.peer?.image ?? null}
-                focusX={c.peer?.imageFocusX}
-                focusY={c.peer?.imageFocusY}
-                size="md"
-              />
+              <>
+                <Avatar
+                  name={c.peer?.name ?? "?"}
+                  image={c.peer?.image ?? null}
+                  focusX={c.peer?.imageFocusX}
+                  focusY={c.peer?.imageFocusY}
+                  size="md"
+                />
+                {c.peer?.id && onlineUsers.has(c.peer.id) && (
+                  <span
+                    className={cn("chat-presence-dot", L && "is-light")}
+                    title="En línea"
+                  />
+                )}
+              </>
             )}
             {showUnread && (
               <span
@@ -2325,6 +2623,40 @@ export function ChatView() {
                 )}
               >
                 <Search className="h-3.5 w-3.5" />
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const next = !soundOn;
+                  setSoundOn(next);
+                  setChatSoundEnabled(next);
+                  toast.success(
+                    next ? "Sonido activado" : "Sonido silenciado",
+                    { id: "chat-sound" }
+                  );
+                }}
+                aria-label={soundOn ? "Silenciar sonido" : "Activar sonido"}
+                title={
+                  soundOn
+                    ? "Silenciar sonido de mensajes nuevos"
+                    : "Activar sonido de mensajes nuevos"
+                }
+                className={cn(
+                  "flex h-9 w-9 items-center justify-center rounded-xl border transition-all",
+                  soundOn
+                    ? L
+                      ? "border-zinc-200/80 bg-white/70 text-zinc-600 hover:bg-zinc-50"
+                      : "border-white/12 bg-white/[0.04] text-white/60 hover:bg-white/[0.08] hover:text-white"
+                    : L
+                      ? "border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100"
+                      : "border-amber-400/30 bg-amber-400/10 text-amber-300 hover:bg-amber-400/20"
+                )}
+              >
+                {soundOn ? (
+                  <Bell className="h-3.5 w-3.5" />
+                ) : (
+                  <BellOff className="h-3.5 w-3.5" />
+                )}
               </button>
               <button
                 type="button"
@@ -2790,14 +3122,26 @@ export function ChatView() {
                       />
                     </button>
                   ) : (
-                    <Avatar
-                      name={activeConv.peer?.name ?? "?"}
-                      image={activeConv.peer?.image ?? null}
-                      focusX={activeConv.peer?.imageFocusX}
-                      focusY={activeConv.peer?.imageFocusY}
-                      size="md"
-                      effect={avatarEffect}
-                    />
+                    <div className="relative">
+                      <Avatar
+                        name={activeConv.peer?.name ?? "?"}
+                        image={activeConv.peer?.image ?? null}
+                        focusX={activeConv.peer?.imageFocusX}
+                        focusY={activeConv.peer?.imageFocusY}
+                        size="md"
+                        effect={avatarEffect}
+                      />
+                      {activeConv.peer?.id &&
+                        onlineUsers.has(activeConv.peer.id) && (
+                          <span
+                            className={cn(
+                              "chat-presence-dot",
+                              L && "is-light"
+                            )}
+                            title="En línea"
+                          />
+                        )}
+                    </div>
                   )}
                   <div className="min-w-0 flex-1">
                     {isGroup ? (
@@ -3180,6 +3524,47 @@ export function ChatView() {
                                     No enviado
                                   </span>
                                 )}
+                                {m.isMine &&
+                                  !m.isDeleted &&
+                                  !(m as ChatMessageItem & {
+                                    pending?: "sending" | "failed";
+                                  }).pending &&
+                                  (() => {
+                                    const r = computeReceipt(
+                                      m.createdAt,
+                                      readState
+                                    );
+                                    if (r.total === 0) return null;
+                                    const title =
+                                      r.status === "read"
+                                        ? "Leído"
+                                        : r.status === "delivered"
+                                          ? `Leído por ${r.readCount} de ${r.total}`
+                                          : "Enviado";
+                                    if (r.status === "sent") {
+                                      return (
+                                        <Check
+                                          className="h-3 w-3 opacity-75"
+                                          aria-label={title}
+                                        >
+                                          <title>{title}</title>
+                                        </Check>
+                                      );
+                                    }
+                                    return (
+                                      <CheckCheck
+                                        className={cn(
+                                          "h-3.5 w-3.5",
+                                          r.status === "read"
+                                            ? "text-sky-300"
+                                            : "opacity-75"
+                                        )}
+                                        aria-label={title}
+                                      >
+                                        <title>{title}</title>
+                                      </CheckCheck>
+                                    );
+                                  })()}
                               </p>
                             )}
 
@@ -3380,6 +3765,37 @@ export function ChatView() {
                   );
                 })
               )}
+              {(() => {
+                const map = activeId ? typingByConv[activeId] : null;
+                if (!map) return null;
+                const now = Date.now();
+                const me = currentUser?.id;
+                const activeTypers = Object.entries(map)
+                  .filter(([uid, info]) => info.expiresAt > now && uid !== me)
+                  .map(([, info]) => info.userName);
+                if (activeTypers.length === 0) return null;
+                const label =
+                  activeTypers.length === 1
+                    ? `${activeTypers[0]} está escribiendo`
+                    : activeTypers.length === 2
+                      ? `${activeTypers[0]} y ${activeTypers[1]} están escribiendo`
+                      : "Varias personas están escribiendo";
+                return (
+                  <div
+                    className={cn(
+                      "mt-2 flex items-center gap-2 text-xs italic",
+                      L ? "text-zinc-500" : "text-white/55"
+                    )}
+                  >
+                    <span className="chat-typing-dots inline-flex gap-0.5">
+                      <span />
+                      <span />
+                      <span />
+                    </span>
+                    <span>{label}…</span>
+                  </div>
+                );
+              })()}
               <div ref={messagesEndRef} />
             </div>
             </div>
@@ -3527,7 +3943,12 @@ export function ChatView() {
                 <textarea
                   ref={composerRef}
                   value={draft}
-                  onChange={(e) => setDraft(e.target.value)}
+                  onChange={(e) => {
+                    setDraft(e.target.value);
+                    if (e.target.value.trim().length > 0) {
+                      notifyTyping(activeId);
+                    }
+                  }}
                   onPaste={handlePaste}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && !e.shiftKey) {

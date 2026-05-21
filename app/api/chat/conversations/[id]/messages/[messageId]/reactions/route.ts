@@ -5,6 +5,7 @@ import { z } from "zod";
 import type { SessionUser } from "@/lib/auth/types";
 import { assertChatParticipant } from "@/lib/chat/access";
 import type { ChatReactionSummary } from "@/lib/chat/serialize";
+import { publishToConversation } from "@/lib/chat/realtime-bus";
 
 /**
  * Set blanco de emojis aceptados. Mantener corto evita que un usuario meta
@@ -110,6 +111,18 @@ export async function POST(
     if (r.userId === user.id) entry.mine = true;
   }
   const reactions = Array.from(map.values()).sort((a, b) => b.count - a.count);
+
+  // Notificamos a los demas participantes con el conjunto completo de
+  // reacciones; en cliente cada uno recalcula `mine` segun su sessionId.
+  void publishToConversation(
+    conversationId,
+    {
+      type: "message:update",
+      conversationId,
+      message: { id: messageId, reactions },
+    },
+    user.id
+  ).catch(() => {});
 
   return NextResponse.json({ reactions });
 }

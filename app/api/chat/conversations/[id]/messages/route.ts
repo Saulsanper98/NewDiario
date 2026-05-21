@@ -14,6 +14,7 @@ import type {
 } from "@/lib/chat/serialize";
 import type { Prisma } from "@/app/generated/prisma/client";
 import { checkRateLimit } from "@/lib/chat/rate-limit";
+import { publishToConversation } from "@/lib/chat/realtime-bus";
 
 const attachmentSchema = z.object({
   kind: z.enum(["FILE", "IMAGE", "TASK", "PROJECT", "NOTE"]),
@@ -198,7 +199,24 @@ export async function GET(
 
   const ordered = after ? messages : [...messages].reverse();
   const items = ordered.map((m) => serializeMessage(m, user.id));
-  return NextResponse.json({ messages: items });
+
+  // Estado de lectura de los OTROS participantes activos: permite pintar los
+  // ticks (enviado / entregado / leido) en los mensajes propios sin necesidad
+  // de un round-trip extra.
+  const readers = await prisma.chatParticipant.findMany({
+    where: {
+      conversationId,
+      userId: { not: user.id },
+      leftAt: null,
+    },
+    select: { userId: true, lastReadAt: true },
+  });
+  const readState = readers.map((r) => ({
+    userId: r.userId,
+    lastReadAt: r.lastReadAt ? r.lastReadAt.toISOString() : null,
+  }));
+
+  return NextResponse.json({ messages: items, readState });
 }
 
 export async function POST(
@@ -355,8 +373,21 @@ export async function POST(
     return created;
   });
 
-  return NextResponse.json(
-    { message: serializeMessage(message, user.id) },
-    { status: 201 }
-  );
+  const serialized = serializeMessage(message, user.id);
+
+  // Notificamos en tiempo real al resto de participantes (el autor ya tiene
+  // el optimistic). Importante: serializeMessage marca `isMine` desde la
+  // perspectiva del autor; cada receptor recalculara `isMine` en cliente
+  // comparando senderId con su propio id.
+  void publishToConversation(
+    conversationId,
+    {
+      type: "message:new",
+      conversationId,
+      message: serialized,
+    },
+    user.id
+  ).catch(() => {});
+
+  return NextResponse.json({ message: serialized }, { status: 201 });
 }

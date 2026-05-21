@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma/client";
 import type { SessionUser } from "@/lib/auth/types";
 import { assertChatParticipant } from "@/lib/chat/access";
+import { publishToConversation } from "@/lib/chat/realtime-bus";
 
 export async function PATCH(
   _req: Request,
@@ -21,12 +22,26 @@ export async function PATCH(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
+  const now = new Date();
   await prisma.chatParticipant.update({
     where: {
       conversationId_userId: { conversationId, userId: user.id },
     },
-    data: { lastReadAt: new Date() },
+    data: { lastReadAt: now },
   });
+
+  // Notificamos al resto para que el autor del mensaje vea el tick azul
+  // (✓✓ leido) sin tener que esperar al siguiente poll.
+  void publishToConversation(
+    conversationId,
+    {
+      type: "read:update",
+      conversationId,
+      userId: user.id,
+      lastReadAt: now.toISOString(),
+    },
+    user.id
+  ).catch(() => {});
 
   return NextResponse.json({ ok: true });
 }
