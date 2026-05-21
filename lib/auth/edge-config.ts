@@ -34,10 +34,55 @@ function authCookiesForDev(): NextAuthConfig["cookies"] | undefined {
   };
 }
 
+/**
+ * Cookies de Auth.js en producción cuando hay HTTPS por reverse proxy en un
+ * puerto no estándar (p.ej. https://host:8443).
+ *
+ * Por defecto, Auth.js usa nombres con prefijo `__Host-` cuando detecta
+ * `NEXTAUTH_URL` en https. El prefijo `__Host-` exige `Secure` + `Path=/` +
+ * NO `Domain` y, sobre todo, que la cookie viaje siempre por HTTPS. Eso
+ * funciona bien con un sitio público en :443, pero en puertos no estándar
+ * algunos navegadores tienen bugs sutiles que descartan la cookie en el POST
+ * del login -> el servidor recibe la petición sin cookie CSRF y devuelve
+ * MissingCSRF a pesar de que el body lleva un csrfToken válido.
+ *
+ * Para evitar ese caso, fijamos nombres "genéricos" pero mantenemos
+ * `Secure=true` y `SameSite=lax`, conservando la mitigación CSRF basada en
+ * double-submit cookie (cookie + body).
+ */
+function authCookiesForProxy(): NextAuthConfig["cookies"] | undefined {
+  if (process.env.NODE_ENV === "development") return undefined;
+  const sec = (process.env.NEXTAUTH_URL ?? "").startsWith("https");
+  const base = {
+    httpOnly: true as const,
+    sameSite: "lax" as const,
+    path: "/",
+    secure: sec,
+  };
+  return {
+    sessionToken: { name: "authjs.session-token", options: base },
+    callbackUrl: { name: "authjs.callback-url", options: base },
+    csrfToken: { name: "authjs.csrf-token", options: base },
+    pkceCodeVerifier: {
+      name: "authjs.pkce.code_verifier",
+      options: { ...base, maxAge: 60 * 15 },
+    },
+    state: {
+      name: "authjs.state",
+      options: { ...base, maxAge: 60 * 15 },
+    },
+    nonce: { name: "authjs.nonce", options: base },
+    webauthnChallenge: {
+      name: "authjs.challenge",
+      options: { ...base, maxAge: 60 * 15 },
+    },
+  };
+}
+
 export const edgeAuthConfig: NextAuthConfig = {
   // Auth.js v5 exige secret en Edge (middleware). Acepta AUTH_SECRET o NEXTAUTH_SECRET (Docker/README).
   secret: process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET,
-  cookies: authCookiesForDev(),
+  cookies: authCookiesForDev() ?? authCookiesForProxy(),
   // Permitir IPs y hosts no-localhost (despliegue en servidor Windows con IP fija)
   trustHost: true,
   pages: {
