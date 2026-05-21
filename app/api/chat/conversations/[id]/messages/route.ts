@@ -11,6 +11,7 @@ import type {
   ChatMessageItem,
 } from "@/lib/chat/serialize";
 import type { Prisma } from "@/app/generated/prisma/client";
+import { checkRateLimit } from "@/lib/chat/rate-limit";
 
 const attachmentSchema = z.object({
   kind: z.enum(["FILE", "IMAGE", "TASK", "PROJECT", "NOTE"]),
@@ -144,6 +145,22 @@ export async function POST(
   const user = session.user as SessionUser;
   const { id: conversationId } = await params;
 
+  // Rate limit: 60 mensajes / 30s por usuario. Suficiente margen para
+  // conversaciones rapidas (~2/s pico), pero ataja bucles defectuosos o spam.
+  const rl = checkRateLimit({
+    key: `chat-msg:${user.id}`,
+    limit: 60,
+    windowMs: 30_000,
+  });
+  if (!rl.ok) {
+    return NextResponse.json(
+      {
+        error: `Estás enviando mensajes muy rápido. Espera ${Math.ceil(rl.retryAfterMs / 1000)}s.`,
+      },
+      { status: 429 }
+    );
+  }
+
   const participant = await assertChatParticipant(conversationId, user.id);
   if (!participant) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -216,7 +233,18 @@ export async function POST(
       where: {
         conversationId_userId: { conversationId, userId: user.id },
       },
-      data: { lastReadAt: new Date() },
+      data: { lastReadAt: new Date(), hiddenAt: null },
+    });
+
+    // Si algun otro participante la tenia OCULTA (porque la borro), se la
+    // "restauramos" en su lista cuando recibe un mensaje nuevo.
+    await tx.chatParticipant.updateMany({
+      where: {
+        conversationId,
+        userId: { not: user.id },
+        hiddenAt: { not: null },
+      },
+      data: { hiddenAt: null },
     });
 
     const others = await tx.chatParticipant.findMany({

@@ -845,6 +845,10 @@ model ChatParticipant {
   lastReadAt     DateTime?
   /** El usuario abandono el grupo. Sigue viendo los mensajes anteriores. */
   leftAt         DateTime?
+  /** Soft-delete por participante (1-a-1): la conversacion deja de aparecer
+      en SU lista, pero los mensajes se conservan para el otro. Si llega un
+      mensaje nuevo se vuelve a poner a null para restaurarla. */
+  hiddenAt       DateTime?
   /** El usuario silencio las notificaciones del chat. */
   mutedUntil     DateTime?
 

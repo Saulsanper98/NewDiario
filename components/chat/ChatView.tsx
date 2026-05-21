@@ -826,7 +826,7 @@ export function ChatView() {
   async function deleteConversation(c: ChatConversationItem) {
     const msg = c.isGroup
       ? `¿Salir del grupo "${c.title?.trim() || "sin nombre"}"? Dejarás de recibir mensajes.`
-      : `¿Eliminar el chat con ${c.peer?.name ?? "este usuario"}? Esta acción no se puede deshacer.`;
+      : `¿Eliminar el chat con ${c.peer?.name ?? "este usuario"}? Se quitará de tu lista. Si esa persona te vuelve a escribir, la conversación reaparecerá.`;
     if (!window.confirm(msg)) return;
     try {
       const res = await fetch(`/api/chat/conversations/${c.id}`, {

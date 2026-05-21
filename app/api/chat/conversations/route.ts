@@ -5,6 +5,7 @@ import { z } from "zod";
 import type { SessionUser } from "@/lib/auth/types";
 import { findDirectConversation } from "@/lib/chat/access";
 import { listConversationsForUser } from "@/lib/chat/conversations";
+import { checkRateLimit } from "@/lib/chat/rate-limit";
 
 // 1-a-1: solo userId. Grupo: title + userIds (>=2).
 const createSchema = z.union([
@@ -36,6 +37,23 @@ export async function POST(req: NextRequest) {
   }
 
   const actor = session.user as SessionUser;
+
+  // Rate limit: 10 conversaciones/grupos creados por minuto. Crear no es una
+  // accion frecuente; cualquier ritmo mayor es spam o un bug.
+  const rl = checkRateLimit({
+    key: `chat-conv-create:${actor.id}`,
+    limit: 10,
+    windowMs: 60_000,
+  });
+  if (!rl.ok) {
+    return NextResponse.json(
+      {
+        error: `Demasiadas conversaciones creadas en poco tiempo. Inténtalo en ${Math.ceil(rl.retryAfterMs / 1000)}s.`,
+      },
+      { status: 429 }
+    );
+  }
+
   const raw = await req.json();
   const parsed = createSchema.safeParse(raw);
   if (!parsed.success) {
@@ -108,6 +126,11 @@ export async function POST(req: NextRequest) {
 
   const existing = await findDirectConversation(actor.id, otherUserId);
   if (existing) {
+    // Si yo la tenia "oculta" (borrada para mi) la restauramos al re-abrirla.
+    await prisma.chatParticipant.updateMany({
+      where: { conversationId: existing.id, userId: actor.id, hiddenAt: { not: null } },
+      data: { hiddenAt: null },
+    });
     return NextResponse.json({ conversationId: existing.id });
   }
 

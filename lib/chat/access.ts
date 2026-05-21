@@ -8,9 +8,11 @@ export async function assertChatParticipant(
     where: {
       conversationId_userId: { conversationId, userId },
     },
-    select: { id: true },
+    select: { id: true, leftAt: true },
   });
-  if (!row) return null;
+  // Un usuario que abandono el grupo deja de ser participante activo y no
+  // puede leer ni escribir aunque conserve el conversationId en la URL.
+  if (!row || row.leftAt) return null;
   return row;
 }
 

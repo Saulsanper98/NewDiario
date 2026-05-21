@@ -49,6 +49,7 @@
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
     "date-fns": "^4.1.0",
+    "file-type": "^22.0.1",
     "isomorphic-dompurify": "^3.10.0",
     "lucide-react": "^1.11.0",
     "next": "16.2.4",
@@ -70,12 +71,12 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "dotenv": "^17.3.1",
+    "electron": "^35.7.5",
     "eslint": "^9",
     "eslint-config-next": "16.2.4",
     "tailwindcss": "^4",
     "tsx": "^4.21.0",
     "typescript": "^5",
-    "vitest": "^3.2.4",
-    "electron": "^35.7.5"
+    "vitest": "^3.2.4"
   }
 }

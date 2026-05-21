@@ -59,9 +59,11 @@ export async function PATCH(
 }
 
 /**
- * En 1-a-1: borra completamente la conversacion (la elimina para ambos).
- * En grupos: marca al usuario como "salido" (leftAt) y deja de mostrarse en
- * su lista. Si no quedan miembros activos, se borra completamente.
+ * En 1-a-1: SOFT-delete por participante (campo hiddenAt). La conversacion
+ * desaparece SOLO de la lista del usuario que llama; el otro conserva el
+ * historial. Si los dos la ocultan, se borra completamente.
+ * En grupos: marca al usuario como "salido" (leftAt). Si no quedan miembros
+ * activos, se borra completamente.
  */
 export async function DELETE(
   _req: NextRequest,
@@ -78,7 +80,7 @@ export async function DELETE(
     where: { id },
     include: {
       participants: {
-        select: { userId: true, leftAt: true },
+        select: { userId: true, leftAt: true, hiddenAt: true },
       },
     },
   });
@@ -92,9 +94,23 @@ export async function DELETE(
   }
 
   if (!conv.isGroup) {
-    // 1-a-1 → borrado real
-    await prisma.chatConversation.delete({ where: { id } });
-    return NextResponse.json({ ok: true, deleted: true });
+    // 1-a-1 → soft-delete por participante
+    await prisma.chatParticipant.update({
+      where: {
+        conversationId_userId: { conversationId: id, userId: user.id },
+      },
+      data: { hiddenAt: new Date() },
+    });
+
+    // Si los dos participantes la han ocultado, borramos por completo.
+    const stillVisible = await prisma.chatParticipant.count({
+      where: { conversationId: id, hiddenAt: null },
+    });
+    if (stillVisible === 0) {
+      await prisma.chatConversation.delete({ where: { id } });
+      return NextResponse.json({ ok: true, deleted: true });
+    }
+    return NextResponse.json({ ok: true, hidden: true });
   }
 
   // Grupo → marcar leftAt en mi participacion
