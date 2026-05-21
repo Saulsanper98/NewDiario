@@ -34,6 +34,7 @@ const CATEGORY_DEFAULT: Record<SoundCategory, string> = {
 
 const STORAGE_PREFS = "sound-prefs-v1";
 const STORAGE_ENABLED = "chat-sound-enabled"; // compat con clave previa
+const STORAGE_USER_SOUNDS = "user-sounds-cache-v1";
 const COOLDOWN_PER_CAT_MS: Record<SoundCategory, number> = {
   chat: 2500,
   mention: 1500,
@@ -45,7 +46,34 @@ const lastPlayedAt: Partial<Record<SoundCategory, number>> = {};
 let cachedCtx: AudioContext | null = null;
 // userSounds[soundId] -> url. Necesario para que el reproductor sepa de qué
 // archivo cargar el HTMLAudio cuando una preferencia apunta a "user:<id>".
-let userSoundUrls: Record<string, string> = {};
+// Se restaura desde localStorage en el primer acceso para sobrevivir a F5
+// sin esperar al fetch de /api/me/sounds (race condition con el primer
+// mensaje que llegue por SSE justo tras recargar).
+let userSoundUrls: Record<string, string> | null = null;
+
+function readUserSoundsFromStorage(): Record<string, string> {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = window.localStorage.getItem(STORAGE_USER_SOUNDS);
+    if (!raw) return {};
+    const obj = JSON.parse(raw) as unknown;
+    if (!obj || typeof obj !== "object") return {};
+    const out: Record<string, string> = {};
+    for (const [k, v] of Object.entries(obj as Record<string, unknown>)) {
+      if (typeof v === "string") out[k] = v;
+    }
+    return out;
+  } catch {
+    return {};
+  }
+}
+
+function getUserSoundUrls(): Record<string, string> {
+  if (userSoundUrls === null) {
+    userSoundUrls = readUserSoundsFromStorage();
+  }
+  return userSoundUrls;
+}
 
 export interface UserSoundLite {
   id: string;
@@ -127,10 +155,21 @@ export function setLocalPrefs(prefs: SoundPreferences) {
  * Carga en memoria los sonidos del usuario para que `playCategory` pueda
  * resolver "user:<id>" -> URL sin un fetch extra cada vez. Llamar al iniciar
  * sesión y cuando el usuario añade o borra sonidos.
+ *
+ * Persistimos también en localStorage para que el cache esté disponible
+ * desde el primer render tras un F5, sin esperar al fetch a /api/me/sounds.
  */
 export function setUserSoundsCache(sounds: UserSoundLite[]) {
-  userSoundUrls = {};
-  for (const s of sounds) userSoundUrls[s.id] = s.fileUrl;
+  const map: Record<string, string> = {};
+  for (const s of sounds) map[s.id] = s.fileUrl;
+  userSoundUrls = map;
+  if (typeof window !== "undefined") {
+    try {
+      window.localStorage.setItem(STORAGE_USER_SOUNDS, JSON.stringify(map));
+    } catch {
+      /* localStorage bloqueado */
+    }
+  }
 }
 
 /**
@@ -170,26 +209,48 @@ export async function playSoundId(soundId: string): Promise<void> {
   }
   if (soundId.startsWith("user:")) {
     const userSoundId = soundId.slice("user:".length);
-    const url = userSoundUrls[userSoundId];
-    if (!url) return;
+    const url = getUserSoundUrls()[userSoundId];
+    if (!url) {
+      if (typeof console !== "undefined") {
+        console.warn(
+          `[sound] No hay URL para "${soundId}". El cache de sonidos del usuario aún no se ha cargado o el sonido fue eliminado.`
+        );
+      }
+      return;
+    }
     try {
       const audio = new Audio(url);
       audio.volume = 0.85;
+      audio.preload = "auto";
       await audio.play();
-    } catch {
-      /* autoplay bloqueado: ignoramos */
+    } catch (err) {
+      // El navegador bloquea audio.play() si no ha habido un gesto del
+      // usuario reciente. Para que el siguiente intento funcione (chat,
+      // notif) hace falta que el usuario haga clic en algún sitio. Lo
+      // logueamos para que sea visible.
+      if (typeof console !== "undefined") {
+        console.warn(
+          `[sound] No se pudo reproducir "${soundId}" desde ${url}:`,
+          err
+        );
+      }
     }
   }
 }
 
 /**
  * Reproduce el sonido para la categoría dada respetando:
- *   - El toggle global "sonido on/off".
+ *   - El toggle del icono 🔊 del chat (SOLO afecta a la categoría `chat`).
  *   - El cooldown por categoría.
  *   - Las preferencias del usuario.
+ *
+ * Importante: el botón Volume2/VolumeX del chat históricamente apagaba TODAS
+ * las categorías (login, mention, task). Eso era confuso: el usuario quería
+ * silenciar mensajes nuevos pero perdía también el sonido de login y de
+ * notificaciones. Ahora el toggle solo influye en `chat`.
  */
 export function playCategory(category: SoundCategory) {
-  if (!isSoundEnabled()) return;
+  if (category === "chat" && !isSoundEnabled()) return;
   const now = Date.now();
   const cd = COOLDOWN_PER_CAT_MS[category];
   if (cd > 0 && now - (lastPlayedAt[category] ?? 0) < cd) return;
