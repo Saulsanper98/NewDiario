@@ -2728,13 +2728,34 @@ export function ChatView() {
    *  (MP4/AAC en Safari). */
   async function startRecording() {
     if (recState !== "idle") return;
-    if (
-      typeof navigator === "undefined" ||
-      !navigator.mediaDevices ||
-      typeof window === "undefined" ||
-      typeof window.MediaRecorder === "undefined"
-    ) {
+    // 1) Contexto seguro: getUserMedia solo se expone en HTTPS o localhost.
+    //    Si accedemos por http://<IP-LAN>:3000, navigator.mediaDevices es
+    //    undefined y no hay manera de pedir el microfono. Lo detectamos
+    //    explicitamente para dar un mensaje accionable al usuario.
+    if (typeof window === "undefined" || typeof navigator === "undefined") {
       toast.error("Tu navegador no permite grabar audio");
+      return;
+    }
+    const host = window.location.hostname;
+    const isLocalHost =
+      host === "localhost" || host === "127.0.0.1" || host === "::1";
+    const isSecure = window.isSecureContext || isLocalHost;
+    if (!isSecure) {
+      toast.error(
+        "Para grabar audio el chat necesita HTTPS (o entrar como localhost).",
+        { duration: 6000 }
+      );
+      return;
+    }
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      toast.error(
+        "Este navegador no expone el micrófono. Prueba con Chrome o Edge actualizado.",
+        { duration: 6000 }
+      );
+      return;
+    }
+    if (typeof window.MediaRecorder === "undefined") {
+      toast.error("Tu navegador no soporta MediaRecorder");
       return;
     }
     setRecState("starting");
@@ -2866,10 +2887,28 @@ export function ChatView() {
         }
       }, 250);
     } catch (err) {
+      // Los navegadores devuelven DOMException con `name` ya tipado: lo usamos
+      // para dar feedback especifico en lugar de un mensaje genérico.
+      const name =
+        err && typeof err === "object" && "name" in err
+          ? String((err as { name?: unknown }).name ?? "")
+          : "";
       const msg = err instanceof Error ? err.message : "Error";
-      // Mensaje mas humano cuando el usuario rechaza el permiso.
-      if (/denied|not allowed/i.test(msg)) {
-        toast.error("Necesitas dar permiso al micrófono");
+      if (name === "NotAllowedError" || /denied|not allowed/i.test(msg)) {
+        toast.error(
+          "Permiso de micrófono bloqueado. Pulsa el candado/icono de la barra de direcciones y permite el micrófono.",
+          { duration: 7000 }
+        );
+      } else if (name === "NotFoundError" || /no.*device|not found/i.test(msg)) {
+        toast.error("No se ha detectado ningún micrófono en este equipo.");
+      } else if (name === "NotReadableError" || /in use|busy/i.test(msg)) {
+        toast.error(
+          "El micrófono está siendo usado por otra aplicación. Ciérrala y vuelve a intentarlo."
+        );
+      } else if (name === "SecurityError") {
+        toast.error(
+          "El navegador bloqueó el micrófono por seguridad (se requiere HTTPS)."
+        );
       } else {
         toast.error(`No se pudo iniciar la grabación: ${msg}`);
       }
