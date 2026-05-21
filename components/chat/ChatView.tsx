@@ -384,111 +384,264 @@ function SharePickerPanel({
     };
   }, [tab, query]);
 
+  // Color de acento por tipo: ambar (tareas), violeta (proyectos), cyan
+  // (notas). Lo aplicamos al icono y al estado activo del tab.
+  const tabsConfig = [
+    {
+      id: "TASK" as const,
+      label: "Tareas",
+      icon: CheckSquare,
+      accentLight:
+        "bg-amber-50 text-amber-700 ring-1 ring-amber-200/80",
+      accentDark:
+        "bg-amber-400/12 text-amber-300 ring-1 ring-amber-400/35",
+      chipLight: "bg-amber-50 text-amber-700",
+      chipDark: "bg-amber-400/12 text-amber-300",
+    },
+    {
+      id: "PROJECT" as const,
+      label: "Proyectos",
+      icon: FolderKanban,
+      accentLight:
+        "bg-violet-50 text-violet-700 ring-1 ring-violet-200/80",
+      accentDark:
+        "bg-violet-400/12 text-violet-300 ring-1 ring-violet-400/35",
+      chipLight: "bg-violet-50 text-violet-700",
+      chipDark: "bg-violet-400/12 text-violet-300",
+    },
+    {
+      id: "NOTE" as const,
+      label: "Notas",
+      icon: ClipboardList,
+      accentLight:
+        "bg-sky-50 text-sky-700 ring-1 ring-sky-200/80",
+      accentDark:
+        "bg-sky-400/12 text-sky-300 ring-1 ring-sky-400/35",
+      chipLight: "bg-sky-50 text-sky-700",
+      chipDark: "bg-sky-400/12 text-sky-300",
+    },
+  ];
+  const currentTab = tabsConfig.find((t) => t.id === tab) ?? tabsConfig[0];
+
   return (
     <div
       className={cn(
-        "absolute bottom-full left-3 right-3 mb-2 overflow-hidden rounded-xl border shadow-2xl",
+        "chat-share-panel absolute bottom-full left-3 right-3 mb-2 overflow-hidden rounded-2xl border shadow-2xl",
         isLight
-          ? "border-zinc-200 bg-white"
+          ? "border-zinc-200/90 bg-white"
           : "border-white/12 bg-[#0d1427]/95 backdrop-blur-xl"
       )}
       role="dialog"
+      aria-label="Compartir contenido"
     >
+      {/* HEADER */}
       <div
         className={cn(
-          "flex items-center justify-between border-b px-3 py-2",
-          isLight ? "border-zinc-100 bg-zinc-50/80" : "border-white/8 bg-white/[0.03]"
+          "flex items-center justify-between gap-2 border-b px-3.5 py-2.5",
+          isLight
+            ? "border-zinc-100 bg-gradient-to-r from-white to-zinc-50/70"
+            : "border-white/8 bg-gradient-to-r from-white/[0.02] to-transparent"
         )}
       >
-        <span
-          className={cn(
-            "text-[11px] font-semibold uppercase tracking-wide",
-            isLight ? "text-zinc-600" : "text-white/55"
-          )}
-        >
-          Compartir contenido
-        </span>
+        <div className="flex min-w-0 items-center gap-2">
+          <span
+            className={cn(
+              "flex h-7 w-7 shrink-0 items-center justify-center rounded-lg",
+              isLight
+                ? "bg-[#ffeb66]/22 text-[#a16207]"
+                : "bg-[#ffeb66]/15 text-[#ffeb66]"
+            )}
+          >
+            <Share2 className="h-3.5 w-3.5" />
+          </span>
+          <div className="min-w-0">
+            <p
+              className={cn(
+                "truncate text-sm font-semibold",
+                isLight ? "text-zinc-900" : "text-white"
+              )}
+            >
+              Compartir contenido
+            </p>
+            <p
+              className={cn(
+                "truncate text-[11px]",
+                isLight ? "text-zinc-500" : "text-white/45"
+              )}
+            >
+              Adjunta una tarea, proyecto o nota al mensaje
+            </p>
+          </div>
+        </div>
         <button
           type="button"
           onClick={onClose}
+          aria-label="Cerrar"
           className={cn(
-            "text-[11px] font-medium",
-            isLight ? "text-zinc-500 hover:text-zinc-800" : "text-white/40 hover:text-white/75"
+            "flex h-7 w-7 items-center justify-center rounded-lg transition-colors",
+            isLight
+              ? "text-zinc-500 hover:bg-zinc-100 hover:text-zinc-800"
+              : "text-white/50 hover:bg-white/10 hover:text-white"
           )}
         >
-          Cerrar
+          <X className="h-3.5 w-3.5" />
         </button>
       </div>
+
+      {/* TABS */}
       <div
         className={cn(
           "flex gap-1 border-b p-1.5",
           isLight ? "border-zinc-100 bg-white" : "border-white/6 bg-white/[0.02]"
         )}
       >
-        {(
-          [
-            { id: "TASK", label: "Tareas", icon: <CheckSquare className="h-3.5 w-3.5" /> },
-            { id: "PROJECT", label: "Proyectos", icon: <FolderKanban className="h-3.5 w-3.5" /> },
-            { id: "NOTE", label: "Notas", icon: <ClipboardList className="h-3.5 w-3.5" /> },
-          ] as const
-        ).map((t) => (
-          <button
-            key={t.id}
-            type="button"
-            onClick={() => {
-              setTab(t.id);
-              setQuery("");
-            }}
-            className={cn(
-              "flex flex-1 items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-[11px] font-semibold transition-colors",
-              tab === t.id
-                ? isLight
-                  ? "bg-[#ffeb66]/22 text-zinc-900"
-                  : "bg-[#ffeb66]/15 text-[#ffeb66]"
-                : isLight
-                  ? "text-zinc-500 hover:bg-zinc-100"
-                  : "text-white/50 hover:bg-white/[0.05]"
-            )}
-          >
-            {t.icon}
-            {t.label}
-          </button>
-        ))}
+        {tabsConfig.map((t) => {
+          const Icon = t.icon;
+          const active = tab === t.id;
+          return (
+            <button
+              key={t.id}
+              type="button"
+              onClick={() => {
+                setTab(t.id);
+                setQuery("");
+              }}
+              className={cn(
+                "flex flex-1 items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-[11px] font-semibold transition-all",
+                active
+                  ? isLight
+                    ? t.accentLight
+                    : t.accentDark
+                  : isLight
+                    ? "text-zinc-500 hover:bg-zinc-50"
+                    : "text-white/55 hover:bg-white/[0.05]"
+              )}
+            >
+              <Icon className="h-3.5 w-3.5" />
+              {t.label}
+            </button>
+          );
+        })}
       </div>
-      <div className="border-b px-2 py-2">
-        <input
-          type="search"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder={`Buscar ${tab === "TASK" ? "tareas" : tab === "PROJECT" ? "proyectos" : "notas"}…`}
-          className={cn(
-            "w-full rounded-lg border px-2.5 py-1.5 text-sm outline-none focus:ring-2 focus:ring-[#ffeb66]/35",
-            isLight
-              ? "border-zinc-200 bg-zinc-50 text-zinc-900"
-              : "border-white/10 bg-white/5 text-white placeholder:text-white/35"
+
+      {/* INPUT BUSQUEDA */}
+      <div
+        className={cn(
+          "border-b px-2.5 py-2",
+          isLight ? "border-zinc-100" : "border-white/6"
+        )}
+      >
+        <div className="relative">
+          <Search
+            className={cn(
+              "pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2",
+              isLight ? "text-zinc-400" : "text-white/35"
+            )}
+          />
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder={`Buscar ${tab === "TASK" ? "tareas" : tab === "PROJECT" ? "proyectos" : "notas"}…`}
+            className={cn(
+              "w-full rounded-lg border pl-8 pr-8 py-2 text-sm outline-none transition-all",
+              "focus:border-[#ffeb66]/55 focus:shadow-[0_0_0_3px_rgba(255,235,102,0.12)]",
+              isLight
+                ? "border-zinc-200 bg-zinc-50/70 text-zinc-900 placeholder:text-zinc-400"
+                : "border-white/10 bg-white/[0.04] text-white placeholder:text-white/35"
+            )}
+            autoFocus
+          />
+          {query && (
+            <button
+              type="button"
+              onClick={() => setQuery("")}
+              aria-label="Limpiar"
+              className={cn(
+                "absolute right-1.5 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-md transition-colors",
+                isLight
+                  ? "text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700"
+                  : "text-white/40 hover:bg-white/10 hover:text-white"
+              )}
+            >
+              <X className="h-3 w-3" />
+            </button>
           )}
-          autoFocus
-        />
+        </div>
       </div>
-      <div className="max-h-56 overflow-y-auto p-1.5">
+
+      {/* LISTA */}
+      <div className="chat-messages-scroll max-h-64 overflow-y-auto p-1.5">
         {loading ? (
-          <p
-            className={cn(
-              "flex items-center justify-center gap-2 py-8 text-xs",
-              isLight ? "text-zinc-500" : "text-white/40"
-            )}
-          >
-            <Loader2 className="h-4 w-4 animate-spin" /> Buscando…
-          </p>
+          <ul className="space-y-1.5 px-1.5 py-2">
+            {[0, 1, 2].map((i) => (
+              <li
+                key={i}
+                className="flex items-center gap-2 rounded-lg px-1 py-1"
+              >
+                <span
+                  className={cn(
+                    "chat-skeleton h-8 w-8 shrink-0 rounded-lg",
+                    isLight && "is-light"
+                  )}
+                />
+                <span className="flex-1 space-y-1.5">
+                  <span
+                    className={cn(
+                      "chat-skeleton block h-3 rounded-md",
+                      isLight && "is-light",
+                      i === 0 ? "w-3/5" : i === 1 ? "w-4/5" : "w-2/3"
+                    )}
+                  />
+                  <span
+                    className={cn(
+                      "chat-skeleton block h-2 w-2/5 rounded-md",
+                      isLight && "is-light"
+                    )}
+                  />
+                </span>
+              </li>
+            ))}
+          </ul>
         ) : items.length === 0 ? (
-          <p
+          <div
             className={cn(
-              "py-8 text-center text-xs",
-              isLight ? "text-zinc-500" : "text-white/40"
+              "flex flex-col items-center justify-center gap-2 px-4 py-8 text-center",
+              isLight ? "text-zinc-500" : "text-white/45"
             )}
           >
-            Sin resultados
-          </p>
+            <div
+              className={cn(
+                "flex h-9 w-9 items-center justify-center rounded-xl",
+                isLight ? currentTab.chipLight : currentTab.chipDark
+              )}
+            >
+              <currentTab.icon className="h-4 w-4" />
+            </div>
+            <p className="text-xs font-medium">
+              {query.trim()
+                ? `Sin resultados para "${query.trim()}"`
+                : `No hay ${
+                    tab === "TASK"
+                      ? "tareas"
+                      : tab === "PROJECT"
+                        ? "proyectos"
+                        : "notas"
+                  } accesibles`}
+            </p>
+            {query.trim() && (
+              <button
+                type="button"
+                onClick={() => setQuery("")}
+                className={cn(
+                  "text-[11px] font-semibold underline-offset-2 hover:underline",
+                  isLight ? "text-zinc-600" : "text-white/70"
+                )}
+              >
+                Limpiar busqueda
+              </button>
+            )}
+          </div>
         ) : (
           <ul className="space-y-0.5">
             {items.map((item) => (
@@ -497,16 +650,26 @@ function SharePickerPanel({
                   type="button"
                   onClick={() => onSelect(item)}
                   className={cn(
-                    "flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left transition-colors",
-                    isLight ? "hover:bg-zinc-50" : "hover:bg-white/[0.05]"
+                    "group/share flex w-full items-center gap-2.5 rounded-lg border border-transparent px-2.5 py-2 text-left transition-all",
+                    isLight
+                      ? "hover:border-zinc-200 hover:bg-zinc-50"
+                      : "hover:border-white/10 hover:bg-white/[0.05]"
                   )}
                 >
                   <span
                     className={cn(
-                      "flex h-7 w-7 shrink-0 items-center justify-center rounded-md",
-                      isLight
-                        ? "bg-zinc-100 text-zinc-600"
-                        : "bg-white/[0.07] text-white/70"
+                      "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-transform group-hover/share:scale-105",
+                      item.kind === "TASK"
+                        ? isLight
+                          ? "bg-amber-50 text-amber-700"
+                          : "bg-amber-400/12 text-amber-300"
+                        : item.kind === "PROJECT"
+                          ? isLight
+                            ? "bg-violet-50 text-violet-700"
+                            : "bg-violet-400/12 text-violet-300"
+                          : isLight
+                            ? "bg-sky-50 text-sky-700"
+                            : "bg-sky-400/12 text-sky-300"
                     )}
                   >
                     {attachmentKindIcon(item.kind)}
@@ -524,7 +687,7 @@ function SharePickerPanel({
                       <span
                         className={cn(
                           "block truncate text-[11px]",
-                          isLight ? "text-zinc-500" : "text-white/40"
+                          isLight ? "text-zinc-500" : "text-white/45"
                         )}
                       >
                         {item.kind === "TASK" &&
@@ -539,6 +702,12 @@ function SharePickerPanel({
                       </span>
                     )}
                   </span>
+                  <ChevronRight
+                    className={cn(
+                      "h-3.5 w-3.5 shrink-0 transition-transform group-hover/share:translate-x-0.5",
+                      isLight ? "text-zinc-300" : "text-white/25"
+                    )}
+                  />
                 </button>
               </li>
             ))}

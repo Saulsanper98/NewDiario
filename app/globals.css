@@ -2809,6 +2809,63 @@ textarea::placeholder {
   }
 }
 
+/* Panel flotante "Compartir contenido": animacion de entrada slide-up
+   + fade. Se aplica al contenedor del SharePickerPanel cuando se monta. */
+@keyframes chatSharePanelIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+.chat-share-panel {
+  animation: chatSharePanelIn 180ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  transform-origin: bottom left;
+}
+@media (prefers-reduced-motion: reduce) {
+  .chat-share-panel {
+    animation: none;
+  }
+}
+
+/* Skeleton "shimmer" sutil para placeholders del SharePickerPanel y otras
+   listas mientras carga. Usa colores neutros para encajar en ambos temas. */
+@keyframes chatSkeletonShimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+.chat-skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.04) 0%,
+    rgba(255, 255, 255, 0.12) 50%,
+    rgba(255, 255, 255, 0.04) 100%
+  );
+  background-size: 200% 100%;
+  animation: chatSkeletonShimmer 1400ms linear infinite;
+}
+.chat-skeleton.is-light {
+  background: linear-gradient(
+    90deg,
+    rgba(0, 0, 0, 0.04) 0%,
+    rgba(0, 0, 0, 0.09) 50%,
+    rgba(0, 0, 0, 0.04) 100%
+  );
+  background-size: 200% 100%;
+}
+@media (prefers-reduced-motion: reduce) {
+  .chat-skeleton {
+    animation: none;
+  }
+}
+
 /* Punto de presencia (online) sobre el avatar. Lleva un halo "pulse"
    sutil para que llame la atencion sin saturar. */
 .chat-presence-dot {
