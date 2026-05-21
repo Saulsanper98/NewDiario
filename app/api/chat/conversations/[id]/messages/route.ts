@@ -9,6 +9,8 @@ import type {
   ChatAttachmentItem,
   ChatAttachmentKind,
   ChatMessageItem,
+  ChatReactionSummary,
+  ChatReplySnippet,
 } from "@/lib/chat/serialize";
 import type { Prisma } from "@/app/generated/prisma/client";
 import { checkRateLimit } from "@/lib/chat/rate-limit";
@@ -25,9 +27,9 @@ const attachmentSchema = z.object({
 });
 
 const sendSchema = z.object({
-  // body opcional cuando se manda solo un adjunto.
   body: z.string().trim().max(4000).optional().default(""),
   attachments: z.array(attachmentSchema).max(10).optional().default([]),
+  replyToId: z.string().trim().min(1).max(64).optional().nullable(),
 });
 
 function toAttachmentItem(a: {
@@ -54,6 +56,107 @@ function toAttachmentItem(a: {
       a.refMeta && typeof a.refMeta === "object"
         ? (a.refMeta as Record<string, unknown>)
         : null,
+  };
+}
+
+// Select que se repite muchas veces para el banner del peer.
+const peerSelect = {
+  id: true,
+  name: true,
+  email: true,
+  image: true,
+  imageFocusX: true,
+  imageFocusY: true,
+  profileBanner: true,
+  bannerFocusX: true,
+  bannerFocusY: true,
+} as const;
+
+const messageInclude = {
+  sender: { select: peerSelect },
+  attachments: true,
+  reactions: {
+    select: { id: true, emoji: true, userId: true },
+  },
+  replyTo: {
+    select: {
+      id: true,
+      body: true,
+      deletedAt: true,
+      senderId: true,
+      sender: { select: { id: true, name: true } },
+      attachments: {
+        select: { kind: true },
+        take: 1,
+      },
+    },
+  },
+} as const;
+
+type RawMessage = Prisma.ChatMessageGetPayload<{ include: typeof messageInclude }>;
+
+function buildReplySnippet(
+  replyTo: RawMessage["replyTo"]
+): ChatReplySnippet | null {
+  if (!replyTo) return null;
+  return {
+    id: replyTo.id,
+    body: replyTo.deletedAt ? null : replyTo.body,
+    senderId: replyTo.senderId,
+    senderName: replyTo.sender?.name ?? "Usuario",
+    attachmentHint:
+      (replyTo.attachments[0]?.kind as ChatAttachmentKind | undefined) ?? null,
+    isDeleted: !!replyTo.deletedAt,
+  };
+}
+
+function buildReactions(
+  raw: RawMessage["reactions"],
+  currentUserId: string
+): ChatReactionSummary[] {
+  const map = new Map<string, ChatReactionSummary>();
+  for (const r of raw) {
+    let entry = map.get(r.emoji);
+    if (!entry) {
+      entry = { emoji: r.emoji, count: 0, userIds: [], mine: false };
+      map.set(r.emoji, entry);
+    }
+    entry.count += 1;
+    entry.userIds.push(r.userId);
+    if (r.userId === currentUserId) entry.mine = true;
+  }
+  // Mas usadas primero.
+  return Array.from(map.values()).sort((a, b) => b.count - a.count);
+}
+
+function serializeMessage(m: RawMessage, currentUserId: string): ChatMessageItem {
+  const isDeleted = !!m.deletedAt;
+  return {
+    id: m.id,
+    // En mensajes borrados ocultamos cuerpo y adjuntos para que el cliente
+    // no pueda reconstruirlos aunque se lo pida.
+    body: isDeleted ? "" : (m.body ?? ""),
+    createdAt: m.createdAt.toISOString(),
+    senderId: m.senderId,
+    isMine: m.senderId === currentUserId,
+    sender: {
+      id: m.sender.id,
+      name: m.sender.name,
+      email: m.sender.email,
+      image: m.sender.image,
+      imageFocusX: m.sender.imageFocusX ?? null,
+      imageFocusY: m.sender.imageFocusY ?? null,
+      profileBanner: m.sender.profileBanner ?? null,
+      bannerFocusX: m.sender.bannerFocusX ?? null,
+      bannerFocusY: m.sender.bannerFocusY ?? null,
+    },
+    attachments: isDeleted
+      ? []
+      : m.attachments.map((a) => toAttachmentItem(a)),
+    editedAt: m.editedAt ? m.editedAt.toISOString() : null,
+    isDeleted,
+    replyTo: buildReplySnippet(m.replyTo),
+    reactions: isDeleted ? [] : buildReactions(m.reactions, currentUserId),
   };
 }
 
@@ -90,46 +193,11 @@ export async function GET(
     },
     orderBy: { createdAt: after ? "asc" : "desc" },
     take: PAGE_SIZE,
-    include: {
-      sender: {
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          image: true,
-          imageFocusX: true,
-          imageFocusY: true,
-          profileBanner: true,
-          bannerFocusX: true,
-          bannerFocusY: true,
-        },
-      },
-      attachments: true,
-    },
+    include: messageInclude,
   });
 
   const ordered = after ? messages : [...messages].reverse();
-
-  const items: ChatMessageItem[] = ordered.map((m) => ({
-    id: m.id,
-    body: m.body,
-    createdAt: m.createdAt.toISOString(),
-    senderId: m.senderId,
-    isMine: m.senderId === user.id,
-    sender: {
-      id: m.sender.id,
-      name: m.sender.name,
-      email: m.sender.email,
-      image: m.sender.image,
-      imageFocusX: m.sender.imageFocusX ?? null,
-      imageFocusY: m.sender.imageFocusY ?? null,
-      profileBanner: m.sender.profileBanner ?? null,
-      bannerFocusX: m.sender.bannerFocusX ?? null,
-      bannerFocusY: m.sender.bannerFocusY ?? null,
-    },
-    attachments: m.attachments.map((a) => toAttachmentItem(a)),
-  }));
-
+  const items = ordered.map((m) => serializeMessage(m, user.id));
   return NextResponse.json({ messages: items });
 }
 
@@ -145,8 +213,6 @@ export async function POST(
   const user = session.user as SessionUser;
   const { id: conversationId } = await params;
 
-  // Rate limit: 60 mensajes / 30s por usuario. Suficiente margen para
-  // conversaciones rapidas (~2/s pico), pero ataja bucles defectuosos o spam.
   const rl = checkRateLimit({
     key: `chat-msg:${user.id}`,
     limit: 60,
@@ -174,6 +240,7 @@ export async function POST(
 
   const body = parsed.data.body.trim();
   const attachments = parsed.data.attachments;
+  const replyToId = parsed.data.replyToId?.trim() || null;
 
   if (body.length === 0 && attachments.length === 0) {
     return NextResponse.json(
@@ -182,12 +249,30 @@ export async function POST(
     );
   }
 
+  // Si nos piden responder a un mensaje, debe existir en ESTA conversacion.
+  // Esto evita filtrar mensajes ajenos y respuestas cruzadas.
+  if (replyToId) {
+    const ref = await prisma.chatMessage.findUnique({
+      where: { id: replyToId },
+      select: { conversationId: true, deletedAt: true },
+    });
+    if (!ref || ref.conversationId !== conversationId) {
+      return NextResponse.json(
+        { error: "El mensaje al que respondes no pertenece a esta conversación" },
+        { status: 400 }
+      );
+    }
+    // Permitimos responder a mensajes borrados (el cliente vera "Mensaje
+    // eliminado" en la cita). No bloqueamos por ello.
+  }
+
   const message = await prisma.$transaction(async (tx) => {
     const created = await tx.chatMessage.create({
       data: {
         conversationId,
         senderId: user.id,
-        body,
+        body: body.length > 0 ? body : null,
+        replyToId,
         attachments:
           attachments.length > 0
             ? {
@@ -206,22 +291,7 @@ export async function POST(
               }
             : undefined,
       },
-      include: {
-        sender: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            image: true,
-            imageFocusX: true,
-            imageFocusY: true,
-            profileBanner: true,
-            bannerFocusX: true,
-            bannerFocusY: true,
-          },
-        },
-        attachments: true,
-      },
+      include: messageInclude,
     });
 
     await tx.chatConversation.update({
@@ -236,8 +306,6 @@ export async function POST(
       data: { lastReadAt: new Date(), hiddenAt: null },
     });
 
-    // Si algun otro participante la tenia OCULTA (porque la borro), se la
-    // "restauramos" en su lista cuando recibe un mensaje nuevo.
     await tx.chatParticipant.updateMany({
       where: {
         conversationId,
@@ -270,7 +338,7 @@ export async function POST(
           type: NotificationType.CHAT_MESSAGE,
           title: `Mensaje de ${user.name}`,
           message: preview,
-          link: `/chat?c=${conversationId}`,
+          link: `/chat?c=${conversationId}&m=${created.id}`,
         })),
       });
     }
@@ -278,25 +346,8 @@ export async function POST(
     return created;
   });
 
-  const item: ChatMessageItem = {
-    id: message.id,
-    body: message.body,
-    createdAt: message.createdAt.toISOString(),
-    senderId: message.senderId,
-    isMine: true,
-    sender: {
-      id: message.sender.id,
-      name: message.sender.name,
-      email: message.sender.email,
-      image: message.sender.image,
-      imageFocusX: message.sender.imageFocusX ?? null,
-      imageFocusY: message.sender.imageFocusY ?? null,
-      profileBanner: message.sender.profileBanner ?? null,
-      bannerFocusX: message.sender.bannerFocusX ?? null,
-      bannerFocusY: message.sender.bannerFocusY ?? null,
-    },
-    attachments: message.attachments.map((a) => toAttachmentItem(a)),
-  };
-
-  return NextResponse.json({ message: item }, { status: 201 });
+  return NextResponse.json(
+    { message: serializeMessage(message, user.id) },
+    { status: 201 }
+  );
 }

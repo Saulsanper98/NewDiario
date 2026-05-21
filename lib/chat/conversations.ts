@@ -34,6 +34,7 @@ export async function listConversationsForUser(
               body: true,
               createdAt: true,
               senderId: true,
+              deletedAt: true,
               sender: { select: { name: true } },
             },
           },
@@ -85,11 +86,12 @@ export async function listConversationsForUser(
       lastMessage: last
         ? {
             id: last.id,
-            body: last.body,
+            body: last.deletedAt ? "" : (last.body ?? ""),
             createdAt: last.createdAt.toISOString(),
             senderId: last.senderId,
             senderName: last.sender?.name ?? "",
             isMine: last.senderId === userId,
+            isDeleted: !!last.deletedAt,
           }
         : null,
       unreadCount,

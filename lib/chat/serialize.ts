@@ -30,6 +30,8 @@ export type ChatConversationItem = {
     senderId: string;
     senderName: string;
     isMine: boolean;
+    /** Cuando es true, el preview se renderiza como "Mensaje eliminado". */
+    isDeleted?: boolean;
   } | null;
   unreadCount: number;
 };
@@ -50,6 +52,29 @@ export type ChatAttachmentItem = {
   refMeta: Record<string, unknown> | null;
 };
 
+/** Reaccion agrupada a un mensaje. */
+export type ChatReactionSummary = {
+  emoji: string;
+  count: number;
+  /** Ids de los usuarios que la han marcado. */
+  userIds: string[];
+  /** True si el usuario actual la ha marcado. */
+  mine: boolean;
+};
+
+/** Snippet de un mensaje al que se esta respondiendo, lo justo para
+ *  renderizar el bloque cita encima del mensaje. */
+export type ChatReplySnippet = {
+  id: string;
+  /** Si el snippet refiere a un mensaje borrado, body sera null. */
+  body: string | null;
+  senderId: string;
+  senderName: string;
+  /** Tipo de adjunto principal (si solo era adjunto sin texto). */
+  attachmentHint: ChatAttachmentKind | null;
+  isDeleted: boolean;
+};
+
 export type ChatMessageItem = {
   id: string;
   body: string;
@@ -58,4 +83,13 @@ export type ChatMessageItem = {
   isMine: boolean;
   sender: ChatPeer;
   attachments: ChatAttachmentItem[];
+  /** Marca de edicion del autor. */
+  editedAt: string | null;
+  /** Soft-delete; cuando viene se renderiza "Mensaje eliminado" y no debe
+   *  exponer body ni adjuntos. */
+  isDeleted: boolean;
+  /** Mensaje al que responde (o null si no es una respuesta). */
+  replyTo: ChatReplySnippet | null;
+  /** Reacciones agrupadas por emoji. */
+  reactions: ChatReactionSummary[];
 };

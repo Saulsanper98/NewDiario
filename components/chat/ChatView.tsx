@@ -4,19 +4,25 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import {
+  Check,
   CheckSquare,
   ClipboardList,
+  CornerUpLeft,
   Download,
   FileText,
   FolderKanban,
   Image as ImageIcon,
   Info,
+  Link2,
   Loader2,
   MessageCircle,
+  MoreHorizontal,
   Paperclip,
+  Pencil,
   Plus,
   Send,
   Share2,
+  SmilePlus,
   Sparkles,
   Trash2,
   X,
@@ -36,7 +42,55 @@ import type {
   ChatConversationItem,
   ChatMessageItem,
   ChatPeer,
+  ChatReactionSummary,
+  ChatReplySnippet,
 } from "@/lib/chat/serialize";
+
+/**
+ * Emojis disponibles en el picker rapido. Debe coincidir con el set
+ * ALLOWED_EMOJIS del backend para que el toggle no devuelva 400.
+ */
+const QUICK_REACTIONS = [
+  "👍",
+  "❤️",
+  "😂",
+  "🎉",
+  "🙏",
+  "🔥",
+] as const;
+const ALL_REACTIONS = [
+  ...QUICK_REACTIONS,
+  "👎",
+  "😮",
+  "😢",
+  "💯",
+  "✅",
+  "👀",
+] as const;
+
+/** Ventana en milisegundos durante la que el autor puede editar (mantener en
+ *  sincronia con EDIT_WINDOW_MS del endpoint). */
+const EDIT_WINDOW_MS = 15 * 60 * 1000;
+
+function canEditMessage(m: ChatMessageItem, currentUserId: string | undefined) {
+  if (!currentUserId) return false;
+  if (m.senderId !== currentUserId) return false;
+  if (m.isDeleted) return false;
+  if (Date.now() - new Date(m.createdAt).getTime() > EDIT_WINDOW_MS) return false;
+  return true;
+}
+
+/** Snippet textual de un mensaje al que estamos respondiendo. */
+function replySnippetText(s: ChatReplySnippet): string {
+  if (s.isDeleted) return "Mensaje eliminado";
+  if (s.body && s.body.trim().length > 0) return s.body;
+  if (s.attachmentHint === "IMAGE") return "📷 Imagen";
+  if (s.attachmentHint === "TASK") return "✅ Tarea";
+  if (s.attachmentHint === "PROJECT") return "🗂 Proyecto";
+  if (s.attachmentHint === "NOTE") return "📝 Nota";
+  if (s.attachmentHint === "FILE") return "📎 Archivo";
+  return "Adjunto";
+}
 
 type ComposerAttachment = {
   kind: ChatAttachmentKind;
@@ -634,6 +688,117 @@ function conversationSubtitle(c: ChatConversationItem) {
   return c.peer?.email ?? "";
 }
 
+/**
+ * Bloque de cita renderizado dentro de la burbuja cuando un mensaje responde
+ * a otro. Al pulsarlo, se hace jump-to del mensaje original con highlight.
+ */
+function MessageQuoteBlock({
+  snippet,
+  isMine,
+  isLight,
+  onJump,
+}: {
+  snippet: ChatReplySnippet;
+  isMine: boolean;
+  isLight: boolean;
+  onJump: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onJump}
+      className={cn(
+        "mb-1.5 flex w-full max-w-full items-start gap-2 rounded-md border-l-2 px-2 py-1 text-left text-[11px] transition-colors",
+        isMine
+          ? "border-[#ffeb66]/70 bg-black/15 hover:bg-black/25"
+          : isLight
+            ? "border-zinc-300 bg-zinc-50 hover:bg-zinc-100"
+            : "border-white/25 bg-white/5 hover:bg-white/10"
+      )}
+      aria-label={`Ir al mensaje original de ${snippet.senderName}`}
+    >
+      <span className="min-w-0 flex-1">
+        <span
+          className={cn(
+            "block truncate font-semibold",
+            isMine
+              ? "text-white/90"
+              : isLight
+                ? "text-zinc-700"
+                : "text-white/85"
+          )}
+        >
+          {snippet.senderName}
+        </span>
+        <span
+          className={cn(
+            "block truncate",
+            snippet.isDeleted && "italic",
+            isMine
+              ? "text-white/70"
+              : isLight
+                ? "text-zinc-500"
+                : "text-white/55"
+          )}
+        >
+          {replySnippetText(snippet)}
+        </span>
+      </span>
+    </button>
+  );
+}
+
+/**
+ * Fila de reacciones agrupadas bajo la burbuja. Cada chip muestra el emoji y
+ * el conteo. Si el usuario actual ha marcado esa reaccion, el chip esta
+ * resaltado. Al pulsar, se hace toggle.
+ */
+function MessageReactions({
+  reactions,
+  isMine,
+  isLight,
+  onToggle,
+}: {
+  reactions: ChatReactionSummary[];
+  isMine: boolean;
+  isLight: boolean;
+  onToggle: (emoji: string) => void;
+}) {
+  if (reactions.length === 0) return null;
+  return (
+    <div
+      className={cn(
+        "mt-1 flex flex-wrap gap-1",
+        isMine ? "justify-end" : "justify-start"
+      )}
+    >
+      {reactions.map((r) => (
+        <button
+          key={r.emoji}
+          type="button"
+          onClick={() => onToggle(r.emoji)}
+          className={cn(
+            "inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-xs leading-none transition-colors",
+            r.mine
+              ? isLight
+                ? "border-[#ffeb66]/55 bg-[#ffeb66]/22 text-zinc-900"
+                : "border-[#ffeb66]/45 bg-[#ffeb66]/15 text-[#ffeb66]"
+              : isLight
+                ? "border-zinc-200 bg-white/90 text-zinc-700 hover:bg-zinc-50"
+                : "border-white/15 bg-white/[0.05] text-white/80 hover:bg-white/[0.09]"
+          )}
+          aria-label={`${r.emoji} ${r.count}`}
+        >
+          <span aria-hidden>{r.emoji}</span>
+          <span className="tabular-nums text-[10px] font-semibold">
+            {r.count}
+          </span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
 function formatListTime(iso: string) {
   const d = new Date(iso);
   const now = new Date();
@@ -677,10 +842,22 @@ export function ChatView() {
   const [newChatOpen, setNewChatOpen] = useState(false);
   const [mobileShowThread, setMobileShowThread] = useState(false);
 
+  // Estado relacionado con responder, editar, borrar y reaccionar.
+  const [replyTarget, setReplyTarget] = useState<ChatMessageItem | null>(null);
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
+  const [editingDraft, setEditingDraft] = useState("");
+  const [editingSaving, setEditingSaving] = useState(false);
+  const [reactionPickerFor, setReactionPickerFor] = useState<string | null>(null);
+  const [actionMenuFor, setActionMenuFor] = useState<string | null>(null);
+  const [highlightedMessageId, setHighlightedMessageId] = useState<string | null>(null);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const composerRef = useRef<HTMLTextAreaElement>(null);
   const lastMessageAtRef = useRef<string | null>(null);
+  const editingTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const pendingJumpRef = useRef<string | null>(null);
+  const highlightTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const activeConv = conversations.find((c) => c.id === activeId) ?? null;
 
@@ -850,14 +1027,281 @@ export function ChatView() {
     }
   }
 
+  /**
+   * Hace scroll a un mensaje concreto del hilo y lo resalta brevemente. Si el
+   * mensaje aun no esta en el DOM (porque se cargara mas tarde), se guarda en
+   * pendingJumpRef y se hace al terminar la carga.
+   */
+  const jumpToMessage = useCallback((messageId: string) => {
+    const el = document.getElementById(`chat-msg-${messageId}`);
+    if (!el) {
+      pendingJumpRef.current = messageId;
+      return;
+    }
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+    setHighlightedMessageId(messageId);
+    if (highlightTimeoutRef.current) {
+      clearTimeout(highlightTimeoutRef.current);
+    }
+    highlightTimeoutRef.current = setTimeout(() => {
+      setHighlightedMessageId((cur) => (cur === messageId ? null : cur));
+    }, 2200);
+  }, []);
+
+  // Si llegaba ?m=... al cargar la conversacion, salta al mensaje en cuanto
+  // se renderiza. Tambien gestiona jumps pendientes (replies que apuntan a
+  // mensajes mas antiguos que aun no se han cargado).
+  useEffect(() => {
+    if (!activeId) return;
+    const pending = pendingJumpRef.current;
+    if (pending && messages.some((m) => m.id === pending)) {
+      pendingJumpRef.current = null;
+      // Pequeno delay para que el DOM termine de pintar.
+      setTimeout(() => jumpToMessage(pending), 60);
+    }
+  }, [messages, activeId, jumpToMessage]);
+
+  useEffect(() => {
+    const m = searchParams.get("m");
+    if (m) pendingJumpRef.current = m;
+  }, [searchParams]);
+
+  useEffect(() => {
+    return () => {
+      if (highlightTimeoutRef.current) clearTimeout(highlightTimeoutRef.current);
+    };
+  }, []);
+
+  // Cierra los popovers de mensaje (picker de reacciones, menu de acciones)
+  // al hacer click fuera de cualquier burbuja del hilo.
+  useEffect(() => {
+    if (!reactionPickerFor && !actionMenuFor) return;
+    function handler(e: MouseEvent) {
+      const target = e.target as Element | null;
+      if (!target) return;
+      if (!target.closest("[id^='chat-msg-']")) {
+        setReactionPickerFor(null);
+        setActionMenuFor(null);
+      }
+    }
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [reactionPickerFor, actionMenuFor]);
+
+  /** Empieza a responder un mensaje: pone el chip arriba del composer y
+   *  enfoca el textarea. */
+  function startReply(m: ChatMessageItem) {
+    setReplyTarget(m);
+    setEditingMessageId(null);
+    setActionMenuFor(null);
+    setTimeout(() => composerRef.current?.focus(), 30);
+  }
+
+  function cancelReply() {
+    setReplyTarget(null);
+  }
+
+  function startEdit(m: ChatMessageItem) {
+    if (!canEditMessage(m, currentUser?.id)) {
+      toast.error("Solo puedes editar tus propios mensajes recientes");
+      return;
+    }
+    setEditingMessageId(m.id);
+    setEditingDraft(m.body ?? "");
+    setReplyTarget(null);
+    setActionMenuFor(null);
+    setTimeout(() => editingTextareaRef.current?.focus(), 40);
+  }
+
+  function cancelEdit() {
+    setEditingMessageId(null);
+    setEditingDraft("");
+  }
+
+  async function submitEdit(messageId: string) {
+    if (!activeId) return;
+    const newBody = editingDraft.trim();
+    const current = messages.find((m) => m.id === messageId);
+    if (!current) return;
+    if (newBody === (current.body ?? "")) {
+      cancelEdit();
+      return;
+    }
+    setEditingSaving(true);
+    try {
+      const res = await fetch(
+        `/api/chat/conversations/${activeId}/messages/${messageId}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ body: newBody }),
+        }
+      );
+      const data = (await res.json()) as {
+        id?: string;
+        body?: string;
+        editedAt?: string | null;
+        error?: string;
+      };
+      if (!res.ok) {
+        throw new Error(
+          typeof data.error === "string" ? data.error : "No se pudo editar"
+        );
+      }
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === messageId
+            ? {
+                ...m,
+                body: data.body ?? newBody,
+                editedAt: data.editedAt ?? new Date().toISOString(),
+              }
+            : m
+        )
+      );
+      cancelEdit();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Error al editar");
+    } finally {
+      setEditingSaving(false);
+    }
+  }
+
+  async function deleteMessage(m: ChatMessageItem) {
+    if (!activeId) return;
+    if (!window.confirm("¿Eliminar este mensaje? Se reemplazará por «Mensaje eliminado».")) {
+      return;
+    }
+    try {
+      const res = await fetch(
+        `/api/chat/conversations/${activeId}/messages/${m.id}`,
+        { method: "DELETE" }
+      );
+      if (!res.ok) {
+        const data = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(
+          typeof data.error === "string" ? data.error : "No se pudo eliminar"
+        );
+      }
+      setMessages((prev) =>
+        prev.map((p) =>
+          p.id === m.id
+            ? {
+                ...p,
+                body: "",
+                attachments: [],
+                reactions: [],
+                isDeleted: true,
+              }
+            : p
+        )
+      );
+      setActionMenuFor(null);
+      void loadConversations();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Error");
+    }
+  }
+
+  async function toggleReaction(messageId: string, emoji: string) {
+    if (!activeId) return;
+    setReactionPickerFor(null);
+    // Optimistic: invertimos la presencia del usuario en esa reaccion.
+    setMessages((prev) =>
+      prev.map((m) => {
+        if (m.id !== messageId) return m;
+        const existing = m.reactions.find((r) => r.emoji === emoji);
+        if (existing) {
+          const removeMine = existing.mine;
+          if (removeMine && existing.count === 1) {
+            return {
+              ...m,
+              reactions: m.reactions.filter((r) => r.emoji !== emoji),
+            };
+          }
+          return {
+            ...m,
+            reactions: m.reactions.map((r) =>
+              r.emoji !== emoji
+                ? r
+                : {
+                    ...r,
+                    count: removeMine ? r.count - 1 : r.count + 1,
+                    mine: !removeMine,
+                    userIds: removeMine
+                      ? r.userIds.filter((u) => u !== currentUser?.id)
+                      : [...r.userIds, currentUser?.id ?? ""],
+                  }
+            ),
+          };
+        }
+        return {
+          ...m,
+          reactions: [
+            ...m.reactions,
+            {
+              emoji,
+              count: 1,
+              mine: true,
+              userIds: currentUser?.id ? [currentUser.id] : [],
+            },
+          ],
+        };
+      })
+    );
+    try {
+      const res = await fetch(
+        `/api/chat/conversations/${activeId}/messages/${messageId}/reactions`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ emoji }),
+        }
+      );
+      if (!res.ok) {
+        const data = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(
+          typeof data.error === "string" ? data.error : "No se pudo reaccionar"
+        );
+      }
+      const data = (await res.json()) as { reactions: ChatReactionSummary[] };
+      // Consolidamos con la respuesta autoritativa del servidor.
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === messageId ? { ...m, reactions: data.reactions } : m
+        )
+      );
+    } catch (err) {
+      // En caso de error revertimos recargando los ultimos mensajes.
+      toast.error(err instanceof Error ? err.message : "Error");
+      if (activeId) void loadMessages(activeId, { silent: true });
+    }
+  }
+
+  function copyMessageLink(m: ChatMessageItem) {
+    if (!activeId) return;
+    const base =
+      typeof window !== "undefined"
+        ? `${window.location.origin}${window.location.pathname}`
+        : "/chat";
+    const url = `${base}?c=${activeId}&m=${m.id}`;
+    navigator.clipboard
+      .writeText(url)
+      .then(() => toast.success("Enlace copiado"))
+      .catch(() => toast.error("No se pudo copiar"));
+    setActionMenuFor(null);
+  }
+
   async function handleSend(e: React.FormEvent) {
     e.preventDefault();
     if (!activeId || sending) return;
     const text = draft.trim();
     if (!text && pendingAttachments.length === 0) return;
     const sentAttachments = pendingAttachments;
+    const replyId = replyTarget?.id ?? null;
     setDraft("");
     setPendingAttachments([]);
+    setReplyTarget(null);
     setSending(true);
     try {
       const res = await fetch(
@@ -867,6 +1311,7 @@ export function ChatView() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             body: text,
+            replyToId: replyId,
             attachments: sentAttachments.map((a) => ({
               kind: a.kind,
               fileName: a.fileName,
@@ -895,6 +1340,9 @@ export function ChatView() {
     } catch (err) {
       setDraft(text);
       setPendingAttachments(sentAttachments);
+      if (replyId && messages.find((mm) => mm.id === replyId)) {
+        setReplyTarget(messages.find((mm) => mm.id === replyId) ?? null);
+      }
       toast.error(err instanceof Error ? err.message : "Error al enviar");
     } finally {
       setSending(false);
@@ -1503,9 +1951,11 @@ export function ChatView() {
                         </div>
                       )}
                       <div
+                        id={`chat-msg-${m.id}`}
                         className={cn(
                           "chat-bubble-enter flex items-end gap-2",
-                          m.isMine ? "flex-row-reverse" : "flex-row"
+                          m.isMine ? "flex-row-reverse" : "flex-row",
+                          highlightedMessageId === m.id && "chat-bubble-highlight"
                         )}
                       >
                         {!m.isMine && (
@@ -1526,65 +1976,332 @@ export function ChatView() {
                             )}
                           </div>
                         )}
-                        <div
-                          className={cn(
-                            "group/bubble relative max-w-[min(100%,26rem)] px-3.5 py-2.5 text-sm shadow-sm transition-shadow",
-                            m.isMine
-                              ? cn(
-                                  "border border-[#ffeb66]/30 bg-gradient-to-br from-[#ffeb66]/30 via-[#d4af37]/14 to-[#1a2a42]/88 text-white shadow-[0_4px_22px_rgba(255,235,102,0.16)] hover:shadow-[0_4px_28px_rgba(255,235,102,0.22)]",
-                                  sameAsPrev
-                                    ? "rounded-2xl rounded-tr-md rounded-br-md"
-                                    : "rounded-2xl rounded-br-md"
-                                )
-                              : cn(
-                                  L
-                                    ? "border border-zinc-200/90 bg-white text-zinc-900"
-                                    : "border border-white/10 bg-gradient-to-br from-[#161f33]/95 to-[#0f1729]/95 text-white backdrop-blur-sm",
-                                  sameAsPrev
-                                    ? "rounded-2xl rounded-tl-md rounded-bl-md"
-                                    : "rounded-2xl rounded-bl-md"
-                                )
-                          )}
-                          title={formatTime(m.createdAt)}
-                        >
-                          {/* En grupos: nombre del remitente en mensajes ajenos */}
-                          {activeConv?.isGroup &&
-                            !m.isMine &&
-                            !sameAsPrev && (
+                        <div className="flex max-w-[min(100%,26rem)] min-w-0 flex-col">
+                          <div
+                            className={cn(
+                              "group/bubble relative px-3.5 py-2.5 text-sm shadow-sm transition-shadow",
+                              m.isDeleted
+                                ? cn(
+                                    "border italic",
+                                    L
+                                      ? "border-zinc-200 bg-zinc-50 text-zinc-500"
+                                      : "border-white/8 bg-white/[0.03] text-white/45",
+                                    sameAsPrev
+                                      ? m.isMine
+                                        ? "rounded-2xl rounded-tr-md rounded-br-md"
+                                        : "rounded-2xl rounded-tl-md rounded-bl-md"
+                                      : m.isMine
+                                        ? "rounded-2xl rounded-br-md"
+                                        : "rounded-2xl rounded-bl-md"
+                                  )
+                                : m.isMine
+                                  ? cn(
+                                      "border border-[#ffeb66]/30 bg-gradient-to-br from-[#ffeb66]/30 via-[#d4af37]/14 to-[#1a2a42]/88 text-white shadow-[0_4px_22px_rgba(255,235,102,0.16)] hover:shadow-[0_4px_28px_rgba(255,235,102,0.22)]",
+                                      sameAsPrev
+                                        ? "rounded-2xl rounded-tr-md rounded-br-md"
+                                        : "rounded-2xl rounded-br-md"
+                                    )
+                                  : cn(
+                                      L
+                                        ? "border border-zinc-200/90 bg-white text-zinc-900"
+                                        : "border border-white/10 bg-gradient-to-br from-[#161f33]/95 to-[#0f1729]/95 text-white backdrop-blur-sm",
+                                      sameAsPrev
+                                        ? "rounded-2xl rounded-tl-md rounded-bl-md"
+                                        : "rounded-2xl rounded-bl-md"
+                                    )
+                            )}
+                            title={formatTime(m.createdAt)}
+                          >
+                            {/* En grupos: nombre del remitente en mensajes ajenos */}
+                            {activeConv?.isGroup &&
+                              !m.isMine &&
+                              !sameAsPrev &&
+                              !m.isDeleted && (
+                                <p
+                                  className={cn(
+                                    "mb-0.5 text-[11px] font-semibold",
+                                    L ? "text-[#9c7d10]" : "text-[#ffeb66]/85"
+                                  )}
+                                >
+                                  {m.sender.name}
+                                </p>
+                              )}
+
+                            {/* Cita del mensaje al que se responde */}
+                            {!m.isDeleted && m.replyTo && (
+                              <MessageQuoteBlock
+                                snippet={m.replyTo}
+                                isMine={m.isMine}
+                                isLight={L}
+                                onJump={() => jumpToMessage(m.replyTo!.id)}
+                              />
+                            )}
+
+                            {/* Modo edicion in-place */}
+                            {editingMessageId === m.id ? (
+                              <div className="flex flex-col gap-2">
+                                <textarea
+                                  ref={editingTextareaRef}
+                                  value={editingDraft}
+                                  onChange={(e) => setEditingDraft(e.target.value)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Escape") {
+                                      e.preventDefault();
+                                      cancelEdit();
+                                    } else if (e.key === "Enter" && !e.shiftKey) {
+                                      e.preventDefault();
+                                      void submitEdit(m.id);
+                                    }
+                                  }}
+                                  rows={1}
+                                  maxLength={4000}
+                                  className={cn(
+                                    "w-full resize-none rounded-md border bg-transparent px-2 py-1.5 text-sm outline-none",
+                                    m.isMine
+                                      ? "border-white/30 text-white placeholder:text-white/45"
+                                      : L
+                                        ? "border-zinc-200 text-zinc-900"
+                                        : "border-white/15 text-white"
+                                  )}
+                                />
+                                <div className="flex items-center justify-end gap-1.5">
+                                  <button
+                                    type="button"
+                                    onClick={cancelEdit}
+                                    disabled={editingSaving}
+                                    className={cn(
+                                      "rounded-md px-2 py-1 text-[11px] font-semibold transition-colors",
+                                      m.isMine
+                                        ? "text-white/70 hover:bg-black/15"
+                                        : L
+                                          ? "text-zinc-600 hover:bg-zinc-100"
+                                          : "text-white/65 hover:bg-white/10"
+                                    )}
+                                  >
+                                    Cancelar
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => void submitEdit(m.id)}
+                                    disabled={editingSaving || editingDraft.trim().length === 0}
+                                    className={cn(
+                                      "inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-semibold transition-colors",
+                                      "bg-[#ffeb66] text-[#0a0f1e] hover:brightness-105 disabled:opacity-50"
+                                    )}
+                                  >
+                                    {editingSaving ? (
+                                      <Loader2 className="h-3 w-3 animate-spin" />
+                                    ) : (
+                                      <Check className="h-3 w-3" />
+                                    )}
+                                    Guardar
+                                  </button>
+                                </div>
+                              </div>
+                            ) : m.isDeleted ? (
+                              <p className="leading-relaxed">Mensaje eliminado</p>
+                            ) : (
+                              <>
+                                {m.body && (
+                                  <p className="whitespace-pre-wrap break-words leading-relaxed">
+                                    {m.body}
+                                  </p>
+                                )}
+                                {m.attachments && m.attachments.length > 0 && (
+                                  <MessageAttachments
+                                    attachments={m.attachments}
+                                    isLight={L}
+                                    isMine={m.isMine}
+                                  />
+                                )}
+                              </>
+                            )}
+
+                            {showTime && (
                               <p
                                 className={cn(
-                                  "mb-0.5 text-[11px] font-semibold",
-                                  L ? "text-[#9c7d10]" : "text-[#ffeb66]/85"
+                                  "mt-1 flex items-center gap-1.5 text-[10px] tabular-nums",
+                                  m.isMine
+                                    ? "text-white/55 justify-end"
+                                    : L
+                                      ? "text-zinc-400"
+                                      : "text-white/40"
                                 )}
                               >
-                                {m.sender.name}
+                                {m.editedAt && !m.isDeleted && (
+                                  <span className="italic opacity-80">
+                                    editado
+                                  </span>
+                                )}
+                                <span>{formatTime(m.createdAt)}</span>
                               </p>
                             )}
-                          {m.body && (
-                            <p className="whitespace-pre-wrap break-words leading-relaxed">
-                              {m.body}
-                            </p>
-                          )}
-                          {m.attachments && m.attachments.length > 0 && (
-                            <MessageAttachments
-                              attachments={m.attachments}
-                              isLight={L}
+
+                            {/* Toolbar flotante con acciones por mensaje */}
+                            {!m.isDeleted && editingMessageId !== m.id && (
+                              <div
+                                className={cn(
+                                  "absolute -top-3 z-10 hidden items-center gap-0.5 rounded-full border shadow-lg group-hover/bubble:flex",
+                                  m.isMine ? "left-1" : "right-1",
+                                  L
+                                    ? "border-zinc-200 bg-white"
+                                    : "border-white/12 bg-[#0d1427]"
+                                )}
+                              >
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setReactionPickerFor((cur) =>
+                                      cur === m.id ? null : m.id
+                                    )
+                                  }
+                                  aria-label="Reaccionar"
+                                  className={cn(
+                                    "flex h-7 w-7 items-center justify-center rounded-full transition-colors",
+                                    L
+                                      ? "text-zinc-600 hover:bg-zinc-100"
+                                      : "text-white/65 hover:bg-white/10"
+                                  )}
+                                >
+                                  <SmilePlus className="h-3.5 w-3.5" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => startReply(m)}
+                                  aria-label="Responder"
+                                  className={cn(
+                                    "flex h-7 w-7 items-center justify-center rounded-full transition-colors",
+                                    L
+                                      ? "text-zinc-600 hover:bg-zinc-100"
+                                      : "text-white/65 hover:bg-white/10"
+                                  )}
+                                >
+                                  <CornerUpLeft className="h-3.5 w-3.5" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setActionMenuFor((cur) =>
+                                      cur === m.id ? null : m.id
+                                    )
+                                  }
+                                  aria-label="Más acciones"
+                                  className={cn(
+                                    "flex h-7 w-7 items-center justify-center rounded-full transition-colors",
+                                    L
+                                      ? "text-zinc-600 hover:bg-zinc-100"
+                                      : "text-white/65 hover:bg-white/10"
+                                  )}
+                                >
+                                  <MoreHorizontal className="h-3.5 w-3.5" />
+                                </button>
+                              </div>
+                            )}
+
+                            {/* Picker rapido de reacciones */}
+                            {reactionPickerFor === m.id && (
+                              <div
+                                className={cn(
+                                  "absolute -top-12 z-20 flex items-center gap-0.5 rounded-full border px-1 py-1 shadow-xl",
+                                  m.isMine ? "left-0" : "right-0",
+                                  L
+                                    ? "border-zinc-200 bg-white"
+                                    : "border-white/15 bg-[#0d1427]"
+                                )}
+                              >
+                                {ALL_REACTIONS.map((e) => (
+                                  <button
+                                    key={e}
+                                    type="button"
+                                    onClick={() => void toggleReaction(m.id, e)}
+                                    className={cn(
+                                      "flex h-7 w-7 items-center justify-center rounded-full text-base transition-transform hover:scale-125",
+                                      L ? "hover:bg-zinc-100" : "hover:bg-white/10"
+                                    )}
+                                    aria-label={`Reaccionar con ${e}`}
+                                  >
+                                    {e}
+                                  </button>
+                                ))}
+                                <button
+                                  type="button"
+                                  onClick={() => setReactionPickerFor(null)}
+                                  aria-label="Cerrar"
+                                  className={cn(
+                                    "flex h-7 w-7 items-center justify-center rounded-full transition-colors",
+                                    L
+                                      ? "text-zinc-400 hover:bg-zinc-100"
+                                      : "text-white/45 hover:bg-white/10"
+                                  )}
+                                >
+                                  <X className="h-3.5 w-3.5" />
+                                </button>
+                              </div>
+                            )}
+
+                            {/* Menu de acciones (...) */}
+                            {actionMenuFor === m.id && (
+                              <div
+                                className={cn(
+                                  "absolute z-30 min-w-[10rem] overflow-hidden rounded-lg border shadow-xl",
+                                  m.isMine ? "left-1 top-7" : "right-1 top-7",
+                                  L
+                                    ? "border-zinc-200 bg-white"
+                                    : "border-white/12 bg-[#0d1427]"
+                                )}
+                              >
+                                <button
+                                  type="button"
+                                  onClick={() => copyMessageLink(m)}
+                                  className={cn(
+                                    "flex w-full items-center gap-2 px-3 py-2 text-[12px] font-medium transition-colors",
+                                    L
+                                      ? "text-zinc-700 hover:bg-zinc-50"
+                                      : "text-white/85 hover:bg-white/[0.06]"
+                                  )}
+                                >
+                                  <Link2 className="h-3.5 w-3.5" /> Copiar enlace
+                                </button>
+                                {canEditMessage(m, currentUser?.id) && (
+                                  <button
+                                    type="button"
+                                    onClick={() => startEdit(m)}
+                                    className={cn(
+                                      "flex w-full items-center gap-2 px-3 py-2 text-[12px] font-medium transition-colors",
+                                      L
+                                        ? "text-zinc-700 hover:bg-zinc-50"
+                                        : "text-white/85 hover:bg-white/[0.06]"
+                                    )}
+                                  >
+                                    <Pencil className="h-3.5 w-3.5" /> Editar
+                                  </button>
+                                )}
+                                {m.isMine && (
+                                  <button
+                                    type="button"
+                                    onClick={() => void deleteMessage(m)}
+                                    className={cn(
+                                      "flex w-full items-center gap-2 px-3 py-2 text-[12px] font-medium transition-colors",
+                                      L
+                                        ? "text-red-600 hover:bg-red-50"
+                                        : "text-red-400 hover:bg-red-500/10"
+                                    )}
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5" /> Eliminar
+                                  </button>
+                                )}
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Reacciones agrupadas */}
+                          {!m.isDeleted && m.reactions.length > 0 && (
+                            <MessageReactions
+                              reactions={m.reactions}
                               isMine={m.isMine}
+                              isLight={L}
+                              onToggle={(emoji) => void toggleReaction(m.id, emoji)}
                             />
-                          )}
-                          {showTime && (
-                            <p
-                              className={cn(
-                                "mt-1 text-[10px] tabular-nums",
-                                m.isMine
-                                  ? "text-white/55"
-                                  : L
-                                    ? "text-zinc-400"
-                                    : "text-white/40"
-                              )}
-                            >
-                              {formatTime(m.createdAt)}
-                            </p>
                           )}
                         </div>
                       </div>
@@ -1604,6 +2321,60 @@ export function ChatView() {
                   : "border-white/8 bg-[#060a14]/90"
               )}
             >
+              {/* Chip de respondiendo a... */}
+              {replyTarget && (
+                <div
+                  className={cn(
+                    "mb-2 flex items-start gap-2 rounded-lg border-l-2 px-3 py-2 text-xs",
+                    L
+                      ? "border-[#ffeb66]/55 bg-[#ffeb66]/12"
+                      : "border-[#ffeb66]/55 bg-[#ffeb66]/10"
+                  )}
+                >
+                  <CornerUpLeft
+                    className={cn(
+                      "mt-0.5 h-3.5 w-3.5 shrink-0",
+                      L ? "text-[#9c7d10]" : "text-[#ffeb66]"
+                    )}
+                  />
+                  <div className="min-w-0 flex-1">
+                    <span
+                      className={cn(
+                        "block truncate text-[11px] font-semibold",
+                        L ? "text-zinc-700" : "text-white/85"
+                      )}
+                    >
+                      Respondiendo a {replyTarget.sender.name}
+                    </span>
+                    <span
+                      className={cn(
+                        "block truncate",
+                        L ? "text-zinc-500" : "text-white/55"
+                      )}
+                    >
+                      {replyTarget.body && replyTarget.body.trim().length > 0
+                        ? replyTarget.body
+                        : replyTarget.attachments[0]?.refLabel ??
+                          replyTarget.attachments[0]?.fileName ??
+                          "Adjunto"}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={cancelReply}
+                    aria-label="Cancelar respuesta"
+                    className={cn(
+                      "flex h-5 w-5 shrink-0 items-center justify-center rounded transition-colors",
+                      L
+                        ? "text-zinc-500 hover:bg-zinc-200/70"
+                        : "text-white/55 hover:bg-white/10"
+                    )}
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              )}
+
               {/* Vista previa de adjuntos pendientes */}
               {pendingAttachments.length > 0 && (
                 <div className="mb-2 flex flex-wrap gap-2">

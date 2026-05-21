@@ -152,6 +152,7 @@ model User {
   bugReports            BugReport[]
   chatParticipants      ChatParticipant[]
   chatMessagesSent      ChatMessage[]       @relation("ChatMessageSender")
+  chatMessageReactions  ChatMessageReaction[]
 
   @@index([email])
   @@index([role])
@@ -869,18 +870,50 @@ enum ChatAttachmentKind {
 }
 
 model ChatMessage {
-  id             String   @id @default(cuid())
+  id             String    @id @default(cuid())
   conversationId String
   senderId       String
-  body           String   @db.VarChar(4000)
-  createdAt      DateTime @default(now())
+  /** Opcional para soportar mensajes con solo adjuntos. */
+  body           String?   @db.VarChar(4000)
+  createdAt      DateTime  @default(now())
+  /** Marca cuando el autor edito el cuerpo del mensaje. */
+  editedAt       DateTime?
+  /** Soft-delete: el mensaje se conserva pero se renderiza como "eliminado". */
+  deletedAt      DateTime?
+  /** Si este mensaje es una respuesta a otro, su id. SetNull si el original
+      se elimina del todo (no soft-delete) para no romper referencias. */
+  replyToId      String?
 
   conversation ChatConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   sender       User             @relation("ChatMessageSender", fields: [senderId], references: [id], onDelete: Cascade)
   attachments  ChatAttachment[]
+  reactions    ChatMessageReaction[]
+  replyTo      ChatMessage?     @relation("ChatMessageReplies", fields: [replyToId], references: [id], onDelete: SetNull)
+  replies      ChatMessage[]    @relation("ChatMessageReplies")
 
   @@index([conversationId, createdAt])
   @@index([senderId])
+  @@index([replyToId])
+}
+
+/**
+ * Reaccion (emoji) de un usuario sobre un mensaje. Un usuario puede poner
+ * varias reacciones distintas sobre el mismo mensaje, pero no la misma dos
+ * veces.
+ */
+model ChatMessageReaction {
+  id        String   @id @default(cuid())
+  messageId String
+  userId    String
+  emoji     String   @db.VarChar(32)
+  createdAt DateTime @default(now())
+
+  message ChatMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user    User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, userId, emoji])
+  @@index([messageId])
+  @@index([userId])
 }
 
 model ChatAttachment {
