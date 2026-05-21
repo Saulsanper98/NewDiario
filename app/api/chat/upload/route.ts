@@ -43,6 +43,7 @@ const ALLOWED_MIMES = new Set<string>([
   "audio/mp4",
   "audio/wav",
   "audio/ogg",
+  "audio/webm",
   "video/mp4",
   "video/webm",
   "video/quicktime",
@@ -72,6 +73,7 @@ const EXT_FROM_MIME: Record<string, string> = {
   "audio/mp4": "m4a",
   "audio/wav": "wav",
   "audio/ogg": "ogg",
+  "audio/webm": "webm",
   "video/mp4": "mp4",
   "video/webm": "webm",
   "video/quicktime": "mov",
@@ -162,7 +164,17 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
-    effectiveMime = detected.mime;
+    // Caso especial: WebM y MP4 son contenedores que pueden contener solo audio
+    // o solo video. file-type mira las cabeceras del contenedor y devuelve
+    // siempre la variante "video/..." aunque el archivo no tenga pista de
+    // video. Si el cliente declaro un audio (lo normal cuando MediaRecorder
+    // graba audio), respetamos esa intencion para que se renderice como audio
+    // en el chat.
+    const isAudioInVideoContainer =
+      (declaredMime === "audio/webm" && detected.mime === "video/webm") ||
+      (declaredMime === "audio/mp4" && detected.mime === "video/mp4") ||
+      (declaredMime === "audio/ogg" && detected.mime === "video/ogg");
+    effectiveMime = isAudioInVideoContainer ? declaredMime : detected.mime;
   }
 
   await mkdir(UPLOAD_DIR, { recursive: true });

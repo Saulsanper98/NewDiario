@@ -26,10 +26,13 @@ import {
   Link2,
   Loader2,
   MessageCircle,
+  Mic,
   MoreHorizontal,
   MoreVertical,
   Paperclip,
+  Pause,
   Pencil,
+  Play,
   Pin,
   PinOff,
   Plus,
@@ -226,6 +229,14 @@ function formatBytes(bytes: number | null | undefined) {
   return `${(kb / 1024).toFixed(1)} MB`;
 }
 
+/** Formatea segundos como mm:ss. Usado por la grabacion y el reproductor. */
+function formatRecTime(sec: number) {
+  const s = Math.max(0, Math.floor(sec));
+  const m = Math.floor(s / 60);
+  const r = s % 60;
+  return `${m.toString().padStart(1, "0")}:${r.toString().padStart(2, "0")}`;
+}
+
 function attachmentKindIcon(kind: ChatAttachmentKind, className?: string) {
   const cls = cn("h-4 w-4", className);
   switch (kind) {
@@ -282,9 +293,15 @@ function ComposerAttachmentChip({
   onRemove: () => void;
 }) {
   const isMedia = attachment.kind === "IMAGE" || attachment.kind === "FILE";
-  const label = isMedia
-    ? attachment.fileName ?? "Archivo"
-    : attachment.refLabel ?? attachmentKindLabel(attachment.kind);
+  const isAudio =
+    attachment.kind === "FILE" &&
+    !!attachment.mimeType &&
+    attachment.mimeType.startsWith("audio/");
+  const label = isAudio
+    ? attachment.refLabel ?? "Nota de voz"
+    : isMedia
+      ? attachment.fileName ?? "Archivo"
+      : attachment.refLabel ?? attachmentKindLabel(attachment.kind);
   return (
     <span
       className={cn(
@@ -305,10 +322,20 @@ function ComposerAttachmentChip({
         <span
           className={cn(
             "flex h-7 w-7 shrink-0 items-center justify-center rounded",
-            isLight ? "bg-zinc-100 text-zinc-600" : "bg-white/[0.07] text-white/70"
+            isAudio
+              ? isLight
+                ? "bg-red-50 text-red-600"
+                : "bg-red-500/15 text-red-300"
+              : isLight
+                ? "bg-zinc-100 text-zinc-600"
+                : "bg-white/[0.07] text-white/70"
           )}
         >
-          {attachmentKindIcon(attachment.kind)}
+          {isAudio ? (
+            <Mic className="h-3.5 w-3.5" />
+          ) : (
+            attachmentKindIcon(attachment.kind)
+          )}
         </span>
       )}
       <span className="min-w-0 flex-1 truncate">
@@ -319,9 +346,11 @@ function ComposerAttachmentChip({
             isLight ? "text-zinc-500" : "text-white/45"
           )}
         >
-          {isMedia
-            ? formatBytes(attachment.sizeBytes)
-            : attachmentKindLabel(attachment.kind)}
+          {isAudio
+            ? formatBytes(attachment.sizeBytes) || "Audio"
+            : isMedia
+              ? formatBytes(attachment.sizeBytes)
+              : attachmentKindLabel(attachment.kind)}
         </span>
       </span>
       <button
@@ -786,6 +815,77 @@ function SharePickerPanel({
   );
 }
 
+/** Pequeño reproductor de audio integrado en una burbuja de mensaje. Usa
+ *  los controles nativos pero envueltos en un contenedor que case con el
+ *  estilo del resto de adjuntos. Mantenemos `preload="metadata"` para que
+ *  el navegador conozca la duración pero no descargue todo hasta que se
+ *  reproduzca. */
+function AudioBubble({
+  url,
+  fileName,
+  durationLabel,
+  isLight,
+  isMine,
+}: {
+  url: string;
+  fileName: string;
+  durationLabel?: string | null;
+  isLight: boolean;
+  isMine: boolean;
+}) {
+  return (
+    <div
+      className={cn(
+        "flex w-full max-w-[18rem] flex-col gap-1.5 rounded-lg border px-2.5 py-2",
+        isMine
+          ? "border-white/15 bg-black/15 text-white"
+          : isLight
+            ? "border-zinc-200 bg-zinc-50 text-zinc-800"
+            : "border-white/10 bg-white/[0.04] text-white"
+      )}
+    >
+      <div className="flex items-center gap-2 text-[11px] font-medium">
+        <span
+          className={cn(
+            "flex h-7 w-7 shrink-0 items-center justify-center rounded-full",
+            isMine
+              ? "bg-white/15"
+              : isLight
+                ? "bg-white text-zinc-700"
+                : "bg-white/[0.08] text-white/80"
+          )}
+        >
+          <Mic className="h-3.5 w-3.5" />
+        </span>
+        <span className="min-w-0 flex-1 truncate">
+          {durationLabel ?? "Nota de voz"}
+        </span>
+        <a
+          href={url}
+          download={fileName}
+          aria-label="Descargar audio"
+          className={cn(
+            "flex h-6 w-6 shrink-0 items-center justify-center rounded-md transition-colors",
+            isMine
+              ? "text-white/80 hover:bg-white/10"
+              : isLight
+                ? "text-zinc-500 hover:bg-zinc-200/70 hover:text-zinc-800"
+                : "text-white/55 hover:bg-white/10 hover:text-white"
+          )}
+        >
+          <Download className="h-3 w-3" />
+        </a>
+      </div>
+      <audio
+        src={url}
+        controls
+        preload="metadata"
+        className="chat-audio-player h-9 w-full"
+      />
+    </div>
+  );
+}
+
 function MessageAttachments({
   attachments,
   isLight,
@@ -838,6 +938,24 @@ function MessageAttachments({
               {/* eslint-disable-next-line @next/next/no-img-element */}
               {img}
             </a>
+          );
+        }
+        // Audio (nota de voz o cualquier audio adjuntado): reproductor inline
+        if (
+          a.kind === "FILE" &&
+          a.fileUrl &&
+          a.mimeType &&
+          a.mimeType.startsWith("audio/")
+        ) {
+          return (
+            <AudioBubble
+              key={a.id}
+              url={a.fileUrl}
+              fileName={a.fileName ?? "audio"}
+              durationLabel={a.refLabel}
+              isLight={isLight}
+              isMine={isMine}
+            />
           );
         }
         // Archivo descargable
@@ -1354,6 +1472,20 @@ export function ChatView() {
   const [sending, setSending] = useState(false);
   const [newChatOpen, setNewChatOpen] = useState(false);
   const [mobileShowThread, setMobileShowThread] = useState(false);
+
+  // --- Grabación de audio en el composer ---
+  // recordingState refleja la fase: idle (sin grabar), starting (esperando
+  // permiso/inicio), recording (grabando) y sending (subiendo el blob).
+  type RecState = "idle" | "starting" | "recording" | "sending";
+  const [recState, setRecState] = useState<RecState>("idle");
+  const [recElapsed, setRecElapsed] = useState(0);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioStreamRef = useRef<MediaStream | null>(null);
+  const recordedChunksRef = useRef<Blob[]>([]);
+  const recStartTimeRef = useRef<number>(0);
+  const recTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // Cuando true, al detener el MediaRecorder NO se sube el audio (cancelado).
+  const recCanceledRef = useRef(false);
 
   // Estado relacionado con responder, editar, borrar y reaccionar.
   const [replyTarget, setReplyTarget] = useState<ChatMessageItem | null>(null);
@@ -2571,6 +2703,217 @@ export function ChatView() {
       void handleFilesPicked(files);
     }
   }
+
+  /** Detiene tracks del micro y limpia timers/refs de grabacion. Llamar
+   *  tanto al cancelar como al finalizar correctamente. */
+  function cleanupRecording() {
+    if (recTimerRef.current) {
+      clearInterval(recTimerRef.current);
+      recTimerRef.current = null;
+    }
+    const stream = audioStreamRef.current;
+    if (stream) {
+      stream.getTracks().forEach((t) => t.stop());
+      audioStreamRef.current = null;
+    }
+    mediaRecorderRef.current = null;
+    recordedChunksRef.current = [];
+    recStartTimeRef.current = 0;
+    recCanceledRef.current = false;
+    setRecElapsed(0);
+  }
+
+  /** Pide permiso de microfono y arranca un MediaRecorder. Si el navegador
+   *  no soporta WebM Opus, deja que MediaRecorder elija el primero soportado
+   *  (MP4/AAC en Safari). */
+  async function startRecording() {
+    if (recState !== "idle") return;
+    if (
+      typeof navigator === "undefined" ||
+      !navigator.mediaDevices ||
+      typeof window === "undefined" ||
+      typeof window.MediaRecorder === "undefined"
+    ) {
+      toast.error("Tu navegador no permite grabar audio");
+      return;
+    }
+    setRecState("starting");
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      audioStreamRef.current = stream;
+      // Probamos mimeTypes en orden de preferencia. webm/opus es el formato
+      // por defecto de Chromium/Firefox; mp4 cubre Safari.
+      const preferredTypes = [
+        "audio/webm;codecs=opus",
+        "audio/webm",
+        "audio/mp4",
+        "audio/ogg;codecs=opus",
+      ];
+      let chosenType: string | undefined;
+      for (const t of preferredTypes) {
+        if (window.MediaRecorder.isTypeSupported(t)) {
+          chosenType = t;
+          break;
+        }
+      }
+      const mr = new MediaRecorder(
+        stream,
+        chosenType ? { mimeType: chosenType } : undefined
+      );
+      mediaRecorderRef.current = mr;
+      recordedChunksRef.current = [];
+      recCanceledRef.current = false;
+
+      mr.ondataavailable = (ev) => {
+        if (ev.data && ev.data.size > 0) {
+          recordedChunksRef.current.push(ev.data);
+        }
+      };
+      mr.onstop = async () => {
+        // Si el usuario cancelo, descartamos los chunks y limpiamos.
+        if (recCanceledRef.current) {
+          cleanupRecording();
+          setRecState("idle");
+          return;
+        }
+        const chunks = recordedChunksRef.current;
+        const mime = chosenType?.split(";")[0] ?? mr.mimeType ?? "audio/webm";
+        const blob = new Blob(chunks, { type: mime });
+        const elapsedSec = Math.max(
+          1,
+          Math.round((Date.now() - recStartTimeRef.current) / 1000)
+        );
+        cleanupRecording();
+
+        if (blob.size < 800) {
+          // Por debajo de ~1KB es prácticamente silencio o un toque accidental.
+          toast.error("La grabación es demasiado corta");
+          setRecState("idle");
+          return;
+        }
+
+        setRecState("sending");
+        const ext = mime.includes("mp4")
+          ? "m4a"
+          : mime.includes("ogg")
+            ? "ogg"
+            : "webm";
+        const file = new File(
+          [blob],
+          `audio-${new Date().toISOString().replace(/[:.]/g, "-")}.${ext}`,
+          { type: mime }
+        );
+        try {
+          const fd = new FormData();
+          fd.append("file", file);
+          const res = await fetch("/api/chat/upload", {
+            method: "POST",
+            body: fd,
+          });
+          const data = (await res.json()) as {
+            url?: string;
+            fileName?: string;
+            mimeType?: string;
+            sizeBytes?: number;
+            kind?: "FILE" | "IMAGE";
+            error?: string;
+          };
+          if (!res.ok || !data.url) {
+            toast.error(data.error || "No se pudo subir el audio");
+            setRecState("idle");
+            return;
+          }
+          // Lo agregamos como adjunto pendiente. Como casi siempre el usuario
+          // querra enviarlo inmediatamente, dejamos que aparezca en la lista
+          // de pendientes para que pueda confirmar o cancelar antes de enviar.
+          setPendingAttachments((prev) => [
+            ...prev,
+            {
+              kind: "FILE",
+              fileName: data.fileName ?? file.name,
+              fileUrl: data.url!,
+              mimeType: data.mimeType ?? mime,
+              sizeBytes: data.sizeBytes ?? file.size,
+              refId: null,
+              refLabel: `Audio · ${formatRecTime(elapsedSec)}`,
+              refMeta: null,
+            },
+          ]);
+          setRecState("idle");
+        } catch (err) {
+          toast.error(
+            err instanceof Error ? err.message : "Error al subir audio"
+          );
+          setRecState("idle");
+        }
+      };
+
+      mr.start(250);
+      recStartTimeRef.current = Date.now();
+      setRecElapsed(0);
+      setRecState("recording");
+      recTimerRef.current = setInterval(() => {
+        const sec = Math.floor((Date.now() - recStartTimeRef.current) / 1000);
+        setRecElapsed(sec);
+        // Cortamos automaticamente a 3 minutos para no acumular blobs gigantes.
+        if (sec >= 180) {
+          recCanceledRef.current = false;
+          try {
+            mediaRecorderRef.current?.stop();
+          } catch {
+            /* noop */
+          }
+        }
+      }, 250);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Error";
+      // Mensaje mas humano cuando el usuario rechaza el permiso.
+      if (/denied|not allowed/i.test(msg)) {
+        toast.error("Necesitas dar permiso al micrófono");
+      } else {
+        toast.error(`No se pudo iniciar la grabación: ${msg}`);
+      }
+      cleanupRecording();
+      setRecState("idle");
+    }
+  }
+
+  /** Cancelar grabacion: detenemos sin subir el blob. */
+  function cancelRecording() {
+    if (recState !== "recording") return;
+    recCanceledRef.current = true;
+    try {
+      mediaRecorderRef.current?.stop();
+    } catch {
+      /* noop */
+    }
+  }
+
+  /** Stop normal: subimos el audio como adjunto pendiente. */
+  function stopAndSendRecording() {
+    if (recState !== "recording") return;
+    recCanceledRef.current = false;
+    try {
+      mediaRecorderRef.current?.stop();
+    } catch {
+      /* noop */
+    }
+  }
+
+  // Cleanup al desmontar: cortamos cualquier grabacion en curso para liberar
+  // el microfono del usuario.
+  useEffect(() => {
+    return () => {
+      recCanceledRef.current = true;
+      try {
+        mediaRecorderRef.current?.stop();
+      } catch {
+        /* noop */
+      }
+      cleanupRecording();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function handleFilesPicked(files: FileList | null) {
     if (!files || files.length === 0) return;
@@ -4437,104 +4780,200 @@ export function ChatView() {
                   ref={fileInputRef}
                   type="file"
                   multiple
-                  accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip,.rar,.7z,.mp3,.mp4,.webm,.mov"
+                  accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip,.rar,.7z,.mp3,.mp4,.m4a,.wav,.ogg,.webm,.mov"
                   onChange={(e) => {
                     void handleFilesPicked(e.target.files);
                     e.currentTarget.value = "";
                   }}
                   className="hidden"
                 />
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={uploading || sending}
-                  aria-label="Adjuntar archivo"
-                  className={cn(
-                    "mb-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-colors",
-                    L
-                      ? "text-zinc-500 hover:bg-zinc-200/70 hover:text-zinc-700"
-                      : "text-white/55 hover:bg-white/10 hover:text-white",
-                    (uploading || sending) && "opacity-50"
-                  )}
-                >
-                  {uploading ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Paperclip className="h-4 w-4" />
-                  )}
-                </button>
 
-                {/* Compartir contenido interno (tarea/proyecto/nota) */}
-                <button
-                  type="button"
-                  onClick={() => setShareMenuOpen((v) => !v)}
-                  aria-label="Compartir tarea, proyecto o nota"
-                  className={cn(
-                    "mb-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-colors",
-                    shareMenuOpen
-                      ? L
-                        ? "bg-[#ffeb66]/22 text-zinc-900"
-                        : "bg-[#ffeb66]/15 text-[#ffeb66]"
-                      : L
-                        ? "text-zinc-500 hover:bg-zinc-200/70 hover:text-zinc-700"
-                        : "text-white/55 hover:bg-white/10 hover:text-white"
-                  )}
-                >
-                  <Share2 className="h-4 w-4" />
-                </button>
+                {recState !== "idle" ? (
+                  /* Barra de grabación de audio: sustituye al textarea y al
+                     resto de botones mientras dura la grabacion. */
+                  <div
+                    className={cn(
+                      "flex h-11 w-full items-center gap-2 rounded-xl px-2",
+                      L
+                        ? "bg-red-50/60 ring-1 ring-red-200"
+                        : "bg-red-500/8 ring-1 ring-red-400/25"
+                    )}
+                  >
+                    <button
+                      type="button"
+                      onClick={cancelRecording}
+                      aria-label="Cancelar grabación"
+                      disabled={recState !== "recording"}
+                      className={cn(
+                        "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-colors disabled:opacity-50",
+                        L
+                          ? "text-red-600 hover:bg-red-100"
+                          : "text-red-300 hover:bg-red-500/15"
+                      )}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
 
-                <textarea
-                  ref={composerRef}
-                  value={draft}
-                  onChange={(e) => {
-                    setDraft(e.target.value);
-                    if (e.target.value.trim().length > 0) {
-                      notifyTyping(activeId);
-                    }
-                  }}
-                  onPaste={handlePaste}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && !e.shiftKey) {
-                      e.preventDefault();
-                      void handleSend(e);
-                    }
-                  }}
-                  rows={1}
-                  placeholder={
-                    activeConv.isGroup
-                      ? `Mensaje a "${conversationDisplayName(activeConv)}"…`
-                      : `Mensaje para ${activeConv.peer?.name ?? ""}…`
-                  }
-                  className={cn(
-                    "max-h-40 min-h-[2.75rem] flex-1 resize-none border-0 bg-transparent px-1.5 py-2 text-sm leading-relaxed outline-none focus:ring-0",
-                    L
-                      ? "text-zinc-900 placeholder:text-zinc-400"
-                      : "text-white placeholder:text-white/35"
-                  )}
-                />
-                <button
-                  type="submit"
-                  disabled={
-                    (!draft.trim() && pendingAttachments.length === 0) ||
-                    sending
-                  }
-                  aria-label="Enviar"
-                  className={cn(
-                    "mb-0.5 relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-all duration-200",
-                    "bg-gradient-to-br from-[#ffeb66] to-[#d4a700] text-[#0a0f1e]",
-                    "shadow-[0_4px_14px_rgba(255,235,102,0.35)]",
-                    "hover:brightness-110 hover:shadow-[0_6px_18px_rgba(255,235,102,0.5)] hover:-translate-y-0.5",
-                    "active:translate-y-0",
-                    "disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none disabled:hover:translate-y-0",
-                    sending && "opacity-70"
-                  )}
-                >
-                  {sending ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Send className="h-4 w-4 transition-transform group-hover/composer:translate-x-0.5" />
-                  )}
-                </button>
+                    <span
+                      className={cn(
+                        "flex flex-1 items-center gap-2 text-sm font-medium",
+                        L ? "text-red-700" : "text-red-200"
+                      )}
+                    >
+                      <span className="chat-rec-dot relative inline-flex h-2.5 w-2.5">
+                        <span className="absolute inset-0 rounded-full bg-red-500" />
+                      </span>
+                      <span className="tabular-nums">
+                        {recState === "starting"
+                          ? "Preparando…"
+                          : recState === "sending"
+                            ? "Subiendo…"
+                            : `Grabando · ${formatRecTime(recElapsed)}`}
+                      </span>
+                      {recState === "recording" && (
+                        <span
+                          className={cn(
+                            "hidden text-[10px] font-normal sm:inline",
+                            L ? "text-red-500/80" : "text-red-300/70"
+                          )}
+                        >
+                          · máx. 3:00
+                        </span>
+                      )}
+                    </span>
+
+                    <button
+                      type="button"
+                      onClick={stopAndSendRecording}
+                      aria-label="Finalizar y adjuntar audio"
+                      disabled={recState !== "recording"}
+                      className={cn(
+                        "mb-0 relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-all",
+                        "bg-gradient-to-br from-[#ffeb66] to-[#d4a700] text-[#0a0f1e]",
+                        "shadow-[0_4px_14px_rgba(255,235,102,0.35)] hover:brightness-110",
+                        "disabled:cursor-not-allowed disabled:opacity-50"
+                      )}
+                    >
+                      {recState === "sending" ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Check className="h-4 w-4" />
+                      )}
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={uploading || sending}
+                      aria-label="Adjuntar archivo"
+                      className={cn(
+                        "mb-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-colors",
+                        L
+                          ? "text-zinc-500 hover:bg-zinc-200/70 hover:text-zinc-700"
+                          : "text-white/55 hover:bg-white/10 hover:text-white",
+                        (uploading || sending) && "opacity-50"
+                      )}
+                    >
+                      {uploading ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Paperclip className="h-4 w-4" />
+                      )}
+                    </button>
+
+                    {/* Compartir contenido interno (tarea/proyecto/nota) */}
+                    <button
+                      type="button"
+                      onClick={() => setShareMenuOpen((v) => !v)}
+                      aria-label="Compartir tarea, proyecto o nota"
+                      className={cn(
+                        "mb-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-colors",
+                        shareMenuOpen
+                          ? L
+                            ? "bg-[#ffeb66]/22 text-zinc-900"
+                            : "bg-[#ffeb66]/15 text-[#ffeb66]"
+                          : L
+                            ? "text-zinc-500 hover:bg-zinc-200/70 hover:text-zinc-700"
+                            : "text-white/55 hover:bg-white/10 hover:text-white"
+                      )}
+                    >
+                      <Share2 className="h-4 w-4" />
+                    </button>
+
+                    {/* Grabar nota de voz */}
+                    <button
+                      type="button"
+                      onClick={() => void startRecording()}
+                      disabled={sending || uploading}
+                      aria-label="Grabar audio"
+                      title="Grabar audio"
+                      className={cn(
+                        "mb-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-colors",
+                        L
+                          ? "text-zinc-500 hover:bg-zinc-200/70 hover:text-zinc-700"
+                          : "text-white/55 hover:bg-white/10 hover:text-white",
+                        (sending || uploading) && "opacity-50"
+                      )}
+                    >
+                      <Mic className="h-4 w-4" />
+                    </button>
+
+                    <textarea
+                      ref={composerRef}
+                      value={draft}
+                      onChange={(e) => {
+                        setDraft(e.target.value);
+                        if (e.target.value.trim().length > 0) {
+                          notifyTyping(activeId);
+                        }
+                      }}
+                      onPaste={handlePaste}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && !e.shiftKey) {
+                          e.preventDefault();
+                          void handleSend(e);
+                        }
+                      }}
+                      rows={1}
+                      placeholder={
+                        activeConv.isGroup
+                          ? `Mensaje a "${conversationDisplayName(activeConv)}"…`
+                          : `Mensaje para ${activeConv.peer?.name ?? ""}…`
+                      }
+                      className={cn(
+                        "max-h-40 min-h-[2.75rem] flex-1 resize-none border-0 bg-transparent px-1.5 py-2 text-sm leading-relaxed outline-none focus:ring-0",
+                        L
+                          ? "text-zinc-900 placeholder:text-zinc-400"
+                          : "text-white placeholder:text-white/35"
+                      )}
+                    />
+                    <button
+                      type="submit"
+                      disabled={
+                        (!draft.trim() && pendingAttachments.length === 0) ||
+                        sending
+                      }
+                      aria-label="Enviar"
+                      className={cn(
+                        "mb-0.5 relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-all duration-200",
+                        "bg-gradient-to-br from-[#ffeb66] to-[#d4a700] text-[#0a0f1e]",
+                        "shadow-[0_4px_14px_rgba(255,235,102,0.35)]",
+                        "hover:brightness-110 hover:shadow-[0_6px_18px_rgba(255,235,102,0.5)] hover:-translate-y-0.5",
+                        "active:translate-y-0",
+                        "disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none disabled:hover:translate-y-0",
+                        sending && "opacity-70"
+                      )}
+                    >
+                      {sending ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Send className="h-4 w-4 transition-transform group-hover/composer:translate-x-0.5" />
+                      )}
+                    </button>
+                  </>
+                )}
               </div>
 
               {/* Popover de compartir contenido */}

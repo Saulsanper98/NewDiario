@@ -2912,6 +2912,51 @@ textarea::placeholder {
   }
 }
 
+/* Punto rojo pulsante usado en la barra de grabación de audio del composer.
+   El span interno mantiene el círculo rojo nítido; el ::after añade un halo
+   que late suavemente para señalar visualmente "REC". */
+.chat-rec-dot::after {
+  content: "";
+  position: absolute;
+  inset: -3px;
+  border-radius: 9999px;
+  background: rgba(239, 68, 68, 0.45);
+  animation: chatRecPulse 1100ms ease-out infinite;
+}
+@keyframes chatRecPulse {
+  0% {
+    transform: scale(0.8);
+    opacity: 0.7;
+  }
+  70% {
+    transform: scale(1.8);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1.8);
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .chat-rec-dot::after {
+    animation: none;
+    opacity: 0;
+  }
+}
+
+/* Reproductor de audio inline dentro de un mensaje. El control nativo
+   cambia mucho de un navegador a otro; aqui solo nos aseguramos de que
+   ocupe el ancho disponible y herede el color/redondeo de la burbuja. */
+.chat-audio-player {
+  border-radius: 9999px;
+  max-width: 100%;
+  outline: none;
+}
+.chat-audio-player::-webkit-media-controls-panel {
+  background: rgba(0, 0, 0, 0.04);
+  border-radius: 9999px;
+}
+
 
 /* Composer del chat: brillo dorado al enfocar el textarea/boton sin que
    el anillo cambie de forma. Usamos un box-shadow exterior porque el
