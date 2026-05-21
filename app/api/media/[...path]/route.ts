@@ -7,14 +7,28 @@ const UPLOAD_DIR =
   process.env.UPLOAD_DIR ?? path.join(/*turbopackIgnore: true*/ process.cwd(), "uploads");
 
 const EXT_MIME: Record<string, string> = {
+  // Imágenes
   jpg: "image/jpeg",
   jpeg: "image/jpeg",
   png: "image/png",
   gif: "image/gif",
   webp: "image/webp",
+  // Vídeo
   mp4: "video/mp4",
   webm: "video/webm",
   mov: "video/quicktime",
+  // Audio (sonidos personalizados de usuario y notas de voz del chat).
+  // Sin estas entradas, /api/media/sound-<uuid>.<ext> devolvía 404 y los
+  // sonidos custom no sonaban nunca aunque estuvieran bien guardados.
+  mp3: "audio/mpeg",
+  m4a: "audio/mp4",
+  wav: "audio/wav",
+  ogg: "audio/ogg",
+  oga: "audio/ogg",
+  aac: "audio/aac",
+  flac: "audio/flac",
+  weba: "audio/webm",
+  opus: "audio/ogg",
 };
 
 export async function GET(
