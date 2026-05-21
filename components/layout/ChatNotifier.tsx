@@ -3,6 +3,12 @@
 import { useEffect, useRef } from "react";
 import { setFaviconBadge } from "@/lib/notifications/favicon";
 import { playNotificationSound } from "@/lib/notifications/sound";
+import {
+  setLocalPrefs,
+  setUserSoundsCache,
+  type SoundPreferences,
+  type UserSoundLite,
+} from "@/lib/notifications/sound-player";
 import { refreshPushSubscriptionSilently } from "@/lib/notifications/push-client";
 
 /**
@@ -34,6 +40,26 @@ export function ChatNotifier({ initialUnread }: { initialUnread: number }) {
     // vigente en el servidor. Si el permiso esta en "default" / "denied"
     // no hace nada y no aparece ningun prompt.
     void refreshPushSubscriptionSilently().catch(() => {});
+
+    // Sincroniza la biblioteca de sonidos personalizados y las preferencias
+    // del usuario en cuanto entra al dashboard. Esto permite que las
+    // categorías "chat", "mention", "login", "task" reproduzcan el sonido
+    // correcto incluso si el usuario nunca ha abierto "Mi cuenta" en este
+    // navegador (las preferencias viven en BD; el caché local solo agiliza).
+    void (async () => {
+      try {
+        const res = await fetch("/api/me/sounds", { cache: "no-store" });
+        if (!res.ok) return;
+        const data = (await res.json()) as {
+          sounds: UserSoundLite[];
+          preferences: SoundPreferences;
+        };
+        setUserSoundsCache(data.sounds ?? []);
+        setLocalPrefs(data.preferences ?? {});
+      } catch {
+        /* sin sonidos personalizados: usamos defaults */
+      }
+    })();
 
     let cancelled = false;
 

@@ -15,6 +15,7 @@ import { useTheme } from "@/components/layout/ThemeProvider";
 import type { SessionUser } from "@/lib/auth/types";
 import { useAccentForUi } from "@/lib/hooks/useAccentForUi";
 import { cn } from "@/lib/utils";
+import { playCategory } from "@/lib/notifications/sound-player";
 
 interface BreadcrumbItem {
   label: string;
@@ -35,6 +36,15 @@ type NotifItem = {
   link: string | null;
   isRead: boolean;
   createdAt: string;
+  type?:
+    | "TASK_ASSIGNED"
+    | "TASK_OVERDUE"
+    | "TASK_COMMENTED"
+    | "LOG_SHARED"
+    | "PROJECT_SHARED"
+    | "MENTION"
+    | "BUG_REPORT_CLOSED"
+    | "CHAT_MESSAGE";
 };
 
 function isInternalLink(link: string): boolean {
@@ -88,6 +98,10 @@ export function Header({ user, breadcrumb }: HeaderProps) {
   const deptRef = useRef<HTMLDivElement>(null);
   const notifRef = useRef<HTMLDivElement>(null);
   const notifOpenRef = useRef(false);
+  // IDs de notificaciones que ya hemos "visto" en este cliente. Sirve para
+  // sonar SOLO cuando llega una notificación realmente nueva (las primeras
+  // que se cargan al entrar no deben sonar todas a la vez).
+  const seenNotifIdsRef = useRef<Set<string> | null>(null);
 
   useEffect(() => {
     notifOpenRef.current = notifOpen;
@@ -98,7 +112,46 @@ export function Header({ user, breadcrumb }: HeaderProps) {
     try {
       const res = await fetch("/api/notifications");
       if (res.ok) {
-        setNotifData(await res.json());
+        const data = (await res.json()) as {
+          items: NotifItem[];
+          unread: number;
+        };
+        setNotifData(data);
+
+        // Detección de notificaciones nuevas para reproducir sonido por
+        // categoría. La primera carga llena el set sin sonar.
+        const currentIds = new Set(data.items.map((it) => it.id));
+        if (seenNotifIdsRef.current === null) {
+          seenNotifIdsRef.current = currentIds;
+        } else {
+          const previousSeen = seenNotifIdsRef.current;
+          // Buscamos la "más reciente" entre las nuevas y sonamos UN sonido,
+          // priorizando MENTION sobre TASK. Si solo hay TASK_*, suena task.
+          // CHAT_MESSAGE no suena aquí porque ya lo gestiona ChatNotifier.
+          let category: "mention" | "task" | null = null;
+          for (const it of data.items) {
+            if (previousSeen.has(it.id)) continue;
+            if (it.type === "MENTION") {
+              category = "mention";
+              break;
+            }
+            if (
+              it.type === "TASK_ASSIGNED" ||
+              it.type === "TASK_OVERDUE" ||
+              it.type === "TASK_COMMENTED"
+            ) {
+              category = "task";
+            }
+          }
+          if (category) {
+            try {
+              playCategory(category);
+            } catch {
+              /* AudioContext sin gesto previo */
+            }
+          }
+          seenNotifIdsRef.current = currentIds;
+        }
       } else if (notifOpenRef.current) {
         toast.error("No se pudieron cargar las notificaciones");
       }

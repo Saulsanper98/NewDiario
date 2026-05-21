@@ -154,10 +154,53 @@ model User {
   chatMessagesSent      ChatMessage[]       @relation("ChatMessageSender")
   chatMessageReactions  ChatMessageReaction[]
   pushSubscriptions     PushSubscription[]
+  userSounds            UserSound[]
+
+  /**
+   * Preferencias de sonido del usuario. Mapa categoría -> identificador del
+   * sonido a usar. El identificador tiene formato:
+   *   - "preset:<id>"  para usar uno de los presets sintéticos
+   *   - "user:<userSoundId>" para usar uno subido o importado
+   *   - "default" para usar el sonido por defecto de cada categoría
+   *   - "off" para silenciar esa categoría
+   *
+   * Categorías soportadas: "chat", "mention", "login", "task".
+   */
+  soundPreferences      Json?
 
   @@index([email])
   @@index([role])
   @@index([isActive])
+}
+
+/**
+ * Biblioteca personal de sonidos de cada usuario. Cada entrada apunta a un
+ * archivo servido por /api/media/<file> (subido desde el PC) o descargado
+ * desde una URL externa por el servidor para que la reproducción sea
+ * siempre fiable y no dependa de un host externo en el futuro.
+ */
+model UserSound {
+  id           String         @id @default(cuid())
+  userId       String
+  /** Nombre legible mostrado al usuario en su biblioteca. */
+  name         String
+  /** URL local servida por /api/media/<storedName>. */
+  fileUrl      String
+  mimeType     String
+  sizeBytes    Int
+  source       UserSoundSource @default(UPLOAD)
+  /** Si vino de una URL externa, conservamos la original como referencia. */
+  originalUrl  String?
+  createdAt    DateTime       @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+enum UserSoundSource {
+  UPLOAD
+  URL
 }
 
 /**

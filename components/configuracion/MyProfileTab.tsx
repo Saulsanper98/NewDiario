@@ -28,6 +28,7 @@ import {
   IMAGE_UPLOAD_HINT,
   validateProfileImageFile,
 } from "@/lib/upload-file";
+import { SoundLibraryCard } from "@/components/configuracion/SoundLibraryCard";
 
 interface MyProfileTabProps {
   currentUser: SessionUser;
@@ -635,6 +636,8 @@ export function MyProfileTab({ currentUser }: MyProfileTabProps) {
           onSave={saveBannerFocus}
         />
       )}
+
+      <SoundLibraryCard />
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, startTransition, useCallback } from "react
 import { createPortal } from "react-dom";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import { playCategory } from "@/lib/notifications/sound-player";
 import {
   Eye,
   EyeOff,
@@ -1064,6 +1065,14 @@ export default function LoginPage() {
     setAttempts(0);
     setLoginPhase("redirecting");
     setWiping(true);
+    // Sonido de bienvenida: usa la preferencia que el usuario tenga guardada
+    // (cacheada en localStorage tras su última visita) o el preset por
+    // defecto ("triada ascendente") si es la primera vez.
+    try {
+      playCategory("login");
+    } catch {
+      /* AudioContext sin gesto previo en algunos navegadores */
+    }
     wipeTimerRef.current = setTimeout(() => {
       router.push("/dashboard");
       router.refresh();
