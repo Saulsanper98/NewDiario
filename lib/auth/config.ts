@@ -16,25 +16,46 @@ const loginSchema = z.object({
 const credentialProvider = Credentials({
   async authorize(credentials) {
     const parsed = loginSchema.safeParse(credentials);
-    if (!parsed.success) return null;
+    if (!parsed.success) {
+      console.warn("[auth] credenciales con formato inválido", {
+        issues: parsed.error.issues.map((i) => i.path.join(".")),
+      });
+      return null;
+    }
 
     const { email, password } = parsed.data;
 
-    const user = await prisma.user.findUnique({
-      where: { email, isActive: true, deletedAt: null },
-      include: {
-        departments: {
-          include: { department: true },
-          where: { department: { isArchived: false } },
+    let user;
+    try {
+      user = await prisma.user.findUnique({
+        where: { email, isActive: true, deletedAt: null },
+        include: {
+          departments: {
+            include: { department: true },
+            where: { department: { isArchived: false } },
+          },
         },
-      },
-    });
+      });
+    } catch (err) {
+      console.error("[auth] error consultando user en authorize", err);
+      throw err;
+    }
     const canManage = (user as { canManageSuperAdmins?: boolean } | null)?.canManageSuperAdmins ?? false;
 
-    if (!user || !user.password) return null;
+    if (!user) {
+      console.warn("[auth] usuario no encontrado o inactivo", { email });
+      return null;
+    }
+    if (!user.password) {
+      console.warn("[auth] el usuario no tiene contraseña local", { email });
+      return null;
+    }
 
     const passwordMatch = await bcrypt.compare(password, user.password);
-    if (!passwordMatch) return null;
+    if (!passwordMatch) {
+      console.warn("[auth] password no coincide", { email });
+      return null;
+    }
 
     const defaultDept =
       user.departments.find((d: { isDefault: boolean }) => d.isDefault) ??

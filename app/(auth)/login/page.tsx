@@ -1034,12 +1034,33 @@ export default function LoginPage() {
     });
 
     if (result?.error) {
-      const newAttempts = attempts + 1;
-      setAttempts(newAttempts);
-      try { localStorage.setItem(STORAGE_ATTEMPTS, String(newAttempts)); } catch { }
+      // Auth.js codifica el motivo en result.error. Los más comunes:
+      //   - "CredentialsSignin": email/password no coinciden.
+      //   - "MissingCSRF" / "MissingCsrf": cookie CSRF no llegó.
+      //   - "Configuration": problema interno del servidor (secreto, etc).
+      // Mostramos un mensaje útil sin "tragar" CSRF como si fuera password.
+      const isCsrf = /csrf/i.test(result.error);
+      const isConfig = /configuration/i.test(result.error);
 
       setLoginPhase("idle");
       triggerShake();
+
+      if (isCsrf) {
+        setError(
+          "El navegador no envió la cookie de seguridad (CSRF). Recarga la página con Ctrl+F5 y vuelve a intentarlo. Si persiste, prueba en una ventana privada."
+        );
+        return;
+      }
+      if (isConfig) {
+        setError(
+          "Error de configuración del servidor. Avisa al administrador (detalle técnico: Configuration)."
+        );
+        return;
+      }
+
+      const newAttempts = attempts + 1;
+      setAttempts(newAttempts);
+      try { localStorage.setItem(STORAGE_ATTEMPTS, String(newAttempts)); } catch { }
 
       if (newAttempts >= MAX_ATTEMPTS) {
         triggerLock();
