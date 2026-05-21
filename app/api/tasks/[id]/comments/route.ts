@@ -25,6 +25,8 @@ export async function POST(
     select: {
       title: true,
       projectId: true,
+      assigneeId: true,
+      createdById: true,
       project: { select: { name: true, departmentId: true } },
     },
   });
@@ -63,7 +65,31 @@ export async function POST(
         type: "MENTION" as const,
         title: "Te mencionaron en un comentario de tarea",
         message: `${user.name} te mencionó en «${task.project.name}» — ${task.title}`,
-        link: `/proyectos/${task.projectId}`,
+        link: `/proyectos/${task.projectId}?task=${id}`,
+      })),
+      skipDuplicates: true,
+    });
+  }
+
+  // Notificación TASK_COMMENTED al asignado y al creador de la tarea cuando
+  // alguien (que no sean ellos mismos) comenta. Evitamos duplicar con quien
+  // ya recibió MENTION en este mismo comentario.
+  const interested = new Set<string>();
+  if (task.assigneeId && task.assigneeId !== user.id) {
+    interested.add(task.assigneeId);
+  }
+  if (task.createdById && task.createdById !== user.id) {
+    interested.add(task.createdById);
+  }
+  for (const m of mentionedIds) interested.delete(m);
+  if (interested.size > 0) {
+    await prisma.notification.createMany({
+      data: Array.from(interested).map((uid) => ({
+        userId: uid,
+        type: "TASK_COMMENTED" as const,
+        title: "Nuevo comentario en tu tarea",
+        message: `${user.name} comentó en «${task.title}»: ${activityPreview}${stripped.length > 50 ? "…" : ""}`,
+        link: `/proyectos/${task.projectId}?task=${id}`,
       })),
       skipDuplicates: true,
     });

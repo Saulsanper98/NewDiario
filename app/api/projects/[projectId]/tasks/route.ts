@@ -194,6 +194,21 @@ export async function POST(
     }),
   ]);
 
+  // Notificación TASK_ASSIGNED si la tarea se crea ya con un asignado distinto
+  // del creador. Sin esta notif el sonido "task" del usuario receptor no
+  // dispara nunca (Header solo suena para items TASK_*).
+  if (assigneeId && assigneeId !== user.id) {
+    await prisma.notification.create({
+      data: {
+        userId: assigneeId,
+        type: "TASK_ASSIGNED",
+        title: "Te asignaron una tarea",
+        message: `${user.name} te asignó «${title.trim()}»`,
+        link: `/proyectos/${projectId}?task=${task.id}`,
+      },
+    });
+  }
+
   return NextResponse.json(task, { status: 201 });
 }
 

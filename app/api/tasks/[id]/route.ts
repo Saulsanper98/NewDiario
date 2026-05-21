@@ -122,6 +122,7 @@ export async function PATCH(
       project: {
         select: {
           id: true,
+          name: true,
           departmentId: true,
           shares: { select: { departmentId: true } },
         },
@@ -213,6 +214,27 @@ export async function PATCH(
       where: { id },
       data: data as Prisma.TaskUpdateInput,
     });
+    // Si el asignado cambia (y el nuevo asignado es alguien distinto del
+    // propio editor), notificamos al receptor para que su sonido "task"
+    // dispare. Comparamos contra el assigneeId previo de la tarea para no
+    // re-notificar cuando el PATCH simplemente re-confirma el mismo
+    // assignee.
+    if (
+      b.assigneeId !== undefined &&
+      b.assigneeId !== null &&
+      b.assigneeId !== user.id &&
+      b.assigneeId !== task.assigneeId
+    ) {
+      await prisma.notification.create({
+        data: {
+          userId: b.assigneeId,
+          type: "TASK_ASSIGNED",
+          title: "Te asignaron una tarea",
+          message: `${user.name} te asignó «${(updated.title ?? "").slice(0, 80)}» en ${task.project.name}`,
+          link: `/proyectos/${task.projectId}?task=${id}`,
+        },
+      });
+    }
     const assigneeUnavailabilityWarning =
       b.assigneeId !== undefined
         ? await assigneeUnavailabilityWarningMessage(b.assigneeId)
@@ -344,6 +366,25 @@ export async function PATCH(
 
   if (!updated) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
+  // Notificación TASK_ASSIGNED también en la rama de kanban-reorder por si
+  // el PATCH cambia el asignado además de mover/reordenar.
+  if (
+    b.assigneeId !== undefined &&
+    b.assigneeId !== null &&
+    b.assigneeId !== user.id &&
+    b.assigneeId !== task.assigneeId
+  ) {
+    await prisma.notification.create({
+      data: {
+        userId: b.assigneeId,
+        type: "TASK_ASSIGNED",
+        title: "Te asignaron una tarea",
+        message: `${user.name} te asignó «${(updated.title ?? "").slice(0, 80)}» en ${task.project.name}`,
+        link: `/proyectos/${task.projectId}?task=${id}`,
+      },
+    });
   }
 
   const assigneeUnavailabilityWarning =
