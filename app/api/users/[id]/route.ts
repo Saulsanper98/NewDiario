@@ -31,6 +31,10 @@ const patchUserSchema = z
     bannerFocusY: z.union([z.number().min(0).max(100), z.null()]).optional(),
     password: z.string().min(8).optional(),
     canManageSuperAdmins: z.boolean().optional(),
+    /** Fecha de cumpleaños ISO (YYYY-MM-DD) o null/"" para limpiar. */
+    birthday: z
+      .union([z.string().min(1).max(10), z.literal(""), z.null()])
+      .optional(),
   })
   .strict();
 
@@ -147,6 +151,19 @@ export async function PATCH(
   }
   if (body.imageFocusX !== undefined) data.imageFocusX = body.imageFocusX;
   if (body.imageFocusY !== undefined) data.imageFocusY = body.imageFocusY;
+  if (body.birthday !== undefined) {
+    if (body.birthday === "" || body.birthday === null) {
+      data.birthday = null;
+    } else {
+      // Parsear YYYY-MM-DD → DateTime mediodía UTC para evitar saltos de TZ.
+      const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(body.birthday);
+      if (m) {
+        data.birthday = new Date(
+          Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), 12, 0, 0)
+        );
+      }
+    }
+  }
   if (body.profileBanner !== undefined) {
     data.profileBanner =
       body.profileBanner === "" || body.profileBanner === null

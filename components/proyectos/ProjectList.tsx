@@ -9,7 +9,7 @@ import {
   Calendar,
   ArrowRight,
   TrendingUp,
-  List,
+  List as ListIcon,
   LayoutGrid,
   FolderTree,
   Clock,
@@ -20,6 +20,8 @@ import {
   PauseCircle,
   CheckCircle2,
   Archive,
+  Search,
+  Briefcase,
 } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
@@ -38,6 +40,7 @@ import { format, isPast, differenceInDays } from "date-fns";
 import { es } from "date-fns/locale";
 import type { ProjectListRow } from "@/lib/types/project-list";
 import { useAccentForUi } from "@/lib/hooks/useAccentForUi";
+import { useTheme } from "@/components/layout/ThemeProvider";
 
 type ListColumn = ProjectListRow["kanbanColumns"][number];
 
@@ -56,14 +59,109 @@ const STATUS_ICONS: Record<string, React.ElementType> = {
   ARCHIVED: Archive,
 };
 
+/* ── KPI cards (modeled after BitacoraKpiStrip but project-specific) ────── */
 
-function EndDateBadge({ date }: { date: Date }) {
+type Tone = "neutral" | "red" | "amber" | "emerald" | "sky" | "violet";
+
+const TONE_DARK: Record<Tone, { bg: string; border: string; icon: string; value: string; ring: string }> = {
+  neutral: { bg: "bg-white/[0.04]", border: "border-white/10", icon: "text-white/70", value: "text-white", ring: "ring-white/10" },
+  red:     { bg: "bg-red-500/8",     border: "border-red-400/22", icon: "text-red-300",     value: "text-red-100",     ring: "ring-red-400/22" },
+  amber:   { bg: "bg-amber-500/8",   border: "border-amber-400/22", icon: "text-amber-300", value: "text-amber-100",   ring: "ring-amber-400/22" },
+  emerald: { bg: "bg-emerald-500/8", border: "border-emerald-400/22", icon: "text-emerald-300", value: "text-emerald-100", ring: "ring-emerald-400/22" },
+  sky:     { bg: "bg-sky-500/8",     border: "border-sky-400/22", icon: "text-sky-300",     value: "text-sky-100",     ring: "ring-sky-400/22" },
+  violet:  { bg: "bg-violet-500/8",  border: "border-violet-400/22", icon: "text-violet-300", value: "text-violet-100", ring: "ring-violet-400/22" },
+};
+
+const TONE_LIGHT: Record<Tone, { bg: string; border: string; icon: string; value: string; ring: string }> = {
+  neutral: { bg: "bg-white/85", border: "border-black/[0.08]", icon: "text-zinc-500", value: "text-zinc-900", ring: "ring-black/[0.05]" },
+  red:     { bg: "bg-red-50/95",   border: "border-red-200",   icon: "text-red-600",   value: "text-red-900",   ring: "ring-red-200" },
+  amber:   { bg: "bg-amber-50/95", border: "border-amber-200", icon: "text-amber-600", value: "text-amber-900", ring: "ring-amber-200" },
+  emerald: { bg: "bg-emerald-50/95", border: "border-emerald-200", icon: "text-emerald-600", value: "text-emerald-900", ring: "ring-emerald-200" },
+  sky:     { bg: "bg-sky-50/95",   border: "border-sky-200",   icon: "text-sky-600",   value: "text-sky-900",   ring: "ring-sky-200" },
+  violet:  { bg: "bg-violet-50/95", border: "border-violet-200", icon: "text-violet-600", value: "text-violet-900", ring: "ring-violet-200" },
+};
+
+function KpiCard({
+  label,
+  value,
+  icon: Icon,
+  tone,
+  hint,
+  light,
+}: {
+  label: string;
+  value: number;
+  icon: React.ElementType;
+  tone: Tone;
+  hint?: string;
+  light: boolean;
+}) {
+  const t = light ? TONE_LIGHT[tone] : TONE_DARK[tone];
+  return (
+    <div
+      className={cn(
+        "relative overflow-hidden rounded-xl border px-3 py-3 transition-colors",
+        t.bg,
+        t.border,
+        light ? "shadow-sm" : "shadow-[0_4px_18px_-8px_rgba(0,0,0,0.5)]"
+      )}
+    >
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <p
+            className={cn(
+              "text-[10px] font-semibold uppercase tracking-wider",
+              light ? "text-zinc-500" : "text-white/45"
+            )}
+          >
+            {label}
+          </p>
+          <p
+            className={cn(
+              "mt-1 text-2xl font-semibold tabular-nums leading-none",
+              t.value
+            )}
+          >
+            {value}
+          </p>
+          {hint && (
+            <p
+              className={cn(
+                "mt-1 text-[10.5px]",
+                light ? "text-zinc-500" : "text-white/40"
+              )}
+            >
+              {hint}
+            </p>
+          )}
+        </div>
+        <span
+          className={cn(
+            "flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ring-1",
+            t.ring,
+            t.icon,
+            light ? "bg-white" : "bg-white/[0.04]"
+          )}
+        >
+          <Icon className="h-3.5 w-3.5" aria-hidden />
+        </span>
+      </div>
+    </div>
+  );
+}
+
+/* ── EndDateBadge (theme-aware) ─────────────────────────────────────────── */
+
+function EndDateBadge({ date, light }: { date: Date; light: boolean }) {
   const today = new Date();
   const days = differenceInDays(date, today);
 
   if (isPast(date)) {
     return (
-      <span className="flex items-center gap-1 text-[10px] text-red-400 font-medium">
+      <span className={cn(
+        "flex items-center gap-1 text-[10px] font-medium",
+        light ? "text-red-700" : "text-red-400"
+      )}>
         <AlertTriangle className="w-2.5 h-2.5" />
         Vencido {format(date, "d MMM", { locale: es })}
       </span>
@@ -71,25 +169,35 @@ function EndDateBadge({ date }: { date: Date }) {
   }
   if (days <= 7) {
     return (
-      <span className="flex items-center gap-1 text-[10px] text-amber-400">
+      <span className={cn(
+        "flex items-center gap-1 text-[10px]",
+        light ? "text-amber-700" : "text-amber-400"
+      )}>
         <Clock className="w-2.5 h-2.5" />
         {format(date, "d MMM", { locale: es })}
       </span>
     );
   }
   return (
-    <span className="flex items-center gap-1 text-[10px] text-white/35">
+    <span className={cn(
+      "flex items-center gap-1 text-[10px]",
+      light ? "text-zinc-500" : "text-white/35"
+    )}>
       <Calendar className="w-2.5 h-2.5" />
       {format(date, "d MMM", { locale: es })}
     </span>
   );
 }
 
+/* ── Main list component ────────────────────────────────────────────────── */
+
 export function ProjectList({
   projects,
   departmentId,
   initialFilters = {},
 }: ProjectListProps) {
+  const { theme } = useTheme();
+  const L = theme === "light";
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [statusFilter, setStatusFilter] = useState(
@@ -126,55 +234,170 @@ export function ProjectList({
     });
   }, [projects, statusFilter, search]);
 
+  /* KPI calculations (across all top-level projects, not filtered) */
+  const topLevel = useMemo(() => projects.filter((p) => !p.parentId), [projects]);
+  const kpis = useMemo(() => {
+    const total = topLevel.length;
+    const active = topLevel.filter((p) => p.status === "ACTIVE").length;
+    const paused = topLevel.filter((p) => p.status === "PAUSED").length;
+    const completed = topLevel.filter((p) => p.status === "COMPLETED").length;
+    const overdue = topLevel.filter((p) => {
+      if (!p.endDate) return false;
+      if (p.status === "COMPLETED" || p.status === "ARCHIVED") return false;
+      return isPast(new Date(p.endDate));
+    }).length;
+    return { total, active, paused, completed, overdue };
+  }, [topLevel]);
+
   return (
-    <div className="p-6 max-w-6xl mx-auto space-y-5">
+    <div className="p-4 sm:p-6 max-w-6xl mx-auto space-y-5">
       {overdueMode && (
         <div
-          className="flex flex-wrap items-center gap-2 rounded-lg border border-amber-400/25 bg-amber-400/8 px-4 py-2.5 text-xs text-amber-100/95"
+          className={cn(
+            "flex flex-wrap items-center gap-2 rounded-lg border px-4 py-2.5 text-xs",
+            L
+              ? "border-amber-300 bg-amber-50 text-amber-800"
+              : "border-amber-400/25 bg-amber-400/8 text-amber-100/95"
+          )}
           role="status"
         >
           <span>Solo proyectos con tareas vencidas (no completadas).</span>
-          <Link href="/proyectos" className="font-semibold text-[#ffeb66] hover:underline">
+          <Link href="/proyectos" className={cn(
+            "font-semibold hover:underline",
+            L ? "text-amber-900" : "text-[#ffeb66]"
+          )}>
             Ver todos los proyectos
           </Link>
         </div>
       )}
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold text-white">Proyectos</h1>
-        <Link
-          href="/proyectos/nuevo"
+
+      {/* Hero */}
+      <section
+        className={cn(
+          "relative overflow-hidden rounded-2xl border px-5 py-5 sm:px-7 sm:py-6",
+          L
+            ? "border-black/[0.08] bg-gradient-to-br from-white/85 via-white/70 to-amber-50/55 shadow-[var(--lt-shadow-glass)]"
+            : "border-white/10 bg-gradient-to-br from-white/[0.045] via-white/[0.025] to-[#ffeb66]/[0.06] shadow-[0_8px_36px_-12px_rgba(0,0,0,0.55)]"
+        )}
+      >
+        <div
+          aria-hidden
           className={cn(
-            "inline-flex items-center justify-center gap-2 font-medium rounded-lg transition-all duration-200",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ffeb66]",
-            "text-sm px-4 py-2 h-9 bg-[#ffeb66] text-[#0a0f1e] hover:bg-[#ffe033] active:bg-[#ffd700] shadow-md hover:shadow-[#ffeb66]/20"
+            "pointer-events-none absolute -top-16 -right-24 h-56 w-56 rounded-full blur-3xl",
+            L ? "bg-[#ffeb66]/35" : "bg-[#ffeb66]/12"
           )}
-        >
-          <Plus className="w-3.5 h-3.5" />
-          Nuevo proyecto
-        </Link>
+        />
+        <div
+          aria-hidden
+          className={cn(
+            "pointer-events-none absolute -bottom-20 -left-20 h-48 w-48 rounded-full blur-3xl",
+            L ? "bg-sky-200/55" : "bg-sky-500/10"
+          )}
+        />
+        <div className="relative flex flex-wrap items-start gap-4">
+          <div className="shrink-0">
+            <div className={cn(
+              "flex items-center justify-center w-12 h-12 rounded-2xl",
+              L
+                ? "bg-amber-100 text-amber-700 border border-amber-200"
+                : "bg-[#ffeb66]/15 text-[#ffeb66] border border-[#ffeb66]/25"
+            )}>
+              <Briefcase className="w-6 h-6" />
+            </div>
+          </div>
+          <div className="min-w-0 flex-1">
+            <p
+              className={cn(
+                "mb-1 text-[10.5px] font-semibold uppercase tracking-[0.18em]",
+                L ? "text-zinc-500" : "text-white/40"
+              )}
+            >
+              Equipo · Proyectos
+            </p>
+            <h1
+              className={cn(
+                "text-xl sm:text-2xl font-semibold leading-tight tracking-tight",
+                L ? "text-zinc-900" : "text-white"
+              )}
+            >
+              Proyectos del departamento
+            </h1>
+            <p
+              className={cn(
+                "mt-1.5 text-xs sm:text-sm",
+                L ? "text-zinc-600" : "text-white/55"
+              )}
+            >
+              Organiza el trabajo del equipo en proyectos: tareas, kanban, timeline, comentarios y bitácora.
+            </p>
+          </div>
+          <div className="shrink-0">
+            <Link
+              href="/proyectos/nuevo"
+              className={cn(
+                "inline-flex items-center justify-center gap-2 font-medium rounded-lg transition-all duration-200",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ffeb66] focus-visible:ring-offset-2",
+                L ? "focus-visible:ring-offset-white" : "focus-visible:ring-offset-[#0a0f1e]",
+                "text-sm px-4 py-2 h-9 bg-[#ffeb66] text-[#0a0f1e] hover:bg-[#ffe033] active:bg-[#ffd700] shadow-md hover:shadow-[#ffeb66]/20"
+              )}
+            >
+              <Plus className="w-3.5 h-3.5" />
+              Nuevo proyecto
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* KPI strip */}
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5 sm:gap-3">
+        <KpiCard label="Total" value={kpis.total} icon={FolderOpen} tone="neutral" light={L} />
+        <KpiCard label="Activos" value={kpis.active} icon={Play} tone="emerald" light={L} />
+        <KpiCard label="En pausa" value={kpis.paused} icon={PauseCircle} tone="amber" light={L} />
+        <KpiCard label="Completados" value={kpis.completed} icon={CheckCircle2} tone="sky" light={L} />
+        <KpiCard label="Vencidos" value={kpis.overdue} icon={AlertTriangle} tone={kpis.overdue > 0 ? "red" : "neutral"} light={L} hint={kpis.overdue > 0 ? "Revísalos" : "Sin retrasos"} />
       </div>
 
       {/* Filters */}
-      <div className="project-list-filters glass rounded-xl p-3 flex items-center gap-3 flex-wrap relative">
+      <div
+        className={cn(
+          "project-list-filters rounded-xl p-3 flex items-center gap-3 flex-wrap relative border",
+          L ? "border-zinc-200 bg-white shadow-sm" : "border-white/10 glass"
+        )}
+      >
         {isPending && (
-          <div className="absolute inset-0 rounded-xl bg-[#0a0f1e]/40 flex items-center justify-center z-10 pointer-events-none">
-            <Loader2 className="w-5 h-5 text-[#ffeb66] animate-spin" />
+          <div className={cn(
+            "absolute inset-0 rounded-xl flex items-center justify-center z-10 pointer-events-none",
+            L ? "bg-white/60" : "bg-[#0a0f1e]/40"
+          )}>
+            <Loader2 className={cn("w-5 h-5 animate-spin", L ? "text-amber-600" : "text-[#ffeb66]")} />
           </div>
         )}
         <div className="flex-1 min-w-40 relative">
+          <Search className={cn(
+            "absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5",
+            L ? "text-zinc-400" : "text-white/30"
+          )} />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Buscar proyectos..."
+            placeholder="Buscar proyectos por nombre…"
             aria-label="Buscar proyectos"
-            className="w-full bg-white/5 border border-white/8 rounded-lg px-3 py-1.5 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-[#ffeb66]/40 pr-8"
+            className={cn(
+              "w-full rounded-lg pl-8 pr-8 py-1.5 text-sm focus:outline-none",
+              L
+                ? "bg-zinc-50 border border-zinc-200 text-zinc-900 placeholder:text-zinc-400 focus:border-amber-400 focus:bg-white"
+                : "bg-white/5 border border-white/8 text-white placeholder:text-white/30 focus:border-[#ffeb66]/40"
+            )}
           />
           {search && (
             <button
               type="button"
               onClick={() => setSearch("")}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-white/30 hover:text-white transition-colors"
+              className={cn(
+                "absolute right-2 top-1/2 -translate-y-1/2 transition-colors",
+                L ? "text-zinc-400 hover:text-zinc-700" : "text-white/30 hover:text-white"
+              )}
               aria-label="Limpiar búsqueda"
             >
               <X className="w-3.5 h-3.5" />
@@ -184,20 +407,32 @@ export function ProjectList({
         <div className="flex gap-1 flex-wrap">
           {STATUS_OPTIONS.map((s) => {
             const count = s === ""
-              ? projects.filter((p) => !p.parentId).length
-              : projects.filter((p) => !p.parentId && p.status === s).length;
+              ? topLevel.length
+              : topLevel.filter((p) => p.status === s).length;
+            const Icon = s === "" ? null : STATUS_ICONS[s];
             return (
               <button
                 key={s}
                 onClick={() => setStatusFilter(s)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${
+                className={cn(
+                  "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 border",
                   statusFilter === s
-                    ? "bg-[#ffeb66]/12 text-[#ffeb66] border border-[#ffeb66]/20"
-                    : "text-white/50 hover:text-white hover:bg-white/6 border border-transparent"
-                }`}
+                    ? L
+                      ? "bg-amber-100 text-amber-800 border-amber-300"
+                      : "bg-[#ffeb66]/12 text-[#ffeb66] border-[#ffeb66]/20"
+                    : L
+                      ? "text-zinc-600 hover:text-zinc-900 hover:bg-zinc-50 border-transparent"
+                      : "text-white/50 hover:text-white hover:bg-white/6 border-transparent"
+                )}
               >
+                {Icon && <Icon className="w-3 h-3" />}
                 {s === "" ? "Todos" : STATUS_LABELS[s as keyof typeof STATUS_LABELS]}
-                <span className={`text-[10px] tabular-nums ${statusFilter === s ? "text-[#ffeb66]/70" : "text-white/30"}`}>
+                <span className={cn(
+                  "text-[10px] tabular-nums",
+                  statusFilter === s
+                    ? L ? "text-amber-700" : "text-[#ffeb66]/70"
+                    : L ? "text-zinc-400" : "text-white/30"
+                )}>
                   {count}
                 </span>
               </button>
@@ -206,14 +441,23 @@ export function ProjectList({
         </div>
 
         {/* View toggle */}
-        <div className="flex gap-0.5 ml-auto">
+        <div className={cn(
+          "flex gap-0.5 ml-auto p-0.5 rounded-md border",
+          L ? "border-zinc-200 bg-zinc-50" : "border-white/10 bg-white/4"
+        )}>
           <button
             type="button"
             onClick={() => setViewMode("grid")}
             aria-label="Vista cuadrícula"
             className={cn(
               "p-1.5 rounded-md transition-all duration-150",
-              viewMode === "grid" ? "bg-[#ffeb66]/15 text-[#ffeb66]" : "text-white/40 hover:text-white hover:bg-white/6"
+              viewMode === "grid"
+                ? L
+                  ? "bg-white text-amber-700 shadow-sm"
+                  : "bg-[#ffeb66]/15 text-[#ffeb66]"
+                : L
+                  ? "text-zinc-500 hover:text-zinc-900"
+                  : "text-white/40 hover:text-white hover:bg-white/6"
             )}
           >
             <LayoutGrid className="w-3.5 h-3.5" />
@@ -224,14 +468,23 @@ export function ProjectList({
             aria-label="Vista lista"
             className={cn(
               "p-1.5 rounded-md transition-all duration-150",
-              viewMode === "list" ? "bg-[#ffeb66]/15 text-[#ffeb66]" : "text-white/40 hover:text-white hover:bg-white/6"
+              viewMode === "list"
+                ? L
+                  ? "bg-white text-amber-700 shadow-sm"
+                  : "bg-[#ffeb66]/15 text-[#ffeb66]"
+                : L
+                  ? "text-zinc-500 hover:text-zinc-900"
+                  : "text-white/40 hover:text-white hover:bg-white/6"
             )}
           >
-            <List className="w-3.5 h-3.5" />
+            <ListIcon className="w-3.5 h-3.5" />
           </button>
         </div>
 
-        <span className="text-xs text-white/30">
+        <span className={cn(
+          "text-xs tabular-nums",
+          L ? "text-zinc-500" : "text-white/30"
+        )}>
           {filtered.length} proyecto{filtered.length !== 1 ? "s" : ""}
         </span>
       </div>
@@ -251,13 +504,13 @@ export function ProjectList({
       ) : viewMode === "grid" ? (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {filtered.map((project) => (
-            <ProjectCard key={project.id} project={project} departmentId={departmentId} />
+            <ProjectCard key={project.id} project={project} departmentId={departmentId} light={L} />
           ))}
         </div>
       ) : (
         <div className="space-y-2">
           {filtered.map((project) => (
-            <ProjectRow key={project.id} project={project} departmentId={departmentId} />
+            <ProjectRow key={project.id} project={project} departmentId={departmentId} light={L} />
           ))}
         </div>
       )}
@@ -267,7 +520,7 @@ export function ProjectList({
 
 /* ── Grid card ───────────────────────────────────────────────────────────── */
 
-function ProjectCard({ project, departmentId }: { project: ProjectListRow; departmentId: string }) {
+function ProjectCard({ project, departmentId, light }: { project: ProjectListRow; departmentId: string; light: boolean }) {
   const { accent } = useAccentForUi();
   const totalTasks = project.kanbanColumns.reduce(
     (acc: number, col: ListColumn) => acc + col.tasks.length,
@@ -280,7 +533,14 @@ function ProjectCard({ project, departmentId }: { project: ProjectListRow; depar
 
   return (
     <Link href={`/proyectos/${project.id}`}>
-      <Card hover className="project-list-card h-full flex flex-col gap-4 hover:border-white/14 project-card-hover">
+      <Card
+        hover
+        light={light}
+        className={cn(
+          "project-list-card h-full flex flex-col gap-4 project-card-hover",
+          light ? "hover:border-amber-300" : "hover:border-white/14"
+        )}
+      >
         {/* Header */}
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0">
@@ -300,22 +560,34 @@ function ProjectCard({ project, departmentId }: { project: ProjectListRow; depar
                 </Badge>
               )}
             </div>
-            <h3 className="font-semibold text-white text-sm leading-snug">
+            <h3 className={cn(
+              "font-semibold text-sm leading-snug",
+              light ? "text-zinc-900" : "text-white"
+            )}>
               {truncate(project.name, 45)}
             </h3>
             {project.parent && (
-              <p className="text-[10px] text-white/35 mt-0.5 flex items-center gap-1">
+              <p className={cn(
+                "text-[10px] mt-0.5 flex items-center gap-1",
+                light ? "text-zinc-500" : "text-white/35"
+              )}>
                 <FolderTree className="w-2.5 h-2.5" />
                 {project.parent.name}
               </p>
             )}
           </div>
-          <ArrowRight className="w-4 h-4 text-white/20 shrink-0 mt-1" />
+          <ArrowRight className={cn(
+            "w-4 h-4 shrink-0 mt-1",
+            light ? "text-zinc-300" : "text-white/20"
+          )} />
         </div>
 
         {/* Description */}
         {project.description && (
-          <p className="text-xs text-white/40 line-clamp-2 -mt-2">
+          <p className={cn(
+            "text-xs line-clamp-2 -mt-2",
+            light ? "text-zinc-600" : "text-white/40"
+          )}>
             {project.description.replace(/<[^>]+>/g, "").slice(0, 100)}
           </p>
         )}
@@ -324,12 +596,17 @@ function ProjectCard({ project, departmentId }: { project: ProjectListRow; depar
         {project.tags.length > 0 && (
           <div className="flex flex-wrap gap-1">
             {project.tags.slice(0, 3).map((tag) => (
-              <span key={tag.id} className="text-[10px] px-1.5 py-0.5 rounded bg-white/5 text-white/35 border border-white/8">
+              <span key={tag.id} className={cn(
+                "text-[10px] px-1.5 py-0.5 rounded border",
+                light
+                  ? "bg-zinc-50 text-zinc-600 border-zinc-200"
+                  : "bg-white/5 text-white/35 border-white/8"
+              )}>
                 #{tag.name}
               </span>
             ))}
             {project.tags.length > 3 && (
-              <span className="text-[10px] text-white/25">+{project.tags.length - 3}</span>
+              <span className={cn("text-[10px]", light ? "text-zinc-400" : "text-white/25")}>+{project.tags.length - 3}</span>
             )}
           </div>
         )}
@@ -337,17 +614,28 @@ function ProjectCard({ project, departmentId }: { project: ProjectListRow; depar
         {/* Progress */}
         <div className="mt-auto">
           <div className="flex items-center justify-between mb-1.5">
-            <span className="text-xs text-white/40 flex items-center gap-1">
+            <span className={cn(
+              "text-xs flex items-center gap-1",
+              light ? "text-zinc-600" : "text-white/40"
+            )}>
               <TrendingUp className="w-3 h-3" />
               {completedTasks}/{totalTasks} tareas
             </span>
-            <span className="text-xs font-medium text-white/60">{progress}%</span>
+            <span className={cn(
+              "text-xs font-medium",
+              light ? "text-zinc-900" : "text-white/60"
+            )}>{progress}%</span>
           </div>
-          <div className="h-1.5 bg-white/6 rounded-full overflow-hidden">
+          <div className={cn(
+            "h-1.5 rounded-full overflow-hidden",
+            light ? "bg-zinc-100" : "bg-white/6"
+          )}>
             <div
               className={cn(
                 "h-full rounded-full progress-bar",
-                progress === 100 ? "bg-emerald-400" : "bg-[#ffeb66]"
+                progress === 100
+                  ? "bg-emerald-500"
+                  : light ? "bg-amber-500" : "bg-[#ffeb66]"
               )}
               style={{ width: `${progress}%` }}
             />
@@ -355,13 +643,19 @@ function ProjectCard({ project, departmentId }: { project: ProjectListRow; depar
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between pt-2 border-t border-white/6">
+        <div className={cn(
+          "flex items-center justify-between pt-2 border-t",
+          light ? "border-zinc-100" : "border-white/6"
+        )}>
           <div className="flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: accent(project.department.accentColor) }} />
-            <span className="text-[10px] text-white/35">{project.department.name}</span>
+            <span className={cn(
+              "text-[10px]",
+              light ? "text-zinc-600" : "text-white/35"
+            )}>{project.department.name}</span>
           </div>
           <div className="flex items-center gap-2">
-            {project.endDate && <EndDateBadge date={new Date(project.endDate)} />}
+            {project.endDate && <EndDateBadge date={new Date(project.endDate)} light={light} />}
             {project.members.length > 0 && (
               <div className="flex items-center">
                 {project.members.slice(0, 3).map((m, i) => (
@@ -372,9 +666,17 @@ function ProjectCard({ project, departmentId }: { project: ProjectListRow; depar
                 {project.members.length > 3 && (
                   <div
                     style={{ marginLeft: "-5px" }}
-                    className="w-5 h-5 rounded-full bg-white/10 border border-white/20 flex items-center justify-center"
+                    className={cn(
+                      "w-5 h-5 rounded-full border flex items-center justify-center",
+                      light
+                        ? "bg-zinc-100 border-zinc-300"
+                        : "bg-white/10 border-white/20"
+                    )}
                   >
-                    <span className="text-[9px] text-white/50">+{project.members.length - 3}</span>
+                    <span className={cn(
+                      "text-[9px]",
+                      light ? "text-zinc-700" : "text-white/50"
+                    )}>+{project.members.length - 3}</span>
                   </div>
                 )}
               </div>
@@ -388,7 +690,7 @@ function ProjectCard({ project, departmentId }: { project: ProjectListRow; depar
 
 /* ── List row ────────────────────────────────────────────────────────────── */
 
-function ProjectRow({ project, departmentId }: { project: ProjectListRow; departmentId: string }) {
+function ProjectRow({ project, departmentId, light }: { project: ProjectListRow; departmentId: string; light: boolean }) {
   const { accent } = useAccentForUi();
   const totalTasks = project.kanbanColumns.reduce(
     (acc: number, col: ListColumn) => acc + col.tasks.length,
@@ -400,14 +702,24 @@ function ProjectRow({ project, departmentId }: { project: ProjectListRow; depart
 
   return (
     <Link href={`/proyectos/${project.id}`}>
-      <Card hover className="project-list-row flex items-center gap-4 hover:border-white/14 py-3">
+      <Card
+        hover
+        light={light}
+        className={cn(
+          "project-list-row flex items-center gap-4 py-3",
+          light ? "hover:border-amber-300" : "hover:border-white/14"
+        )}
+      >
         {/* Color dot */}
         <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: accent(project.department.accentColor) }} />
 
         {/* Name + badges */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-sm font-medium text-white">{truncate(project.name, 50)}</span>
+            <span className={cn(
+              "text-sm font-medium",
+              light ? "text-zinc-900" : "text-white"
+            )}>{truncate(project.name, 50)}</span>
             <Badge className={getStatusColor(project.status)} size="sm">
               {(() => { const Icon = STATUS_ICONS[project.status]; return Icon ? <Icon className="w-2.5 h-2.5" /> : null; })()}
               {STATUS_LABELS[project.status as keyof typeof STATUS_LABELS]}
@@ -417,25 +729,39 @@ function ProjectRow({ project, departmentId }: { project: ProjectListRow; depart
             </Badge>
             {isShared && <Badge variant="info" size="sm">Compartido</Badge>}
             {project.subprojects.length > 0 && (
-              <span className="text-[10px] text-white/30">{project.subprojects.length} subproyecto{project.subprojects.length !== 1 ? "s" : ""}</span>
+              <span className={cn(
+                "text-[10px]",
+                light ? "text-zinc-500" : "text-white/30"
+              )}>{project.subprojects.length} subproyecto{project.subprojects.length !== 1 ? "s" : ""}</span>
             )}
           </div>
         </div>
 
         {/* Progress bar */}
         <div className="w-24 shrink-0">
-          <div className="h-1 bg-white/6 rounded-full overflow-hidden">
+          <div className={cn(
+            "h-1 rounded-full overflow-hidden",
+            light ? "bg-zinc-100" : "bg-white/6"
+          )}>
             <div
-              className={cn("h-full rounded-full progress-bar", progress === 100 ? "bg-emerald-400" : "bg-[#ffeb66]")}
+              className={cn(
+                "h-full rounded-full progress-bar",
+                progress === 100
+                  ? "bg-emerald-500"
+                  : light ? "bg-amber-500" : "bg-[#ffeb66]"
+              )}
               style={{ width: `${progress}%` }}
             />
           </div>
-          <p className="text-[10px] text-white/30 mt-0.5 text-right">{progress}%</p>
+          <p className={cn(
+            "text-[10px] mt-0.5 text-right",
+            light ? "text-zinc-500" : "text-white/30"
+          )}>{progress}%</p>
         </div>
 
         {/* End date */}
         <div className="w-24 shrink-0">
-          {project.endDate && <EndDateBadge date={new Date(project.endDate)} />}
+          {project.endDate && <EndDateBadge date={new Date(project.endDate)} light={light} />}
         </div>
 
         {/* Members */}
@@ -446,13 +772,22 @@ function ProjectRow({ project, departmentId }: { project: ProjectListRow; depart
             </div>
           ))}
           {project.members.length > 3 && (
-            <div style={{ marginLeft: "-5px" }} className="w-5 h-5 rounded-full bg-white/10 border border-white/20 flex items-center justify-center">
-              <span className="text-[9px] text-white/50">+{project.members.length - 3}</span>
+            <div style={{ marginLeft: "-5px" }} className={cn(
+              "w-5 h-5 rounded-full border flex items-center justify-center",
+              light ? "bg-zinc-100 border-zinc-300" : "bg-white/10 border-white/20"
+            )}>
+              <span className={cn(
+                "text-[9px]",
+                light ? "text-zinc-700" : "text-white/50"
+              )}>+{project.members.length - 3}</span>
             </div>
           )}
         </div>
 
-        <ArrowRight className="w-3.5 h-3.5 text-white/20 shrink-0" />
+        <ArrowRight className={cn(
+          "w-3.5 h-3.5 shrink-0",
+          light ? "text-zinc-300" : "text-white/20"
+        )} />
       </Card>
     </Link>
   );

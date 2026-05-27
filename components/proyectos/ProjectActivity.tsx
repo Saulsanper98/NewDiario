@@ -11,6 +11,8 @@ import type { ProjectDetail } from "@/lib/types/project-detail";
 import { formatRelative } from "@/lib/utils";
 import { format, isToday, isYesterday } from "date-fns";
 import { es } from "date-fns/locale";
+import { cn } from "@/lib/utils";
+import { useTheme } from "@/components/layout/ThemeProvider";
 
 function activityDateLabel(dateStr: string | Date): string {
   const d = new Date(dateStr);
@@ -61,7 +63,20 @@ function getActionIcon(action: string | null) {
   }
 }
 
-function getActionColor(action: string | null) {
+function getActionColor(action: string | null, L: boolean) {
+  if (L) {
+    switch (action) {
+      case "TASK_MOVED": return "text-sky-700 bg-sky-100";
+      case "TASK_CREATED": return "text-emerald-700 bg-emerald-100";
+      case "TASK_DUPLICATED": return "text-violet-700 bg-violet-100";
+      case "TASKS_ARCHIVED":
+      case "PROJECT_DELETED": return "text-red-700 bg-red-100";
+      case "SNAPSHOT_CREATED":
+      case "SNAPSHOT_DELETED": return "text-amber-700 bg-amber-100";
+      case "PROJECT_UPDATED": return "text-blue-700 bg-blue-100";
+      default: return "text-zinc-700 bg-zinc-100";
+    }
+  }
   switch (action) {
     case "TASK_MOVED": return "text-sky-400 bg-sky-400/10";
     case "TASK_CREATED": return "text-emerald-400 bg-emerald-400/10";
@@ -76,6 +91,8 @@ function getActionColor(action: string | null) {
 }
 
 export function ProjectActivity({ activities: initial, projectId }: ProjectActivityProps) {
+  const { theme } = useTheme();
+  const L = theme === "light";
   const [items, setItems] = useState<(ActivityItem | ApiActivityItem)[]>(initial);
   const [total, setTotal] = useState(initial.length);
   const [loading, setLoading] = useState(false);
@@ -116,18 +133,26 @@ export function ProjectActivity({ activities: initial, projectId }: ProjectActiv
     <div className="project-activity-root flex-1 overflow-y-auto p-4">
       <div className="max-w-2xl mx-auto space-y-4">
         {/* Filter bar */}
-        <div className="project-activity-filters flex items-center gap-1.5 flex-wrap">
-          <Filter className="w-3 h-3 text-white/30 shrink-0" />
+        <div className={cn(
+          "project-activity-filters flex items-center gap-1.5 flex-wrap p-2 rounded-xl border",
+          L ? "bg-white border-zinc-200 shadow-sm" : "border-transparent"
+        )}>
+          <Filter className={cn("w-3 h-3 shrink-0 ml-1", L ? "text-zinc-500" : "text-white/30")} />
           {ACTION_FILTERS.map((f) => (
             <button
               key={f.value}
               type="button"
               onClick={() => void changeFilter(f.value)}
-              className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all duration-150 border ${
+              className={cn(
+                "px-2.5 py-1 rounded-lg text-xs font-medium transition-all duration-150 border",
                 activeFilter === f.value
-                  ? "bg-[#ffeb66]/12 text-[#ffeb66] border-[#ffeb66]/20"
-                  : "text-white/40 hover:text-white/70 hover:bg-white/5 border-transparent"
-              }`}
+                  ? L
+                    ? "bg-amber-100 text-amber-800 border-amber-300"
+                    : "bg-[#ffeb66]/12 text-[#ffeb66] border-[#ffeb66]/20"
+                  : L
+                    ? "text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100 border-transparent"
+                    : "text-white/40 hover:text-white/70 hover:bg-white/5 border-transparent"
+              )}
             >
               {f.label}
             </button>
@@ -136,12 +161,15 @@ export function ProjectActivity({ activities: initial, projectId }: ProjectActiv
 
         {filterLoading ? (
           <div className="flex items-center justify-center py-10">
-            <Loader2 className="w-5 h-5 text-white/20 animate-spin" />
+            <Loader2 className={cn("w-5 h-5 animate-spin", L ? "text-zinc-400" : "text-white/20")} />
           </div>
         ) : items.length === 0 ? (
-          <div className="glass rounded-xl p-12 text-center">
-            <Activity className="w-8 h-8 text-white/15 mx-auto mb-3" />
-            <p className="text-white/30 text-sm">Sin actividad registrada</p>
+          <div className={cn(
+            "rounded-xl p-12 text-center",
+            L ? "border border-zinc-200 bg-white shadow-sm" : "glass"
+          )}>
+            <Activity className={cn("w-8 h-8 mx-auto mb-3", L ? "text-zinc-300" : "text-white/15")} />
+            <p className={cn("text-sm", L ? "text-zinc-500" : "text-white/30")}>Sin actividad registrada</p>
           </div>
         ) : (
           <div className="space-y-4">
@@ -156,27 +184,35 @@ export function ProjectActivity({ activities: initial, projectId }: ProjectActiv
               return Array.from(groups.entries()).map(([dateKey, groupItems]) => (
                 <div key={dateKey}>
                   <div className="flex items-center gap-2 mb-1.5">
-                    <div className="h-px flex-1 bg-white/6" />
-                    <span className="text-[10px] text-white/30 font-medium capitalize shrink-0">
+                    <div className={cn("h-px flex-1", L ? "bg-zinc-200" : "bg-white/6")} />
+                    <span className={cn(
+                      "text-[10px] font-medium capitalize shrink-0",
+                      L ? "text-zinc-500" : "text-white/30"
+                    )}>
                       {activityDateLabel(groupItems[0]!.createdAt)}
                     </span>
-                    <div className="h-px flex-1 bg-white/6" />
+                    <div className={cn("h-px flex-1", L ? "bg-zinc-200" : "bg-white/6")} />
                   </div>
                   <div className="space-y-0.5">
                     {groupItems.map((activity) => {
                       const user = "user" in activity ? activity.user : null;
                       const action = "action" in activity ? activity.action : null;
-                      const iconColor = getActionColor(action);
+                      const iconColor = getActionColor(action, L);
                       return (
                         <div
                           key={activity.id}
-                          className="project-activity-row flex items-start gap-3 p-3 rounded-lg hover:bg-white/3 transition-colors group"
+                          className={cn(
+                            "project-activity-row flex items-start gap-3 p-3 rounded-lg transition-colors group border",
+                            L
+                              ? "border-transparent hover:bg-white hover:border-zinc-200"
+                              : "border-transparent hover:bg-white/3"
+                          )}
                         >
-                          <div className={`mt-0.5 w-6 h-6 rounded-lg flex items-center justify-center shrink-0 ${iconColor}`}>
+                          <div className={`mt-0.5 w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${iconColor}`}>
                             {getActionIcon(action)}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm text-white/60">{activity.description}</p>
+                            <p className={cn("text-sm", L ? "text-zinc-800" : "text-white/60")}>{activity.description}</p>
                             <div className="flex items-center gap-1.5 mt-1">
                               {user && (
                                 <>
@@ -185,12 +221,12 @@ export function ProjectActivity({ activities: initial, projectId }: ProjectActiv
                                     userId={user.id}
                                     name={user.name}
                                     image={user.image}
-                                    nameClassName="text-[11px] text-white/35"
+                                    nameClassName={cn("text-[11px]", L ? "text-zinc-600" : "text-white/35")}
                                   />
-                                  <span className="text-white/15">·</span>
+                                  <span className={L ? "text-zinc-300" : "text-white/15"}>·</span>
                                 </>
                               )}
-                              <span className="text-[11px] text-white/25">
+                              <span className={cn("text-[11px]", L ? "text-zinc-500" : "text-white/25")}>
                                 {formatRelative(activity.createdAt)}
                               </span>
                             </div>
@@ -212,7 +248,12 @@ export function ProjectActivity({ activities: initial, projectId }: ProjectActiv
               type="button"
               disabled={loading}
               onClick={() => void loadMore()}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs text-white/40 bg-white/4 border border-white/8 hover:text-white/70 hover:border-white/14 transition-all duration-150 disabled:opacity-40"
+              className={cn(
+                "flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs border transition-all duration-150 disabled:opacity-40",
+                L
+                  ? "text-zinc-700 bg-white border-zinc-200 hover:bg-zinc-50 hover:border-zinc-300"
+                  : "text-white/40 bg-white/4 border-white/8 hover:text-white/70 hover:border-white/14"
+              )}
             >
               {loading ? <Loader2 className="w-3 h-3 animate-spin" /> : <ChevronDown className="w-3 h-3" />}
               {loading ? "Cargando…" : `Cargar más (${total - items.length} restantes)`}

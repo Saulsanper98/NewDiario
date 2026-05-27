@@ -34,9 +34,17 @@ yarn-error.log*
 .pnpm-debug.log*
 next-prod.log
 next-prod.err.log
+next-build.log
+next-start.log
+next-start.out.log
+next-start.err.log
 .next-runtime.log
 .next-runtime.log.err
 .cookies-test.txt
+
+# backups locales (snapshot manual de archivos antes de refactor)
+*.backup
+*.bak
 
 # env files (can opt-in for committing if needed)
 .env*

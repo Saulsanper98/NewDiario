@@ -28,6 +28,7 @@ import {
   TrendingUp,
   TrendingDown,
   Minus,
+  MoreHorizontal,
 } from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
 import { UserProfilePopover } from "@/components/user/UserProfilePopover";
@@ -40,9 +41,9 @@ import {
   formatRelative,
   SHIFT_LABELS,
   TYPE_LABELS,
-  getTypeColor,
   cn,
 } from "@/lib/utils";
+import { getTypePalette } from "@/lib/bitacora-palette";
 import type { SessionUser, UserDepartment } from "@/lib/auth/types";
 import { sanitizeHtml } from "@/lib/sanitize-html";
 import type { LogEntryDetailPage } from "@/lib/types/log-entry-detail";
@@ -54,10 +55,15 @@ import { useTheme } from "@/components/layout/ThemeProvider";
 import { SHOW_AUTHOR_BANNER_IN_NOTE } from "@/lib/feature-flags";
 import { bitacoraReadingProseClass } from "@/lib/bitacora-html-prose";
 import { bitacoraProseRootProps } from "@/lib/bitacora-prose-constants";
-import { useDeptMentionAutocomplete } from "@/hooks/use-dept-mention-autocomplete";
 import { parseLeadingReplyMention } from "@/lib/bitacora-mentions";
-import { commentHasStructuredMentions } from "@/lib/mention-html-snippet";
+import {
+  commentHasRichHtml,
+  commentPlainText,
+  commentVisibleLength,
+} from "@/lib/mention-html-snippet";
 import { renderPlainTextWithMentions } from "@/components/ui/PlainTextWithMentions";
+import { CommentEditor, type CommentEditorHandle } from "@/components/shared/CommentEditor";
+import { useVisibleRefresh } from "@/hooks/use-visible-refresh";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -238,7 +244,13 @@ export function LogEntryDetail({
   const { accent, withAlpha } = useAccentForUi();
   const { theme } = useTheme();
   const L = theme === "light";
+  const typePalette = getTypePalette(entry.type, L ? "light" : "dark");
   const router = useRouter();
+  // Polling visible-only para captar comentarios y reacciones nuevos de
+  // compañeros mientras estás leyendo la entrada. router.refresh actualiza
+  // los Server Components y los `useEffect` ya sincronizan el state local
+  // con las nuevas props (entry.comments, entry.reactions, etc.).
+  useVisibleRefresh(30_000);
 
   // ── Computed / memoized ───────────────────────────────────────────────────
   const hasRichBody = useMemo(
@@ -283,17 +295,11 @@ export function LogEntryDetail({
   const [replyTo, setReplyTo] = useState<{ id: string; name: string } | null>(null);
   const [deleteEntryOpen, setDeleteEntryOpen] = useState(false);
   const [deletingEntry, setDeletingEntry] = useState(false);
+  const [actionsMenuOpen, setActionsMenuOpen] = useState(false);
 
   // ── Refs ──────────────────────────────────────────────────────────────────
-  const commentInputRef = useRef<HTMLTextAreaElement>(null);
+  const commentEditorRef = useRef<CommentEditorHandle>(null);
   const contentRef = useRef<HTMLDivElement>(null);
-
-  const deptMention = useDeptMentionAutocomplete({
-    value: comment,
-    onChange: setComment,
-    departmentId: entry.departmentId,
-    inputRef: commentInputRef,
-  });
 
   // ── Mention candidates from existing comment authors ──────────────────────
   const mentionCandidates = useMemo(() => {
@@ -326,11 +332,12 @@ export function LogEntryDetail({
   function commentBodyNode(body: string, asParagraph = true): ReactNode {
     const mentionStyles = cn(
       "text-sm leading-relaxed whitespace-pre-wrap break-words",
+      "[&_img]:my-1 [&_img]:rounded-md [&_img]:max-h-72 [&_img]:max-w-full [&_img]:h-auto [&_p]:my-0",
       L
         ? "text-zinc-700 [&_span[data-type=mention]]:text-indigo-700 [&_span[data-type=mention]]:font-semibold"
         : "text-white/70 [&_span[data-type=mention]]:text-[#ffeb66]/85 [&_span[data-type=mention]]:font-medium"
     );
-    if (commentHasStructuredMentions(body)) {
+    if (commentHasRichHtml(body)) {
       return (
         <div
           className={mentionStyles}
@@ -338,7 +345,8 @@ export function LogEntryDetail({
         />
       );
     }
-    const inner = renderPlainTextWithMentions(body, mentionHighlightNames);
+    const plain = commentPlainText(body);
+    const inner = renderPlainTextWithMentions(plain, mentionHighlightNames);
     return asParagraph ? <p className={mentionStyles}>{inner}</p> : inner;
   }
 
@@ -424,10 +432,9 @@ export function LogEntryDetail({
       .catch(() => toast.error("No se pudo copiar el enlace"));
   }
 
-  async function submitComment(e: React.FormEvent) {
-    e.preventDefault();
-    const textOnly = comment.replace(/<[^>]+>/g, "").trim();
-    if (!textOnly) return;
+  async function submitComment(e?: React.FormEvent) {
+    e?.preventDefault();
+    if (commentVisibleLength(comment) === 0) return;
     setSubmitting(true);
     try {
       const res = await fetch(`/api/log-entries/${entry.id}/comments`, {
@@ -439,6 +446,7 @@ export function LogEntryDetail({
       const newComment = await res.json();
       setComments((prev) => [...prev, newComment]);
       setComment("");
+      commentEditorRef.current?.clear();
       setReplyTo(null);
       toast.success("Comentario añadido");
     } catch {
@@ -497,8 +505,7 @@ export function LogEntryDetail({
     setReplyTo({ id: "", name: authorName });
     setComment(`@${authorName}: `);
     setTimeout(() => {
-      const el = commentInputRef.current;
-      if (el) { el.focus(); el.setSelectionRange(999, 999); }
+      commentEditorRef.current?.focus();
     }, 50);
   }
 
@@ -551,10 +558,15 @@ export function LogEntryDetail({
   // ── Prev/Next nav (inline helper, not a hook) ─────────────────────────────
   function renderNav(extraClass?: string) {
     if (!prevEntry && !nextEntry) return null;
+    const linkClass = cn(
+      "flex items-center gap-2 text-xs transition-colors group max-w-[45%]",
+      L
+        ? "text-zinc-500 hover:text-zinc-900"
+        : "text-white/40 hover:text-white/70"
+    );
     return (
       <div
         className={cn(
-          /* Misma escala que la migas (mb-4 sm:mb-5): arriba y abajo del bloque prev/sig */
           "flex items-center justify-between gap-4 mb-3 sm:mb-4 print:hidden",
           extraClass
         )}
@@ -562,7 +574,7 @@ export function LogEntryDetail({
         {prevEntry ? (
           <button
             onClick={() => router.push(`/bitacora/${prevEntry.id}`)}
-            className="flex items-center gap-2 text-xs text-white/40 hover:text-white/70 transition-colors group max-w-[45%]"
+            className={linkClass}
           >
             <ChevronLeft className="w-4 h-4 shrink-0 group-hover:-translate-x-0.5 transition-transform duration-150" />
             <span className="truncate">{prevEntry.title}</span>
@@ -573,7 +585,7 @@ export function LogEntryDetail({
         {nextEntry ? (
           <button
             onClick={() => router.push(`/bitacora/${nextEntry.id}`)}
-            className="flex items-center gap-2 text-xs text-white/40 hover:text-white/70 transition-colors group max-w-[45%] ml-auto"
+            className={cn(linkClass, "ml-auto")}
           >
             <span className="truncate text-right">{nextEntry.title}</span>
             <ChevronRight className="w-4 h-4 shrink-0 group-hover:translate-x-0.5 transition-transform duration-150" />
@@ -591,7 +603,10 @@ export function LogEntryDetail({
     <div
       className={
         fullscreen
-          ? "fixed inset-0 z-[150] flex flex-col overflow-y-auto bg-[#060a14] detail-fullscreen-bg print:static print:inset-auto print:z-auto print:overflow-visible"
+          ? cn(
+              "fixed inset-0 z-[150] flex flex-col overflow-y-auto detail-fullscreen-bg print:static print:inset-auto print:z-auto print:overflow-visible",
+              L ? "bg-[#f7f7fb]" : "bg-[#060a14]"
+            )
           : "flex min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden px-6 pt-5 pb-8 sm:pb-9 md:px-8 md:pb-10 max-w-4xl mx-auto print:max-w-none"
       }
     >
@@ -600,23 +615,31 @@ export function LogEntryDetail({
         className={
           fullscreen
             ? "relative z-10 max-w-4xl mx-auto space-y-7 md:space-y-8 px-4 pb-14 pt-6 sm:px-8 sm:pb-20 sm:pt-8"
-            : "flex w-full min-h-0 min-w-0 flex-col gap-5 md:gap-6"
+            : "flex w-full min-h-0 min-w-0 flex-col gap-6 md:gap-7"
         }
       >
 
-        {/* B51: Breadcrumb — más aire respecto a la navegación prev/sig */}
+        {/* Breadcrumb */}
         <nav
           aria-label="Ruta de navegación"
-          className="flex items-center gap-1.5 text-xs text-white/35 px-1 mb-4 sm:mb-5 print:hidden"
+          className={cn(
+            "flex items-center gap-1.5 text-xs px-1 mb-4 sm:mb-5 print:hidden",
+            L ? "text-zinc-500" : "text-white/35"
+          )}
         >
           <button
             onClick={() => router.push("/bitacora")}
-            className="hover:text-white/60 transition-colors"
+            className={cn(
+              "transition-colors",
+              L ? "hover:text-zinc-900" : "hover:text-white/60"
+            )}
           >
             Bitácora
           </button>
           <ChevronRight className="w-3 h-3 shrink-0" />
-          <span className="text-white/50">{entry.department.name}</span>
+          <span className={L ? "text-zinc-700" : "text-white/50"}>
+            {entry.department.name}
+          </span>
           <ChevronRight className="w-3 h-3 shrink-0" />
           <span className="truncate max-w-[160px]">
             {TYPE_LABELS[entry.type as keyof typeof TYPE_LABELS]}
@@ -627,12 +650,22 @@ export function LogEntryDetail({
         {renderNav()}
 
         {/* ── Main header card ─────────────────────────────────────────────── */}
-        <div className="glass rounded-2xl p-6 sm:p-8 print:break-inside-avoid">
+        <div
+          className={cn(
+            "rounded-2xl p-6 sm:p-8 print:break-inside-avoid",
+            L
+              ? "border border-black/[0.07] bg-white/82 backdrop-blur-md shadow-[var(--lt-shadow-glass)]"
+              : "glass shadow-[0_10px_36px_-14px_rgba(0,0,0,0.55)]"
+          )}
+        >
           {/* Action row */}
           <div className="flex items-start justify-between gap-4 mb-6">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2.5 flex-wrap mb-3">
-                <Badge className={getTypeColor(entry.type)} size="md">
+                <Badge
+                  className={cn(typePalette.bg, typePalette.text, typePalette.border)}
+                  size="md"
+                >
                   {TYPE_LABELS[entry.type as keyof typeof TYPE_LABELS]}
                 </Badge>
                 <Badge variant="default" size="sm">
@@ -658,35 +691,86 @@ export function LogEntryDetail({
                   </Badge>
                 )}
               </div>
-              <h1 className="text-xl sm:text-2xl font-bold text-white leading-snug">
+              <h1
+                className={cn(
+                  "text-xl sm:text-2xl font-bold leading-snug",
+                  L ? "text-zinc-900" : "text-white"
+                )}
+              >
                 {entry.title}
               </h1>
               {(entry.metricAnchorLabel ||
                 entry.metricAnchorValue ||
                 entry.metricAnchorTrend) && (
-                <div className="mt-4 flex flex-wrap items-center gap-3 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3">
-                  <span className="text-[10px] font-semibold uppercase tracking-wider text-white/35">
+                <div
+                  className={cn(
+                    "mt-4 flex flex-wrap items-center gap-3 rounded-xl border px-4 py-3",
+                    L
+                      ? "border-zinc-200 bg-zinc-50"
+                      : "border-white/10 bg-white/[0.04]"
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "text-[10px] font-semibold uppercase tracking-wider",
+                      L ? "text-zinc-500" : "text-white/35"
+                    )}
+                  >
                     Ancla métrica
                   </span>
-                  <div className="flex flex-wrap items-center gap-2 text-sm text-white/80">
+                  <div
+                    className={cn(
+                      "flex flex-wrap items-center gap-2 text-sm",
+                      L ? "text-zinc-800" : "text-white/80"
+                    )}
+                  >
                     {entry.metricAnchorLabel ? (
-                      <span className="font-medium text-white/90">{entry.metricAnchorLabel}</span>
+                      <span
+                        className={cn(
+                          "font-medium",
+                          L ? "text-zinc-900" : "text-white/90"
+                        )}
+                      >
+                        {entry.metricAnchorLabel}
+                      </span>
                     ) : null}
                     {entry.metricAnchorValue ? (
-                      <span className="font-mono text-[#ffeb66]/90">{entry.metricAnchorValue}</span>
+                      <span
+                        className={cn(
+                          "font-mono",
+                          L ? "text-amber-700" : "text-[#ffeb66]/90"
+                        )}
+                      >
+                        {entry.metricAnchorValue}
+                      </span>
                     ) : null}
                     {entry.metricAnchorTrend === "UP" && (
-                      <span className="inline-flex items-center gap-1 text-emerald-300/90 text-xs">
+                      <span
+                        className={cn(
+                          "inline-flex items-center gap-1 text-xs",
+                          L ? "text-emerald-700" : "text-emerald-300/90"
+                        )}
+                      >
                         <TrendingUp className="w-3.5 h-3.5" /> Sube
                       </span>
                     )}
                     {entry.metricAnchorTrend === "DOWN" && (
-                      <span className="inline-flex items-center gap-1 text-rose-300/90 text-xs">
+                      <span
+                        className={cn(
+                          "inline-flex items-center gap-1 text-xs",
+                          L ? "text-rose-700" : "text-rose-300/90"
+                        )}
+                      >
                         <TrendingDown className="w-3.5 h-3.5" /> Baja
                       </span>
                     )}
                     {entry.metricAnchorTrend === "FLAT" && (
-                      <span className="inline-flex items-center gap-1 text-white/45 text-xs">
+                      <span
+                        className={cn(
+                          "inline-flex items-center gap-1 text-xs",
+                          L ? "text-zinc-500" : "text-white/45"
+                        )}
+                      >
                         <Minus className="w-3.5 h-3.5" /> Estable
                       </span>
                     )}
@@ -695,15 +779,30 @@ export function LogEntryDetail({
               )}
               {entry.tags.length > 0 && (
                 <div className="mt-5 flex flex-wrap items-center gap-x-2 gap-y-2">
-                  <span className="text-[10px] font-semibold uppercase tracking-wider text-white/35 w-full sm:w-auto sm:mr-1">
+                  <span
+                    className={cn(
+                      "text-[10px] font-semibold uppercase tracking-wider w-full sm:w-auto sm:mr-1",
+                      L ? "text-zinc-500" : "text-white/35"
+                    )}
+                  >
                     Etiquetas
                   </span>
                   {entry.tags.map((tag) => (
                     <span
                       key={tag.id}
-                      className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-lg bg-white/[0.06] text-white/55 border border-white/12"
+                      className={cn(
+                        "inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-lg border",
+                        L
+                          ? "bg-zinc-100 text-zinc-700 border-zinc-200"
+                          : "bg-white/[0.06] text-white/55 border-white/12"
+                      )}
                     >
-                      <Tag className="w-3 h-3 text-white/35" />
+                      <Tag
+                        className={cn(
+                          "w-3 h-3",
+                          L ? "text-zinc-400" : "text-white/35"
+                        )}
+                      />
                       #{tag.name}
                     </span>
                   ))}
@@ -713,10 +812,16 @@ export function LogEntryDetail({
 
             {/* Header actions */}
             <div className="flex items-center gap-2 shrink-0 print:hidden">
+              {/* Pantalla completa: visible siempre */}
               <button
                 onClick={() => setFullscreen((f) => !f)}
                 title={fullscreen ? "Salir de pantalla completa" : "Pantalla completa (F)"}
-                className="p-1.5 rounded-lg text-white/30 hover:text-white/65 hover:bg-white/6 transition-all"
+                className={cn(
+                  "p-1.5 rounded-lg transition-all",
+                  L
+                    ? "text-zinc-500 hover:text-zinc-900 hover:bg-black/[0.05]"
+                    : "text-white/30 hover:text-white/65 hover:bg-white/6"
+                )}
               >
                 {fullscreen ? (
                   <Minimize2 className="w-4 h-4" />
@@ -724,38 +829,124 @@ export function LogEntryDetail({
                   <Maximize2 className="w-4 h-4" />
                 )}
               </button>
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={copyLink}
-                title="Copiar enlace"
-              >
-                <Link2 className="w-3.5 h-3.5" />
-                {linkCopied ? "¡Copiado!" : "Enlace"}
-              </Button>
-              {canEdit && (
+
+              {/* Desktop: todos los botones visibles */}
+              <div className="hidden sm:flex items-center gap-2">
                 <Button
                   variant="secondary"
                   size="sm"
-                  onClick={() =>
-                    router.push(`/bitacora/${entry.id}/editar`)
-                  }
+                  onClick={copyLink}
+                  title="Copiar enlace"
                 >
-                  <Edit className="w-3.5 h-3.5" />
-                  Editar
+                  <Link2 className="w-3.5 h-3.5" />
+                  {linkCopied ? "¡Copiado!" : "Enlace"}
                 </Button>
-              )}
-              {canDeleteEntry && (
-                <Button
-                  variant="danger"
-                  size="sm"
-                  onClick={() => setDeleteEntryOpen(true)}
-                  title="Eliminar esta entrada de la bitácora"
+                {canEdit && (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => router.push(`/bitacora/${entry.id}/editar`)}
+                  >
+                    <Edit className="w-3.5 h-3.5" />
+                    Editar
+                  </Button>
+                )}
+                {canDeleteEntry && (
+                  <Button
+                    variant="danger"
+                    size="sm"
+                    onClick={() => setDeleteEntryOpen(true)}
+                    title="Eliminar esta entrada de la bitácora"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    Eliminar
+                  </Button>
+                )}
+              </div>
+
+              {/* Mobile: Editar visible + kebab con el resto */}
+              <div className="flex sm:hidden items-center gap-1.5 relative">
+                {canEdit && (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => router.push(`/bitacora/${entry.id}/editar`)}
+                  >
+                    <Edit className="w-3.5 h-3.5" />
+                  </Button>
+                )}
+                <button
+                  type="button"
+                  aria-haspopup="menu"
+                  aria-expanded={actionsMenuOpen}
+                  onClick={() => setActionsMenuOpen((v) => !v)}
+                  className={cn(
+                    "p-1.5 rounded-lg border transition-all",
+                    L
+                      ? "border-zinc-200 bg-white text-zinc-600 hover:text-zinc-900 hover:bg-zinc-50"
+                      : "border-white/10 bg-white/[0.04] text-white/60 hover:text-white hover:bg-white/[0.08]"
+                  )}
+                  title="Más acciones"
                 >
-                  <Trash2 className="w-3.5 h-3.5" />
-                  Eliminar
-                </Button>
-              )}
+                  <MoreHorizontal className="w-4 h-4" />
+                </button>
+                {actionsMenuOpen && (
+                  <>
+                    <button
+                      type="button"
+                      aria-label="Cerrar menú"
+                      onClick={() => setActionsMenuOpen(false)}
+                      className="fixed inset-0 z-[80] bg-transparent"
+                    />
+                    <div
+                      role="menu"
+                      className={cn(
+                        "absolute right-0 top-full mt-1.5 min-w-44 rounded-xl border shadow-2xl py-1 z-[81]",
+                        L
+                          ? "border-zinc-200 bg-white/95 backdrop-blur-xl shadow-zinc-300/40"
+                          : "border-white/12 bg-[#0d1324]/96 backdrop-blur-xl shadow-black/50"
+                      )}
+                    >
+                      <button
+                        type="button"
+                        role="menuitem"
+                        onClick={() => {
+                          copyLink();
+                          setActionsMenuOpen(false);
+                        }}
+                        className={cn(
+                          "w-full text-left flex items-center gap-2 px-3 py-2 text-sm transition-colors",
+                          L
+                            ? "text-zinc-800 hover:bg-zinc-100"
+                            : "text-white/85 hover:bg-white/[0.06]"
+                        )}
+                      >
+                        <Link2 className="w-3.5 h-3.5" />
+                        {linkCopied ? "¡Copiado!" : "Copiar enlace"}
+                      </button>
+                      {canDeleteEntry && (
+                        <button
+                          type="button"
+                          role="menuitem"
+                          onClick={() => {
+                            setActionsMenuOpen(false);
+                            setDeleteEntryOpen(true);
+                          }}
+                          className={cn(
+                            "w-full text-left flex items-center gap-2 px-3 py-2 text-sm transition-colors",
+                            L
+                              ? "text-red-700 hover:bg-red-50"
+                              : "text-red-400 hover:bg-white/[0.06]"
+                          )}
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          Eliminar entrada
+                        </button>
+                      )}
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
           </div>
 
@@ -767,9 +958,12 @@ export function LogEntryDetail({
                 : null;
             const bx = entry.author.bannerFocusX ?? 50;
             const by = entry.author.bannerFocusY ?? 50;
+            // En tema claro, usamos blanco translúcido para el degradado del banner
             const bannerStyle: React.CSSProperties | undefined = authorBanner
               ? {
-                  backgroundImage: `linear-gradient(90deg, rgba(10,15,30,0.92) 0%, rgba(10,15,30,0.5) 35%, rgba(10,15,30,0.4) 65%, rgba(10,15,30,0.92) 100%), url(${authorBanner})`,
+                  backgroundImage: L
+                    ? `linear-gradient(90deg, rgba(255,255,255,0.94) 0%, rgba(255,255,255,0.58) 35%, rgba(255,255,255,0.48) 65%, rgba(255,255,255,0.94) 100%), url(${authorBanner})`
+                    : `linear-gradient(90deg, rgba(10,15,30,0.92) 0%, rgba(10,15,30,0.5) 35%, rgba(10,15,30,0.4) 65%, rgba(10,15,30,0.92) 100%), url(${authorBanner})`,
                   backgroundRepeat: "no-repeat, no-repeat",
                   backgroundSize: "cover, cover",
                   backgroundPosition: `center, ${bx}% ${by}%`,
@@ -781,9 +975,10 @@ export function LogEntryDetail({
                 className={cn(
                   "relative flex items-center gap-3 transition-colors",
                   authorBanner
-                    ? "overflow-hidden rounded-xl border-0 mb-6 px-3.5 py-3"
+                    ? "overflow-hidden rounded-xl border-0 mb-6 px-3.5 py-3.5"
                     : cn(
-                        "border-b border-white/8",
+                        "border-b",
+                        L ? "border-zinc-200" : "border-white/8",
                         hasRichBody ? "mb-6 pb-5" : "mb-4 pb-4"
                       )
                 )}
@@ -804,10 +999,20 @@ export function LogEntryDetail({
                     size="sm"
                   />
                   <div className="min-w-0 flex-1 text-left">
-                    <span className="block text-sm font-medium text-white/90">
+                    <span
+                      className={cn(
+                        "block text-sm font-medium",
+                        L ? "text-zinc-900" : "text-white/90"
+                      )}
+                    >
                       {entry.author.name}
                     </span>
-                    <span className="block text-xs text-white/55">
+                    <span
+                      className={cn(
+                        "block text-xs",
+                        L ? "text-zinc-600" : "text-white/55"
+                      )}
+                    >
                       {formatDate(entry.createdAt)}
                       {entry.editHistory.length > 0 &&
                         ` · Editado ${formatRelative(
@@ -817,12 +1022,13 @@ export function LogEntryDetail({
                   </div>
                 </UserProfilePopover>
                 <div className="relative z-[1] ml-auto flex items-center gap-3">
-                  {/* B52: Reading time (solo si hay cuerpo con texto) */}
                   {hasRichBody && (
                     <span
                       className={cn(
                         "flex items-center gap-1.5 text-xs",
-                        authorBanner ? "text-white/55" : "text-white/30"
+                        authorBanner
+                          ? L ? "text-zinc-700" : "text-white/55"
+                          : L ? "text-zinc-500" : "text-white/30"
                       )}
                     >
                       <BookOpen className="w-3.5 h-3.5" />~{readingMinutes} min
@@ -831,7 +1037,9 @@ export function LogEntryDetail({
                   <span
                     className={cn(
                       "flex items-center gap-1.5 text-xs",
-                      authorBanner ? "text-white/65" : "text-white/30"
+                      authorBanner
+                        ? L ? "text-zinc-800" : "text-white/65"
+                        : L ? "text-zinc-500" : "text-white/30"
                     )}
                   >
                     <span
@@ -847,19 +1055,33 @@ export function LogEntryDetail({
             );
           })()}
 
-          {/* B54: Table of contents */}
+          {/* Table of contents */}
           {toc.length >= 2 && (
-            <div className="mb-7 rounded-xl border border-white/8 bg-white/[0.025] overflow-hidden print:hidden">
+            <div
+              className={cn(
+                "mb-7 rounded-xl border overflow-hidden print:hidden",
+                L
+                  ? "border-zinc-200 bg-zinc-50/75"
+                  : "border-white/8 bg-white/[0.025]"
+              )}
+            >
               <button
                 type="button"
                 onClick={() => setTocOpen((o) => !o)}
                 aria-expanded={tocOpen}
-                className="w-full flex items-center justify-between gap-2 px-4 py-3 text-sm text-white/50 hover:text-white/70 hover:bg-white/[0.03] transition-colors duration-150"
+                className={cn(
+                  "w-full flex items-center justify-between gap-2 px-4 py-3 text-sm transition-colors duration-150",
+                  L
+                    ? "text-zinc-700 hover:text-zinc-900 hover:bg-zinc-100/60"
+                    : "text-white/50 hover:text-white/70 hover:bg-white/[0.03]"
+                )}
               >
                 <span className="flex items-center gap-2">
                   <List className="w-4 h-4" />
                   Tabla de contenidos
-                  <span className="text-white/25">({toc.length})</span>
+                  <span className={L ? "text-zinc-400" : "text-white/25"}>
+                    ({toc.length})
+                  </span>
                 </span>
                 <ChevronDown
                   className={`w-4 h-4 transition-transform duration-200 ${
@@ -868,19 +1090,31 @@ export function LogEntryDetail({
                 />
               </button>
               {tocOpen && (
-                <ul className="px-3 pb-4 pt-2 space-y-1 border-t border-white/6">
+                <ul
+                  className={cn(
+                    "px-3 pb-4 pt-2 space-y-1 border-t",
+                    L ? "border-zinc-200" : "border-white/6"
+                  )}
+                >
                   {toc.map((item) => (
                     <li key={item.id}>
                       <button
                         type="button"
                         onClick={() => scrollToHeading(item.id)}
-                        className={`w-full text-left text-xs py-1 px-2 rounded-md transition-colors duration-150
-                          ${activeTocId === item.id
-                            ? "text-[#ffeb66] bg-[#ffeb66]/6"
+                        className={cn(
+                          "w-full text-left text-xs py-1 px-2 rounded-md transition-colors duration-150",
+                          activeTocId === item.id
+                            ? L
+                              ? "text-amber-700 bg-amber-50"
+                              : "text-[#ffeb66] bg-[#ffeb66]/6"
                             : item.level === 1
-                            ? "text-white/55 font-semibold hover:text-white/80"
-                            : "text-white/40 hover:text-white/65"
-                          }`}
+                              ? L
+                                ? "text-zinc-700 font-semibold hover:text-zinc-900"
+                                : "text-white/55 font-semibold hover:text-white/80"
+                              : L
+                                ? "text-zinc-500 hover:text-zinc-800"
+                                : "text-white/40 hover:text-white/65"
+                        )}
                         style={{ paddingLeft: `${(item.level - 1) * 12 + 8}px` }}
                       >
                         {item.text}
@@ -907,12 +1141,22 @@ export function LogEntryDetail({
           {entry.shares.length > 0 && (
             <div
               className={cn(
-                "flex flex-wrap items-center gap-2 border-t border-white/8",
+                "flex flex-wrap items-center gap-2 border-t",
+                L ? "border-zinc-200" : "border-white/8",
                 hasRichBody ? "mt-7 pt-6" : "mt-4 pt-5"
               )}
             >
-              <Share2 className="w-3.5 h-3.5 text-white/30" />
-              <span className="text-xs text-white/40">Compartido con:</span>
+              <Share2
+                className={cn(
+                  "w-3.5 h-3.5",
+                  L ? "text-zinc-500" : "text-white/30"
+                )}
+              />
+              <span
+                className={cn("text-xs", L ? "text-zinc-600" : "text-white/40")}
+              >
+                Compartido con:
+              </span>
               {entry.shares.map((share) => (
                 <span
                   key={share.id}
@@ -939,10 +1183,22 @@ export function LogEntryDetail({
             canEditEntry={canEdit}
           />
 
-          {/* Emoji reactions (debajo de encuestas) */}
-          <div className="mt-7 border-t border-white/8 pt-6 print:hidden">
+          {/* Emoji reactions */}
+          <div
+            className={cn(
+              "mt-7 border-t pt-6 print:hidden",
+              L ? "border-zinc-200" : "border-white/8"
+            )}
+          >
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xs text-white/35 mr-1">Reaccionar:</span>
+              <span
+                className={cn(
+                  "text-xs mr-1",
+                  L ? "text-zinc-600" : "text-white/35"
+                )}
+              >
+                Reaccionar:
+              </span>
               {REACTION_EMOJIS.map((emoji) => {
                 const data = reactions[emoji];
                 const active = data?.hasReacted ?? false;
@@ -955,16 +1211,27 @@ export function LogEntryDetail({
                     onClick={() => void toggleReaction(emoji)}
                     aria-pressed={active}
                     title={names || undefined}
-                    className={`reaction-btn flex items-center gap-1.5 text-base px-2.5 py-1.5 rounded-lg border transition-all duration-150 select-none
-                    ${
+                    className={cn(
+                      "reaction-btn flex items-center gap-1.5 text-base px-2.5 py-1.5 rounded-lg border transition-all duration-150 select-none",
                       active
-                        ? "border-[#ffeb66]/40 bg-[#ffeb66]/8 scale-110 shadow-[0_0_8px_rgba(255,235,102,0.2)]"
-                        : "border-white/8 bg-white/4 hover:border-white/18 hover:bg-white/7 hover:scale-105"
-                    }`}
+                        ? L
+                          ? "border-amber-400 bg-amber-100 scale-110 shadow-[0_0_8px_rgba(217,119,6,0.18)]"
+                          : "border-[#ffeb66]/40 bg-[#ffeb66]/8 scale-110 shadow-[0_0_8px_rgba(255,235,102,0.2)]"
+                        : L
+                          ? "border-zinc-200 bg-white hover:border-zinc-300 hover:bg-zinc-50 hover:scale-105"
+                          : "border-white/8 bg-white/4 hover:border-white/18 hover:bg-white/7 hover:scale-105"
+                    )}
                   >
                     <span>{emoji}</span>
                     {count > 0 && (
-                      <span className="text-xs font-semibold tabular-nums text-white/60">{count}</span>
+                      <span
+                        className={cn(
+                          "text-xs font-semibold tabular-nums",
+                          L ? "text-zinc-700" : "text-white/60"
+                        )}
+                      >
+                        {count}
+                      </span>
                     )}
                   </button>
                 );
@@ -974,7 +1241,12 @@ export function LogEntryDetail({
 
           {/* Seguimiento (antes de comentarios) */}
           {entry.requiresFollowup && !entry.followupDone && canEdit && (
-            <div className="mt-7 pt-6 border-t border-white/8 print:hidden">
+            <div
+              className={cn(
+                "mt-7 pt-6 border-t print:hidden",
+                L ? "border-zinc-200" : "border-white/8"
+              )}
+            >
               <Button
                 variant="outline"
                 size="sm"
@@ -1052,18 +1324,15 @@ export function LogEntryDetail({
           {comments.length > 0 && (
             <div className="space-y-3.5 mb-5">
               {comments.map((c: LogCommentRow) => {
-                const plainForReply = c.content
-                  .replace(/<[^>]+>/g, "")
-                  .replace(/\u00a0/g, " ")
-                  .trim();
+                const plainForReply = commentPlainText(c.content);
                 const replyParsed = parseLeadingReplyMention(
                   plainForReply,
                   mentionHighlightNames
                 );
                 const replyTarget = replyParsed?.replyTarget ?? null;
-                const bodyText = replyParsed?.bodyText ?? c.content;
+                const bodyText = replyParsed?.bodyText ?? plainForReply;
                 const isReply = Boolean(replyTarget);
-                const structured = commentHasStructuredMentions(c.content);
+                const structured = commentHasRichHtml(c.content);
                 return (
                   <div
                     key={c.id}
@@ -1270,119 +1539,35 @@ export function LogEntryDetail({
               >
                 Tu comentario
               </p>
-              <div className="relative">
-                <textarea
-                  ref={commentInputRef}
-                  value={comment}
-                  {...deptMention.handlers}
-                  onKeyDown={(e) => {
-                    if (e.key === "Escape") {
-                      deptMention.dismiss();
-                      return;
-                    }
-                    if (
-                      e.key === "Enter" &&
-                      !e.shiftKey &&
-                      !deptMention.showMentionDrop
-                    ) {
-                      e.preventDefault();
-                      submitComment(e as unknown as React.FormEvent);
-                    }
-                  }}
-                  placeholder={
-                    replyTo
-                      ? `Respondiendo a @${replyTo.name}…`
-                      : "Añadir comentario… (@ + texto para buscar, Enter para enviar)"
-                  }
-                  rows={2}
-                  className={cn(
-                    "w-full rounded-lg px-3 py-2 text-sm resize-none transition-[border-color,box-shadow] duration-150",
-                    "focus:outline-none focus:ring-1",
-                    L
-                      ? "bg-white border border-zinc-200 text-zinc-900 placeholder:text-zinc-400 focus:border-amber-400/60 focus:ring-amber-400/20"
-                      : "bg-white/[0.04] border border-white/[0.1] text-white placeholder:text-white/32 focus:border-[#ffeb66]/35 focus:ring-[#ffeb66]/25"
-                  )}
-                />
-
-                {deptMention.showMentionDrop && (
-                  <div
-                    className={cn(
-                      "absolute bottom-full left-0 mb-2 w-[min(100%,20rem)] max-h-56 overflow-y-auto rounded-xl shadow-xl z-20 border",
-                      L
-                        ? "border-zinc-200/90 bg-white ring-1 ring-zinc-900/[0.04]"
-                        : "glass-3 border-white/12"
-                    )}
-                  >
-                    {deptMention.mentionRows.map((row) => (
-                      <button
-                        key={row.kind === "dept-all" ? "dept-all" : row.id}
-                        type="button"
-                        onMouseDown={(e) => {
-                          e.preventDefault();
-                          deptMention.pickMention(row);
-                        }}
-                        className={cn(
-                          "w-full flex items-center gap-2.5 px-3 py-2 text-left transition-colors duration-100",
-                          L ? "hover:bg-zinc-100" : "hover:bg-white/8"
-                        )}
-                      >
-                        {row.kind === "user" && <Avatar name={row.name} size="xs" />}
-                        <span className="flex flex-col min-w-0">
-                          <span
-                            className={cn(
-                              "text-sm truncate",
-                              L ? "text-zinc-900" : "text-white/75"
-                            )}
-                          >
-                            {row.kind === "dept-all" ? "@all" : `@${row.name}`}
-                          </span>
-                          {row.kind === "dept-all" ? (
-                            <span
-                              className={cn(
-                                "text-[10px] truncate",
-                                L ? "text-zinc-500" : "text-white/35"
-                              )}
-                            >
-                              {row.name}
-                            </span>
-                          ) : row.email ? (
-                            <span
-                              className={cn(
-                                "text-[10px] truncate",
-                                L ? "text-zinc-500" : "text-white/35"
-                              )}
-                            >
-                              {row.email}
-                            </span>
-                          ) : null}
-                        </span>
-                      </button>
-                    ))}
-                    {deptMention.mentionRows.length === 0 && (
-                      <p
-                        className={cn(
-                          "px-3 py-2 text-xs",
-                          L ? "text-zinc-500" : "text-white/30"
-                        )}
-                      >
-                        Sin resultados
-                      </p>
-                    )}
-                  </div>
-                )}
-              </div>
+              <CommentEditor
+                ref={commentEditorRef}
+                value={comment}
+                onChange={setComment}
+                mentionDepartmentId={entry.departmentId}
+                // Si la nota se ha compartido con otros departamentos, podemos
+                // mencionar también a sus miembros desde los comentarios.
+                mentionExtraDepartmentIds={entry.shares.map((s) => s.department.id)}
+                placeholder={
+                  replyTo
+                    ? `Respondiendo a @${replyTo.name}…`
+                    : "Añadir comentario… (@ + texto para mencionar, Enter para enviar)"
+                }
+                variant="log"
+                onSubmit={() => void submitComment()}
+                disabled={submitting}
+              />
 
               <div className="flex items-center justify-between gap-3 flex-wrap">
                 <p
                   className={cn(
-                    "flex items-center gap-1.5 text-[11px] max-w-[min(100%,28rem)]",
-                    L ? "text-zinc-500" : "text-white/28"
+                    "flex items-center gap-1.5 text-[11px] max-w-[min(100%,32rem)]",
+                    L ? "text-zinc-500" : "text-white/45"
                   )}
                 >
                   <AtSign className="w-3.5 h-3.5 shrink-0 opacity-70" />
                   <span>
-                    @ y al menos una letra para buscar (@all = todo el depto).{" "}
-                    <span className={L ? "text-zinc-600" : "text-white/40"}>Shift+Enter</span> = nueva línea
+                    @ y al menos una letra para buscar (@all = todo el depto). Adjunta imágenes pegando o arrastrando.{" "}
+                    <span className={L ? "text-zinc-700" : "text-white/65"}>Shift+Enter</span> = nueva línea
                   </span>
                 </p>
                 <Button
@@ -1403,10 +1588,17 @@ export function LogEntryDetail({
 
         {/* ── Attachments ──────────────────────────────────────────────────── */}
         {entry.attachments.length > 0 && (
-          <Card className="p-5 sm:p-6">
+          <Card light={L} className="p-5 sm:p-6">
             <div className="flex items-center gap-2 mb-4">
-              <Paperclip className="w-4 h-4 text-white/40" />
-              <span className="text-sm font-medium text-white/70">
+              <Paperclip
+                className={cn("w-4 h-4", L ? "text-zinc-500" : "text-white/40")}
+              />
+              <span
+                className={cn(
+                  "text-sm font-medium",
+                  L ? "text-zinc-800" : "text-white/70"
+                )}
+              >
                 Adjuntos ({entry.attachments.length})
               </span>
             </div>
@@ -1417,10 +1609,25 @@ export function LogEntryDetail({
                   href={att.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-2 p-2.5 rounded-lg bg-white/4 border border-white/8 hover:border-white/16 transition-all duration-200"
+                  className={cn(
+                    "flex items-center gap-2 p-2.5 rounded-lg border transition-all duration-200",
+                    L
+                      ? "bg-zinc-50 border-zinc-200 hover:border-zinc-300 hover:bg-zinc-100"
+                      : "bg-white/4 border-white/8 hover:border-white/16"
+                  )}
                 >
-                  <Paperclip className="w-3.5 h-3.5 text-white/40 shrink-0" />
-                  <span className="text-xs text-white/60 truncate">
+                  <Paperclip
+                    className={cn(
+                      "w-3.5 h-3.5 shrink-0",
+                      L ? "text-zinc-500" : "text-white/40"
+                    )}
+                  />
+                  <span
+                    className={cn(
+                      "text-xs truncate",
+                      L ? "text-zinc-800" : "text-white/60"
+                    )}
+                  >
                     {att.filename}
                   </span>
                 </a>
@@ -1429,23 +1636,37 @@ export function LogEntryDetail({
           </Card>
         )}
 
-        {/* ── B55: Edit history (collapsible) ──────────────────────────────── */}
+        {/* ── Edit history (collapsible) ───────────────────────────────────── */}
         {entry.editHistory.length > 0 && (
-          <Card className="p-5 sm:p-6 print:hidden">
+          <Card light={L} className="p-5 sm:p-6 print:hidden">
             <button
               type="button"
               onClick={() => setHistoryOpen((o) => !o)}
               aria-expanded={historyOpen}
-              className="w-full flex items-center justify-between gap-2 text-sm py-1 -mx-1 px-1 rounded-lg hover:bg-white/[0.04] transition-colors"
+              className={cn(
+                "w-full flex items-center justify-between gap-2 text-sm py-1 -mx-1 px-1 rounded-lg transition-colors",
+                L
+                  ? "hover:bg-black/[0.04]"
+                  : "hover:bg-white/[0.04]"
+              )}
             >
-              <span className="flex items-center gap-2 text-white/70 font-medium">
-                <History className="w-4 h-4 text-white/40" />
+              <span
+                className={cn(
+                  "flex items-center gap-2 font-medium",
+                  L ? "text-zinc-800" : "text-white/70"
+                )}
+              >
+                <History
+                  className={cn("w-4 h-4", L ? "text-zinc-500" : "text-white/40")}
+                />
                 Historial de ediciones ({entry.editHistory.length})
               </span>
               <ChevronDown
-                className={`w-4 h-4 text-white/30 transition-transform duration-200 ${
-                  historyOpen ? "rotate-180" : ""
-                }`}
+                className={cn(
+                  "w-4 h-4 transition-transform duration-200",
+                  L ? "text-zinc-500" : "text-white/30",
+                  historyOpen && "rotate-180"
+                )}
               />
             </button>
 
@@ -1457,14 +1678,29 @@ export function LogEntryDetail({
                   return (
                     <div
                       key={h.id}
-                      className="rounded-xl bg-white/[0.025] border border-white/6 p-3"
+                      className={cn(
+                        "rounded-xl border p-3",
+                        L
+                          ? "bg-zinc-50/85 border-zinc-200"
+                          : "bg-white/[0.025] border-white/6"
+                      )}
                     >
                       <div className="flex items-center gap-2 mb-2">
                         <Avatar name={h.editedBy.name} size="xs" />
-                        <span className="text-xs font-medium text-white/60">
+                        <span
+                          className={cn(
+                            "text-xs font-medium",
+                            L ? "text-zinc-800" : "text-white/60"
+                          )}
+                        >
                           {h.editedBy.name}
                         </span>
-                        <span className="text-xs text-white/30 ml-auto">
+                        <span
+                          className={cn(
+                            "text-xs ml-auto",
+                            L ? "text-zinc-500" : "text-white/30"
+                          )}
+                        >
                           {formatRelative(h.createdAt)}
                         </span>
                       </div>
@@ -1473,29 +1709,70 @@ export function LogEntryDetail({
                           {rows.map((row) => (
                             <li
                               key={`${h.id}-${row.key}`}
-                              className="rounded-lg border border-white/[0.06] bg-black/20 px-2.5 py-2"
+                              className={cn(
+                                "rounded-lg border px-2.5 py-2",
+                                L
+                                  ? "border-zinc-200 bg-white"
+                                  : "border-white/[0.06] bg-black/20"
+                              )}
                             >
-                              <div className="text-[11px] font-semibold uppercase tracking-wide text-[#ffeb66]/85">
+                              <div
+                                className={cn(
+                                  "text-[11px] font-semibold uppercase tracking-wide",
+                                  L ? "text-amber-700" : "text-[#ffeb66]/85"
+                                )}
+                              >
                                 {CHANGES_LABELS[row.key] ?? row.key}
                               </div>
                               {row.mode === "delta" ? (
                                 <div className="mt-1.5 space-y-1.5 text-xs leading-relaxed">
-                                  <div className="text-white/40">
-                                    <span className="text-white/35 font-medium">Antes: </span>
-                                    <span className="text-white/65 break-words">
+                                  <div className={L ? "text-zinc-600" : "text-white/40"}>
+                                    <span
+                                      className={cn(
+                                        "font-medium",
+                                        L ? "text-zinc-500" : "text-white/35"
+                                      )}
+                                    >
+                                      Antes:{" "}
+                                    </span>
+                                    <span
+                                      className={cn(
+                                        "break-words",
+                                        L ? "text-zinc-800" : "text-white/65"
+                                      )}
+                                    >
                                       {row.before}
                                     </span>
                                   </div>
-                                  <div className="text-white/40">
-                                    <span className="text-white/35 font-medium">Después: </span>
-                                    <span className="text-white/65 break-words">
+                                  <div className={L ? "text-zinc-600" : "text-white/40"}>
+                                    <span
+                                      className={cn(
+                                        "font-medium",
+                                        L ? "text-zinc-500" : "text-white/35"
+                                      )}
+                                    >
+                                      Después:{" "}
+                                    </span>
+                                    <span
+                                      className={cn(
+                                        "break-words",
+                                        L ? "text-zinc-800" : "text-white/65"
+                                      )}
+                                    >
                                       {row.after}
                                     </span>
                                   </div>
                                 </div>
                               ) : (
-                                <p className="mt-1 text-xs text-white/50 leading-relaxed break-words">
-                                  <span className="text-white/35">
+                                <p
+                                  className={cn(
+                                    "mt-1 text-xs leading-relaxed break-words",
+                                    L ? "text-zinc-700" : "text-white/50"
+                                  )}
+                                >
+                                  <span
+                                    className={L ? "text-zinc-500" : "text-white/35"}
+                                  >
                                     Formato antiguo (solo valor tras la edición, sin “antes”):{" "}
                                   </span>
                                   {row.value}
@@ -1505,7 +1782,14 @@ export function LogEntryDetail({
                           ))}
                         </ul>
                       ) : (
-                        <p className="text-xs text-white/35">Sin detalle de cambios.</p>
+                        <p
+                          className={cn(
+                            "text-xs",
+                            L ? "text-zinc-500" : "text-white/35"
+                          )}
+                        >
+                          Sin detalle de cambios.
+                        </p>
                       )}
                     </div>
                   );
@@ -1525,44 +1809,108 @@ export function LogEntryDetail({
           initialIncoming={entry.incomingLogLinks}
         />
 
-        {/* ── B57: Related entries ─────────────────────────────────────────── */}
+        {/* ── Related entries ──────────────────────────────────────────────── */}
         {relatedEntries && relatedEntries.length > 0 && (
-          <Card className="p-4 sm:p-5 print:hidden">
+          <Card light={L} className="p-5 sm:p-6 print:hidden">
             <div className="flex flex-col gap-4">
-              <div className="flex items-center gap-2">
-                <ExternalLink className="w-4 h-4 text-white/40" />
-                <span className="text-sm font-medium text-white/70">
-                  Entradas relacionadas
+              <div className="flex items-center gap-2.5">
+                <span
+                  className={cn(
+                    "flex h-8 w-8 items-center justify-center rounded-lg border",
+                    L
+                      ? "border-zinc-200 bg-zinc-50 text-zinc-600"
+                      : "border-white/10 bg-white/[0.04] text-white/65"
+                  )}
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <h3
+                    className={cn(
+                      "text-sm font-semibold tracking-tight",
+                      L ? "text-zinc-900" : "text-white/85"
+                    )}
+                  >
+                    Entradas relacionadas
+                  </h3>
+                  <p
+                    className={cn(
+                      "text-[11px] mt-0.5",
+                      L ? "text-zinc-500" : "text-white/40"
+                    )}
+                  >
+                    Coincidencias por tipo, etiquetas o autor
+                  </p>
+                </div>
+                <span
+                  className={cn(
+                    "tabular-nums shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium border",
+                    L
+                      ? "border-zinc-200 bg-white text-zinc-600"
+                      : "border-white/10 bg-white/[0.05] text-white/55"
+                  )}
+                >
+                  {relatedEntries.length}
                 </span>
               </div>
               <div className="space-y-2">
-              {relatedEntries.map((rel) => (
-                <button
-                  key={rel.id}
-                  type="button"
-                  onClick={() => router.push(`/bitacora/${rel.id}`)}
-                  className="w-full flex items-center gap-3 px-3.5 py-2.5 sm:py-3 rounded-xl bg-white/[0.03] border border-white/6 hover:border-white/12 hover:bg-white/5 transition-all duration-150 text-left group min-h-[2.75rem]"
-                >
-                  <span
-                    className={`text-xs px-1.5 py-0.5 rounded-md border shrink-0 ${getTypeColor(
-                      rel.type
-                    )}`}
-                  >
-                    {TYPE_LABELS[rel.type as keyof typeof TYPE_LABELS]}
-                  </span>
-                  <span className="text-sm text-white/60 group-hover:text-white/80 transition-colors truncate">
-                    {rel.title}
-                  </span>
-                  <span className="text-xs text-white/30 ml-auto shrink-0">
-                    {formatRelative(
-                      rel.createdAt instanceof Date
-                        ? rel.createdAt
-                        : new Date(rel.createdAt)
-                    )}
-                  </span>
-                  <ChevronRight className="w-3.5 h-3.5 text-white/20 group-hover:text-white/50 transition-colors shrink-0" />
-                </button>
-              ))}
+                {relatedEntries.map((rel) => {
+                  const relPalette = getTypePalette(rel.type, L ? "light" : "dark");
+                  return (
+                    <button
+                      key={rel.id}
+                      type="button"
+                      onClick={() => router.push(`/bitacora/${rel.id}`)}
+                      className={cn(
+                        "w-full flex items-center gap-3 px-3.5 py-2.5 sm:py-3 rounded-xl border transition-all duration-150 text-left group min-h-[2.75rem]",
+                        L
+                          ? "bg-white border-zinc-200 hover:border-zinc-300 hover:bg-zinc-50/85 hover:shadow-sm"
+                          : "bg-white/[0.03] border-white/8 hover:border-white/15 hover:bg-white/[0.06]"
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          "text-xs px-1.5 py-0.5 rounded-md border shrink-0",
+                          relPalette.bg,
+                          relPalette.text,
+                          relPalette.border
+                        )}
+                      >
+                        {TYPE_LABELS[rel.type as keyof typeof TYPE_LABELS]}
+                      </span>
+                      <span
+                        className={cn(
+                          "text-sm transition-colors truncate font-medium",
+                          L
+                            ? "text-zinc-800 group-hover:text-zinc-950"
+                            : "text-white/70 group-hover:text-white/92"
+                        )}
+                      >
+                        {rel.title}
+                      </span>
+                      <span
+                        className={cn(
+                          "text-xs ml-auto shrink-0",
+                          L ? "text-zinc-500" : "text-white/30"
+                        )}
+                      >
+                        {formatRelative(
+                          rel.createdAt instanceof Date
+                            ? rel.createdAt
+                            : new Date(rel.createdAt)
+                        )}
+                      </span>
+                      <ChevronRight
+                        className={cn(
+                          "w-3.5 h-3.5 transition-all duration-150 shrink-0 group-hover:translate-x-0.5",
+                          L
+                            ? "text-zinc-300 group-hover:text-zinc-600"
+                            : "text-white/20 group-hover:text-white/55"
+                        )}
+                      />
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </Card>

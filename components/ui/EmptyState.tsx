@@ -4,6 +4,7 @@ import Link from "next/link";
 import type { LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
+import { useTheme } from "@/components/layout/ThemeProvider";
 
 type EmptyAction =
   | { label: string; href: string }
@@ -51,18 +52,26 @@ export function EmptyState({
     );
   }
 
+  const { theme } = useTheme();
+  const L = theme === "light";
+
   return (
     <div
       className={cn(
         "rounded-xl text-center flex flex-col items-center",
-        !embedded && "glass",
+        !embedded && (L
+          ? "border border-black/[0.07] bg-white/82 backdrop-blur-md shadow-[var(--lt-shadow-glass)]"
+          : "glass"),
         compact ? "p-8 gap-2" : "p-12 gap-3",
         className
       )}
     >
       <div
         className={cn(
-          "empty-state-icon-wrap rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-[#ffeb66]/80",
+          "empty-state-icon-wrap rounded-2xl flex items-center justify-center",
+          L
+            ? "bg-amber-50 border border-amber-200 text-amber-600"
+            : "bg-white/5 border border-white/10 text-[#ffeb66]/80",
           compact ? "w-11 h-11" : "w-14 h-14"
         )}
       >
@@ -73,7 +82,8 @@ export function EmptyState({
       </div>
       <h3
         className={cn(
-          "font-semibold text-white",
+          "font-semibold",
+          L ? "text-zinc-900" : "text-white",
           compact ? "text-base" : "text-lg"
         )}
       >
@@ -82,7 +92,8 @@ export function EmptyState({
       {description ? (
         <p
           className={cn(
-            "text-white/45 max-w-md leading-relaxed",
+            "max-w-md leading-relaxed",
+            L ? "text-zinc-500" : "text-white/45",
             compact ? "text-xs" : "text-sm"
           )}
         >

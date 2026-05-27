@@ -45,6 +45,9 @@ import {
 import { es } from "date-fns/locale";
 import type { BitacoraFeedLog } from "@/lib/types/bitacora";
 import { BitacoraDatePopover } from "@/components/bitacora/BitacoraDatePopover";
+import { BitacoraHero } from "@/components/bitacora/BitacoraHero";
+import { BitacoraKpiStrip } from "@/components/bitacora/BitacoraKpiStrip";
+import { BitacoraViewTabs } from "@/components/bitacora/BitacoraViewTabs";
 import { useTheme } from "@/components/layout/ThemeProvider";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -473,9 +476,53 @@ export function BitacoraDayView({ logs, selectedDate, departmentName }: Bitacora
         ) : null}
       </div>
 
+      {/* Hero + KPIs (solo pantalla) */}
+      <div className="print:hidden space-y-3">
+        <BitacoraHero
+          eyebrow={departmentName ? `BITÁCORA · ${departmentName}` : "BITÁCORA"}
+          title="Panel del día"
+          subtitle={
+            <>
+              {dayLabel(parsedDate)},{" "}
+              <span className="capitalize">
+                {format(parsedDate, "d 'de' MMMM yyyy", { locale: es })}
+              </span>
+              {total > 0 ? (
+                <>
+                  {" · "}
+                  {total} entrada{total !== 1 ? "s" : ""}
+                </>
+              ) : null}
+            </>
+          }
+          rightSlot={<BitacoraViewTabs active="day" light={isLight} />}
+          leadingBadge={
+            <span
+              className={cn(
+                "flex h-10 w-10 items-center justify-center rounded-xl",
+                isLight
+                  ? "bg-[#ffeb66] text-[#0a0f1e] shadow-sm"
+                  : "bg-[#ffeb66] text-[#0a0f1e] shadow-[0_4px_14px_-4px_rgba(255,235,102,0.45)]"
+              )}
+            >
+              <Calendar className="h-5 w-5" />
+            </span>
+          }
+          light={isLight}
+        />
+        <BitacoraKpiStrip logs={logs} scope="all" light={isLight} />
+      </div>
+
       {/* B23: Week mini-calendar (solo pantalla; al imprimir se usa la cabecera anterior) */}
       <div className="print:hidden">
-      <div className="glass rounded-2xl p-4">
+      <div
+        className={cn(
+          "rounded-2xl p-4",
+          isLight
+            ? "border border-black/[0.07] bg-white/82 backdrop-blur-md shadow-[var(--lt-shadow-glass)]"
+            : "glass"
+        )}
+      >
         <div className="flex items-center gap-1 mb-3">
           <button
             type="button"
@@ -840,7 +887,14 @@ export function BitacoraDayView({ logs, selectedDate, departmentName }: Bitacora
 
       {/* ── Empty state ────────────────────────────────────────────────────── */}
       {total === 0 && (
-        <div className="glass rounded-2xl p-14 text-center space-y-4 print:border print:border-slate-300 print:bg-white print:shadow-none">
+        <div
+          className={cn(
+            "rounded-2xl p-14 text-center space-y-4 print:border print:border-slate-300 print:bg-white print:shadow-none",
+            isLight
+              ? "border border-black/[0.07] bg-white/82 backdrop-blur-md shadow-[var(--lt-shadow-glass)]"
+              : "glass"
+          )}
+        >
           <BookOpen
             className={cn(
               "w-12 h-12 mx-auto print:text-slate-300",

@@ -19,6 +19,8 @@ export interface SessionUser {
   profileBanner?: string | null;
   bannerFocusX?: number | null;
   bannerFocusY?: number | null;
+  /** Fecha de cumpleaños (ISO YYYY-MM-DD). Solo día/mes son relevantes. */
+  birthday?: string | null;
   role: Role;
   /** Solo el propietario puede activar este permiso para otros SuperAdmin. */
   canManageSuperAdmins?: boolean;

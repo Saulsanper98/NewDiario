@@ -22,11 +22,14 @@ export default async function ConfiguracionPage() {
   const sessionUser = session.user as SessionUser;
   const dbSelf = await prisma.user.findUnique({
     where: { id: sessionUser.id },
-    select: { role: true },
+    select: { role: true, birthday: true },
   });
   const user: SessionUser = {
     ...sessionUser,
     role: dbSelf?.role ?? sessionUser.role,
+    birthday: dbSelf?.birthday
+      ? dbSelf.birthday.toISOString().slice(0, 10)
+      : null,
   };
   const isAdmin = isAdminOrAbove(user);
 

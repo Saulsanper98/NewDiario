@@ -98,4 +98,7 @@ export type ChatMessageItem = {
   replyTo: ChatReplySnippet | null;
   /** Reacciones agrupadas por emoji. */
   reactions: ChatReactionSummary[];
+  /** ISO si algún participante lo marcó como "conservar" para que no se borre
+   *  con la limpieza automática de 72 h. */
+  keptAt: string | null;
 };

@@ -7,7 +7,7 @@ import { useSession } from "next-auth/react";
 import {
   Kanban, List, GitGraph, Activity, FolderTree, ArrowRight,
   TrendingUp, AlertTriangle, Clock, Pencil, Check, X, Trash2,
-  BookOpen, ChevronDown, ChevronUp, UserX, Timer, ShieldAlert, Crown,
+  BookOpen, NotebookPen, ChevronDown, ChevronUp, UserX, Timer, ShieldAlert, Crown,
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
@@ -18,6 +18,7 @@ import { ProjectActivity } from "@/components/proyectos/ProjectActivity";
 import { Badge } from "@/components/ui/Badge";
 import { Avatar } from "@/components/ui/Avatar";
 import { Card } from "@/components/ui/Card";
+import { Listbox } from "@/components/ui/Listbox";
 import {
   STATUS_LABELS, PRIORITY_LABELS,
   getStatusColor, getPriorityColor,
@@ -32,9 +33,10 @@ import type { ProjectDetail } from "@/lib/types/project-detail";
 import { useAccentForUi } from "@/lib/hooks/useAccentForUi";
 import { BoardSnapshotPanel } from "@/components/proyectos/BoardSnapshotPanel";
 import { ProjectDocs } from "@/components/proyectos/ProjectDocs";
+import { ProjectLogTab } from "@/components/proyectos/ProjectLogTab";
 import { useTheme } from "@/components/layout/ThemeProvider";
 
-type Tab = "kanban" | "list" | "timeline" | "activity" | "subprojects" | "docs";
+type Tab = "kanban" | "list" | "timeline" | "activity" | "subprojects" | "docs" | "bitacora";
 type ProjectMemberRow = ProjectDetail["members"][number];
 
 interface ProjectViewProps {
@@ -48,6 +50,7 @@ const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: "timeline",    label: "Timeline",       icon: GitGraph },
   { id: "activity",    label: "Actividad",      icon: Activity },
   { id: "docs",        label: "Docs",           icon: BookOpen },
+  { id: "bitacora",    label: "Bitácora",       icon: NotebookPen },
   { id: "subprojects", label: "Subproyectos",   icon: FolderTree },
 ];
 
@@ -108,6 +111,28 @@ export function ProjectView({ project, allUsers }: ProjectViewProps) {
     avgHoursInProgress: number | null;
     topAssignee: { id: string; name: string; image: string | null; count: number } | null;
   } | null>(null);
+  /** Número de entradas no leídas en la bitácora del proyecto (badge). */
+  const [logUnreadCount, setLogUnreadCount] = useState(0);
+
+  // Fetch del contador al montar y cada vez que cambia el proyecto.
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetch(
+          `/api/projects/${project.id}/log/unread-count`
+        );
+        if (!res.ok) return;
+        const data = (await res.json()) as { count: number };
+        if (!cancelled) setLogUnreadCount(data.count);
+      } catch {
+        /* best-effort */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [project.id]);
   const nameInputRef = useRef<HTMLInputElement>(null);
   const descTextareaRef = useRef<HTMLTextAreaElement>(null);
   const editButtonRef = useRef<HTMLButtonElement>(null);
@@ -329,18 +354,28 @@ export function ProjectView({ project, allUsers }: ProjectViewProps) {
         />
       )}
       {/* Project header: .project-view-toolbar quita el borde superior (ver globals.css). */}
-      <div className="glass project-view-toolbar border-b border-white/8 px-6 py-4 shrink-0">
+      <div className={cn(
+        "project-view-toolbar px-6 py-4 shrink-0 border-b",
+        isLight
+          ? "bg-white border-zinc-200"
+          : "glass border-white/8"
+      )}>
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1 min-w-0">
             {/* Parent project link */}
             {project.parent && (
               <Link
                 href={`/proyectos/${project.parent.id}`}
-                className="project-parent-link flex items-center gap-1 text-[10px] text-white/35 hover:text-[#ffeb66] transition-colors mb-1.5"
+                className={cn(
+                  "project-parent-link flex items-center gap-1 text-[10px] transition-colors mb-1.5",
+                  isLight
+                    ? "text-zinc-500 hover:text-amber-700"
+                    : "text-white/35 hover:text-[#ffeb66]"
+                )}
               >
                 <FolderTree className="w-3 h-3" />
                 {project.parent.name}
-                <span className="text-white/20">/</span>
+                <span className={isLight ? "text-zinc-300" : "text-white/20"}>/</span>
               </Link>
             )}
 
@@ -360,17 +395,30 @@ export function ProjectView({ project, allUsers }: ProjectViewProps) {
                     }}
                     maxLength={200}
                     disabled={savingName}
-                    className="flex-1 bg-white/5 border border-[#ffeb66]/40 rounded-lg px-2 py-1 text-lg font-bold text-white focus:outline-none disabled:opacity-50"
+                    className={cn(
+                      "flex-1 rounded-lg px-2 py-1 text-lg font-bold focus:outline-none disabled:opacity-50",
+                      isLight
+                        ? "bg-zinc-50 border border-amber-400/60 text-zinc-900"
+                        : "bg-white/5 border border-[#ffeb66]/40 text-white"
+                    )}
                   />
                   <button type="button" onClick={() => void saveName()}
-                    className="p-1 rounded text-[#ffeb66] hover:bg-[#ffeb66]/10 transition-colors shrink-0">
+                    className={cn(
+                      "p-1 rounded transition-colors shrink-0",
+                      isLight
+                        ? "text-amber-700 hover:bg-amber-100"
+                        : "text-[#ffeb66] hover:bg-[#ffeb66]/10"
+                    )}>
                     <Check className="w-4 h-4" />
                   </button>
                 </div>
               ) : (
                 <>
                   <h1
-                    className="project-title text-lg font-bold text-white cursor-text hover:text-white/90 transition-colors"
+                    className={cn(
+                      "project-title text-lg font-bold cursor-text transition-colors",
+                      isLight ? "text-zinc-900 hover:text-zinc-700" : "text-white hover:text-white/90"
+                    )}
                     onClick={() => { setNameDraft(projectName); setEditingName(true); }}
                     title="Click para editar"
                   >
@@ -379,7 +427,10 @@ export function ProjectView({ project, allUsers }: ProjectViewProps) {
                   <button
                     type="button"
                     onClick={() => { setNameDraft(projectName); setEditingName(true); }}
-                    className="opacity-0 group-hover/name:opacity-100 p-1 rounded text-white/25 hover:text-white/60 transition-all duration-150"
+                    className={cn(
+                      "opacity-0 group-hover/name:opacity-100 p-1 rounded transition-all duration-150",
+                      isLight ? "text-zinc-400 hover:text-zinc-700" : "text-white/25 hover:text-white/60"
+                    )}
                     aria-label="Editar nombre del proyecto"
                   >
                     <Pencil className="w-3 h-3" />
@@ -404,10 +455,18 @@ export function ProjectView({ project, allUsers }: ProjectViewProps) {
                     disabled={savingDesc}
                     rows={2}
                     placeholder="Añade una descripción…"
-                    className="flex-1 bg-white/5 border border-[#ffeb66]/40 rounded-lg px-2 py-1 text-sm text-white/70 focus:outline-none disabled:opacity-50 resize-none"
+                    className={cn(
+                      "flex-1 rounded-lg px-2 py-1 text-sm focus:outline-none disabled:opacity-50 resize-none",
+                      isLight
+                        ? "bg-zinc-50 border border-amber-400/60 text-zinc-700"
+                        : "bg-white/5 border border-[#ffeb66]/40 text-white/70"
+                    )}
                   />
                   <button type="button" onClick={() => void saveDescription()}
-                    className="mt-1 p-1 rounded text-[#ffeb66] hover:bg-[#ffeb66]/10 transition-colors shrink-0">
+                    className={cn(
+                      "mt-1 p-1 rounded transition-colors shrink-0",
+                      isLight ? "text-amber-700 hover:bg-amber-100" : "text-[#ffeb66] hover:bg-[#ffeb66]/10"
+                    )}>
                     <Check className="w-3.5 h-3.5" />
                   </button>
                 </div>
@@ -417,18 +476,27 @@ export function ProjectView({ project, allUsers }: ProjectViewProps) {
                   onClick={() => { setDescDraft(description); setEditingDesc(true); }}
                 >
                   {description ? (
-                    <p className="project-desc text-sm text-white/40 line-clamp-1 hover:text-white/55 transition-colors">
+                    <p className={cn(
+                      "project-desc text-sm line-clamp-1 transition-colors",
+                      isLight ? "text-zinc-500 hover:text-zinc-700" : "text-white/40 hover:text-white/55"
+                    )}>
                       {description}
                     </p>
                   ) : (
-                    <p className="project-desc-placeholder text-xs text-white/20 italic group-hover/desc:text-white/35 transition-colors">
+                    <p className={cn(
+                      "project-desc-placeholder text-xs italic transition-colors",
+                      isLight ? "text-zinc-400 group-hover/desc:text-zinc-600" : "text-white/20 group-hover/desc:text-white/35"
+                    )}>
                       Añadir descripción…
                     </p>
                   )}
                   <button
                     type="button"
                     onClick={(e) => { e.stopPropagation(); setDescDraft(description); setEditingDesc(true); }}
-                    className="opacity-0 group-hover/desc:opacity-100 p-0.5 rounded text-white/20 hover:text-white/50 transition-all duration-150 shrink-0"
+                    className={cn(
+                      "opacity-0 group-hover/desc:opacity-100 p-0.5 rounded transition-all duration-150 shrink-0",
+                      isLight ? "text-zinc-400 hover:text-zinc-700" : "text-white/20 hover:text-white/50"
+                    )}
                   >
                     <Pencil className="w-2.5 h-2.5" />
                   </button>
@@ -451,7 +519,10 @@ export function ProjectView({ project, allUsers }: ProjectViewProps) {
               <Badge className={getPriorityColor(priority)} size="sm">
                 {PRIORITY_LABELS[priority as keyof typeof PRIORITY_LABELS]}
               </Badge>
-              <span className="project-dept-meta text-xs text-white/30 flex items-center gap-1">
+              <span className={cn(
+                "project-dept-meta text-xs flex items-center gap-1",
+                isLight ? "text-zinc-500" : "text-white/30"
+              )}>
                 <span
                   className="w-2 h-2 rounded-full inline-block"
                   style={{ backgroundColor: accent(project.department.accentColor) }}
@@ -463,7 +534,12 @@ export function ProjectView({ project, allUsers }: ProjectViewProps) {
                 ref={editButtonRef}
                 type="button"
                 onClick={handleEditButtonClick}
-                className="p-1 rounded-md text-white/35 hover:text-white/80 hover:bg-white/6 transition-all duration-150"
+                className={cn(
+                  "p-1 rounded-md transition-all duration-150",
+                  isLight
+                    ? "text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100"
+                    : "text-white/35 hover:text-white/80 hover:bg-white/6"
+                )}
                 aria-label="Editar estado del proyecto"
               >
                 <Pencil className="w-3 h-3" />
@@ -479,6 +555,7 @@ export function ProjectView({ project, allUsers }: ProjectViewProps) {
                     endDate={projectEndDate ? new Date(projectEndDate).toISOString().slice(0, 10) : null}
                     saving={saving}
                     showDelete={canDeleteProject}
+                    isLight={isLight}
                     onSave={saveEdit}
                     onRequestDelete={() => {
                       setEditOpen(false);
@@ -496,20 +573,35 @@ export function ProjectView({ project, allUsers }: ProjectViewProps) {
           <div className="shrink-0 flex items-center gap-6">
             <div className="text-right">
               <div className="flex items-center gap-2 mb-1">
-                <div className="project-progress-track w-32 h-1.5 bg-white/6 rounded-full overflow-hidden">
+                <div className={cn(
+                  "project-progress-track w-32 h-1.5 rounded-full overflow-hidden",
+                  isLight ? "bg-zinc-200" : "bg-white/6"
+                )}>
                   <div
                     className={cn(
                       "h-full rounded-full progress-bar",
-                      progress === 100 ? "bg-emerald-400" : "lt-progress-bar-fill"
+                      progress === 100
+                        ? "bg-emerald-500"
+                        : isLight
+                          ? "bg-amber-500"
+                          : "lt-progress-bar-fill"
                     )}
                     style={{ width: `${progress}%` }}
                   />
                 </div>
-                <span className={cn("text-sm font-medium", progress === 100 ? "text-emerald-400" : "text-[#ffeb66]")}>
+                <span className={cn(
+                  "text-sm font-medium",
+                  progress === 100
+                    ? isLight ? "text-emerald-600" : "text-emerald-400"
+                    : isLight ? "text-amber-700" : "text-[#ffeb66]"
+                )}>
                   {progress}%
                 </span>
               </div>
-              <p className="project-tasks-meta text-xs text-white/30">{completedTasks}/{totalTasks} tareas</p>
+              <p className={cn(
+                "project-tasks-meta text-xs",
+                isLight ? "text-zinc-500" : "text-white/30"
+              )}>{completedTasks}/{totalTasks} tareas</p>
             </div>
 
             {/* Members: avatares solapados; +N fuera del grupo para no tapar al último */}
@@ -521,13 +613,21 @@ export function ProjectView({ project, allUsers }: ProjectViewProps) {
                     name={m.user.name}
                     image={m.user.image}
                     size="sm"
-                    className="project-member-avatar border-2 border-[#0a0f1e] ring-0"
+                    className={cn(
+                      "project-member-avatar border-2 ring-0",
+                      isLight ? "border-white" : "border-[#0a0f1e]"
+                    )}
                   />
                 ))}
               </div>
               {project.members.length > 4 && (
                 <div
-                  className="project-member-more ml-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 border-[#0a0f1e] bg-white/10 text-xs text-white/70"
+                  className={cn(
+                    "project-member-more ml-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 text-xs",
+                    isLight
+                      ? "border-white bg-zinc-100 text-zinc-700"
+                      : "border-[#0a0f1e] bg-white/10 text-white/70"
+                  )}
                   title={`${project.members.length - 4} miembro(s) más`}
                 >
                   +{project.members.length - 4}
@@ -538,10 +638,17 @@ export function ProjectView({ project, allUsers }: ProjectViewProps) {
             {/* End date */}
             {projectEndDate && (
               <div className="text-right">
-                <p className="project-meta-dim text-xs text-white/30">Fecha límite</p>
+                <p className={cn(
+                  "project-meta-dim text-xs",
+                  isLight ? "text-zinc-500" : "text-white/30"
+                )}>Fecha límite</p>
                 <p className={cn(
                   "project-end-date text-sm font-medium flex items-center gap-1",
-                  endDateOverdue ? "text-red-400" : endDateSoon ? "text-amber-400" : "text-white/70"
+                  endDateOverdue
+                    ? isLight ? "text-red-600" : "text-red-400"
+                    : endDateSoon
+                      ? isLight ? "text-amber-700" : "text-amber-400"
+                      : isLight ? "text-zinc-700" : "text-white/70"
                 )}>
                   {endDateOverdue && <AlertTriangle className="w-3.5 h-3.5" />}
                   {endDateSoon && !endDateOverdue && <Clock className="w-3.5 h-3.5" />}
@@ -557,7 +664,12 @@ export function ProjectView({ project, allUsers }: ProjectViewProps) {
           <button
             type="button"
             onClick={() => setStatsOpen((v) => !v)}
-            className="flex items-center gap-1 text-[10px] text-white/30 hover:text-white/55 transition-colors"
+            className={cn(
+              "flex items-center gap-1 text-[10px] transition-colors",
+              isLight
+                ? "text-zinc-500 hover:text-zinc-800"
+                : "text-white/30 hover:text-white/55"
+            )}
           >
             {statsOpen ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
             Métricas del equipo
@@ -565,7 +677,10 @@ export function ProjectView({ project, allUsers }: ProjectViewProps) {
           {statsOpen && (
             <div className="flex flex-wrap items-center gap-2 mt-2">
               {!stats ? (
-                <span className="text-[10px] text-white/25 italic">Cargando…</span>
+                <span className={cn(
+                  "text-[10px] italic",
+                  isLight ? "text-zinc-400" : "text-white/25"
+                )}>Cargando…</span>
               ) : (
                 <>
                   <MetricPill
@@ -575,6 +690,7 @@ export function ProjectView({ project, allUsers }: ProjectViewProps) {
                     green={stats.unassignedCount === 0}
                     amber={stats.unassignedCount > 0 && stats.unassignedCount <= 3}
                     red={stats.unassignedCount > 3}
+                    isLight={isLight}
                   />
                   <MetricPill
                     icon={AlertTriangle}
@@ -583,6 +699,7 @@ export function ProjectView({ project, allUsers }: ProjectViewProps) {
                     green={stats.staleCount === 0}
                     amber={stats.staleCount > 0 && stats.staleCount <= 2}
                     red={stats.staleCount > 2}
+                    isLight={isLight}
                   />
                   <MetricPill
                     icon={ShieldAlert}
@@ -591,6 +708,7 @@ export function ProjectView({ project, allUsers }: ProjectViewProps) {
                     green={stats.blockedCount === 0}
                     amber={false}
                     red={stats.blockedCount > 0}
+                    isLight={isLight}
                   />
                   <MetricPill
                     icon={Activity}
@@ -599,6 +717,7 @@ export function ProjectView({ project, allUsers }: ProjectViewProps) {
                     green={stats.reviewCount === 0}
                     amber={stats.reviewCount > 0 && stats.reviewCount <= 3}
                     red={false}
+                    isLight={isLight}
                   />
                   {stats.avgHoursInProgress !== null && (
                     <MetricPill
@@ -610,15 +729,24 @@ export function ProjectView({ project, allUsers }: ProjectViewProps) {
                       green={stats.avgHoursInProgress < 24}
                       amber={stats.avgHoursInProgress >= 24 && stats.avgHoursInProgress < 72}
                       red={stats.avgHoursInProgress >= 72}
+                      isLight={isLight}
                     />
                   )}
                   {stats.topAssignee && (
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-medium text-amber-300 border-amber-500/20 bg-amber-500/6">
+                    <span className={cn(
+                      "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-medium",
+                      isLight
+                        ? "text-amber-800 border-amber-300 bg-amber-50"
+                        : "text-amber-300 border-amber-500/20 bg-amber-500/6"
+                    )}>
                       <Crown className="w-3 h-3" />
-                      <span className="text-white/60 font-normal">Top:</span>
+                      <span className={cn(
+                        "font-normal",
+                        isLight ? "text-zinc-600" : "text-white/60"
+                      )}>Top:</span>
                       <Avatar name={stats.topAssignee.name} image={stats.topAssignee.image} size="xs" />
                       <span className="max-w-[80px] truncate">{stats.topAssignee.name.split(" ")[0]}</span>
-                      <span className="text-amber-400/70">×{stats.topAssignee.count}</span>
+                      <span className={isLight ? "text-amber-700" : "text-amber-400/70"}>×{stats.topAssignee.count}</span>
                     </span>
                   )}
                 </>
@@ -635,20 +763,39 @@ export function ProjectView({ project, allUsers }: ProjectViewProps) {
             const label = tab.id === "subprojects"
               ? `Subproyectos (${subCount})`
               : tab.label;
+            const showBadge =
+              tab.id === "bitacora" &&
+              activeTab !== "bitacora" &&
+              logUnreadCount > 0;
             return (
               <button
                 key={tab.id}
                 type="button"
                 onClick={() => selectTab(tab.id)}
                 className={cn(
-                  "project-tab flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 border",
+                  "project-tab relative flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 border",
                   activeTab === tab.id
-                    ? "project-tab-active bg-[#ffeb66]/12 text-[#ffeb66] border-[#ffeb66]/20"
-                    : "text-white/40 hover:text-white hover:bg-white/6 border-transparent"
+                    ? isLight
+                      ? "project-tab-active bg-amber-100 text-amber-800 border-amber-300"
+                      : "project-tab-active bg-[#ffeb66]/12 text-[#ffeb66] border-[#ffeb66]/20"
+                    : isLight
+                      ? "text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100 border-transparent"
+                      : "text-white/40 hover:text-white hover:bg-white/6 border-transparent"
                 )}
               >
                 <Icon className="w-3.5 h-3.5" />
                 {label}
+                {showBadge && (
+                  <span
+                    className={cn(
+                      "inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold tabular-nums",
+                      "bg-amber-500 text-zinc-900 shadow-sm"
+                    )}
+                    aria-label={`${logUnreadCount} no leídos`}
+                  >
+                    {logUnreadCount > 99 ? "99+" : logUnreadCount}
+                  </span>
+                )}
               </button>
             );
           })}
@@ -675,6 +822,24 @@ export function ProjectView({ project, allUsers }: ProjectViewProps) {
         {activeTab === "timeline"    && <ProjectTimeline columns={project.kanbanColumns} />}
         {activeTab === "activity"    && <ProjectActivity activities={project.activityFeed} projectId={project.id} />}
         {activeTab === "docs"        && <ProjectDocs projectId={project.id} />}
+        {activeTab === "bitacora"    && (
+          <ProjectLogTab
+            projectId={project.id}
+            departmentId={project.departmentId}
+            ownerIds={project.members
+              .filter((m) => m.isOwner)
+              .map((m) => m.userId)}
+            members={project.members.map((m) => ({
+              userId: m.userId,
+              user: {
+                id: m.user.id,
+                name: m.user.name,
+                image: m.user.image,
+              },
+            }))}
+            onReadStateChange={() => setLogUnreadCount(0)}
+          />
+        )}
         {activeTab === "subprojects" && <SubprojectsTab project={project} />}
       </div>
     </div>
@@ -690,6 +855,7 @@ function MetricPill({
   green,
   amber,
   red,
+  isLight,
 }: {
   icon: React.ElementType;
   label: string;
@@ -697,18 +863,19 @@ function MetricPill({
   green: boolean;
   amber: boolean;
   red: boolean;
+  isLight: boolean;
 }) {
   const color = red
-    ? "text-red-400 border-red-500/25 bg-red-500/8"
+    ? isLight ? "text-red-700 border-red-200 bg-red-50" : "text-red-400 border-red-500/25 bg-red-500/8"
     : amber
-    ? "text-amber-400 border-amber-500/25 bg-amber-500/8"
-    : green
-    ? "text-emerald-400 border-emerald-500/25 bg-emerald-500/8"
-    : "text-white/50 border-white/10 bg-white/4";
+      ? isLight ? "text-amber-800 border-amber-300 bg-amber-50" : "text-amber-400 border-amber-500/25 bg-amber-500/8"
+      : green
+        ? isLight ? "text-emerald-700 border-emerald-200 bg-emerald-50" : "text-emerald-400 border-emerald-500/25 bg-emerald-500/8"
+        : isLight ? "text-zinc-700 border-zinc-200 bg-zinc-50" : "text-white/50 border-white/10 bg-white/4";
   return (
     <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-medium ${color}`}>
       <Icon className="w-3 h-3" />
-      <span className="text-white/60 font-normal">{label}:</span>
+      <span className={`font-normal ${isLight ? "text-zinc-500" : "text-white/60"}`}>{label}:</span>
       {value}
     </span>
   );
@@ -723,13 +890,14 @@ interface EditPopoverProps {
   endDate?: string | null;
   saving: boolean;
   showDelete?: boolean;
+  isLight: boolean;
   onSave: (status: string, priority: string, endDate: string | null) => void;
   onRequestDelete?: () => void;
   onClose: () => void;
 }
 
 const EditPopover = forwardRef<HTMLDivElement, EditPopoverProps>(function EditPopover(
-  { anchor, status, priority, endDate, saving, showDelete, onSave, onRequestDelete, onClose },
+  { anchor, status, priority, endDate, saving, showDelete, isLight, onSave, onRequestDelete, onClose },
   ref
 ) {
   const [draftStatus,   setDraftStatus]   = useState(status);
@@ -739,54 +907,65 @@ const EditPopover = forwardRef<HTMLDivElement, EditPopoverProps>(function EditPo
   return (
     <div
       ref={ref}
-      className="app-dropdown-panel z-[70] w-56 animate-in fade-in slide-in-from-top-1 duration-150 rounded-xl border border-white/14 p-4 shadow-2xl backdrop-blur-xl"
+      className={cn(
+        "app-dropdown-panel z-[70] w-56 animate-in fade-in slide-in-from-top-1 duration-150 rounded-xl border p-4 shadow-2xl backdrop-blur-xl",
+        isLight ? "border-zinc-200" : "border-white/14"
+      )}
       style={{
         position: "fixed",
         top: anchor.top,
         left: anchor.left,
-        background:
-          "linear-gradient(160deg, rgba(14, 18, 32, 0.98) 0%, rgba(10, 14, 26, 0.97) 100%)",
+        background: isLight
+          ? "rgba(255, 255, 255, 0.98)"
+          : "linear-gradient(160deg, rgba(14, 18, 32, 0.98) 0%, rgba(10, 14, 26, 0.97) 100%)",
       }}
     >
-      <p className="text-[10px] text-white/40 uppercase tracking-wider font-semibold mb-3">
+      <p className={cn(
+        "text-[10px] uppercase tracking-wider font-semibold mb-3",
+        isLight ? "text-zinc-500" : "text-white/40"
+      )}>
         Editar proyecto
       </p>
       <div className="space-y-1.5">
-        <label className="text-xs text-white/50">Estado</label>
-        <select
+        <label className={cn("text-xs", isLight ? "text-zinc-600" : "text-white/50")}>Estado</label>
+        <Listbox
           value={draftStatus}
-          onChange={(e) => setDraftStatus(e.target.value)}
-          className="w-full h-8 bg-white/5 border border-white/10 rounded-lg px-2.5 text-xs text-white focus:outline-none focus:border-[#ffeb66]/40 focus:bg-white/7"
-        >
-          {STATUS_OPTIONS.map(([k, v]) => (
-            <option key={k} value={k}>{v}</option>
-          ))}
-        </select>
+          onChange={(v) => setDraftStatus(v)}
+          options={STATUS_OPTIONS.map(([k, v]) => ({ value: k, label: v }))}
+          ariaLabel="Estado del proyecto"
+          light={isLight}
+        />
       </div>
       <div className="space-y-1.5 mt-2">
-        <label className="text-xs text-white/50">Prioridad</label>
-        <select
+        <label className={cn("text-xs", isLight ? "text-zinc-600" : "text-white/50")}>Prioridad</label>
+        <Listbox
           value={draftPriority}
-          onChange={(e) => setDraftPriority(e.target.value)}
-          className="w-full h-8 bg-white/5 border border-white/10 rounded-lg px-2.5 text-xs text-white focus:outline-none focus:border-[#ffeb66]/40 focus:bg-white/7"
-        >
-          {PRIORITY_OPTIONS.map(([k, v]) => (
-            <option key={k} value={k}>{v}</option>
-          ))}
-        </select>
+          onChange={(v) => setDraftPriority(v)}
+          options={PRIORITY_OPTIONS.map(([k, v]) => ({ value: k, label: v }))}
+          ariaLabel="Prioridad del proyecto"
+          light={isLight}
+        />
       </div>
       <div className="space-y-1.5 mt-2">
-        <label className="text-xs text-white/50">Fecha límite (opcional)</label>
+        <label className={cn("text-xs", isLight ? "text-zinc-600" : "text-white/50")}>Fecha límite (opcional)</label>
         <div className="flex items-center gap-1">
           <input
             type="date"
             value={draftEndDate}
             onChange={(e) => setDraftEndDate(e.target.value)}
-            className="flex-1 h-8 bg-white/5 border border-white/10 rounded-lg px-2.5 text-xs text-white focus:outline-none focus:border-[#ffeb66]/40 focus:bg-white/7 min-w-0 transition-all duration-200"
+            className={cn(
+              "flex-1 h-8 rounded-lg px-2.5 text-xs focus:outline-none min-w-0 transition-all duration-200",
+              isLight
+                ? "bg-white border border-zinc-300 text-zinc-900 focus:border-amber-400 focus:bg-amber-50/30"
+                : "bg-white/5 border border-white/10 text-white focus:border-[#ffeb66]/40 focus:bg-white/7"
+            )}
           />
           {draftEndDate && (
             <button type="button" onClick={() => setDraftEndDate("")}
-              className="p-1 rounded text-white/30 hover:text-white/60 shrink-0">
+              className={cn(
+                "p-1 rounded shrink-0",
+                isLight ? "text-zinc-400 hover:text-zinc-700" : "text-white/30 hover:text-white/60"
+              )}>
               <X className="w-3 h-3" />
             </button>
           )}
@@ -798,7 +977,12 @@ const EditPopover = forwardRef<HTMLDivElement, EditPopoverProps>(function EditPo
             type="button"
             disabled={saving}
             onClick={() => onSave(draftStatus, draftPriority, draftEndDate || null)}
-            className="inline-flex items-center justify-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-medium bg-[#ffeb66]/15 text-[#ffeb66] border border-[#ffeb66]/25 hover:bg-[#ffeb66]/25 disabled:opacity-50 transition-colors"
+            className={cn(
+              "inline-flex items-center justify-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-medium border disabled:opacity-50 transition-colors",
+              isLight
+                ? "bg-amber-100 text-amber-800 border-amber-300 hover:bg-amber-200"
+                : "bg-[#ffeb66]/15 text-[#ffeb66] border-[#ffeb66]/25 hover:bg-[#ffeb66]/25"
+            )}
           >
             <Check className="w-3 h-3" />
             {saving ? "Guardando…" : "Guardar"}
@@ -807,7 +991,12 @@ const EditPopover = forwardRef<HTMLDivElement, EditPopoverProps>(function EditPo
             type="button"
             onClick={onClose}
             aria-label="Cerrar"
-            className="absolute right-0 top-1/2 -translate-y-1/2 p-1.5 rounded-lg text-white/30 hover:text-white/70 hover:bg-white/6 transition-colors"
+            className={cn(
+              "absolute right-0 top-1/2 -translate-y-1/2 p-1.5 rounded-lg transition-colors",
+              isLight
+                ? "text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100"
+                : "text-white/30 hover:text-white/70 hover:bg-white/6"
+            )}
           >
             <X className="w-3.5 h-3.5" />
           </button>
@@ -817,7 +1006,12 @@ const EditPopover = forwardRef<HTMLDivElement, EditPopoverProps>(function EditPo
             type="button"
             disabled={saving}
             onClick={onRequestDelete}
-            className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-red-500/25 bg-red-500/10 px-3 py-2 text-xs font-medium text-red-300/95 transition-colors hover:bg-red-500/20 disabled:opacity-50"
+            className={cn(
+              "flex w-full items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-medium transition-colors disabled:opacity-50",
+              isLight
+                ? "border-red-200 bg-red-50 text-red-700 hover:bg-red-100"
+                : "border-red-500/25 bg-red-500/10 text-red-300/95 hover:bg-red-500/20"
+            )}
           >
             <Trash2 className="w-3 h-3" />
             Eliminar proyecto…

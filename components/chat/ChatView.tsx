@@ -9,6 +9,9 @@ import {
   ArrowDown,
   Bell,
   BellOff,
+  Bookmark,
+  BookmarkCheck,
+  BookmarkX,
   Check,
   CheckCheck,
   CheckSquare,
@@ -959,51 +962,79 @@ function MessageAttachments({
             />
           );
         }
-        // Archivo descargable
+        // Archivo descargable: zona izquierda abre la previa, botón
+        // derecho fuerza descarga (`?download=1` + atributo HTML download).
         if (a.kind === "FILE" && a.fileUrl) {
+          const downloadUrl = a.fileUrl.includes("?")
+            ? `${a.fileUrl}&download=1`
+            : `${a.fileUrl}?download=1`;
           return (
-            <a
+            <div
               key={a.id}
-              href={a.fileUrl}
-              target="_blank"
-              rel="noreferrer"
               className={cn(
                 "flex items-center gap-2.5 rounded-lg border px-2.5 py-2 text-xs transition-colors",
                 isMine
-                  ? "border-white/15 bg-black/15 text-white hover:bg-black/25"
+                  ? "border-white/15 bg-black/15 text-white"
                   : isLight
-                    ? "border-zinc-200 bg-zinc-50 text-zinc-800 hover:bg-zinc-100"
-                    : "border-white/10 bg-white/[0.04] text-white hover:bg-white/[0.08]"
+                    ? "border-zinc-200 bg-zinc-50 text-zinc-800"
+                    : "border-white/10 bg-white/[0.04] text-white"
               )}
             >
-              <span
+              <a
+                href={a.fileUrl}
+                target="_blank"
+                rel="noreferrer"
                 className={cn(
-                  "flex h-8 w-8 shrink-0 items-center justify-center rounded",
+                  "flex min-w-0 flex-1 items-center gap-2.5 rounded -mx-1 px-1 -my-1 py-1 transition-colors",
                   isMine
-                    ? "bg-white/15"
+                    ? "hover:bg-black/15"
                     : isLight
-                      ? "bg-white"
-                      : "bg-white/[0.08]"
+                      ? "hover:bg-zinc-100"
+                      : "hover:bg-white/[0.04]"
                 )}
+                title="Abrir vista previa"
               >
-                {attachmentKindIcon(a.kind)}
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block truncate font-medium">
-                  {a.fileName ?? "Archivo"}
+                <span
+                  className={cn(
+                    "flex h-8 w-8 shrink-0 items-center justify-center rounded",
+                    isMine
+                      ? "bg-white/15"
+                      : isLight
+                        ? "bg-white"
+                        : "bg-white/[0.08]"
+                  )}
+                >
+                  {attachmentKindIcon(a.kind)}
                 </span>
-                {a.sizeBytes && (
-                  <span
-                    className={cn(
-                      "block truncate text-[10px] opacity-75"
-                    )}
-                  >
-                    {formatBytes(a.sizeBytes)}
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate font-medium">
+                    {a.fileName ?? "Archivo"}
                   </span>
+                  {a.sizeBytes && (
+                    <span className="block truncate text-[10px] opacity-75">
+                      {formatBytes(a.sizeBytes)}
+                    </span>
+                  )}
+                </span>
+              </a>
+              <a
+                href={downloadUrl}
+                download={a.fileName ?? undefined}
+                onClick={(e) => e.stopPropagation()}
+                className={cn(
+                  "flex h-7 w-7 shrink-0 items-center justify-center rounded transition-colors",
+                  isMine
+                    ? "text-white/85 hover:bg-white/15 hover:text-white"
+                    : isLight
+                      ? "text-zinc-500 hover:bg-zinc-200 hover:text-zinc-800"
+                      : "text-white/70 hover:bg-white/10 hover:text-white"
                 )}
-              </span>
-              <Download className="h-3.5 w-3.5 shrink-0 opacity-70" />
-            </a>
+                title="Descargar"
+                aria-label={`Descargar ${a.fileName ?? "archivo"}`}
+              >
+                <Download className="h-3.5 w-3.5" />
+              </a>
+            </div>
           );
         }
         // Referencia interna (TASK / PROJECT / NOTE)
@@ -1740,7 +1771,21 @@ export function ChatView() {
         c.id === conversationId ? { ...c, unreadCount: 0 } : c
       )
     );
-  }, []);
+    // Refrescar el layout para actualizar el badge del Sidebar (cuenta global
+    // de no leídos). router.refresh es no-disruptivo: re-fetch silencioso de
+    // los Server Components sin recargar la página ni perder estado cliente.
+    router.refresh();
+    // Avisamos al Header (campana de notificaciones) de que las
+    // notificaciones asociadas a esta conversación ya están limpias en BBDD,
+    // para que vuelva a pedir /api/notifications sin esperar al polling.
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(
+        new CustomEvent("chat:notifications-cleared", {
+          detail: { conversationId },
+        })
+      );
+    }
+  }, [router]);
 
   const selectConversation = useCallback(
     (id: string) => {
@@ -1937,6 +1982,7 @@ export function ChatView() {
             const patch: ChatMessageItem = { ...m };
             if (data.message.body !== undefined) patch.body = data.message.body ?? "";
             if (data.message.editedAt !== undefined) patch.editedAt = data.message.editedAt;
+            if (data.message.keptAt !== undefined) patch.keptAt = data.message.keptAt;
             if (data.message.reactions !== undefined) {
               patch.reactions = data.message.reactions.map((r) => ({
                 ...r,
@@ -2488,6 +2534,47 @@ export function ChatView() {
     }
   }
 
+  /**
+   * Alterna el estado "Conservar" de un mensaje, evitando que el cron de
+   * limpieza (72 h) lo borre. Cualquier participante puede fijarlo: basta uno
+   * para protegerlo. Optimistic UI con rollback en caso de fallo.
+   */
+  async function toggleKeepMessage(m: ChatMessageItem) {
+    if (!activeId) return;
+    const next = !m.keptAt;
+    const optimisticIso = next ? new Date().toISOString() : null;
+    setMessages((prev) =>
+      prev.map((p) => (p.id === m.id ? { ...p, keptAt: optimisticIso } : p))
+    );
+    setActionMenuFor(null);
+    try {
+      const res = await fetch(
+        `/api/chat/conversations/${activeId}/messages/${m.id}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ keep: next }),
+        }
+      );
+      if (!res.ok) {
+        const data = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(
+          typeof data.error === "string" ? data.error : "No se pudo actualizar"
+        );
+      }
+      const data = (await res.json()) as { keptAt: string | null };
+      setMessages((prev) =>
+        prev.map((p) => (p.id === m.id ? { ...p, keptAt: data.keptAt } : p))
+      );
+      toast.success(next ? "Mensaje conservado" : "Marca de conservación retirada");
+    } catch (err) {
+      setMessages((prev) =>
+        prev.map((p) => (p.id === m.id ? { ...p, keptAt: m.keptAt } : p))
+      );
+      toast.error(err instanceof Error ? err.message : "Error");
+    }
+  }
+
   async function deleteMessage(m: ChatMessageItem) {
     if (!activeId) return;
     if (!window.confirm("¿Eliminar este mensaje? Se reemplazará por «Mensaje eliminado».")) {
@@ -2677,6 +2764,7 @@ export function ChatView() {
           }
         : null,
       reactions: [],
+      keptAt: null,
       pending: "sending",
     };
 
@@ -2808,6 +2896,7 @@ export function ChatView() {
           isDeleted: r.isDeleted,
           replyTo: null,
           reactions: [],
+          keptAt: null,
         });
       }
     }
@@ -4591,6 +4680,21 @@ export function ChatView() {
                                     editado
                                   </span>
                                 )}
+                                {m.keptAt && !m.isDeleted && (
+                                  <span
+                                    title="Mensaje marcado como conservado: no se borrará con la limpieza automática de 72 h"
+                                    className={cn(
+                                      "inline-flex items-center gap-0.5",
+                                      m.isMine
+                                        ? "text-amber-200"
+                                        : L
+                                          ? "text-amber-600"
+                                          : "text-amber-300"
+                                    )}
+                                  >
+                                    <BookmarkCheck className="h-3 w-3" />
+                                  </span>
+                                )}
                                 <span>{formatTime(m.createdAt)}</span>
                                 {(m as ChatMessageItem & {
                                   pending?: "sending" | "failed";
@@ -4810,6 +4914,33 @@ export function ChatView() {
                                     )}
                                   >
                                     <Pencil className="h-3.5 w-3.5" /> Editar
+                                  </button>
+                                )}
+                                {!m.isDeleted && (
+                                  <button
+                                    type="button"
+                                    onClick={() => void toggleKeepMessage(m)}
+                                    title={
+                                      m.keptAt
+                                        ? "Quitar la marca de conservación (el mensaje volverá al ciclo de 72 h)"
+                                        : "Marcar este mensaje para que no se borre con la limpieza automática de 72 h"
+                                    }
+                                    className={cn(
+                                      "flex w-full items-center gap-2 px-3 py-2 text-[12px] font-medium transition-colors",
+                                      L
+                                        ? "text-zinc-700 hover:bg-zinc-50"
+                                        : "text-white/85 hover:bg-white/[0.06]"
+                                    )}
+                                  >
+                                    {m.keptAt ? (
+                                      <>
+                                        <BookmarkX className="h-3.5 w-3.5" /> No conservar
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Bookmark className="h-3.5 w-3.5" /> Conservar
+                                      </>
+                                    )}
                                   </button>
                                 )}
                                 {m.isMine && (

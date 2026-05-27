@@ -23,6 +23,8 @@ import {
   Search,
   Building2,
   ArrowLeft,
+  Sparkles,
+  Zap,
 } from "lucide-react";
 import { Logo } from "@/components/ui/Logo";
 import { Button } from "@/components/ui/Button";
@@ -632,7 +634,7 @@ const roqueImg = "/roque-nublo-silhouette-only.svg";
 const loginRoqueBand = "min(78vh, 920px)";
 const loginOceanHorizonBottom = "min(46vh, 480px)";
 
-function LoginRoqueSilhouette({ night, uiLight }: { night: boolean; uiLight: boolean }) {
+function LoginRoqueSilhouette({ night, uiLight, lite }: { night: boolean; uiLight: boolean; lite: boolean }) {
   /* Negro sólido abajo + transparencia arriba: por los huecos del PNG se ve el cielo; #000 opaco en toda la franja tapaba todo */
   const roqueStageBg =
     "linear-gradient(to top, #000000 0%, #000000 26%, rgba(0,0,0,0.94) 38%, rgba(0,0,0,0.42) 52%, transparent 64%)";
@@ -644,8 +646,8 @@ function LoginRoqueSilhouette({ night, uiLight }: { night: boolean; uiLight: boo
       aria-hidden="true"
     >
       <div className="login-roque-stack relative h-full w-full">
-        {/* Halo borroso: en tema UI claro se omite (evita doble silueta gris) */}
-        {!uiLight && (
+        {/* Halo borroso: en tema UI claro se omite (evita doble silueta gris). En modo ligero también se omite (blur muy costoso). */}
+        {!uiLight && !lite && (
           <>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
@@ -666,53 +668,68 @@ function LoginRoqueSilhouette({ night, uiLight }: { night: boolean; uiLight: boo
   );
 }
 
-function LoginViewportScene({ night, uiLight }: { night: boolean; uiLight: boolean }) {
+function LoginViewportScene({
+  night,
+  uiLight,
+  lite,
+}: {
+  night: boolean;
+  uiLight: boolean;
+  /** Modo ligero: oculta capas animadas/decorativas costosas (estrellas,
+   * nubes, orbes flotantes, olas, vía láctea, "sky live", halo del Roque),
+   * pero mantiene la atmósfera base (cielo + montañas + Roque + viñeta). */
+  lite: boolean;
+}) {
   return (
     <div
       className="login-viewport-scene fixed inset-0 z-0 overflow-hidden pointer-events-none"
       aria-hidden="true"
     >
       <div className={`absolute inset-0 ${night ? "login-bg-night" : "login-bg-day"}`} />
-      {uiLight && (
+      {!lite && uiLight && (
         <div
           className="login-sky-live absolute inset-0 z-0 pointer-events-none"
           aria-hidden="true"
         />
       )}
       {/* Estrellas y Vía Láctea / nubes: solo en franja nocturna local (ver isNightHour en la página) */}
-      {night && <div className="absolute inset-0 login-stars" aria-hidden="true" />}
-      {night && <div className="absolute inset-0 login-milky-hint" />}
-      {night && <div className="login-clouds" aria-hidden="true" />}
-      <div
-        className="absolute top-[8%] left-[18%] w-[28rem] h-[28rem] rounded-full"
-        style={{
-          background: night
-            ? "radial-gradient(circle, rgba(28,55,130,0.35), transparent 70%)"
-            : "radial-gradient(circle, rgba(15,75,150,0.32), transparent 70%)",
-          filter: "blur(80px)",
-          animation: "orb-drift-1 55s ease-in-out infinite",
-        }}
-      />
-      <div
-        className="absolute bottom-[18%] right-[12%] w-72 h-72 rounded-full"
-        style={{
-          background: night
-            ? "radial-gradient(circle, rgba(55,15,110,0.3), transparent 70%)"
-            : "radial-gradient(circle, rgba(0,110,180,0.25), transparent 70%)",
-          filter: "blur(70px)",
-          animation: "orb-drift-2 68s ease-in-out infinite",
-        }}
-      />
-      <div
-        className="absolute top-[42%] right-[28%] w-56 h-56 rounded-full"
-        style={{
-          background: night
-            ? "radial-gradient(circle, rgba(255,235,102,0.06), transparent 70%)"
-            : "radial-gradient(circle, rgba(255,235,102,0.10), transparent 70%)",
-          filter: "blur(55px)",
-          animation: "orb-drift-3 46s ease-in-out infinite",
-        }}
-      />
+      {!lite && night && <div className="absolute inset-0 login-stars" aria-hidden="true" />}
+      {!lite && night && <div className="absolute inset-0 login-milky-hint" />}
+      {!lite && night && <div className="login-clouds" aria-hidden="true" />}
+      {!lite && (
+        <div className="login-orbs absolute inset-0 pointer-events-none" aria-hidden="true">
+          <div
+            className="absolute top-[8%] left-[18%] w-[28rem] h-[28rem] rounded-full"
+            style={{
+              background: night
+                ? "radial-gradient(circle, rgba(28,55,130,0.35), transparent 70%)"
+                : "radial-gradient(circle, rgba(15,75,150,0.32), transparent 70%)",
+              filter: "blur(80px)",
+              animation: "orb-drift-1 55s ease-in-out infinite",
+            }}
+          />
+          <div
+            className="absolute bottom-[18%] right-[12%] w-72 h-72 rounded-full"
+            style={{
+              background: night
+                ? "radial-gradient(circle, rgba(55,15,110,0.3), transparent 70%)"
+                : "radial-gradient(circle, rgba(0,110,180,0.25), transparent 70%)",
+              filter: "blur(70px)",
+              animation: "orb-drift-2 68s ease-in-out infinite",
+            }}
+          />
+          <div
+            className="absolute top-[42%] right-[28%] w-56 h-56 rounded-full"
+            style={{
+              background: night
+                ? "radial-gradient(circle, rgba(255,235,102,0.06), transparent 70%)"
+                : "radial-gradient(circle, rgba(255,235,102,0.10), transparent 70%)",
+              filter: "blur(55px)",
+              animation: "orb-drift-3 46s ease-in-out infinite",
+            }}
+          />
+        </div>
+      )}
       <div className="absolute inset-x-0 bottom-0 z-[1] h-[min(32vh,300px)] w-full min-h-[160px] overflow-hidden">
         <LoginMountainBackdrop night={night} uiLight={uiLight} />
       </div>
@@ -720,8 +737,8 @@ function LoginViewportScene({ night, uiLight }: { night: boolean; uiLight: boole
         className="login-macizo-foot pointer-events-none absolute inset-x-0 bottom-0 z-[2] h-3 w-full"
         aria-hidden="true"
       />
-      <LoginRoqueSilhouette night={night} uiLight={uiLight} />
-      <OceanWaves night={night} uiLight={uiLight} />
+      <LoginRoqueSilhouette night={night} uiLight={uiLight} lite={lite} />
+      {!lite && <OceanWaves night={night} uiLight={uiLight} />}
     </div>
   );
 }
@@ -854,6 +871,12 @@ export default function LoginPage() {
   const [loginUsers, setLoginUsers]     = useState<LoginUser[]>([]);
   const [usersLoading, setUsersLoading] = useState(false);
 
+  /* Toggle de efectos visuales del login (para PCs lentos). El layout
+   * inyecta un script previo a la hidratación que marca
+   * `<html data-login-effects="off">`. Aquí mantenemos el estado React
+   * sincronizado para condicionar listeners y clases CSS. */
+  const [effectsEnabled, setEffectsEnabled] = useState(true);
+
   /* L5 — cursor parallax light */
   const cursorOverlayRef = useRef<HTMLDivElement>(null);
 
@@ -920,6 +943,33 @@ export default function LoginPage() {
     }
   }, []);
 
+  /* Hidrata la preferencia de efectos visuales desde localStorage. */
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("cc-ops-login-effects");
+      setEffectsEnabled(stored === null ? true : stored !== "0");
+    } catch {
+      /* localStorage bloqueado: efectos activos por defecto */
+    }
+  }, []);
+
+  function toggleEffects() {
+    setEffectsEnabled((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem("cc-ops-login-effects", next ? "1" : "0");
+        if (next) {
+          delete document.documentElement.dataset.loginEffects;
+        } else {
+          document.documentElement.dataset.loginEffects = "off";
+        }
+      } catch {
+        /* localStorage bloqueado */
+      }
+      return next;
+    });
+  }
+
   /* L24 — restore lockout state from localStorage */
   useEffect(() => {
     try {
@@ -951,6 +1001,7 @@ export default function LoginPage() {
 
   /* L5 — mouse parallax ambient light (direct DOM mutation, no React re-render) */
   useEffect(() => {
+    if (!effectsEnabled) return;
     const overlay = cursorOverlayRef.current;
     if (!overlay) return;
     function onMouseMove(e: MouseEvent) {
@@ -959,8 +1010,11 @@ export default function LoginPage() {
       overlay!.style.background = `radial-gradient(ellipse 38% 42% at ${x}% ${y}%, rgba(255,235,102,0.038), transparent 65%)`;
     }
     window.addEventListener("mousemove", onMouseMove, { passive: true });
-    return () => window.removeEventListener("mousemove", onMouseMove);
-  }, []);
+    return () => {
+      overlay.style.background = "";
+      window.removeEventListener("mousemove", onMouseMove);
+    };
+  }, [effectsEnabled]);
 
   const loadDepartments = useCallback(async () => {
     setDeptsLoading(true);
@@ -1177,18 +1231,24 @@ export default function LoginPage() {
   return (
     <div
       data-login-page
+      data-login-effects={effectsEnabled ? undefined : "off"}
       className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden p-4"
       style={{ backgroundColor: (night ?? false) ? "#060b18" : "#0a1628" }}
     >
-      <LoginViewportScene night={night ?? false} uiLight={uiLight} />
+      {/* Escena de fondo: cielo, montañas, Roque y viñeta siempre presentes.
+       * Las capas animadas/decorativas (estrellas, nubes, orbes, olas, halo
+       * del Roque…) se ocultan en modo ligero pasando `lite`. */}
+      <LoginViewportScene night={night ?? false} uiLight={uiLight} lite={!effectsEnabled} />
       <div className="login-vignette fixed inset-0" aria-hidden="true" />
 
-      {/* L5 — ambient cursor parallax light layer */}
-      <div
-        ref={cursorOverlayRef}
-        className="fixed inset-0 z-[7] pointer-events-none"
-        aria-hidden="true"
-      />
+      {/* L5 — ambient cursor parallax light layer (solo con efectos activos) */}
+      {effectsEnabled && (
+        <div
+          ref={cursorOverlayRef}
+          className="fixed inset-0 z-[7] pointer-events-none"
+          aria-hidden="true"
+        />
+      )}
 
       {/* L14 — session expired banner */}
       {sessionMessage && (
@@ -1210,9 +1270,11 @@ export default function LoginPage() {
         </div>
       )}
 
-      {/* Login card — L3 shake + L7 ambient glow + L23 responsive padding */}
+      {/* Login card — L3 shake + L7 ambient glow + L23 responsive padding.
+       * En modo ligero se sustituye `glass` (backdrop-filter caro) por una
+       * variante opaca con la misma estética. */}
       <div
-        className={`glass login-card-premium w-full max-w-[calc(100vw-2rem)] sm:max-w-[22rem] rounded-[1.35rem] px-5 sm:px-8 pb-8 sm:pb-9 pt-12 sm:pt-16 z-10 animate-in fade-in slide-in-from-bottom-4 duration-500${isShaking ? " login-shake" : ""}`}
+        className={`${effectsEnabled ? "glass " : ""}login-card-premium${effectsEnabled ? "" : " login-card-premium--lite"} w-full max-w-[calc(100vw-2rem)] sm:max-w-[22rem] rounded-[1.35rem] px-5 sm:px-8 pb-8 sm:pb-9 pt-12 sm:pt-16 z-10 ${effectsEnabled ? "animate-in fade-in slide-in-from-bottom-4 duration-500" : ""}${isShaking ? " login-shake" : ""}`}
         onAnimationEnd={(e) => {
           if (e.animationName === "login-shake") setIsShaking(false);
         }}
@@ -1220,12 +1282,14 @@ export default function LoginPage() {
         <div className="relative z-[1]">
           {/* Logo section */}
           <div className="relative flex flex-col items-center mb-9 w-full min-h-[10rem] pt-2">
-            <div
-              className="login-shimmer pointer-events-none absolute inset-x-3 top-4 h-[11rem] sm:h-[11.75rem] rounded-xl"
-              aria-hidden="true"
-            />
+            {effectsEnabled && (
+              <div
+                className="login-shimmer pointer-events-none absolute inset-x-3 top-4 h-[11rem] sm:h-[11.75rem] rounded-xl"
+                aria-hidden="true"
+              />
+            )}
             {/* L2 — logo power-on entrance */}
-            <div className="relative z-10 w-full px-1 pt-1 login-logo-power-on">
+            <div className={`relative z-10 w-full px-1 pt-1 ${effectsEnabled ? "login-logo-power-on" : ""}`}>
               <Logo size="lg" layout="stacked" showText showTagline={false} className="gap-5 sm:gap-6" />
             </div>
             <div className="relative z-10 mt-6 text-center space-y-1 max-w-[17rem] mx-auto px-1">
@@ -1446,6 +1510,28 @@ export default function LoginPage() {
         </p>
         <CanaryTime />
       </div>
+
+      {/* Toggle de efectos visuales — para PCs lentos */}
+      <button
+        type="button"
+        onClick={toggleEffects}
+        aria-pressed={!effectsEnabled}
+        title={
+          effectsEnabled
+            ? "Desactivar efectos visuales (modo ligero para PCs lentos)"
+            : "Activar efectos visuales"
+        }
+        className="fixed bottom-4 right-4 z-30 group flex items-center gap-2 px-3 py-2 rounded-full text-[11.5px] font-medium border border-white/12 bg-black/35 text-white/55 hover:text-white/85 hover:border-white/22 hover:bg-black/50 transition-colors backdrop-blur-sm"
+      >
+        {effectsEnabled ? (
+          <Sparkles className="w-3.5 h-3.5" />
+        ) : (
+          <Zap className="w-3.5 h-3.5" />
+        )}
+        <span className="hidden sm:inline">
+          {effectsEnabled ? "Modo ligero" : "Modo completo"}
+        </span>
+      </button>
 
       {wiping && <WaveWipe />}
     </div>

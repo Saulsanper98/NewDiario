@@ -21,9 +21,15 @@ import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { sanitizeHtml } from "@/lib/sanitize-html";
 import { cn } from "@/lib/utils";
-import { useDeptMentionAutocomplete } from "@/hooks/use-dept-mention-autocomplete";
-import { commentHasStructuredMentions } from "@/lib/mention-html-snippet";
+import { Listbox } from "@/components/ui/Listbox";
+import { useTheme } from "@/components/layout/ThemeProvider";
+import {
+  commentHasRichHtml,
+  commentPlainText,
+  commentVisibleLength,
+} from "@/lib/mention-html-snippet";
 import { renderPlainTextWithMentions } from "@/components/ui/PlainTextWithMentions";
+import { CommentEditor, type CommentEditorHandle } from "@/components/shared/CommentEditor";
 import type { ProjectKanbanTask } from "@/lib/types/project-detail";
 import { parseLeadingReplyMention } from "@/lib/bitacora-mentions";
 
@@ -50,6 +56,8 @@ export const TaskDetailPanel = forwardRef<HTMLDivElement, TaskDetailPanelProps>(
     { task, allUsers, contractNotifyOptions, mentionDepartmentId, onClose, layout = "docked" },
     ref
   ) {
+  const { theme } = useTheme();
+  const L = theme === "light";
   const router = useRouter();
   const [comment,        setComment]        = useState("");
   const [replyTo,       setReplyTo]        = useState<{ name: string } | null>(null);
@@ -101,7 +109,7 @@ export const TaskDetailPanel = forwardRef<HTMLDivElement, TaskDetailPanelProps>(
   const attachFileRef = useRef<HTMLInputElement>(null);
   const [showUnsavedWarning, setShowUnsavedWarning] = useState(false);
   const titleInputRef = useRef<HTMLInputElement>(null);
-  const taskCommentInputRef = useRef<HTMLTextAreaElement>(null);
+  const taskCommentEditorRef = useRef<CommentEditorHandle>(null);
 
   const taskMentionHighlightNames = useMemo(
     () => [...new Set(allUsers.map((u) => u.name.trim()).filter(Boolean))],
@@ -115,12 +123,6 @@ export const TaskDetailPanel = forwardRef<HTMLDivElement, TaskDetailPanelProps>(
     return [...new Set([...taskMentionHighlightNames, ...fromComments])];
   }, [taskMentionHighlightNames, comments]);
 
-  const taskDeptMention = useDeptMentionAutocomplete({
-    value: comment,
-    onChange: (v) => setComment(v.slice(0, 2000)),
-    departmentId: mentionDepartmentId,
-    inputRef: taskCommentInputRef,
-  });
 
   const isContractDirty =
     contractNotifyUserId !== (task.contractNotifyUserId ?? null) ||
@@ -329,10 +331,9 @@ export const TaskDetailPanel = forwardRef<HTMLDivElement, TaskDetailPanelProps>(
     }
   }
 
-  async function submitComment(e: React.FormEvent) {
-    e.preventDefault();
-    const textOnly = comment.replace(/<[^>]+>/g, "").trim();
-    if (!textOnly) return;
+  async function submitComment(e?: React.FormEvent) {
+    e?.preventDefault();
+    if (commentVisibleLength(comment) === 0) return;
     setSubmitting(true);
     try {
       const res = await fetch(`/api/tasks/${task.id}/comments`, {
@@ -344,6 +345,7 @@ export const TaskDetailPanel = forwardRef<HTMLDivElement, TaskDetailPanelProps>(
       const newComment = await res.json();
       setComments([...comments, newComment]);
       setComment("");
+      taskCommentEditorRef.current?.clear();
       setReplyTo(null);
       router.refresh();
     } catch {
@@ -358,11 +360,7 @@ export const TaskDetailPanel = forwardRef<HTMLDivElement, TaskDetailPanelProps>(
     setReplyTo({ name });
     setComment(`@${name}: `);
     setTimeout(() => {
-      const el = taskCommentInputRef.current;
-      if (el) {
-        el.focus();
-        el.setSelectionRange(el.value.length, el.value.length);
-      }
+      taskCommentEditorRef.current?.focus();
     }, 50);
   }
 
@@ -894,21 +892,16 @@ export const TaskDetailPanel = forwardRef<HTMLDivElement, TaskDetailPanelProps>(
                   <label className="block text-[10px] font-semibold uppercase tracking-wide text-white/35 mb-1">
                     Avisar a (miembro del proyecto)
                   </label>
-                  <select
+                  <Listbox
                     value={contractNotifyUserId ?? ""}
-                    onChange={(e) =>
-                      setContractNotifyUserId(e.target.value || null)
-                    }
-                    className="h-8 w-full bg-white/5 border border-white/10 rounded-lg px-2.5 text-xs text-white/70 focus:outline-none focus:border-amber-400/40 focus:bg-white/7"
-                    aria-label="Usuario aviso por retraso"
-                  >
-                    <option value="">Nadie</option>
-                    {notifyUserChoices.map((u) => (
-                      <option key={u.id} value={u.id}>
-                        {u.name}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(v) => setContractNotifyUserId(v || null)}
+                    options={[
+                      { value: "", label: "Nadie" },
+                      ...notifyUserChoices.map((u) => ({ value: u.id, label: u.name })),
+                    ]}
+                    ariaLabel="Usuario aviso por retraso"
+                    light={L}
+                  />
                 </div>
                 <div>
                   <label className="block text-[10px] font-semibold uppercase tracking-wide text-white/35 mb-1">
@@ -1191,7 +1184,7 @@ export const TaskDetailPanel = forwardRef<HTMLDivElement, TaskDetailPanelProps>(
             {comments.length > 0 && (
               <div className="space-y-3 mb-3">
                 {comments.map((c: TaskCommentRow) => {
-                  const plainForReply = c.content.replace(/<[^>]+>/g, "").replace(/\u00a0/g, " ").trim();
+                  const plainForReply = commentPlainText(c.content);
                   const replyParsed = parseLeadingReplyMention(
                     plainForReply,
                     taskReplyParseNames
@@ -1254,16 +1247,16 @@ export const TaskDetailPanel = forwardRef<HTMLDivElement, TaskDetailPanelProps>(
                           </button>
                         </div>
                       </div>
-                      {replyTarget && !commentHasStructuredMentions(c.content) && (
+                      {replyTarget && !commentHasRichHtml(c.content) && (
                         <div className="flex items-center gap-1 mb-1.5 text-[10px] text-white/35">
                           <CornerDownLeft className="w-3 h-3 shrink-0 text-[#4a9eff]/50" />
                           <span>Respondiendo a</span>
                           <span className="text-[#4a9eff]/75 font-medium">@{replyTarget}</span>
                         </div>
                       )}
-                      {commentHasStructuredMentions(c.content) ? (
+                      {commentHasRichHtml(c.content) ? (
                         <div
-                          className="text-xs text-white/55 [&_span[data-type=mention]]:text-[#4a9eff] [&_span[data-type=mention]]:font-medium whitespace-pre-wrap break-words leading-relaxed"
+                          className="text-xs text-white/55 [&_span[data-type=mention]]:text-[#4a9eff] [&_span[data-type=mention]]:font-medium [&_img]:my-1 [&_img]:rounded-md [&_img]:max-h-56 [&_img]:max-w-full [&_img]:h-auto [&_p]:my-0 whitespace-pre-wrap break-words leading-relaxed"
                           dangerouslySetInnerHTML={{
                             __html: sanitizeHtml(c.content),
                           }}
@@ -1305,21 +1298,12 @@ export const TaskDetailPanel = forwardRef<HTMLDivElement, TaskDetailPanelProps>(
             )}
             <form onSubmit={submitComment} className="space-y-1.5">
               <div className="flex gap-2 items-end">
-                <div className="flex-1 relative min-w-0">
-                  <textarea
-                    ref={taskCommentInputRef}
+                <div className="flex-1 min-w-0">
+                  <CommentEditor
+                    ref={taskCommentEditorRef}
                     value={comment}
-                    {...taskDeptMention.handlers}
-                    onKeyDown={(e) => {
-                      if (e.key === "Escape") {
-                        taskDeptMention.dismiss();
-                        return;
-                      }
-                      if (e.key === "Enter" && !e.shiftKey && !taskDeptMention.showMentionDrop) {
-                        e.preventDefault();
-                        submitComment(e);
-                      }
-                    }}
+                    onChange={setComment}
+                    mentionDepartmentId={mentionDepartmentId}
                     placeholder={
                       replyTo
                         ? `Respondiendo a @${replyTo.name}…`
@@ -1327,51 +1311,16 @@ export const TaskDetailPanel = forwardRef<HTMLDivElement, TaskDetailPanelProps>(
                           ? "Comentario (@ + letra para mencionar, «all» todo el depto)…"
                           : "Añadir comentario…"
                     }
-                    rows={2}
-                    className="w-full bg-white/5 border border-white/8 rounded-lg px-3 py-1.5 text-xs text-white placeholder:text-white/25 focus:outline-none focus:border-[#ffeb66]/40 resize-y min-h-[2.5rem] max-h-32"
+                    variant="task"
+                    onSubmit={() => void submitComment()}
+                    maxLength={2000}
+                    disabled={submitting}
                   />
-                  {taskDeptMention.showMentionDrop && (
-                    <div className="absolute bottom-full left-0 mb-1.5 w-[min(100%,18rem)] max-h-48 overflow-y-auto rounded-lg border border-white/12 bg-[#0a0f1e]/96 shadow-xl z-30">
-                      {taskDeptMention.mentionRows.map((row) => (
-                        <button
-                          key={row.kind === "dept-all" ? "dept-all" : row.id}
-                          type="button"
-                          onMouseDown={(ev) => {
-                            ev.preventDefault();
-                            taskDeptMention.pickMention(row);
-                          }}
-                          className="w-full flex items-center gap-2 px-2.5 py-1.5 text-left hover:bg-white/8 text-[11px]"
-                        >
-                          <span className="flex flex-col min-w-0">
-                            <span className="text-white/80 truncate">
-                              {row.kind === "dept-all" ? "@all" : `@${row.name}`}
-                            </span>
-                            {row.kind === "dept-all" ? (
-                              <span className="text-white/35 truncate text-[10px]">{row.name}</span>
-                            ) : row.email ? (
-                              <span className="text-white/35 truncate text-[10px]">{row.email}</span>
-                            ) : null}
-                          </span>
-                        </button>
-                      ))}
-                      {taskDeptMention.mentionRows.length === 0 && (
-                        <p className="px-2.5 py-2 text-[10px] text-white/30">Sin resultados</p>
-                      )}
-                    </div>
-                  )}
                 </div>
                 <Button type="submit" variant="primary" size="sm" loading={submitting} className="shrink-0">
                   Enviar
                 </Button>
               </div>
-              {comment.length > 0 && (
-                <p className={cn(
-                  "text-[10px] text-right transition-colors",
-                  comment.length > 1800 ? "text-amber-400" : "text-white/20"
-                )}>
-                  {comment.length}/2000
-                </p>
-              )}
             </form>
           </div>
         </div>

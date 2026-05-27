@@ -18,12 +18,21 @@ export type MentionListItem = {
 /** Misma clave que en `Mention.configure` para poder cerrar el menú con `exitSuggestion`. */
 export const richEditorMentionPluginKey = new PluginKey("ccOpsRichMentionAt");
 
-async function fetchMentionItems(query: string, departmentId?: string): Promise<MentionListItem[]> {
+async function fetchMentionItems(
+  query: string,
+  departmentIds?: string[]
+): Promise<MentionListItem[]> {
   const trimmed = query.trim();
   if (trimmed.length < 1) return [];
   const params = new URLSearchParams({ q: trimmed, namesOnly: "1" });
-  const d = departmentId?.trim();
-  if (d) params.set("departmentId", d);
+  const cleanIds = (departmentIds ?? [])
+    .map((s) => (s ?? "").trim())
+    .filter(Boolean);
+  if (cleanIds.length === 1) {
+    params.set("departmentId", cleanIds[0]);
+  } else if (cleanIds.length > 1) {
+    params.set("departmentIds", cleanIds.join(","));
+  }
   const res = await fetch(`/api/users/mentions?${params.toString()}`, {
     credentials: "same-origin",
   });
@@ -39,13 +48,21 @@ async function fetchMentionItems(query: string, departmentId?: string): Promise<
 
 async function fetchMentionItemsWithDeptOption(
   query: string,
-  departmentIdForAll: string
+  departmentIdForAll: string,
+  extraDepartmentIds: string[]
 ): Promise<MentionListItem[]> {
   const trimmed = query.trim();
   if (trimmed.length < 1) return [];
-  const d = departmentIdForAll.trim();
-  const users = await fetchMentionItems(trimmed, d || undefined);
-  if (!d || !matchesDeptAllMentionQuery(trimmed)) return users;
+  const owner = departmentIdForAll.trim();
+  // Conjunto único de deptos donde buscamos usuarios (owner + compartidos)
+  const all = Array.from(
+    new Set(
+      [owner, ...extraDepartmentIds.map((s) => (s ?? "").trim())].filter(Boolean)
+    )
+  );
+  const users = await fetchMentionItems(trimmed, all.length > 0 ? all : undefined);
+  // `@all` sólo aplica al departamento dueño de la nota.
+  if (!owner || !matchesDeptAllMentionQuery(trimmed)) return users;
   const deptRow: MentionListItem = {
     id: BITACORA_DEPT_ALL_MENTION_ID,
     label: "all",
@@ -102,11 +119,15 @@ function positionEl(el: HTMLElement, props: SuggestionProps<MentionListItem>) {
 }
 
 function applyMention(
-  editor: Editor,
+  _editor: Editor,
   props: SuggestionProps<MentionListItem>,
   item: MentionListItem
 ) {
-  editor.chain().focus().run();
+  // No llamamos a `.focus()` antes de `props.command(...)` porque eso movería
+  // el cursor y el plugin de sugerencias perdería el rango actual del trigger
+  // (`@xxx`), provocando que el click no insertase nada y obligando a usar el
+  // teclado. `props.command` se encarga internamente de aplicar la mención en
+  // la posición correcta.
   props.command({ id: item.id, label: item.label });
 }
 
@@ -156,7 +177,13 @@ function renderSuggestionList(
       }
     }
     btn.addEventListener("mouseenter", () => setSelected(index));
+    // `mousedown` con preventDefault impide que el editor pierda el foco
+    // (lo que cerraría la sugerencia antes de tiempo). El insert lo hacemos
+    // en `click` para que también funcione bien con teclado/accesibilidad.
     btn.addEventListener("mousedown", (e) => {
+      e.preventDefault();
+    });
+    btn.addEventListener("click", (e) => {
       e.preventDefault();
       e.stopPropagation();
       applyMention(editor, props, item);
@@ -255,8 +282,19 @@ function createMentionSuggestionRender() {
   };
 }
 
-/** Instancia Mention con soporte opcional `@all` (departamento de la entrada en edición). */
-export function createRichEditorMention(departmentIdForAll: string) {
+/**
+ * Instancia Mention con soporte opcional `@all` (departamento de la entrada en
+ * edición) y búsqueda multi-departamento — útil cuando la nota está compartida
+ * con otros departamentos y quieres poder mencionar a sus miembros.
+ *
+ * @param departmentIdForAll  Departamento dueño de la nota. Habilita `@all`.
+ * @param extraDepartmentIds  Departamentos adicionales (p. ej. los `shares`)
+ *                            cuyos miembros también aparecerán en el autocompletado.
+ */
+export function createRichEditorMention(
+  departmentIdForAll: string,
+  extraDepartmentIds: string[] = []
+) {
   return Mention.configure({
     HTMLAttributes: {
       class: "mention-node",
@@ -267,7 +305,11 @@ export function createRichEditorMention(departmentIdForAll: string) {
       allowSpaces: false,
       shouldShow: ({ query }) => (query?.trim() ?? "").length >= 1,
       items: async ({ query }) =>
-        fetchMentionItemsWithDeptOption(query, departmentIdForAll),
+        fetchMentionItemsWithDeptOption(
+          query,
+          departmentIdForAll,
+          extraDepartmentIds
+        ),
       render: () => createMentionSuggestionRender(),
     },
   });

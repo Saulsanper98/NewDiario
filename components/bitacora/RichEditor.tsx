@@ -53,6 +53,11 @@ interface RichEditorProps {
   onChange:             (html: string) => void;
   /** Departamento de la nota — habilita @all para mencionar a todo el equipo (notificaciones al publicar). */
   mentionDepartmentId?: string;
+  /**
+   * Departamentos adicionales (compartidos con la nota) cuyos miembros también
+   * deben aparecer al usar `@` en el editor. NO afecta a `@all`.
+   */
+  mentionExtraDepartmentIds?: string[];
   placeholder?:        string;
   className?:          string;
   maxLength?:           number;
@@ -62,6 +67,7 @@ export function RichEditor({
   content,
   onChange,
   mentionDepartmentId = "",
+  mentionExtraDepartmentIds,
   placeholder = "Escribe aquí...",
   className,
   maxLength = LOG_ENTRY_CONTENT_MAX,
@@ -114,9 +120,12 @@ export function RichEditor({
       TaskItem.configure({ nested: true }),
       TextAlign.configure({ types: ["heading", "paragraph"] }),
       CharacterCount.configure({ limit: maxLength }),
-      createRichEditorMention(mentionDepartmentId),
+      createRichEditorMention(mentionDepartmentId, mentionExtraDepartmentIds ?? []),
     ],
-    [maxLength, placeholder, mentionDepartmentId]
+    // `mentionExtraDepartmentIds` se serializa a JSON estable para que el
+    // useMemo no se recree en cada render si el array es equivalente.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [maxLength, placeholder, mentionDepartmentId, JSON.stringify(mentionExtraDepartmentIds ?? [])]
   );
 
   const editor = useEditor({

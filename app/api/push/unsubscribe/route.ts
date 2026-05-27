@@ -7,14 +7,16 @@ import type { SessionUser } from "@/lib/auth/types";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const unsubSchema = z.object({
+const unsubscribeSchema = z.object({
   endpoint: z.string().url().min(10).max(2048),
 });
 
 /**
- * POST: elimina una suscripcion de Web Push. Solo permite borrar suscripciones
- * propias del usuario actual (defensivo: aunque el endpoint es unico, no
- * dejamos a un usuario tirar suscripciones de otro).
+ * POST: elimina la suscripcion Web Push del usuario para el `endpoint` dado.
+ *
+ * Solo permitimos borrar suscripciones que pertenezcan al propio usuario
+ * autenticado; intentos contra `endpoint` ajenos devuelven `ok` igualmente
+ * para no filtrar informacion, pero no realizan ningun borrado.
  */
 export async function POST(req: NextRequest) {
   const session = await auth();
@@ -29,13 +31,14 @@ export async function POST(req: NextRequest) {
   } catch {
     return NextResponse.json({ error: "Payload invalido" }, { status: 400 });
   }
-  const parsed = unsubSchema.safeParse(raw);
+  const parsed = unsubscribeSchema.safeParse(raw);
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
+  const { endpoint } = parsed.data;
 
   await prisma.pushSubscription.deleteMany({
-    where: { endpoint: parsed.data.endpoint, userId: user.id },
+    where: { endpoint, userId: user.id },
   });
 
   return NextResponse.json({ ok: true });

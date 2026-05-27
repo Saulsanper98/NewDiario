@@ -55,7 +55,13 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 export function useTheme(): ThemeContextValue {
   const ctx = useContext(ThemeContext);
   if (!ctx) {
-    throw new Error("useTheme debe usarse dentro de ThemeProvider");
+    // Fallback silencioso cuando el componente se usa fuera del provider
+    // (p. ej. tests, errores pre-hidratación o islas server-side aisladas).
+    // Devolvemos "aurora" como valor seguro y un setTheme no-op.
+    return {
+      theme: "aurora",
+      setTheme: () => {},
+    };
   }
   return ctx;
 }

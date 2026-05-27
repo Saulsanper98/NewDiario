@@ -15,8 +15,10 @@ export async function POST(
   const user = session.user as SessionUser;
   const { content } = await req.json();
 
-  const stripped = typeof content === "string" ? content.replace(/<[^>]+>/g, "").trim() : "";
-  if (!stripped) {
+  const raw = typeof content === "string" ? content : "";
+  const stripped = raw.replace(/<[^>]+>/g, "").trim();
+  const hasImage = /<img\b/i.test(raw);
+  if (!stripped && !hasImage) {
     return NextResponse.json({ error: "Content required" }, { status: 400 });
   }
 
@@ -43,14 +45,18 @@ export async function POST(
     },
   });
 
-  const activityPreview = stripped.slice(0, 50);
+  const activityPreview = stripped.length > 0 ? stripped.slice(0, 50) : "[imagen]";
+  const activitySuffix = stripped.length > 50 ? "…" : "";
 
   await prisma.taskActivity.create({
     data: {
       taskId: id,
       userId: user.id,
       type: "COMMENTED",
-      description: `${user.name} comentó: "${activityPreview}${stripped.length > 50 ? "…" : ""}"`,
+      description:
+        stripped.length > 0
+          ? `${user.name} comentó: "${activityPreview}${activitySuffix}"`
+          : `${user.name} adjuntó una imagen en un comentario`,
     },
   });
 
@@ -88,7 +94,10 @@ export async function POST(
         userId: uid,
         type: "TASK_COMMENTED" as const,
         title: "Nuevo comentario en tu tarea",
-        message: `${user.name} comentó en «${task.title}»: ${activityPreview}${stripped.length > 50 ? "…" : ""}`,
+        message:
+          stripped.length > 0
+            ? `${user.name} comentó en «${task.title}»: ${activityPreview}${activitySuffix}`
+            : `${user.name} adjuntó una imagen en «${task.title}»`,
         link: `/proyectos/${task.projectId}?task=${id}`,
       })),
       skipDuplicates: true,

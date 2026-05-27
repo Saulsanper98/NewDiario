@@ -1,16 +1,32 @@
+"use client";
+
 import { cn } from "@/lib/utils";
 import type { HTMLAttributes } from "react";
+import { useTheme } from "@/components/layout/ThemeProvider";
 
 interface CardProps extends HTMLAttributes<HTMLDivElement> {
   hover?: boolean;
+  /**
+   * Fuerza el modo (útil para casos puntuales, p.ej. el detalle de nota que
+   * recibe `light` por prop). Si se omite, el componente lee el tema actual.
+   */
+  light?: boolean;
 }
 
-export function Card({ className, hover, children, ...props }: CardProps) {
+export function Card({ className, hover, light, children, ...props }: CardProps) {
+  const { theme } = useTheme();
+  const L = light ?? theme === "light";
   return (
     <div
       className={cn(
-        "glass rounded-xl p-4",
-        hover && "glass-hover cursor-pointer",
+        "rounded-xl p-4",
+        L
+          ? "border border-black/[0.07] bg-white/82 backdrop-blur-md shadow-[var(--lt-shadow-glass)]"
+          : "glass",
+        hover &&
+          (L
+            ? "hover:bg-white/95 hover:border-black/[0.12] cursor-pointer transition-colors"
+            : "glass-hover cursor-pointer"),
         className
       )}
       {...props}
@@ -40,9 +56,15 @@ export function CardTitle({
   children,
   ...props
 }: HTMLAttributes<HTMLHeadingElement>) {
+  const { theme } = useTheme();
+  const L = theme === "light";
   return (
     <h3
-      className={cn("text-sm font-semibold text-white/90", className)}
+      className={cn(
+        "text-sm font-semibold",
+        L ? "text-zinc-900" : "text-white/90",
+        className
+      )}
       {...props}
     >
       {children}

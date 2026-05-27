@@ -7,7 +7,7 @@ import { getActiveDepartmentId } from "@/lib/auth/permissions";
 import { buildPublishedLogWhere } from "@/lib/bitacora-where";
 import type { SessionUser } from "@/lib/auth/types";
 import { bitacoraFeedInclude } from "@/lib/types/bitacora";
-import { Plus, CalendarDays } from "lucide-react";
+import { Plus } from "lucide-react";
 import Link from "next/link";
 
 const PAGE_SIZE = 25;
@@ -25,6 +25,11 @@ export default async function BitacoraFeedPage({
   if (!deptId) redirect("/login");
 
   const params = await searchParams;
+
+  const dept = await prisma.department.findUnique({
+    where: { id: deptId },
+    select: { name: true },
+  });
 
   const where = buildPublishedLogWhere(user, deptId, {
     type: params.type,
@@ -80,20 +85,6 @@ export default async function BitacoraFeedPage({
         breadcrumb={[{ label: "Bitácora", href: "/bitacora/dia" }, { label: "Feed" }]}
       />
       <div className="flex flex-1 flex-col min-h-0 overflow-hidden">
-        {/* View switch */}
-        <div className="shrink-0 px-6 pt-4 flex items-center gap-1 border-b border-white/8 print:hidden">
-          <Link
-            href="/bitacora/dia"
-            className="flex items-center gap-1.5 px-3 py-2 rounded-t-lg text-xs font-medium text-white/50 hover:text-white hover:bg-white/5 border border-transparent border-b-0 transition-all duration-200 mb-[-1px]"
-          >
-            <CalendarDays className="w-3.5 h-3.5" />
-            Por día
-          </Link>
-          <div className="flex items-center gap-1.5 px-3 py-2 rounded-t-lg text-xs font-medium bg-[#ffeb66]/10 text-[#ffeb66] border border-b-0 border-[#ffeb66]/25 relative top-[1px]">
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
-            Feed
-          </div>
-        </div>
         <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
           <BitacoraFeed
             key={[
@@ -105,6 +96,7 @@ export default async function BitacoraFeedPage({
             ].join("|")}
             logs={logs}
             departmentId={deptId}
+            departmentName={dept?.name ?? undefined}
             currentUserId={user.id}
             initialFilters={params}
             hasMore={hasMore}

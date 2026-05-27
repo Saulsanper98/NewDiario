@@ -14,6 +14,8 @@ import type { ShiftHandoffActive } from "@/lib/types/shift-handoff";
 import { Modal } from "@/components/ui/Modal";
 import { UserProfilePopover } from "@/components/user/UserProfilePopover";
 import { Button } from "@/components/ui/Button";
+import { Listbox } from "@/components/ui/Listbox";
+import { Textarea } from "@/components/ui/Textarea";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/components/layout/ThemeProvider";
 import {
@@ -122,11 +124,28 @@ export function ShiftHandoffPanel({
   return (
     <div className="shrink-0 px-4 sm:px-6 pt-2 pb-1 space-y-2">
       {handoff && (
-        <div className="rounded-xl border border-[#ffeb66]/28 bg-[#ffeb66]/[0.07] px-3 py-2.5 sm:px-4 sm:py-3">
+        <div
+          className={cn(
+            "rounded-xl border px-3 py-2.5 sm:px-4 sm:py-3",
+            L
+              ? "border-amber-300 bg-amber-50/85"
+              : "border-[#ffeb66]/28 bg-[#ffeb66]/[0.07]"
+          )}
+        >
           <div className="flex items-start justify-between gap-2 mb-2">
             <div className="flex items-center gap-2 min-w-0">
-              <ClipboardSignature className="w-4 h-4 text-[#ffeb66] shrink-0" />
-              <p className="text-xs font-semibold text-[#ffeb66] uppercase tracking-wide truncate">
+              <ClipboardSignature
+                className={cn(
+                  "w-4 h-4 shrink-0",
+                  L ? "text-amber-700" : "text-[#ffeb66]"
+                )}
+              />
+              <p
+                className={cn(
+                  "text-xs font-semibold uppercase tracking-wide truncate",
+                  L ? "text-amber-800" : "text-[#ffeb66]"
+                )}
+              >
                 Semilla del turno anterior
               </p>
             </div>
@@ -134,7 +153,12 @@ export function ShiftHandoffPanel({
               type="button"
               onClick={() => void dismiss()}
               disabled={dismissing}
-              className="shrink-0 p-1 rounded-lg text-white/45 hover:text-white hover:bg-white/8 disabled:opacity-50"
+              className={cn(
+                "shrink-0 p-1 rounded-lg disabled:opacity-50",
+                L
+                  ? "text-amber-700 hover:text-amber-900 hover:bg-amber-100"
+                  : "text-white/45 hover:text-white hover:bg-white/8"
+              )}
               aria-label="Archivar semilla"
               title="Ya no mostrar (queda guardada en historial del servidor)"
             >
@@ -145,8 +169,18 @@ export function ShiftHandoffPanel({
               )}
             </button>
           </div>
-          <p className="text-[11px] text-white/40 mb-2 flex items-center gap-1.5 flex-wrap">
-            <ShiftIcon className="w-3 h-3 text-white/50" />
+          <p
+            className={cn(
+              "text-[11px] mb-2 flex items-center gap-1.5 flex-wrap",
+              L ? "text-amber-900/80" : "text-white/40"
+            )}
+          >
+            <ShiftIcon
+              className={cn(
+                "w-3 h-3",
+                L ? "text-amber-700" : "text-white/50"
+              )}
+            />
             <span>{SHIFT_LABELS[handoff.shift]}</span>
             <span>·</span>
             <UserProfilePopover
@@ -160,30 +194,51 @@ export function ShiftHandoffPanel({
             </span>
           </p>
           <div className="grid gap-2 sm:grid-cols-3 text-xs">
-            <div className="rounded-lg bg-black/20 border border-white/8 p-2">
-              <p className="text-[10px] font-medium text-amber-200/80 uppercase mb-1">
-                Pendiente
-              </p>
-              <p className="text-white/75 whitespace-pre-wrap leading-snug">
-                {handoff.pendingText || "—"}
-              </p>
-            </div>
-            <div className="rounded-lg bg-black/20 border border-white/8 p-2">
-              <p className="text-[10px] font-medium text-sky-200/80 uppercase mb-1">
-                Vigilar
-              </p>
-              <p className="text-white/75 whitespace-pre-wrap leading-snug">
-                {handoff.watchText || "—"}
-              </p>
-            </div>
-            <div className="rounded-lg bg-black/20 border border-white/8 p-2 sm:col-span-1">
-              <p className="text-[10px] font-medium text-rose-200/80 uppercase mb-1">
-                No tocar / evitar
-              </p>
-              <p className="text-white/75 whitespace-pre-wrap leading-snug">
-                {handoff.avoidText || "—"}
-              </p>
-            </div>
+            {[
+              { key: "Pendiente", text: handoff.pendingText, tone: "amber" as const },
+              { key: "Vigilar", text: handoff.watchText, tone: "sky" as const },
+              { key: "No tocar / evitar", text: handoff.avoidText, tone: "rose" as const },
+            ].map((b) => {
+              const toneCls = L
+                ? {
+                    amber: "text-amber-800",
+                    sky: "text-sky-800",
+                    rose: "text-rose-800",
+                  }[b.tone]
+                : {
+                    amber: "text-amber-200/80",
+                    sky: "text-sky-200/80",
+                    rose: "text-rose-200/80",
+                  }[b.tone];
+              return (
+                <div
+                  key={b.key}
+                  className={cn(
+                    "rounded-lg border p-2",
+                    L
+                      ? "bg-white border-amber-200/60"
+                      : "bg-black/20 border-white/8"
+                  )}
+                >
+                  <p
+                    className={cn(
+                      "text-[10px] font-medium uppercase mb-1",
+                      toneCls
+                    )}
+                  >
+                    {b.key}
+                  </p>
+                  <p
+                    className={cn(
+                      "whitespace-pre-wrap leading-snug",
+                      L ? "text-zinc-800" : "text-white/75"
+                    )}
+                  >
+                    {b.text || "—"}
+                  </p>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
@@ -197,7 +252,11 @@ export function ShiftHandoffPanel({
             setShift(getCurrentShift());
             setModalOpen(true);
           }}
-          className="border-[#ffeb66]/25 text-[#ffeb66]/90 hover:bg-[#ffeb66]/10"
+          className={cn(
+            L
+              ? "border-amber-300 text-amber-800 hover:bg-amber-50 hover:border-amber-400"
+              : "border-[#ffeb66]/25 text-[#ffeb66]/90 hover:bg-[#ffeb66]/10"
+          )}
         >
           <ClipboardSignature className="w-3.5 h-3.5" />
           Dejar semilla para el siguiente turno
@@ -221,93 +280,45 @@ export function ShiftHandoffPanel({
             >
               Turno desde el que dejas la nota
             </label>
-            <select
+            <Listbox
               value={shift}
-              onChange={(e) =>
-                setShift(e.target.value as "MORNING" | "AFTERNOON" | "NIGHT")
+              onChange={(v) =>
+                setShift(v as "MORNING" | "AFTERNOON" | "NIGHT")
               }
-              className={cn(
-                "h-9 w-full rounded-lg px-3 text-sm focus:outline-none",
-                L
-                  ? "border border-zinc-200 bg-white text-zinc-900 focus:border-amber-400/80 focus:ring-1 focus:ring-amber-400/30"
-                  : "border border-white/12 bg-[#060912] text-white focus:border-[#ffeb66]/45 focus:bg-[#08101f]"
-              )}
-            >
-              {(Object.keys(SHIFT_LABELS) as (keyof typeof SHIFT_LABELS)[]).map(
-                (k) => (
-                  <option key={k} value={k}>
-                    {SHIFT_LABELS[k]}
-                  </option>
-                )
-              )}
-            </select>
-          </div>
-          <div>
-            <label
-              className={cn(
-                "block text-[11px] font-medium uppercase tracking-wide mb-1.5",
-                L ? "text-amber-800" : "text-amber-200/80"
-              )}
-            >
-              ¿Qué quedó colgado?
-            </label>
-            <textarea
-              value={pendingText}
-              onChange={(e) => setPendingText(e.target.value)}
-              rows={3}
-              className={cn(
-                "w-full rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1",
-                L
-                  ? "border border-zinc-200 bg-white text-zinc-900 placeholder:text-zinc-400 focus:border-amber-400/80 focus:ring-amber-400/25"
-                  : "border border-white/12 bg-[#060912] text-white placeholder:text-white/25 focus:border-[#ffeb66]/40 focus:ring-[#ffeb66]/25"
-              )}
-              placeholder="Seguimientos, cambios a medias, cosas sin cerrar…"
+              options={(
+                Object.keys(SHIFT_LABELS) as (keyof typeof SHIFT_LABELS)[]
+              ).map((k) => ({ value: k, label: SHIFT_LABELS[k] }))}
+              light={L}
+              ariaLabel="Turno desde el que dejas la nota"
             />
           </div>
-          <div>
-            <label
-              className={cn(
-                "block text-[11px] font-medium uppercase tracking-wide mb-1.5",
-                L ? "text-sky-800" : "text-sky-200/80"
-              )}
-            >
-              Qué vigilar
-            </label>
-            <textarea
-              value={watchText}
-              onChange={(e) => setWatchText(e.target.value)}
-              rows={3}
-              className={cn(
-                "w-full rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1",
-                L
-                  ? "border border-zinc-200 bg-white text-zinc-900 placeholder:text-zinc-400 focus:border-amber-400/80 focus:ring-amber-400/25"
-                  : "border border-white/12 bg-[#060912] text-white placeholder:text-white/25 focus:border-[#ffeb66]/40 focus:ring-[#ffeb66]/25"
-              )}
-              placeholder="Servicios sensibles, ventanas, alertas…"
-            />
-          </div>
-          <div>
-            <label
-              className={cn(
-                "block text-[11px] font-medium uppercase tracking-wide mb-1.5",
-                L ? "text-rose-800" : "text-rose-200/80"
-              )}
-            >
-              Qué no tocar / evitar
-            </label>
-            <textarea
-              value={avoidText}
-              onChange={(e) => setAvoidText(e.target.value)}
-              rows={3}
-              className={cn(
-                "w-full rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1",
-                L
-                  ? "border border-zinc-200 bg-white text-zinc-900 placeholder:text-zinc-400 focus:border-amber-400/80 focus:ring-amber-400/25"
-                  : "border border-white/12 bg-[#060912] text-white placeholder:text-white/25 focus:border-[#ffeb66]/40 focus:ring-[#ffeb66]/25"
-              )}
-              placeholder="Equipos en mantenimiento, cambios recientes frágiles…"
-            />
-          </div>
+          <Textarea
+            light={L}
+            tone="amber"
+            label="¿Qué quedó colgado?"
+            value={pendingText}
+            onChange={(e) => setPendingText(e.target.value)}
+            rows={3}
+            placeholder="Seguimientos, cambios a medias, cosas sin cerrar…"
+          />
+          <Textarea
+            light={L}
+            tone="sky"
+            label="Qué vigilar"
+            value={watchText}
+            onChange={(e) => setWatchText(e.target.value)}
+            rows={3}
+            placeholder="Servicios sensibles, ventanas, alertas…"
+          />
+          <Textarea
+            light={L}
+            tone="rose"
+            label="Qué no tocar / evitar"
+            value={avoidText}
+            onChange={(e) => setAvoidText(e.target.value)}
+            rows={3}
+            placeholder="Equipos en mantenimiento, cambios recientes frágiles…"
+          />
           <div className="flex justify-end gap-2 pt-2">
             <Button
               type="button"

@@ -929,6 +929,52 @@ html:not([data-theme="light"]) .ProseMirror hr {
   animation: pulse-dot 2s ease-in-out infinite;
 }
 
+/* Suave latido para badges y banners "NUEVO" / críticos */
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.78; }
+}
+.animate-pulse-soft {
+  animation: pulse-soft 2.4s ease-in-out infinite;
+}
+
+/* Halo expansivo (timeline) para entradas no leídas */
+/* Utilidad: oculta la barra de scroll manteniendo el scroll */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Entrada suave de las tarjetas de Novedades */
+@keyframes novedades-card-in {
+  0% { opacity: 0; transform: translateY(10px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+.animate-novedades-card-in {
+  animation: novedades-card-in 0.45s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+
+/* Brillo continuo del punto del timeline para items sin leer */
+@keyframes novedades-dot-glow {
+  0%, 100% { box-shadow: 0 0 0 0 currentColor, 0 0 18px 4px currentColor; }
+  50%      { box-shadow: 0 0 0 6px transparent, 0 0 26px 8px currentColor; }
+}
+.animate-novedades-dot-glow {
+  animation: novedades-dot-glow 2.4s ease-in-out infinite;
+}
+
+@keyframes ping-soft {
+  0% { box-shadow: 0 0 0 0 rgba(255, 235, 102, 0.55); }
+  70% { box-shadow: 0 0 0 10px rgba(255, 235, 102, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(255, 235, 102, 0); }
+}
+.animate-ping-soft {
+  animation: ping-soft 2.2s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
 /* mejora 38 — status badge change animation */
 @keyframes badge-pop-in {
   from { transform: scale(0.82); opacity: 0; }
@@ -1494,6 +1540,54 @@ textarea:focus ~ .input-focus-bar {
       rgba(255, 255, 255, 0.022) 100%
     ),
     rgba(4, 7, 14, 0.66);
+}
+
+/* Card "ligera" del login (variante sin glass/blur, manteniendo el aspecto). */
+.login-card-premium--lite {
+  background:
+    linear-gradient(
+      145deg,
+      rgba(255, 255, 255, 0.06) 0%,
+      rgba(255, 255, 255, 0.025) 100%
+    ),
+    rgba(7, 12, 22, 0.92);
+}
+
+/* ── Modo ligero del login ────────────────────────────────────────────────
+ * Se aplica via <html data-login-effects="off"> (inyectado por el script
+ * inline del layout antes de la hidratación). Oculta SOLO las capas
+ * animadas/decorativas costosas; el fondo base (cielo + montañas + Roque
+ * + viñeta) se mantiene intacto. CSS sirve como red de seguridad para el
+ * brevísimo lapso entre el primer paint y la hidratación de React. */
+:root[data-login-effects="off"] .login-shimmer,
+:root[data-login-effects="off"] .login-stars,
+:root[data-login-effects="off"] .login-milky-hint,
+:root[data-login-effects="off"] .login-clouds,
+:root[data-login-effects="off"] .login-ocean-horizon,
+:root[data-login-effects="off"] .login-orbs,
+:root[data-login-effects="off"] .login-sky-live,
+:root[data-login-effects="off"] .login-roque-bloom {
+  display: none !important;
+}
+
+:root[data-login-effects="off"] .login-logo-power-on,
+:root[data-login-effects="off"] .login-field-enter,
+:root[data-login-effects="off"] [data-login-page] .animate-in {
+  animation: none !important;
+  opacity: 1 !important;
+  transform: none !important;
+}
+
+:root[data-login-effects="off"] .glass.login-card-premium {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  background:
+    linear-gradient(
+      145deg,
+      rgba(255, 255, 255, 0.06) 0%,
+      rgba(255, 255, 255, 0.025) 100%
+    ),
+    rgba(7, 12, 22, 0.92) !important;
 }
 
 /* Viñeta: solo cielo / bordes; el suelo (Roque + mar) queda fuera para no “flotar” el macizo */
@@ -2175,9 +2269,10 @@ html[data-theme="light"] .chat-page-root .chat-page-inner::before {
 /* ── Mobile bottom nav tap feedback (mejora 12) ──────────────────────────── */
 .mobile-nav-link {
   -webkit-tap-highlight-color: transparent;
+  scroll-snap-align: start;
 }
 .mobile-nav-link:active {
-  transform: scale(0.9);
+  transform: scale(0.94);
   background-color: rgba(255, 235, 102, 0.12);
   border-radius: 10px;
 }
@@ -2185,6 +2280,19 @@ html[data-theme="light"] .chat-page-root .chat-page-inner::before {
   .mobile-nav-link:active {
     transform: none;
   }
+}
+
+/* Scroll horizontal con snap suave en el bottom nav */
+.mobile-nav-scroll {
+  scroll-snap-type: x proximity;
+  scroll-padding: 4px;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.mobile-nav-scroll::-webkit-scrollbar {
+  display: none;
 }
 
 /* ── Widget fade-in stagger (Dashboard) ──────────────────────────────────── */
@@ -2269,12 +2377,59 @@ html[data-theme="light"] .chat-page-root .chat-page-inner::before {
     display: none !important;
   }
   #main-content {
-    padding-bottom: 4rem; /* space for bottom nav */
+    /* space for bottom nav + iOS safe area */
+    padding-bottom: calc(3.5rem + env(safe-area-inset-bottom, 0px));
   }
 }
 @media (min-width: 641px) {
   .mobile-bottom-nav {
     display: none !important;
+  }
+}
+
+/* ── Mobile UX hardening ──────────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  /* Evita el "zoom into" automático de iOS al enfocar inputs cuando el font-size
+     declarado es menor de 16px — fuerza el tamaño visual a 16px sin alterar
+     el diseño general, manteniendo nuestra escala tipográfica con line-height. */
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="number"],
+  input[type="search"],
+  input[type="tel"],
+  input[type="url"],
+  input[type="date"],
+  input[type="datetime-local"],
+  input[type="time"],
+  input[type="month"],
+  input[type="week"],
+  textarea,
+  select {
+    font-size: 16px;
+  }
+
+  /* Evitar overflow horizontal accidental en móvil */
+  html,
+  body {
+    overscroll-behavior-x: none;
+  }
+
+  /* Reducir paddings de cards grandes en móvil para aprovechar espacio */
+  .config-microsoft-root .grid,
+  .config-appsettings-root .grid {
+    gap: 0.5rem;
+  }
+
+  /* Tablas: no fuerzan layout fijo en móvil; permiten scroll horizontal del contenedor */
+  table {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Botones primarios alcanzan al menos 44px de altura para tap target accesible */
+  button,
+  a[role="button"] {
+    -webkit-tap-highlight-color: rgba(255, 235, 102, 0.18);
   }
 }
 
@@ -2604,10 +2759,19 @@ textarea::placeholder {
 }
 
 /*
- * Bitácora — política compacta (editor = lectura = preview).
- * Un Enter = nuevo <p> sin margen extra entre párrafos (--bitacora-p-gap: 0).
- * Doble Enter / línea en blanco: TipTap → <p><br></p>; sanitize añade .bitacora-blank-line.
- * El <br> decorativo ProseMirror-trailingBreak se oculta en editor y se quita al sanear.
+ * Bitácora — política compacta SOLO en lectura/preview (no en el editor).
+ * En el editor TipTap se respeta el comportamiento por defecto para que
+ * Enter haga lo que un usuario espera: crear visiblemente una línea
+ * nueva. Sin esto, los <p> vacíos quedaban con altura 0 y la sensación
+ * era que "Enter no hace nada" — había que usar Shift+Enter.
+ *
+ * - Lectura (.prose sin .ProseMirror): párrafos sin gap entre sí; los
+ *   <p> vacíos se ocultan; las líneas en blanco intencionales se marcan
+ *   con .bitacora-blank-line (añadida por el saneador) o con
+ *   <p><br></p> y se renderizan como hueco mínimo.
+ * - Editor (.ProseMirror): TipTap por defecto. Enter visible, los <br>
+ *   decorativos de trailing también se ven para dar altura al <p> en el
+ *   que está el cursor.
  */
 [data-bitacora-prose] {
   --bitacora-p-gap: 0;
@@ -2616,28 +2780,22 @@ textarea::placeholder {
 }
 
 [data-bitacora-prose].prose > p,
-[data-bitacora-prose].prose p,
-[data-bitacora-prose] .ProseMirror.prose > p,
-[data-bitacora-prose] .ProseMirror.prose p {
+[data-bitacora-prose].prose p {
   margin-block-end: 0 !important;
   margin-bottom: 0 !important;
 }
 
 [data-bitacora-prose].prose > p + p,
-[data-bitacora-prose].prose p + p,
-[data-bitacora-prose] .ProseMirror.prose > p + p,
-[data-bitacora-prose] .ProseMirror.prose p + p {
+[data-bitacora-prose].prose p + p {
   margin-block-start: var(--bitacora-p-gap) !important;
   margin-top: var(--bitacora-p-gap) !important;
 }
 
-[data-bitacora-prose].prose p:empty,
-[data-bitacora-prose] .ProseMirror.prose p:empty {
+[data-bitacora-prose].prose p:empty {
   display: none !important;
 }
 
-[data-bitacora-prose].prose .bitacora-blank-line,
-[data-bitacora-prose] .ProseMirror.prose p:has(> br:only-child) {
+[data-bitacora-prose].prose .bitacora-blank-line {
   display: block !important;
   /* El <br> ya genera una línea; min-height duplicaba hueco vs. lectura */
   min-height: 0 !important;
@@ -2647,14 +2805,6 @@ textarea::placeholder {
   line-height: 1.35;
 }
 
-/*
- * ProseMirror añade al DOM (no siempre en getHTML) un <br> decorativo al final de bloques;
- * si llega a serializarse o se copia HTML, ocultarlo en el editor evita “doble línea” por párrafo.
- */
-[data-bitacora-prose] .ProseMirror br.ProseMirror-trailingBreak {
-  display: none !important;
-}
-
 /* Imágenes/vídeo como bloque: evita hueco de baseline (img inline dentro de <p>) */
 [data-bitacora-prose] img,
 [data-bitacora-prose] video {
@@ -2662,6 +2812,26 @@ textarea::placeholder {
   max-width: 100%;
   height: auto;
   margin-block: 0 !important;
+}
+
+/* ── Listbox / custom select (components/ui/Listbox.tsx) ──────────────────── */
+@keyframes listbox-in {
+  from {
+    opacity: 0;
+    transform: scale(0.97) translateY(-2px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+.animate-listbox-in {
+  animation: listbox-in 0.12s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-listbox-in {
+    animation: none;
+  }
 }
 
 /* ── #66: Login clouds — reduce opacity on landscape tablets ─────────────── */

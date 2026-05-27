@@ -153,9 +153,14 @@ export function Avatar({
       onError={(e) => {
         e.currentTarget.style.display = "none";
       }}
+      // IMPORTANTE: ya NO añadimos `border border-white/10` ni cuando el avatar
+      // está "sin marco". Ese borde, sumado a la curvatura `rounded-full` y a
+      // contrastes claros/oscuros del banner, era percibido como una "media
+      // luna" de sombra en la mitad inferior del círculo. Si necesitas separar
+      // visualmente el avatar del fondo, hazlo desde el contenedor (anillo,
+      // padding + bg, etc.), no desde el propio avatar.
       className={cn(
         "block h-full w-full rounded-full object-cover",
-        !framed && "border border-white/10",
         className
       )}
       style={objectPositionStyle}
@@ -166,7 +171,6 @@ export function Avatar({
       aria-label={name}
       className={cn(
         "flex h-full w-full items-center justify-center rounded-full font-semibold",
-        !framed && "border border-white/10",
         className
       )}
       style={{
@@ -183,9 +187,11 @@ export function Avatar({
     return (
       <span
         className={cn(
-          // bg-[#0d1427] garantiza que si la imagen tiene transparencia
-          // o tarda en cargar, no se vea lo que hay detrás (banner, etc.).
-          "relative inline-flex shrink-0 overflow-hidden rounded-full bg-[#0d1427]",
+          // Dejamos el contenedor transparente: el "anillo" o "marco" debe
+          // venir del consumidor del Avatar (UsersTab, MyProfileTab, etc.). De
+          // este modo evitamos cualquier sombra/halo aplicado por defecto que
+          // pueda interpretarse como "media luna" sobre banners contrastados.
+          "relative inline-flex shrink-0 overflow-hidden rounded-full",
           sizes[size]
         )}
       >

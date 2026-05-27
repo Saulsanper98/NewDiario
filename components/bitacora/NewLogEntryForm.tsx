@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import toast from "react-hot-toast";
@@ -15,6 +15,8 @@ import { RichEditor } from "./RichEditor";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Card } from "@/components/ui/Card";
+import { Listbox } from "@/components/ui/Listbox";
+import { Switch } from "@/components/ui/Switch";
 import { getCurrentShift, TYPE_LABELS, cn } from "@/lib/utils";
 import type { ThemeMode } from "@/lib/theme";
 import { sanitizeHtml } from "@/lib/sanitize-html";
@@ -377,6 +379,7 @@ export function NewLogEntryForm({
 
   const {
     register,
+    control,
     watch,
     handleSubmit,
     setValue,
@@ -950,6 +953,9 @@ export function NewLogEntryForm({
               onChange={setContent}
               maxLength={LOG_ENTRY_CONTENT_MAX}
               mentionDepartmentId={deptForEntry}
+              // Permite mencionar también a miembros de los departamentos con
+              // los que la nota se ha compartido.
+              mentionExtraDepartmentIds={sharedWith.map((s) => s.departmentId)}
               placeholder={
                 !editingEntry && pollDrafts.length > 0
                   ? "Opcional: contexto adicional. Puedes publicar solo con encuestas y sin texto aquí."
@@ -1044,24 +1050,20 @@ export function NewLogEntryForm({
               >
                 Tendencia
               </label>
-              <select
-                id="metric-anchor-trend"
+              <Listbox
                 value={metricTrend}
-                onChange={(e) =>
-                  setMetricTrend(e.target.value as "" | "UP" | "DOWN" | "FLAT")
+                onChange={(v) =>
+                  setMetricTrend(v as "" | "UP" | "DOWN" | "FLAT")
                 }
-                className={cn(
-                  "h-9 w-full shrink-0 rounded-lg border px-3 text-sm transition-colors focus:outline-none focus:ring-2",
-                  theme === "light"
-                    ? "border-zinc-200/80 bg-white/75 text-zinc-900 backdrop-blur-md shadow-[inset_0_1px_0_rgba(255,255,255,0.85)] focus:border-[#c4ae16]/72 focus:ring-[#d4bc1a]/22"
-                    : "border-white/10 bg-white/5 text-white/85 focus:border-[#ffeb66]/35 focus:ring-[#ffeb66]/15"
-                )}
-              >
-                <option value="">— Sin indicar —</option>
-                <option value="UP">Sube</option>
-                <option value="DOWN">Baja</option>
-                <option value="FLAT">Estable</option>
-              </select>
+                options={[
+                  { value: "", label: "— Sin indicar —" },
+                  { value: "UP", label: "Sube" },
+                  { value: "DOWN", label: "Baja" },
+                  { value: "FLAT", label: "Estable" },
+                ]}
+                light={theme === "light"}
+                ariaLabel="Tendencia de la métrica"
+              />
             </div>
           </div>
         </div>
@@ -1132,13 +1134,20 @@ export function NewLogEntryForm({
               "border border-amber-200/45 bg-gradient-to-br from-amber-50/55 via-white/40 to-white/30 backdrop-blur-lg shadow-[inset_0_1px_0_rgba(255,255,255,0.75),0_4px_20px_rgba(245,158,11,0.08)]"
           )}
         >
-          <label className="flex items-center gap-3 cursor-pointer group">
-            <input
-              type="checkbox"
-              {...register("requiresFollowup")}
-              className="w-4 h-4 accent-[#d4bc1a] shrink-0"
+          <div className="flex items-center gap-3 group">
+            <Controller
+              control={control}
+              name="requiresFollowup"
+              render={({ field }) => (
+                <Switch
+                  checked={Boolean(field.value)}
+                  onCheckedChange={(checked) => field.onChange(checked)}
+                  light={theme === "light"}
+                  label="Requiere seguimiento"
+                />
+              )}
             />
-            <div>
+            <div className="cursor-default">
               <p
                 className={cn(
                   "text-sm font-medium flex items-center gap-2",
@@ -1162,7 +1171,7 @@ export function NewLogEntryForm({
                 Esta entrada quedará marcada para atención posterior
               </p>
             </div>
-          </label>
+          </div>
         </Card>
 
         {/* B38 — Share with departments (accent colors) */}

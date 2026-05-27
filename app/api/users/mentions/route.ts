@@ -21,6 +21,10 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const q = (searchParams.get("q") ?? "").trim();
   const departmentIdParam = searchParams.get("departmentId")?.trim() ?? "";
+  // `departmentIds` (CSV) — autocompletar mencionando a miembros de varios
+  // departamentos (p. ej. el propio de la nota + los departamentos con los que
+  // ha sido compartida).
+  const departmentIdsParam = searchParams.get("departmentIds")?.trim() ?? "";
   const namesOnly =
     searchParams.get("namesOnly") === "1" || searchParams.get("namesOnly") === "true";
 
@@ -33,7 +37,30 @@ export async function GET(req: NextRequest) {
     | { departments: { some: { departmentId: { in: string[] } } } }
     | Record<string, never> = {};
 
-  if (departmentIdParam) {
+  if (departmentIdsParam) {
+    const requested = Array.from(
+      new Set(
+        departmentIdsParam
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean)
+      )
+    );
+    if (requested.length === 0) {
+      return NextResponse.json({ users: [] });
+    }
+    // Permitimos esta búsqueda multi-depto sólo si el actor pertenece al
+    // menos a uno de los departamentos solicitados (típicamente porque está
+    // editando/comentando una nota compartida entre ellos).
+    const actorDeptIds = new Set(actor.departments.map((d) => d.id));
+    const hasAny = requested.some((id) => actorDeptIds.has(id));
+    if (!isSuperAdmin(actor) && !hasAny) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+    departmentScope = {
+      departments: { some: { departmentId: { in: requested } } },
+    };
+  } else if (departmentIdParam) {
     const allowed =
       isSuperAdmin(actor) ||
       actor.departments.some((d) => d.id === departmentIdParam);

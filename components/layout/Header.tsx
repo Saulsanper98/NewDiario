@@ -44,7 +44,8 @@ type NotifItem = {
     | "PROJECT_SHARED"
     | "MENTION"
     | "BUG_REPORT_CLOSED"
-    | "CHAT_MESSAGE";
+    | "CHAT_MESSAGE"
+    | "CHAT_RETENTION_WARNING";
 };
 
 function isInternalLink(link: string): boolean {
@@ -176,6 +177,19 @@ export function Header({ user, breadcrumb }: HeaderProps) {
   useEffect(() => {
     if (notifOpen) void refreshNotifications();
   }, [notifOpen, refreshNotifications]);
+
+  // Escucha eventos disparados desde el chat (cuando el usuario lee una
+  // conversación) y desde el bus de tiempo real, para refrescar la campana
+  // sin tener que esperar al polling de 30 s.
+  useEffect(() => {
+    const onClear = () => { void refreshNotifications(); };
+    window.addEventListener("chat:notifications-cleared", onClear);
+    window.addEventListener("notifications:refresh", onClear);
+    return () => {
+      window.removeEventListener("chat:notifications-cleared", onClear);
+      window.removeEventListener("notifications:refresh", onClear);
+    };
+  }, [refreshNotifications]);
 
   /* Close dropdowns on outside click or Escape */
   useEffect(() => {

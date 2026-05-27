@@ -15,13 +15,14 @@ import {
   BookOpen,
   FolderKanban,
   ArrowLeftRight,
-  CalendarOff,
+  CalendarDays,
   MessageCircle,
   Settings,
   Bug,
   PanelLeft,
   PanelLeftClose,
   Sparkles,
+  Megaphone,
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { cn } from "@/lib/utils";
@@ -57,7 +58,7 @@ const navSections: NavSection[] = [
       { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, exact: true },
       { label: "Bitácora", href: "/bitacora/dia", icon: BookOpen },
       { label: "Traspaso", href: "/traspaso", icon: ArrowLeftRight, exact: true },
-      { label: "Disponibilidad", href: "/disponibilidad", icon: CalendarOff, exact: true },
+      { label: "Calendario", href: "/calendario", icon: CalendarDays },
     ],
   },
   {
@@ -104,6 +105,7 @@ interface SidebarProps {
   isBugReportsAdmin?: boolean;
   openBugReports?: number;
   unreadChatMessages?: number;
+  unreadReleaseNotes?: number;
 }
 
 export function Sidebar({
@@ -113,6 +115,7 @@ export function Sidebar({
   isBugReportsAdmin = false,
   openBugReports = 0,
   unreadChatMessages = 0,
+  unreadReleaseNotes = 0,
 }: SidebarProps) {
   const { theme } = useTheme();
   const isLight = theme === "light";
@@ -286,6 +289,7 @@ export function Sidebar({
             {
               title: "Sistema",
               items: [
+                { label: "Novedades", href: "/novedades", icon: Megaphone, exact: true },
                 ...(isBugReportsAdmin
                   ? [{ label: "Incidencias", href: "/bugs", icon: Bug } as NavItem]
                   : []),
@@ -331,7 +335,9 @@ export function Sidebar({
                       ? pathname.startsWith("/bugs")
                       : item.href === "/configuracion"
                         ? pathname.startsWith("/configuracion")
-                        : isActive(item);
+                        : item.href === "/novedades"
+                          ? pathname.startsWith("/novedades")
+                          : isActive(item);
 
                   const badge =
                     item.href === "/bitacora/dia" && pendingFollowups > 0
@@ -340,8 +346,11 @@ export function Sidebar({
                         ? unreadChatMessages
                         : item.href === "/bugs" && openBugReports > 0
                           ? openBugReports
-                          : 0;
+                          : item.href === "/novedades" && unreadReleaseNotes > 0
+                            ? unreadReleaseNotes
+                            : 0;
                   const badgeIsBug = item.href === "/bugs";
+                  const badgeIsNovedades = item.href === "/novedades";
                   const bitacoraHint =
                     item.href === "/bitacora/dia" && badge > 0
                       ? `${badge} entrada(s) con seguimiento pendiente: abre el filtro para verlas y marca «atendido» en cada una (no se quita solo al leer).`
@@ -393,7 +402,9 @@ export function Sidebar({
                               "absolute -top-1 -right-1 min-w-[14px] h-3.5 px-0.5 rounded-full text-[8px] font-bold flex items-center justify-center leading-none",
                               badgeIsBug
                                 ? "bg-red-400 text-[#0a0f1e]"
-                                : "bg-amber-400 text-[#0a0f1e]"
+                                : badgeIsNovedades
+                                  ? "bg-[#ffeb66] text-[#0a0f1e] pulse-dot"
+                                  : "bg-amber-400 text-[#0a0f1e]"
                             )}
                           >
                             {badge > 9 ? "9+" : badge}
@@ -412,14 +423,18 @@ export function Sidebar({
                                 "ml-auto shrink-0 text-[9px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded-full leading-none",
                                 badgeIsBug
                                   ? "bg-red-400/15 text-red-300"
-                                  : "bg-amber-400/15 text-amber-400"
+                                  : badgeIsNovedades
+                                    ? "bg-[#ffeb66]/15 text-[#ffeb66]"
+                                    : "bg-amber-400/15 text-amber-400"
                               )}
                             >
                               {badgeIsBug
                                 ? badge
-                                : item.href === "/bitacora/dia"
-                                  ? `${badge} seg.`
-                                  : badge}
+                                : badgeIsNovedades
+                                  ? "NUEVO"
+                                  : item.href === "/bitacora/dia"
+                                    ? `${badge} seg.`
+                                    : badge}
                             </span>
                           )}
                         </span>

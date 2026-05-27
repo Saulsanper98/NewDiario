@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { setFaviconBadge } from "@/lib/notifications/favicon";
 import { playNotificationSound } from "@/lib/notifications/sound";
 import {
@@ -16,6 +17,9 @@ import { refreshPushSubscriptionSilently } from "@/lib/notifications/push-client
  * dentro del dashboard, se encarga de:
  *
  *  - Hacer poll cada 18 s al endpoint /api/chat/unread.
+ *  - Mantener un EventSource a /api/chat/stream para refrescar el layout
+ *    (badges del Sidebar) en tiempo real cuando llega un mensaje nuevo o
+ *    el propio usuario lo marca como leído desde otra pestaña/dispositivo.
  *  - Actualizar el favicon con un badge numerico (incluso en otras paginas).
  *  - Reproducir un "ding" sutil cuando el contador AUMENTA (mensaje nuevo).
  *  - Anteponer al titulo de la pestana "(n)" para reforzar el aviso.
@@ -26,10 +30,30 @@ import { refreshPushSubscriptionSilently } from "@/lib/notifications/push-client
  * actualiza la vista).
  */
 export function ChatNotifier({ initialUnread }: { initialUnread: number }) {
+  const router = useRouter();
   const lastUnreadRef = useRef<number>(initialUnread);
   const previousTitleRef = useRef<string>("");
 
   useEffect(() => {
+    // router.refresh() con debounce de 1 s para evitar cascada de re-fetches
+    // si llegan varios eventos seguidos (típico al abrir una conv con muchos).
+    let refreshTimer: ReturnType<typeof setTimeout> | null = null;
+    let lastRefreshAt = 0;
+    const refreshLayoutDebounced = () => {
+      const now = Date.now();
+      const since = now - lastRefreshAt;
+      if (since > 1000) {
+        lastRefreshAt = now;
+        router.refresh();
+        return;
+      }
+      if (refreshTimer) return;
+      refreshTimer = setTimeout(() => {
+        refreshTimer = null;
+        lastRefreshAt = Date.now();
+        router.refresh();
+      }, 1000 - since);
+    };
     if (typeof document !== "undefined") {
       previousTitleRef.current = document.title.replace(/^\(\d+\+?\)\s*/, "");
     }
@@ -75,6 +99,13 @@ export function ChatNotifier({ initialUnread }: { initialUnread: number }) {
         setFaviconBadge(next);
         updateTitle(next);
 
+        // Si el número de no-leídos cambió respecto al render del layout,
+        // refrescamos el Sidebar (badge global). router.refresh() es un
+        // re-fetch silencioso de Server Components — no recarga la página.
+        if (next !== prev) {
+          refreshLayoutDebounced();
+        }
+
         // Solo sonamos cuando el contador sube y, ademas, el usuario no
         // esta activamente leyendo el chat en primer plano.
         const inChat =
@@ -97,17 +128,48 @@ export function ChatNotifier({ initialUnread }: { initialUnread: number }) {
       if (!document.hidden) void tick();
     }
     document.addEventListener("visibilitychange", onVisible);
+
+    // ── SSE: refrescar inmediatamente al detectar eventos relevantes ──
+    // EventSource se reconecta solo si la red se cae; no hace falta gestión
+    // manual. Mantenemos una sola conexión por pestaña: ChatView abre la
+    // suya cuando está en /chat, pero aquí en el layout cubrimos el resto
+    // de páginas para que el badge se actualice viva donde viva el usuario.
+    let es: EventSource | null = null;
+    try {
+      es = new EventSource("/api/chat/stream");
+      const onAnyChatEvent = () => {
+        // Tras un evento, volvemos a consultar el contador y refrescamos el
+        // layout (el debounce evita exceso de fetches si llegan muchos
+        // eventos seguidos, p. ej. al recibir varios mensajes).
+        void tick();
+        refreshLayoutDebounced();
+      };
+      es.addEventListener("message:new", onAnyChatEvent);
+      es.addEventListener("message:update", onAnyChatEvent);
+      es.addEventListener("message:delete", onAnyChatEvent);
+      es.addEventListener("read:update", onAnyChatEvent);
+    } catch {
+      /* EventSource no disponible / SSR: ignorar */
+    }
+
     return () => {
       cancelled = true;
       clearInterval(t);
+      if (refreshTimer) {
+        clearTimeout(refreshTimer);
+        refreshTimer = null;
+      }
       document.removeEventListener("visibilitychange", onVisible);
+      if (es) {
+        try { es.close(); } catch { /* ignore */ }
+      }
       setFaviconBadge(0);
       // Restaura el titulo cuando salimos del dashboard.
       if (previousTitleRef.current) {
         document.title = previousTitleRef.current;
       }
     };
-  }, [initialUnread]);
+  }, [initialUnread, router]);
 
   return null;
 }

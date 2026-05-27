@@ -9,7 +9,14 @@ import { isSuperAdmin } from "@/lib/auth/permissions";
  * Devuelve resultados restringidos a lo que el usuario tiene acceso:
  * - Tareas: solo de proyectos donde es miembro/owner o del departamento accesible.
  * - Proyectos: solo donde es miembro/owner o del departamento accesible.
- * - Notas: solo de departamentos del usuario o publicadas.
+ * - Notas: SOLO del departamento del usuario.
+ *
+ *   Nota deliberada: no incluimos notas donde el usuario es autor (de otro depto)
+ *   ni notas que están "compartidas con" su departamento (vía `shares`). El motivo
+ *   es que la búsqueda sirve para *originar* el envío: solo debes poder
+ *   reenviar/compartir lo que es de tu propio departamento. Si alguien te pasa
+ *   por chat un link a una nota compartida con tu depto, sí podrás abrirla
+ *   (eso lo gobierna `canAccessLogEntry`, no este endpoint).
  *
  * GET /api/chat/search-ref?kind=TASK|PROJECT|NOTE&q=...
  */
@@ -128,7 +135,8 @@ export async function GET(req: NextRequest) {
     });
   }
 
-  // NOTE (LogEntry)
+  // NOTE (LogEntry) — SOLO notas del departamento del usuario.
+  // (SuperAdmin ve todas para soporte / debugging.)
   const notes = await prisma.logEntry.findMany({
     where: {
       deletedAt: null,
@@ -136,17 +144,7 @@ export async function GET(req: NextRequest) {
       ...(isSuper
         ? {}
         : {
-            OR: [
-              { authorId: actor.id },
-              { departmentId: { in: deptIds.length > 0 ? deptIds : ["_"] } },
-              {
-                shares: {
-                  some: {
-                    departmentId: { in: deptIds.length > 0 ? deptIds : ["_"] },
-                  },
-                },
-              },
-            ],
+            departmentId: { in: deptIds.length > 0 ? deptIds : ["_"] },
           }),
     },
     select: {

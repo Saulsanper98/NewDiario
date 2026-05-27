@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma/client";
 import type { SessionUser } from "@/lib/auth/types";
 import { assertChatParticipant } from "@/lib/chat/access";
 import { publishToConversation } from "@/lib/chat/realtime-bus";
+import { NotificationType } from "@/app/generated/prisma/enums";
 
 export async function PATCH(
   _req: Request,
@@ -28,6 +29,25 @@ export async function PATCH(
       conversationId_userId: { conversationId, userId: user.id },
     },
     data: { lastReadAt: now },
+  });
+
+  // Al leer la conversación, marcamos como leídas TODAS las notificaciones
+  // pendientes de chat (CHAT_MESSAGE o aviso de retención) que apuntaban a
+  // esta conversación. Así la campana del header se vacía automáticamente
+  // sin que el usuario tenga que entrar una a una.
+  await prisma.notification.updateMany({
+    where: {
+      userId: user.id,
+      isRead: false,
+      type: {
+        in: [
+          NotificationType.CHAT_MESSAGE,
+          NotificationType.CHAT_RETENTION_WARNING,
+        ],
+      },
+      link: { contains: `c=${conversationId}` },
+    },
+    data: { isRead: true },
   });
 
   // Notificamos al resto para que el autor del mensaje vea el tick azul

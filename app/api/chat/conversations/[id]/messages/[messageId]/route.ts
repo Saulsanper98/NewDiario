@@ -12,9 +12,17 @@ import { publishToConversation } from "@/lib/chat/realtime-bus";
  */
 const EDIT_WINDOW_MS = 15 * 60 * 1000; // 15 min
 
-const patchSchema = z.object({
-  body: z.string().trim().max(4000),
-});
+const patchSchema = z
+  .object({
+    body: z.string().trim().max(4000).optional(),
+    /** Marcar / desmarcar el mensaje como "conservado" para que el auto-borrado
+     *  de 72 h no se lo lleve. Cualquier participante de la conversación
+     *  puede fijar o desfijar. */
+    keep: z.boolean().optional(),
+  })
+  .refine((d) => d.body !== undefined || d.keep !== undefined, {
+    message: "Debes indicar body o keep",
+  });
 
 /**
  * PATCH: editar el cuerpo de un mensaje propio dentro de la ventana de edicion.
@@ -43,7 +51,6 @@ export async function PATCH(
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
-  const newBody = parsed.data.body.trim();
 
   const existing = await prisma.chatMessage.findUnique({
     where: { id: messageId },
@@ -53,6 +60,7 @@ export async function PATCH(
       senderId: true,
       deletedAt: true,
       createdAt: true,
+      keptAt: true,
       _count: { select: { attachments: true } },
     },
   });
@@ -60,16 +68,50 @@ export async function PATCH(
   if (!existing || existing.conversationId !== conversationId) {
     return NextResponse.json({ error: "Mensaje no encontrado" }, { status: 404 });
   }
+  if (existing.deletedAt) {
+    return NextResponse.json(
+      { error: "El mensaje ya fue eliminado" },
+      { status: 400 }
+    );
+  }
+
+  // ── Rama A: fijar / desfijar (cualquier participante) ────────────────────
+  if (parsed.data.keep !== undefined && parsed.data.body === undefined) {
+    const updated = await prisma.chatMessage.update({
+      where: { id: messageId },
+      data: {
+        keptAt: parsed.data.keep ? new Date() : null,
+        // Al desmarcar resetamos el warning para que el próximo ciclo
+        // recompute si toca avisar de nuevo.
+        deletionWarnedAt: parsed.data.keep ? undefined : null,
+      },
+      select: { id: true, keptAt: true },
+    });
+
+    void publishToConversation(
+      conversationId,
+      {
+        type: "message:update",
+        conversationId,
+        message: {
+          id: updated.id,
+          keptAt: updated.keptAt?.toISOString() ?? null,
+        },
+      },
+      user.id
+    ).catch(() => {});
+
+    return NextResponse.json({
+      id: updated.id,
+      keptAt: updated.keptAt?.toISOString() ?? null,
+    });
+  }
+
+  // ── Rama B: edición del cuerpo (solo autor, dentro de la ventana) ────────
   if (existing.senderId !== user.id) {
     return NextResponse.json(
       { error: "Solo puedes editar tus propios mensajes" },
       { status: 403 }
-    );
-  }
-  if (existing.deletedAt) {
-    return NextResponse.json(
-      { error: "No puedes editar un mensaje eliminado" },
-      { status: 400 }
     );
   }
   if (Date.now() - existing.createdAt.getTime() > EDIT_WINDOW_MS) {
@@ -78,6 +120,7 @@ export async function PATCH(
       { status: 400 }
     );
   }
+  const newBody = (parsed.data.body ?? "").trim();
   if (newBody.length === 0 && existing._count.attachments === 0) {
     return NextResponse.json(
       { error: "El mensaje no puede quedar vacío" },

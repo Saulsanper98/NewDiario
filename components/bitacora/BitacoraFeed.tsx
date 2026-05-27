@@ -1,5 +1,13 @@
 "use client";
 
+/**
+ * BitacoraFeed
+ *
+ * Feed cronológico (agrupado por día y turno) con búsqueda, filtros, vista
+ * compacta y paginación incremental. Soporta tema light/dark (los tokens de
+ * color salen de `lib/bitacora-palette.ts`).
+ */
+
 import {
   useState, useMemo, useEffect, useTransition, useCallback, useRef,
 } from "react";
@@ -7,35 +15,33 @@ import { createPortal } from "react-dom";
 import type { BitacoraFeedLog } from "@/lib/types/bitacora";
 import type { ShiftHandoffActive } from "@/lib/types/shift-handoff";
 import { ShiftHandoffPanel } from "@/components/bitacora/ShiftHandoffPanel";
+import { BitacoraHero } from "@/components/bitacora/BitacoraHero";
+import { BitacoraKpiStrip } from "@/components/bitacora/BitacoraKpiStrip";
+import { BitacoraViewTabs } from "@/components/bitacora/BitacoraViewTabs";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   Filter,
   AlertCircle,
-  Info,
-  Wrench,
-  CheckCircle,
   MessageSquare,
   Clock,
   Loader2,
   BookOpen,
   ChevronDown,
   ChevronUp,
-  Zap,
   SortAsc,
   SortDesc,
   X,
-  Sun,
-  Sunset,
-  Moon,
   ArrowUp,
   Edit,
   Copy,
   Check,
+  CheckCircle,
   Search,
   User,
   List,
   LayoutList,
+  Rss,
 } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { HighlightText } from "@/components/ui/HighlightText";
@@ -44,68 +50,25 @@ import { UserProfilePopover } from "@/components/user/UserProfilePopover";
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { RelativeTime } from "@/components/ui/RelativeTime";
+import { Switch } from "@/components/ui/Switch";
 import {
   SHIFT_LABELS,
   TYPE_LABELS,
-  getTypeColor,
   truncate,
   cn,
   foldAccentInsensitive,
 } from "@/lib/utils";
+import {
+  getTypePalette,
+  getShiftPalette,
+  TYPE_ICONS,
+  SHIFT_ICONS,
+  SHIFT_ORDER,
+} from "@/lib/bitacora-palette";
+import { useTheme } from "@/components/layout/ThemeProvider";
 import { format, isToday, isYesterday } from "date-fns";
 import { es } from "date-fns/locale";
 import toast from "react-hot-toast";
-
-/* ── icons ─────────────────────────────────────────────────────────────── */
-
-const TYPE_ICONS: Record<string, React.ElementType> = {
-  INCIDENCIA:   AlertCircle,
-  INFORMATIVO:  Info,
-  URGENTE:      Zap,
-  MANTENIMIENTO: Wrench,
-  SIN_NOVEDADES: CheckCircle,
-};
-
-/* B1 — type-based left border colors (4px) */
-const TYPE_BORDER: Record<string, string> = {
-  INCIDENCIA:    "border-l-orange-500/70",
-  INFORMATIVO:   "border-l-blue-400/70",
-  URGENTE:       "border-l-red-500/80",
-  MANTENIMIENTO: "border-l-purple-400/70",
-  SIN_NOVEDADES: "border-l-emerald-400/70",
-};
-
-/* mejora 20 — left border glow by type */
-const TYPE_GLOW_SHADOW: Record<string, string> = {
-  INCIDENCIA:    "inset 3px 0 8px -2px rgb(249 115 22 / 0.25)",
-  INFORMATIVO:   "inset 3px 0 8px -2px rgb(96 165 250 / 0.25)",
-  URGENTE:       "inset 3px 0 8px -2px rgb(239 68 68 / 0.30)",
-  MANTENIMIENTO: "inset 3px 0 8px -2px rgb(192 132 252 / 0.25)",
-  SIN_NOVEDADES: "inset 3px 0 8px -2px rgb(52 211 153 / 0.25)",
-};
-
-/* mejora 21 — type-specific active pill colors */
-const TYPE_PILL_ACTIVE: Record<string, string> = {
-  INCIDENCIA:    "border-orange-500/40 bg-orange-500/10 text-orange-400",
-  INFORMATIVO:   "border-blue-400/40 bg-blue-400/10 text-blue-400",
-  URGENTE:       "border-red-500/40 bg-red-500/10 text-red-400",
-  MANTENIMIENTO: "border-purple-400/40 bg-purple-400/10 text-purple-400",
-  SIN_NOVEDADES: "border-emerald-400/40 bg-emerald-400/10 text-emerald-400",
-};
-
-const TYPE_SHORT: Record<string, string> = {
-  INCIDENCIA:    "Incidencia",
-  INFORMATIVO:   "Informativo",
-  URGENTE:       "Urgente",
-  MANTENIMIENTO: "Mantenimiento",
-  SIN_NOVEDADES: "Sin nov.",
-};
-
-const SHIFT_META: Record<string, { icon: React.ElementType; color: string; label: string }> = {
-  MORNING:   { icon: Sun,    color: "text-amber-400",  label: SHIFT_LABELS.MORNING },
-  AFTERNOON: { icon: Sunset, color: "text-orange-400", label: SHIFT_LABELS.AFTERNOON },
-  NIGHT:     { icon: Moon,   color: "text-indigo-400", label: SHIFT_LABELS.NIGHT },
-};
 
 /* ── helpers ────────────────────────────────────────────────────────────── */
 
@@ -127,28 +90,36 @@ function tagHue(name: string): number {
   return h % 360;
 }
 
-
+const TYPE_SHORT: Record<string, string> = {
+  INCIDENCIA:    "Incidencia",
+  INFORMATIVO:   "Informativo",
+  URGENTE:       "Urgente",
+  MANTENIMIENTO: "Mantenimiento",
+  SIN_NOVEDADES: "Sin nov.",
+};
 
 /* B4 — Skeleton card */
-function SkeletonCard({ seed = 0 }: { seed?: number }) {
+function SkeletonCard({ seed = 0, light = false }: { seed?: number; light?: boolean }) {
   const w = ["w-[42%]", "w-[58%]", "w-[55%]", "w-[36%]"][seed % 4]!;
   const w2 = ["w-[88%]", "w-[72%]", "w-[91%]", "w-[68%]"][seed % 4]!;
   return (
-    <div className="glass rounded-xl p-5 sm:p-6 border-l-[3px] border-l-white/8 space-y-3 animate-pulse">
+    <div
+      className={cn(
+        "rounded-xl p-5 sm:p-6 border-l-[3px] space-y-3 animate-pulse",
+        light
+          ? "bg-white/65 border border-black/[0.07] border-l-zinc-300 shadow-[var(--lt-shadow-glass)]"
+          : "glass border-l-white/8"
+      )}
+    >
       <div className="flex items-start gap-4">
-        <div className="w-9 h-9 rounded-full skeleton shrink-0" />
+        <div className={cn("w-9 h-9 rounded-full shrink-0", light ? "bg-zinc-200" : "skeleton")} />
         <div className="flex-1 space-y-2.5">
           <div className="flex gap-2">
-            <div className={cn("h-4 skeleton rounded", w)} />
-            <div className="h-4 w-16 skeleton rounded" />
+            <div className={cn("h-4 rounded", w, light ? "bg-zinc-200" : "skeleton")} />
+            <div className={cn("h-4 w-16 rounded", light ? "bg-zinc-200" : "skeleton")} />
           </div>
-          <div className={cn("h-3 skeleton rounded", w2)} />
-          <div className="h-3 w-[76%] skeleton rounded" />
-          <div className="flex gap-2">
-            <div className="h-3 w-12 skeleton rounded" />
-            <div className="h-3 w-14 skeleton rounded" />
-            <div className="h-3 w-24 skeleton rounded" />
-          </div>
+          <div className={cn("h-3 rounded", w2, light ? "bg-zinc-200" : "skeleton")} />
+          <div className={cn("h-3 w-[76%] rounded", light ? "bg-zinc-200" : "skeleton")} />
         </div>
       </div>
     </div>
@@ -173,6 +144,8 @@ interface BitacoraFeedProps {
   activeHandoff?: ShiftHandoffActive | null;
   /** Coincide con el badge del menú: entradas publicadas con seguimiento sin marcar atendido. */
   pendienteSeguimientoCount?: number;
+  /** Nombre del departamento (eyebrow del hero). */
+  departmentName?: string;
 }
 
 /* ── main component ─────────────────────────────────────────────────────── */
@@ -186,8 +159,11 @@ export function BitacoraFeed({
   pageSize = 25,
   activeHandoff = null,
   pendienteSeguimientoCount = 0,
+  departmentName,
 }: BitacoraFeedProps) {
   const router = useRouter();
+  const { theme } = useTheme();
+  const L = theme === "light";
   const [isPending, startTransition] = useTransition();
   const [search,        setSearch]        = useState(initialFilters.search ?? "");
   const [typeFilter,    setTypeFilter]    = useState(initialFilters.type ?? "");
@@ -244,7 +220,6 @@ export function BitacoraFeed({
     } catch { /* ignore */ }
   }, []);
 
-  /* B12 — scroll del panel de lista (no window: la barra de filtros queda fuera del scroll) */
   useEffect(() => {
     const root = scrollAreaRef.current;
     if (!root) return;
@@ -259,7 +234,6 @@ export function BitacoraFeed({
     return () => root.removeEventListener("scroll", onScroll);
   }, []);
 
-  /* #69 — scroll restoration: restore saved position on mount */
   useEffect(() => {
     const el = scrollAreaRef.current;
     if (!el) return;
@@ -280,7 +254,6 @@ export function BitacoraFeed({
     );
   }
 
-  /* Sync server logs when they change (filter navigation) — abort any in-flight loadMore */
   useEffect(() => {
     loadAbortRef.current?.abort();
     loadAbortRef.current = null;
@@ -294,7 +267,6 @@ export function BitacoraFeed({
     });
   }, [logs, hasMore]);
 
-  /* URL sync — debounced */
   useEffect(() => {
     const sp = new URLSearchParams();
     if (typeFilter)     sp.set("type",    typeFilter);
@@ -315,7 +287,6 @@ export function BitacoraFeed({
     return () => clearTimeout(t);
   }, [typeFilter, shiftFilter, followupFilter, authorOnly, currentUserId, search, sortDesc, router]);
 
-  /* Load more — uses AbortController to discard stale responses after filter reset */
   const loadMore = useCallback(async () => {
     if (loadingRef.current || !more) return;
     loadingRef.current = true;
@@ -349,7 +320,6 @@ export function BitacoraFeed({
     }
   }, [more, nextPage, pageSize, departmentId, typeFilter, shiftFilter, followupFilter, authorOnly, currentUserId, search]);
 
-  /* IntersectionObserver — auto load more (root = panel con scroll) */
   useEffect(() => {
     const root = scrollAreaRef.current;
     const el = sentinelRef.current;
@@ -364,7 +334,6 @@ export function BitacoraFeed({
     return () => observer.disconnect();
   }, [more, loadMore]);
 
-  /* Client-side filter + sort */
   const filtered = useMemo(() => {
     let result = list;
     if (search.trim()) {
@@ -381,7 +350,6 @@ export function BitacoraFeed({
       : [...result].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
   }, [list, search, sortDesc]);
 
-  /* Group by date + shift */
   const groups = useMemo(() => {
     const map = new Map<string, { key: GroupKey; logs: BitacoraFeedLog[] }>();
     for (const log of filtered) {
@@ -395,7 +363,6 @@ export function BitacoraFeed({
     return Array.from(map.values());
   }, [filtered]);
 
-  /* B7 — counts per type and shift from full list */
   const typeCounts  = useMemo(() => {
     const c: Record<string, number> = {};
     for (const l of list) c[l.type] = (c[l.type] ?? 0) + 1;
@@ -452,7 +419,6 @@ export function BitacoraFeed({
     setAuthorOnly(false);
   }
 
-  /* Restaurar filtros desde localStorage si la URL llega vacía (complemento a URL) */
   useEffect(() => {
     if (hydratedFiltersRef.current) return;
     hydratedFiltersRef.current = true;
@@ -479,7 +445,6 @@ export function BitacoraFeed({
     }
   }, [currentUserId]);
 
-  /* Persistir filtros en localStorage (la URL ya se sincroniza en otro efecto) */
   useEffect(() => {
     const t = window.setTimeout(() => {
       try {
@@ -500,11 +465,48 @@ export function BitacoraFeed({
     return () => window.clearTimeout(t);
   }, [typeFilter, shiftFilter, followupFilter, search, sortDesc, authorOnly]);
 
+  // Estilos derivados del tema
+  const filterBarCls = cn(
+    "rounded-xl p-3 flex flex-wrap items-center gap-2 gap-y-2 relative",
+    L
+      ? "border border-black/[0.08] bg-white/85 backdrop-blur-md shadow-[var(--lt-shadow-glass)]"
+      : "glass-opaque-bitacora"
+  );
+
   return (
     <div className="flex flex-col flex-1 min-h-0 max-w-4xl mx-auto w-full">
       <a href="#bitacora-feed-filters" className="skip-to-main">
         Saltar a filtros de bitácora
       </a>
+
+      {/* Hero + KPIs + Tabs */}
+      <div className="shrink-0 px-4 sm:px-6 pt-3 space-y-3">
+        <BitacoraHero
+          eyebrow={departmentName ? `BITÁCORA · ${departmentName}` : "BITÁCORA"}
+          title="Feed cronológico"
+          subtitle={
+            list.length > 0
+              ? `${list.length} entrada${list.length !== 1 ? "s" : ""} cargada${list.length !== 1 ? "s" : ""} · agrupadas por día y turno`
+              : "Sin entradas aún. Documenta incidencias, mantenimientos o el turno del día."
+          }
+          rightSlot={<BitacoraViewTabs active="feed" light={L} />}
+          leadingBadge={
+            <span
+              className={cn(
+                "flex h-10 w-10 items-center justify-center rounded-xl",
+                L
+                  ? "bg-[#ffeb66] text-[#0a0f1e] shadow-sm"
+                  : "bg-[#ffeb66] text-[#0a0f1e] shadow-[0_4px_14px_-4px_rgba(255,235,102,0.45)]"
+              )}
+            >
+              <Rss className="h-5 w-5" />
+            </span>
+          }
+          light={L}
+        />
+        <BitacoraKpiStrip logs={list} scope="today" light={L} />
+      </div>
+
       <ShiftHandoffPanel
         departmentId={departmentId}
         initialHandoff={activeHandoff ?? null}
@@ -512,27 +514,48 @@ export function BitacoraFeed({
 
       {pendienteSeguimientoCount > 0 && (
         <div className="shrink-0 px-4 sm:px-6 pt-2">
-          <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2.5 text-xs text-amber-100/90 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <div
+            className={cn(
+              "rounded-xl border px-3 py-2.5 text-xs flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2",
+              L
+                ? "border-amber-300/60 bg-amber-50 text-amber-900"
+                : "border-amber-500/30 bg-amber-500/10 text-amber-100/90"
+            )}
+          >
             <p className="leading-relaxed">
-              <span className="font-semibold text-amber-200 tabular-nums">
+              <span
+                className={cn(
+                  "font-semibold tabular-nums",
+                  L ? "text-amber-700" : "text-amber-200"
+                )}
+              >
                 {pendienteSeguimientoCount}
               </span>{" "}
               {pendienteSeguimientoCount === 1
                 ? "entrada tiene"
                 : "entradas tienen"}{" "}
-              <strong>seguimiento pendiente</strong>. El aviso del menú no es de «notificaciones
-              leídas»: hay que marcar cada una como <strong>atendida</strong> en la nota o en el
-              listado (chip Seg.).
+              <strong>seguimiento pendiente</strong>. Marca cada una como{" "}
+              <strong>atendida</strong> en la nota o desde el chip Seg. del listado.
             </p>
             {!followupFilter ? (
               <Link
                 href="/bitacora/feed?followup=1"
-                className="shrink-0 rounded-lg border border-amber-400/40 bg-amber-400/10 px-2.5 py-1.5 text-[11px] font-medium text-amber-100 hover:bg-amber-400/20 text-center transition-colors"
+                className={cn(
+                  "shrink-0 rounded-lg border px-2.5 py-1.5 text-[11px] font-medium text-center transition-colors",
+                  L
+                    ? "border-amber-400/60 bg-amber-100 text-amber-900 hover:bg-amber-200"
+                    : "border-amber-400/40 bg-amber-400/10 text-amber-100 hover:bg-amber-400/20"
+                )}
               >
                 Ver solo esas
               </Link>
             ) : (
-              <span className="shrink-0 text-[10px] text-amber-200/80 font-medium">
+              <span
+                className={cn(
+                  "shrink-0 text-[10px] font-medium",
+                  L ? "text-amber-700" : "text-amber-200/80"
+                )}
+              >
                 Filtro «Seguimiento» activo
               </span>
             )}
@@ -540,11 +563,16 @@ export function BitacoraFeed({
         </div>
       )}
 
-      {/* B11 — barra de filtros: búsqueda siempre visible; chips en panel desplegable */}
-      <div id="bitacora-feed-filters" className="shrink-0 z-20 px-4 sm:px-6 pt-1 pb-2 scroll-mt-20">
-        <div className="glass-opaque-bitacora rounded-xl p-3 flex flex-wrap items-center gap-2 gap-y-2 relative">
+      {/* Barra de filtros */}
+      <div id="bitacora-feed-filters" className="shrink-0 z-20 px-4 sm:px-6 pt-2 pb-2 scroll-mt-20">
+        <div className={filterBarCls}>
           {isPending && (
-            <div className="absolute inset-0 rounded-xl bg-[#0a0f1e]/40 flex items-center justify-center z-10 pointer-events-none">
+            <div
+              className={cn(
+                "absolute inset-0 rounded-xl flex items-center justify-center z-10 pointer-events-none",
+                L ? "bg-white/60" : "bg-[#0a0f1e]/40"
+              )}
+            >
               <Loader2 className="w-5 h-5 text-[#ffeb66] animate-spin" />
             </div>
           )}
@@ -558,8 +586,12 @@ export function BitacoraFeed({
             className={cn(
               "flex items-center gap-2 shrink-0 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-all duration-150",
               filtersPanelOpen
-                ? "border-[#ffeb66]/35 bg-[#ffeb66]/10 text-[#ffeb66]"
-                : "border-white/10 bg-white/[0.04] text-white/65 hover:bg-white/8 hover:text-white"
+                ? L
+                  ? "border-[#e6cf38] bg-[#fff5b0] text-amber-900"
+                  : "border-[#ffeb66]/35 bg-[#ffeb66]/10 text-[#ffeb66]"
+                : L
+                  ? "border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900"
+                  : "border-white/10 bg-white/[0.04] text-white/65 hover:bg-white/8 hover:text-white"
             )}
           >
             <div className="relative">
@@ -570,50 +602,74 @@ export function BitacoraFeed({
             </div>
             <span>Filtros</span>
             {activeFilterCount > 0 && (
-              <span className="tabular-nums text-white/45">({activeFilterCount})</span>
+              <span className={cn("tabular-nums", L ? "text-zinc-400" : "text-white/45")}>
+                ({activeFilterCount})
+              </span>
             )}
             <ChevronDown
               className={cn(
-                "w-3.5 h-3.5 text-white/40 transition-transform duration-200",
+                "w-3.5 h-3.5 transition-transform duration-200",
+                L ? "text-zinc-400" : "text-white/40",
                 filtersPanelOpen && "rotate-180"
               )}
             />
           </button>
 
-          <div className="relative flex-1 min-w-[min(100%,10rem)] sm:min-w-48 basis-[14rem] grow rounded-lg border border-white/10 bg-white/[0.04] shadow-inner transition-[box-shadow,border-color] focus-within:border-[#ffeb66]/45 focus-within:ring-2 focus-within:ring-[#ffeb66]/22">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-white/30 pointer-events-none z-[1]" />
+          <div
+            className={cn(
+              "relative flex-1 min-w-[min(100%,10rem)] sm:min-w-48 basis-[14rem] grow rounded-lg border shadow-inner transition-[box-shadow,border-color] focus-within:ring-2 focus-within:ring-[#ffeb66]/22",
+              L
+                ? "border-zinc-200 bg-white focus-within:border-[#e6cf38]"
+                : "border-white/10 bg-white/[0.04] focus-within:border-[#ffeb66]/45"
+            )}
+          >
+            <Search
+              className={cn(
+                "absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 pointer-events-none z-[1]",
+                L ? "text-zinc-400" : "text-white/30"
+              )}
+            />
             <input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Buscar en bitácora..."
               aria-label="Buscar en bitácora"
-              className="w-full bg-transparent border-0 rounded-lg pl-7 pr-8 py-2 text-sm text-white placeholder:text-white/30 focus:outline-none focus:ring-0"
+              className={cn(
+                "w-full bg-transparent border-0 rounded-lg pl-7 pr-8 py-2 text-sm focus:outline-none focus:ring-0",
+                L ? "text-zinc-900 placeholder:text-zinc-400" : "text-white placeholder:text-white/30"
+              )}
             />
             {search && (
               <button
                 type="button"
                 onClick={() => setSearch("")}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 z-[1]"
+                className={cn(
+                  "absolute right-2 top-1/2 -translate-y-1/2 z-[1]",
+                  L ? "text-zinc-400 hover:text-zinc-700" : "text-white/30 hover:text-white/60"
+                )}
               >
                 <X className="w-3 h-3" />
               </button>
             )}
           </div>
 
-          {/* Sort toggle */}
           <button
             type="button"
             onClick={() => setSortDesc((v) => !v)}
             title={sortDesc ? "Más recientes primero" : "Más antiguos primero"}
             aria-label={sortDesc ? "Ordenar: más antiguos primero" : "Ordenar: más recientes primero"}
-            className="flex items-center gap-1 px-2 py-1.5 rounded-md text-white/40 hover:text-white hover:bg-white/6 transition-all duration-150"
+            className={cn(
+              "flex items-center gap-1 px-2 py-1.5 rounded-md transition-all duration-150",
+              L
+                ? "text-zinc-500 hover:text-zinc-900 hover:bg-black/[0.04]"
+                : "text-white/40 hover:text-white hover:bg-white/6"
+            )}
           >
             {sortDesc ? <SortDesc className="w-3.5 h-3.5" /> : <SortAsc className="w-3.5 h-3.5" />}
             <span className="text-[11px] hidden sm:inline">{sortDesc ? "Recientes" : "Antiguos"}</span>
           </button>
 
-          {/* Compact view toggle */}
           <button
             type="button"
             onClick={toggleCompactView}
@@ -623,8 +679,12 @@ export function BitacoraFeed({
             className={cn(
               "p-1.5 rounded-md transition-all duration-150",
               compactView
-                ? "bg-[#ffeb66]/12 text-[#ffeb66]"
-                : "text-white/40 hover:text-white hover:bg-white/6"
+                ? L
+                  ? "bg-[#fff5b0] text-amber-900"
+                  : "bg-[#ffeb66]/12 text-[#ffeb66]"
+                : L
+                  ? "text-zinc-500 hover:text-zinc-900 hover:bg-black/[0.04]"
+                  : "text-white/40 hover:text-white hover:bg-white/6"
             )}
           >
             {compactView ? <List className="w-3.5 h-3.5" /> : <LayoutList className="w-3.5 h-3.5" />}
@@ -634,7 +694,12 @@ export function BitacoraFeed({
             <button
               type="button"
               onClick={clearAll}
-              className="flex items-center gap-1 px-2 py-1 rounded-md text-xs text-white/50 hover:text-white hover:bg-white/6 transition-all duration-150 border border-white/10"
+              className={cn(
+                "flex items-center gap-1 px-2 py-1 rounded-md text-xs transition-all duration-150 border",
+                L
+                  ? "text-zinc-600 hover:text-zinc-900 hover:bg-black/[0.04] border-zinc-200"
+                  : "text-white/50 hover:text-white hover:bg-white/6 border-white/10"
+              )}
               aria-label="Limpiar todos los filtros"
             >
               <X className="w-3 h-3" />
@@ -642,136 +707,190 @@ export function BitacoraFeed({
             </button>
           )}
 
-          {/* B17 — entries count indicator */}
           <span
-            className="ml-auto text-xs text-white/40 tabular-nums shrink-0"
+            className={cn(
+              "ml-auto text-xs tabular-nums shrink-0",
+              L ? "text-zinc-500" : "text-white/40"
+            )}
             title={`${filtered.length} entradas visibles de ${list.length} cargadas`}
           >
-            {filtered.length}<span className="text-white/20">/{list.length}</span>
+            {filtered.length}
+            <span className={L ? "text-zinc-300" : "text-white/20"}>/{list.length}</span>
           </span>
         </div>
 
         {filtersPanelOpen && (
-        <div
-          id="bitacora-feed-filters-advanced"
-          role="region"
-          aria-labelledby="bitacora-feed-filters-trigger"
-          className={cn(
-            "mt-2 glass-opaque-bitacora rounded-xl px-3 py-2 flex items-center gap-2 flex-wrap max-md:overflow-x-auto max-md:flex-nowrap",
-            filtersPanelClosing
-              ? "animate-out fade-out slide-out-to-top-1 duration-150"
-              : "animate-in fade-in slide-in-from-top-1 duration-200"
-          )}
-        >
-          {/* Type pills */}
-          <div className="flex items-center gap-1.5 flex-wrap">
-            {Object.entries(TYPE_ICONS).map(([type, Icon]) => {
-              const count   = typeCounts[type] ?? 0;
-              const isActive = typeFilter === type;
-              return (
-                <button
-                  key={type}
-                  type="button"
-                  onClick={() => setTypeFilter(isActive ? "" : type)}
-                  title={TYPE_LABELS[type as keyof typeof TYPE_LABELS]}
-                  aria-pressed={isActive}
-                  className={cn(
-                    "flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-medium transition-all duration-150 border",
-                    isActive
-                      ? (TYPE_PILL_ACTIVE[type] ?? "border-white/20 bg-white/10 text-white")
-                      : "border-white/8 text-white/40 hover:text-white/70 hover:border-white/14",
-                    count === 0 && !isActive && "opacity-40"
-                  )}
-                >
-                  <Icon className="w-3 h-3" />
-                  <span>{TYPE_SHORT[type]}</span>
-                  {count > 0 && (
-                    <span
-                      className={cn("tabular-nums", isActive ? "text-white/70" : "text-white/30")}
-                      title="Entradas en esta vista (desplázate para cargar más)"
-                    >
-                      {count}*
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
+          <div
+            id="bitacora-feed-filters-advanced"
+            role="region"
+            aria-labelledby="bitacora-feed-filters-trigger"
+            className={cn(
+              "mt-2 rounded-xl px-3 py-2 flex items-center gap-2 flex-wrap max-md:overflow-x-auto max-md:flex-nowrap",
+              L
+                ? "border border-black/[0.08] bg-white/85 backdrop-blur-md shadow-[var(--lt-shadow-glass)]"
+                : "glass-opaque-bitacora",
+              filtersPanelClosing
+                ? "animate-out fade-out slide-out-to-top-1 duration-150"
+                : "animate-in fade-in slide-in-from-top-1 duration-200"
+            )}
+          >
+            {/* Type pills */}
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {Object.entries(TYPE_ICONS).map(([type, Icon]) => {
+                const count   = typeCounts[type] ?? 0;
+                const isActive = typeFilter === type;
+                const palette = getTypePalette(type, L ? "light" : "dark");
+                return (
+                  <button
+                    key={type}
+                    type="button"
+                    onClick={() => setTypeFilter(isActive ? "" : type)}
+                    title={TYPE_LABELS[type as keyof typeof TYPE_LABELS]}
+                    aria-pressed={isActive}
+                    className={cn(
+                      "flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-medium transition-all duration-150 border",
+                      isActive
+                        ? cn(palette.bg, palette.text, palette.border)
+                        : L
+                          ? "border-zinc-200 text-zinc-600 hover:text-zinc-900 hover:border-zinc-300"
+                          : "border-white/8 text-white/40 hover:text-white/70 hover:border-white/14",
+                      count === 0 && !isActive && "opacity-40"
+                    )}
+                  >
+                    <Icon className="w-3 h-3" />
+                    <span>{TYPE_SHORT[type]}</span>
+                    {count > 0 && (
+                      <span
+                        className={cn(
+                          "tabular-nums",
+                          isActive
+                            ? "opacity-80"
+                            : L
+                              ? "text-zinc-400"
+                              : "text-white/30"
+                        )}
+                        title="Entradas en esta vista"
+                      >
+                        {count}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
 
-          <div className="w-px h-4 bg-white/10 self-center mx-0.5 hidden sm:block" />
-
-          {/* Shift pills */}
-          <div className="flex items-center gap-1.5">
-            {(["MORNING", "AFTERNOON", "NIGHT"] as const).map((shift) => {
-              const meta     = SHIFT_META[shift];
-              const Icon     = meta.icon;
-              const count    = shiftCounts[shift] ?? 0;
-              const isActive = shiftFilter === shift;
-              return (
-                <button
-                  key={shift}
-                  type="button"
-                  onClick={() => setShiftFilter(isActive ? "" : shift)}
-                  title={SHIFT_LABELS[shift]}
-                  aria-pressed={isActive}
-                  className={cn(
-                    "flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-medium transition-all duration-150 border",
-                    isActive
-                      ? `border-white/20 bg-white/10 ${meta.color}`
-                      : "border-white/8 text-white/40 hover:text-white/70 hover:border-white/14",
-                    count === 0 && !isActive && "opacity-40"
-                  )}
-                >
-                  <Icon className="w-3 h-3" />
-                  {count > 0 && (
-                    <span
-                      className="tabular-nums"
-                      title="Entradas en esta vista (desplázate para cargar más)"
-                    >
-                      {count}*
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-
-          <div className="w-px h-4 bg-white/10 self-center mx-0.5 hidden sm:block" />
-
-          {/* Followup filter */}
-          <label className="flex items-center gap-1.5 text-[11px] text-white/50 cursor-pointer select-none px-1">
-            <input
-              type="checkbox"
-              checked={followupFilter}
-              onChange={(e) => setFollowupFilter(e.target.checked)}
-              className="accent-[#ffeb66] w-3.5 h-3.5"
-            />
-            <AlertCircle className="w-3 h-3 text-amber-400" />
-            Seguimiento
-          </label>
-
-          {currentUserId && (
-            <button
-              type="button"
-              onClick={() => setAuthorOnly((v) => !v)}
-              title={authorOnly ? "Mostrar todas las entradas" : "Solo entradas que yo publiqué"}
+            <div
               className={cn(
-                "flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-medium transition-all duration-150 border",
-                authorOnly
-                  ? "border-[#ffeb66]/35 bg-[#ffeb66]/10 text-[#ffeb66]"
-                  : "border-white/8 text-white/40 hover:text-white/70 hover:border-white/14"
+                "w-px h-4 self-center mx-0.5 hidden sm:block",
+                L ? "bg-zinc-200" : "bg-white/10"
+              )}
+            />
+
+            {/* Shift pills */}
+            <div className="flex items-center gap-1.5">
+              {SHIFT_ORDER.map((shift) => {
+                const Icon = SHIFT_ICONS[shift];
+                const count    = shiftCounts[shift] ?? 0;
+                const isActive = shiftFilter === shift;
+                const sp       = getShiftPalette(shift, L ? "light" : "dark");
+                return (
+                  <button
+                    key={shift}
+                    type="button"
+                    onClick={() => setShiftFilter(isActive ? "" : shift)}
+                    title={SHIFT_LABELS[shift]}
+                    aria-pressed={isActive}
+                    className={cn(
+                      "flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-medium transition-all duration-150 border",
+                      isActive
+                        ? cn(sp.bg, sp.text, sp.border)
+                        : L
+                          ? "border-zinc-200 text-zinc-600 hover:text-zinc-900 hover:border-zinc-300"
+                          : "border-white/8 text-white/40 hover:text-white/70 hover:border-white/14",
+                      count === 0 && !isActive && "opacity-40"
+                    )}
+                  >
+                    <Icon className="w-3 h-3" />
+                    {count > 0 && (
+                      <span
+                        className={cn(
+                          "tabular-nums",
+                          isActive ? "opacity-80" : L ? "text-zinc-400" : "text-white/30"
+                        )}
+                        title="Entradas en esta vista"
+                      >
+                        {count}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            <div
+              className={cn(
+                "w-px h-4 self-center mx-0.5 hidden sm:block",
+                L ? "bg-zinc-200" : "bg-white/10"
+              )}
+            />
+
+            {/* Followup filter — ahora con Switch */}
+            <div
+              className={cn(
+                "flex items-center gap-2 text-[11px] select-none px-1",
+                L ? "text-zinc-600" : "text-white/55"
               )}
             >
-              <User className="w-3 h-3" />
-              Mis entradas
-            </button>
-          )}
+              <Switch
+                checked={followupFilter}
+                onCheckedChange={setFollowupFilter}
+                size="sm"
+                light={L}
+                label="Seguimiento"
+              />
+              <AlertCircle className={cn("w-3 h-3", L ? "text-amber-600" : "text-amber-400")} />
+              Seguimiento
+            </div>
 
-          {/* B19 — shortcut hint */}
-          <span className="ml-auto text-[10px] text-white/15 hidden lg:block shrink-0">
-            Atajo <kbd className="px-1 py-0.5 rounded bg-white/6 border border-white/10 font-mono text-[10px]">N</kbd>: nueva entrada (ver <kbd className="px-1 py-0.5 rounded bg-white/6 border border-white/10 font-mono text-[10px]">?</kbd>)
-          </span>
-        </div>
+            {currentUserId && (
+              <button
+                type="button"
+                onClick={() => setAuthorOnly((v) => !v)}
+                title={authorOnly ? "Mostrar todas las entradas" : "Solo entradas que yo publiqué"}
+                className={cn(
+                  "flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-medium transition-all duration-150 border",
+                  authorOnly
+                    ? L
+                      ? "border-[#e6cf38] bg-[#fff5b0] text-amber-900"
+                      : "border-[#ffeb66]/35 bg-[#ffeb66]/10 text-[#ffeb66]"
+                    : L
+                      ? "border-zinc-200 text-zinc-600 hover:text-zinc-900 hover:border-zinc-300"
+                      : "border-white/8 text-white/40 hover:text-white/70 hover:border-white/14"
+                )}
+              >
+                <User className="w-3 h-3" />
+                Mis entradas
+              </button>
+            )}
+
+            <span
+              className={cn(
+                "ml-auto text-[10px] hidden lg:block shrink-0",
+                L ? "text-zinc-400" : "text-white/15"
+              )}
+            >
+              Atajo{" "}
+              <kbd
+                className={cn(
+                  "px-1 py-0.5 rounded font-mono text-[10px] border",
+                  L ? "bg-zinc-100 border-zinc-200 text-zinc-600" : "bg-white/6 border-white/10"
+                )}
+              >
+                N
+              </kbd>
+              : nueva entrada
+            </span>
+          </div>
         )}
       </div>
 
@@ -786,135 +905,186 @@ export function BitacoraFeed({
           {filtered.length} entradas visibles de {list.length} cargadas
         </p>
         <div className={cn("space-y-5 pt-1 transition-opacity duration-200", isPending && "opacity-50 pointer-events-none")}>
-      {/* Content */}
-      {showGlobalEmpty ? (
-        <EmptyState
-          icon={BookOpen}
-          title="Aún no hay entradas en esta vista"
-          description="Documenta incidencias, mantenimientos o el turno del día. Las entradas compartidas con tu departamento también aparecerán aquí."
-          action={{ label: "Nueva entrada", href: "/bitacora/nueva" }}
-        />
-      ) : filtered.length === 0 ? (
-        /* B20 — smart no-results with per-filter dismiss */
-        <div className="glass rounded-xl p-8 text-center space-y-4">
-          <Filter className="w-10 h-10 text-white/10 mx-auto" />
-          <div>
-            <p className="text-sm font-medium text-white/50 mb-1">Sin resultados con los filtros actuales</p>
-            <p className="text-xs text-white/25">Prueba a eliminar algún filtro:</p>
-          </div>
-          <div className="flex flex-wrap gap-2 justify-center">
-            {search.trim() && (
-              <button
-                onClick={() => setSearch("")}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs bg-white/6 border border-white/10 text-white/60 hover:text-white hover:bg-white/10 transition-all"
-              >
-                <X className="w-3 h-3" />
-                Búsqueda: &quot;{search}&quot;
-              </button>
-            )}
-            {typeFilter && (
-              <button
-                onClick={() => setTypeFilter("")}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs bg-white/6 border border-white/10 text-white/60 hover:text-white hover:bg-white/10 transition-all"
-              >
-                <X className="w-3 h-3" />
-                Tipo: {TYPE_LABELS[typeFilter as keyof typeof TYPE_LABELS]}
-              </button>
-            )}
-            {shiftFilter && (
-              <button
-                onClick={() => setShiftFilter("")}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs bg-white/6 border border-white/10 text-white/60 hover:text-white hover:bg-white/10 transition-all"
-              >
-                <X className="w-3 h-3" />
-                Turno: {SHIFT_LABELS[shiftFilter as keyof typeof SHIFT_LABELS]}
-              </button>
-            )}
-            {followupFilter && (
-              <button
-                onClick={() => setFollowupFilter(false)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs bg-white/6 border border-white/10 text-white/60 hover:text-white hover:bg-white/10 transition-all"
-              >
-                <X className="w-3 h-3" />
-                Solo seguimiento
-              </button>
-            )}
-          </div>
-          <button
-            onClick={clearAll}
-            className="text-xs text-[#ffeb66]/60 hover:text-[#ffeb66] transition-colors"
-          >
-            Limpiar todos los filtros
-          </button>
-        </div>
-      ) : (
-        <div className="space-y-10">
-          {groups.map(({ key, logs: groupLogs }) => (
-            <ShiftGroup
-              key={`${key.date}::${key.shift}`}
-              groupKey={key}
-              logs={groupLogs}
-              departmentId={departmentId}
-              searchQuery={search}
-              compact={compactView}
-              onFollowupMarked={markFollowupDoneLocal}
-              currentUserId={currentUserId}
-              lastVisitTime={lastVisitTime}
+          {showGlobalEmpty ? (
+            <EmptyState
+              icon={BookOpen}
+              title="Aún no hay entradas en esta vista"
+              description="Documenta incidencias, mantenimientos o el turno del día. Las entradas compartidas con tu departamento también aparecerán aquí."
+              action={{ label: "Nueva entrada", href: "/bitacora/nueva" }}
             />
-          ))}
-
-          {/* Sentinel for infinite scroll */}
-          <div ref={sentinelRef} className="flex flex-col items-center gap-3 pt-2 pb-4">
-            {loadingMore && (
-              <>
-                <SkeletonCard seed={0} />
-                <SkeletonCard seed={1} />
-                <SkeletonCard seed={2} />
-                <div className="flex items-center gap-2 text-xs text-white/30 mt-2">
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  Cargando más…
-                </div>
-              </>
-            )}
-            {/* B16 — explicit load more fallback */}
-            {!loadingMore && more && loadMoreError && (
-              <div className="flex flex-col sm:flex-row items-center gap-3 px-4 py-3 rounded-xl border border-amber-500/25 bg-amber-500/6 text-center">
-                <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
-                <p className="text-xs text-amber-300 flex-1">No se pudieron cargar más entradas.</p>
-                <button
-                  type="button"
-                  onClick={() => void loadMore()}
-                  className="px-4 py-1.5 rounded-lg text-xs text-[#ffeb66] border border-[#ffeb66]/30 hover:bg-[#ffeb66]/10 transition-all duration-200 shrink-0"
-                >
-                  Reintentar
-                </button>
-              </div>
-            )}
-            {!loadingMore && more && !loadMoreError && (
-              <button
-                type="button"
-                onClick={() => void loadMore()}
-                className="px-4 py-2 rounded-lg text-xs text-white/50 hover:text-white border border-white/10 hover:border-white/20 bg-white/3 hover:bg-white/6 transition-all duration-200"
-              >
-                Cargar más entradas
-              </button>
-            )}
-            {!more && list.length > 0 && (
-              <div className="flex items-center gap-3 py-3 w-full max-w-xs mx-auto">
-                <div className="h-px flex-1 bg-white/8" />
-                <p className="text-xs text-white/30 shrink-0 tabular-nums">
-                  {list.length} entrada{list.length !== 1 ? "s" : ""}
+          ) : filtered.length === 0 ? (
+            <div
+              className={cn(
+                "rounded-xl p-8 text-center space-y-4",
+                L
+                  ? "border border-black/[0.08] bg-white/85 shadow-[var(--lt-shadow-glass)]"
+                  : "glass"
+              )}
+            >
+              <Filter className={cn("w-10 h-10 mx-auto", L ? "text-zinc-300" : "text-white/10")} />
+              <div>
+                <p className={cn("text-sm font-medium mb-1", L ? "text-zinc-700" : "text-white/50")}>
+                  Sin resultados con los filtros actuales
                 </p>
-                <div className="h-px flex-1 bg-white/8" />
+                <p className={cn("text-xs", L ? "text-zinc-400" : "text-white/25")}>
+                  Prueba a eliminar algún filtro:
+                </p>
               </div>
-            )}
-          </div>
-        </div>
-      )}
+              <div className="flex flex-wrap gap-2 justify-center">
+                {search.trim() && (
+                  <button
+                    onClick={() => setSearch("")}
+                    className={cn(
+                      "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs border transition-all",
+                      L
+                        ? "bg-white border-zinc-200 text-zinc-700 hover:bg-zinc-50"
+                        : "bg-white/6 border-white/10 text-white/60 hover:text-white hover:bg-white/10"
+                    )}
+                  >
+                    <X className="w-3 h-3" />
+                    Búsqueda: &quot;{search}&quot;
+                  </button>
+                )}
+                {typeFilter && (
+                  <button
+                    onClick={() => setTypeFilter("")}
+                    className={cn(
+                      "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs border transition-all",
+                      L
+                        ? "bg-white border-zinc-200 text-zinc-700 hover:bg-zinc-50"
+                        : "bg-white/6 border-white/10 text-white/60 hover:text-white hover:bg-white/10"
+                    )}
+                  >
+                    <X className="w-3 h-3" />
+                    Tipo: {TYPE_LABELS[typeFilter as keyof typeof TYPE_LABELS]}
+                  </button>
+                )}
+                {shiftFilter && (
+                  <button
+                    onClick={() => setShiftFilter("")}
+                    className={cn(
+                      "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs border transition-all",
+                      L
+                        ? "bg-white border-zinc-200 text-zinc-700 hover:bg-zinc-50"
+                        : "bg-white/6 border-white/10 text-white/60 hover:text-white hover:bg-white/10"
+                    )}
+                  >
+                    <X className="w-3 h-3" />
+                    Turno: {SHIFT_LABELS[shiftFilter as keyof typeof SHIFT_LABELS]}
+                  </button>
+                )}
+                {followupFilter && (
+                  <button
+                    onClick={() => setFollowupFilter(false)}
+                    className={cn(
+                      "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs border transition-all",
+                      L
+                        ? "bg-white border-zinc-200 text-zinc-700 hover:bg-zinc-50"
+                        : "bg-white/6 border-white/10 text-white/60 hover:text-white hover:bg-white/10"
+                    )}
+                  >
+                    <X className="w-3 h-3" />
+                    Solo seguimiento
+                  </button>
+                )}
+              </div>
+              <button
+                onClick={clearAll}
+                className={cn(
+                  "text-xs transition-colors",
+                  L
+                    ? "text-amber-700 hover:text-amber-900"
+                    : "text-[#ffeb66]/60 hover:text-[#ffeb66]"
+                )}
+              >
+                Limpiar todos los filtros
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-10">
+              {groups.map(({ key, logs: groupLogs }) => (
+                <ShiftGroup
+                  key={`${key.date}::${key.shift}`}
+                  groupKey={key}
+                  logs={groupLogs}
+                  departmentId={departmentId}
+                  searchQuery={search}
+                  compact={compactView}
+                  onFollowupMarked={markFollowupDoneLocal}
+                  currentUserId={currentUserId}
+                  lastVisitTime={lastVisitTime}
+                  light={L}
+                />
+              ))}
+
+              {/* Sentinel for infinite scroll */}
+              <div ref={sentinelRef} className="flex flex-col items-center gap-3 pt-2 pb-4">
+                {loadingMore && (
+                  <>
+                    <SkeletonCard seed={0} light={L} />
+                    <SkeletonCard seed={1} light={L} />
+                    <SkeletonCard seed={2} light={L} />
+                    <div className={cn("flex items-center gap-2 text-xs mt-2", L ? "text-zinc-500" : "text-white/30")}>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      Cargando más…
+                    </div>
+                  </>
+                )}
+                {!loadingMore && more && loadMoreError && (
+                  <div
+                    className={cn(
+                      "flex flex-col sm:flex-row items-center gap-3 px-4 py-3 rounded-xl border text-center",
+                      L
+                        ? "border-amber-300 bg-amber-50 text-amber-900"
+                        : "border-amber-500/25 bg-amber-500/6 text-amber-300"
+                    )}
+                  >
+                    <AlertCircle className={cn("w-4 h-4 shrink-0", L ? "text-amber-600" : "text-amber-400")} />
+                    <p className="text-xs flex-1">No se pudieron cargar más entradas.</p>
+                    <button
+                      type="button"
+                      onClick={() => void loadMore()}
+                      className={cn(
+                        "px-4 py-1.5 rounded-lg text-xs border transition-all duration-200 shrink-0",
+                        L
+                          ? "text-amber-900 border-amber-400 hover:bg-amber-100"
+                          : "text-[#ffeb66] border-[#ffeb66]/30 hover:bg-[#ffeb66]/10"
+                      )}
+                    >
+                      Reintentar
+                    </button>
+                  </div>
+                )}
+                {!loadingMore && more && !loadMoreError && (
+                  <button
+                    type="button"
+                    onClick={() => void loadMore()}
+                    className={cn(
+                      "px-4 py-2 rounded-lg text-xs border transition-all duration-200",
+                      L
+                        ? "text-zinc-700 hover:text-zinc-900 border-zinc-200 hover:border-zinc-300 bg-white hover:bg-zinc-50"
+                        : "text-white/50 hover:text-white border-white/10 hover:border-white/20 bg-white/3 hover:bg-white/6"
+                    )}
+                  >
+                    Cargar más entradas
+                  </button>
+                )}
+                {!more && list.length > 0 && (
+                  <div className="flex items-center gap-3 py-3 w-full max-w-xs mx-auto">
+                    <div className={cn("h-px flex-1", L ? "bg-zinc-200" : "bg-white/8")} />
+                    <p className={cn("text-xs shrink-0 tabular-nums", L ? "text-zinc-500" : "text-white/30")}>
+                      {list.length} entrada{list.length !== 1 ? "s" : ""}
+                    </p>
+                    <div className={cn("h-px flex-1", L ? "bg-zinc-200" : "bg-white/8")} />
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* B12 — volver arriba: portal a body (evita fixed dentro de ancestros con transform) + fondo opaco */}
+      {/* Volver arriba */}
       {showBackToTop &&
         typeof document !== "undefined" &&
         createPortal(
@@ -923,7 +1093,12 @@ export function BitacoraFeed({
             onClick={() =>
               scrollAreaRef.current?.scrollTo({ top: 0, behavior: "smooth" })
             }
-            className="bitacora-back-to-top-fab fixed z-[85] p-3 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full border shadow-lg lt-elev-fab animate-in fade-in zoom-in-90 duration-200 text-white/85 hover:text-white hover:brightness-110 border-white/18 bg-[#121a2e] hover:bg-[#161f36] print:hidden"
+            className={cn(
+              "bitacora-back-to-top-fab fixed z-[85] p-3 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full border shadow-lg lt-elev-fab animate-in fade-in zoom-in-90 duration-200 print:hidden",
+              L
+                ? "text-zinc-900 hover:brightness-95 border-black/[0.08] bg-white hover:bg-zinc-50 shadow-[var(--lt-shadow-glass)]"
+                : "text-white/85 hover:text-white hover:brightness-110 border-white/18 bg-[#121a2e] hover:bg-[#161f36]"
+            )}
             style={{
               right: "max(1.25rem, env(safe-area-inset-right, 0px))",
               bottom:
@@ -950,6 +1125,7 @@ function ShiftGroup({
   onFollowupMarked,
   currentUserId,
   lastVisitTime = 0,
+  light = false,
 }: {
   groupKey: GroupKey;
   logs: BitacoraFeedLog[];
@@ -959,10 +1135,10 @@ function ShiftGroup({
   onFollowupMarked: (id: string) => void;
   currentUserId?: string;
   lastVisitTime?: number;
+  light?: boolean;
 }) {
   const storageKey = `bitacora:group:${groupKey.date}:${groupKey.shift}`;
 
-  /* B13 — persist collapse state in localStorage */
   const [collapsed, setCollapsed] = useState(() => {
     try {
       return localStorage.getItem(storageKey) === "1";
@@ -980,34 +1156,50 @@ function ShiftGroup({
     } catch { /* ignore */ }
   }
 
-  const meta      = SHIFT_META[groupKey.shift] ?? { icon: BookOpen, color: "text-white/40", label: groupKey.shift };
+  const Icon = SHIFT_ICONS[groupKey.shift as keyof typeof SHIFT_ICONS] ?? BookOpen;
+  const sp = getShiftPalette(groupKey.shift, light ? "light" : "dark");
   const dateLabel = formatGroupDate(new Date(groupKey.date));
-  const MetaIcon  = meta.icon;
 
   return (
     <div>
-      {/* B8 — symmetric group header with separator lines on both sides */}
       <button
         type="button"
         onClick={toggle}
         className="flex items-center gap-2.5 w-full mb-4 group"
       >
-        <div className="h-px flex-none w-4 bg-white/8 group-hover:bg-white/14 transition-colors" />
-        <MetaIcon className={`w-3.5 h-3.5 shrink-0 ${meta.color}`} />
-        <span className={`text-xs font-semibold uppercase tracking-wider ${meta.color} shrink-0`}>
-          {meta.label}
+        <div
+          className={cn(
+            "h-px flex-none w-4 transition-colors",
+            light ? "bg-zinc-200 group-hover:bg-zinc-300" : "bg-white/8 group-hover:bg-white/14"
+          )}
+        />
+        <Icon className={cn("w-3.5 h-3.5 shrink-0", sp.text)} />
+        <span className={cn("text-xs font-semibold uppercase tracking-wider shrink-0", sp.text)}>
+          {SHIFT_LABELS[groupKey.shift as keyof typeof SHIFT_LABELS]}
         </span>
-        <span className="text-white/20 text-xs">·</span>
-        <span className="text-xs text-white/40 capitalize shrink-0">{dateLabel}</span>
-        <span className="text-[10px] text-white/20 shrink-0">({logs.length})</span>
-        <div className="h-px flex-1 bg-white/8 group-hover:bg-white/14 transition-colors" />
+        <span className={cn("text-xs", light ? "text-zinc-300" : "text-white/20")}>·</span>
+        <span
+          className={cn(
+            "text-xs capitalize shrink-0",
+            light ? "text-zinc-600" : "text-white/40"
+          )}
+        >
+          {dateLabel}
+        </span>
+        <span className={cn("text-[10px] shrink-0", light ? "text-zinc-400" : "text-white/20")}>
+          ({logs.length})
+        </span>
+        <div
+          className={cn(
+            "h-px flex-1 transition-colors",
+            light ? "bg-zinc-200 group-hover:bg-zinc-300" : "bg-white/8 group-hover:bg-white/14"
+          )}
+        />
         {collapsed
-          ? <ChevronDown className="w-3.5 h-3.5 text-white/25 shrink-0" />
-          : <ChevronUp   className="w-3.5 h-3.5 text-white/25 shrink-0" />
-        }
+          ? <ChevronDown className={cn("w-3.5 h-3.5 shrink-0", light ? "text-zinc-400" : "text-white/25")} />
+          : <ChevronUp   className={cn("w-3.5 h-3.5 shrink-0", light ? "text-zinc-400" : "text-white/25")} />}
       </button>
 
-      {/* Cards with B3 stagger */}
       {!collapsed && (
         <div className={cn("flex flex-col", compact ? "gap-1.5" : "gap-5")}>
           {logs.map((log, idx) => (
@@ -1024,6 +1216,7 @@ function ShiftGroup({
                 onFollowupMarked={onFollowupMarked}
                 currentUserId={currentUserId}
                 lastVisitTime={lastVisitTime}
+                light={light}
               />
             </div>
           ))}
@@ -1043,6 +1236,7 @@ function LogCard({
   onFollowupMarked,
   currentUserId,
   lastVisitTime = 0,
+  light = false,
 }: {
   log: BitacoraFeedLog;
   departmentId: string;
@@ -1051,22 +1245,20 @@ function LogCard({
   onFollowupMarked: (id: string) => void;
   currentUserId?: string;
   lastVisitTime?: number;
+  light?: boolean;
 }) {
   const router    = useRouter();
-  const TypeIcon  = TYPE_ICONS[log.type] ?? Info;
+  const palette = getTypePalette(log.type, light ? "light" : "dark");
+  const TypeIcon  = palette.icon;
   const sharedFrom = log.departmentId !== departmentId;
   const isUrgent  = log.type === "URGENTE";
-  const typeBorder = TYPE_BORDER[log.type] ?? "border-l-white/20";
-  /* mejora 22 — unread indicator (new since last visit, not authored by current user) */
   const isNewEntry = lastVisitTime > 0 &&
     new Date(log.createdAt).getTime() > lastVisitTime &&
     log.author.id !== currentUserId;
-  /* mejora 26 — draft visual */
   const isDraft = log.status === "DRAFT";
 
   const [linkCopied, setLinkCopied] = useState(false);
 
-  /* B14 — quick action: copy link */
   function handleCopyLink(e: React.MouseEvent) {
     e.preventDefault();
     e.stopPropagation();
@@ -1078,7 +1270,6 @@ function LogCard({
     }).catch(() => toast.error("No se pudo copiar el enlace"));
   }
 
-  /* B14 — quick action: mark followup done */
   async function handleMarkFollowup(e: React.MouseEvent) {
     e.preventDefault();
     e.stopPropagation();
@@ -1113,84 +1304,127 @@ function LogCard({
     .map(([emoji, count]) => `${emoji} ${count}`)
     .join(" ");
 
+  // Color del título
+  const titleClass = isUrgent
+    ? light ? "text-red-700" : "text-red-300"
+    : light ? "text-zinc-900" : "text-white";
+  const titleHoverClass = light ? "" : "";
+
   return (
-    /* B14 — relative container for hover actions */
     <div className={cn("relative group/card", isDraft && "opacity-75")}>
       <Link href={`/bitacora/${log.id}`} className="block w-full min-w-0">
         <Card
           hover
+          light={light}
           className={cn(
             "border-l-[4px]",
             compact ? "py-2.5 px-4" : "p-5 sm:p-6",
-            typeBorder,
+            palette.borderLeft,
             isUrgent ? "urgent-card-pulse" : "",
             sharedFrom ? "border-r-2" : ""
           )}
           style={{
-            boxShadow: TYPE_GLOW_SHADOW[log.type] ?? undefined,
+            boxShadow: light
+              ? `inset 3px 0 8px -2px ${palette.glow}`
+              : `inset 3px 0 8px -2px ${palette.glow}`,
             ...(srcDeptColor ? { borderRightColor: `${srcDeptColor}60` } : {}),
           }}
         >
           {compact ? (
-            /* ── Compact single-row layout ── */
             <div className="flex items-center gap-3 min-w-0">
               {isNewEntry && (
-                <span className="shrink-0 w-1.5 h-1.5 rounded-full bg-blue-400 ring-2 ring-blue-400/20" aria-label="Nueva entrada" />
+                <span
+                  className={cn(
+                    "shrink-0 w-1.5 h-1.5 rounded-full ring-2",
+                    light ? "bg-blue-500 ring-blue-500/20" : "bg-blue-400 ring-blue-400/20"
+                  )}
+                  aria-label="Nueva entrada"
+                />
               )}
-              <TypeIcon className={cn("w-3.5 h-3.5 shrink-0", {
-                INCIDENCIA:   "text-orange-400",
-                INFORMATIVO:  "text-blue-400",
-                URGENTE:      "text-red-400",
-                MANTENIMIENTO:"text-purple-400",
-                SIN_NOVEDADES:"text-green-400",
-              }[log.type as string] ?? "text-white/35")} />
-              <span className={cn("flex-1 font-medium text-sm truncate min-w-0", isUrgent ? "text-red-300" : "text-white/85")}>
+              <TypeIcon className={cn("w-3.5 h-3.5 shrink-0", palette.text)} />
+              <span
+                className={cn("flex-1 font-medium text-sm truncate min-w-0", titleClass, titleHoverClass)}
+              >
                 <HighlightText text={truncate(log.title, 60)} query={searchQuery} />
               </span>
               {log.requiresFollowup && !log.followupDone && (
-                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-400/12 text-amber-400 border border-amber-400/20 shrink-0">Seg.</span>
+                <span
+                  className={cn(
+                    "text-[10px] px-1.5 py-0.5 rounded-full border shrink-0",
+                    light
+                      ? "bg-amber-100 text-amber-800 border-amber-300"
+                      : "bg-amber-400/12 text-amber-400 border-amber-400/20"
+                  )}
+                >
+                  Seg.
+                </span>
               )}
               <UserProfilePopover
                 userId={log.author.id}
                 name={log.author.name}
                 image={log.author.image}
-                nameClassName="text-xs text-white/35 shrink-0 hidden sm:inline"
+                nameClassName={cn(
+                  "text-xs shrink-0 hidden sm:inline",
+                  light ? "text-zinc-500" : "text-white/35"
+                )}
               />
               <RelativeTime
                 date={log.createdAt}
-                className="text-xs text-white/25 shrink-0"
+                className={cn("text-xs shrink-0", light ? "text-zinc-400" : "text-white/25")}
               />
               {log._count.comments > 0 && (
-                <span className="flex items-center gap-0.5 text-[10px] text-white/25 shrink-0">
+                <span
+                  className={cn(
+                    "flex items-center gap-0.5 text-[10px] shrink-0",
+                    light ? "text-zinc-500" : "text-white/25"
+                  )}
+                >
                   <MessageSquare className="w-3 h-3" />
                   {log._count.comments}
                 </span>
               )}
               {reactionSummary.length > 0 && (
-                <span className="text-[10px] text-[#ffeb66]/85 shrink-0">
+                <span
+                  className={cn(
+                    "text-[10px] shrink-0",
+                    light ? "text-amber-700" : "text-[#ffeb66]/85"
+                  )}
+                >
                   {reactionSummary}
                 </span>
               )}
             </div>
           ) : (
-            /* ── Normal layout ── */
             <div className="flex items-start gap-4">
               <Avatar name={log.author.name} image={log.author.image} size="md" />
 
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap mb-1">
                   {isNewEntry && (
-                    <span className="shrink-0 w-2 h-2 rounded-full bg-blue-400 ring-2 ring-blue-400/20 mt-0.5" aria-label="Nueva entrada desde tu última visita" />
+                    <span
+                      className={cn(
+                        "shrink-0 w-2 h-2 rounded-full ring-2 mt-0.5",
+                        light ? "bg-blue-500 ring-blue-500/20" : "bg-blue-400 ring-blue-400/20"
+                      )}
+                      aria-label="Nueva entrada desde tu última visita"
+                    />
                   )}
-                  <span className={`font-semibold text-sm ${isUrgent ? "text-red-300" : "text-white"}`}>
+                  <span className={cn("font-semibold text-sm", titleClass)}>
                     <HighlightText text={truncate(log.title, 60)} query={searchQuery} />
                   </span>
-                  <Badge className={getTypeColor(log.type)} size="sm">
+                  <Badge className={cn(palette.bg, palette.text, palette.border)} size="sm">
                     <TypeIcon className="w-3 h-3" />
                     {TYPE_LABELS[log.type as keyof typeof TYPE_LABELS]}
                   </Badge>
                   {isDraft && (
-                    <Badge className="border-white/15 bg-white/6 text-white/45" size="sm">
+                    <Badge
+                      className={cn(
+                        light
+                          ? "border-zinc-200 bg-zinc-100 text-zinc-700"
+                          : "border-white/15 bg-white/6 text-white/45"
+                      )}
+                      size="sm"
+                    >
                       Borrador
                     </Badge>
                   )}
@@ -1213,7 +1447,12 @@ function LogCard({
                   )}
                 </div>
 
-                <p className="text-sm text-white/45 line-clamp-2 mb-2">
+                <p
+                  className={cn(
+                    "text-sm line-clamp-2 mb-2",
+                    light ? "text-zinc-600" : "text-white/45"
+                  )}
+                >
                   <HighlightText text={plainContent} query={searchQuery} />
                 </p>
 
@@ -1225,28 +1464,48 @@ function LogCard({
                         <span
                           key={tag.id}
                           className="text-xs px-1.5 py-0.5 rounded border max-w-[120px] truncate"
-                          style={{
-                            backgroundColor: `hsl(${hue},50%,12%)`,
-                            color: `hsl(${hue},75%,75%)`,
-                            borderColor: `hsl(${hue},45%,28%)`,
-                          }}
+                          style={
+                            light
+                              ? {
+                                  backgroundColor: `hsl(${hue},65%,94%)`,
+                                  color: `hsl(${hue},45%,28%)`,
+                                  borderColor: `hsl(${hue},45%,80%)`,
+                                }
+                              : {
+                                  backgroundColor: `hsl(${hue},50%,12%)`,
+                                  color: `hsl(${hue},75%,75%)`,
+                                  borderColor: `hsl(${hue},45%,28%)`,
+                                }
+                          }
                         >
                           #{tag.name}
                         </span>
                       );
                     })}
                     {log.tags.length > 4 && (
-                      <span className="text-xs text-white/25">+{log.tags.length - 4} más</span>
+                      <span
+                        className={cn("text-xs", light ? "text-zinc-400" : "text-white/25")}
+                      >
+                        +{log.tags.length - 4} más
+                      </span>
                     )}
                   </div>
                 )}
 
-                <div className="flex items-center gap-3 text-xs text-white/30">
+                <div
+                  className={cn(
+                    "flex items-center gap-3 text-xs",
+                    light ? "text-zinc-500" : "text-white/30"
+                  )}
+                >
                   <UserProfilePopover
                     userId={log.author.id}
                     name={log.author.name}
                     image={log.author.image}
-                    nameClassName="font-medium text-white/40"
+                    nameClassName={cn(
+                      "font-medium",
+                      light ? "text-zinc-700" : "text-white/40"
+                    )}
                   />
                   <span>·</span>
                   <span className="flex items-center gap-1">
@@ -1267,7 +1526,11 @@ function LogCard({
                   {reactionSummary.length > 0 && (
                     <>
                       <span>·</span>
-                      <span className="text-[#ffeb66]/85">{reactionSummary}</span>
+                      <span
+                        className={cn(light ? "text-amber-700" : "text-[#ffeb66]/85")}
+                      >
+                        {reactionSummary}
+                      </span>
                     </>
                   )}
                 </div>
@@ -1277,13 +1540,18 @@ function LogCard({
         </Card>
       </Link>
 
-      {/* B14 — hover quick actions */}
+      {/* Acciones rápidas (hover) */}
       <div className="absolute top-3 right-3 flex gap-1 opacity-0 group-hover/card:opacity-100 transition-all duration-150 z-10">
         {!sharedFrom && (
           <button
             type="button"
             onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push(`/bitacora/${log.id}/editar`); }}
-            className="p-1.5 rounded-md glass-2 border border-white/12 text-white/50 hover:text-white hover:border-white/24 transition-all duration-150"
+            className={cn(
+              "p-1.5 rounded-md border transition-all duration-150",
+              light
+                ? "bg-white/90 border-zinc-200 text-zinc-600 hover:text-zinc-900 hover:border-zinc-300"
+                : "glass-2 border-white/12 text-white/50 hover:text-white hover:border-white/24"
+            )}
             title="Editar entrada"
           >
             <Edit className="w-3 h-3" />
@@ -1293,10 +1561,14 @@ function LogCard({
           type="button"
           onClick={handleCopyLink}
           className={cn(
-            "p-1.5 rounded-md glass-2 border transition-all duration-150",
+            "p-1.5 rounded-md border transition-all duration-150",
             linkCopied
-              ? "border-green-400/30 text-green-400"
-              : "border-white/12 text-white/50 hover:text-white hover:border-white/24"
+              ? light
+                ? "bg-emerald-50 border-emerald-300 text-emerald-700"
+                : "border-green-400/30 text-green-400 bg-white/10"
+              : light
+                ? "bg-white/90 border-zinc-200 text-zinc-600 hover:text-zinc-900 hover:border-zinc-300"
+                : "glass-2 border-white/12 text-white/50 hover:text-white hover:border-white/24"
           )}
           title={linkCopied ? "✓ Copiado" : "Copiar enlace"}
         >
@@ -1309,7 +1581,12 @@ function LogCard({
           <button
             type="button"
             onClick={handleMarkFollowup}
-            className="p-1.5 rounded-md glass-2 border border-amber-500/20 text-amber-400/60 hover:text-amber-300 hover:border-amber-400/40 transition-all duration-150"
+            className={cn(
+              "p-1.5 rounded-md border transition-all duration-150",
+              light
+                ? "bg-amber-50 border-amber-300 text-amber-700 hover:bg-amber-100 hover:border-amber-400"
+                : "glass-2 border-amber-500/20 text-amber-400/60 hover:text-amber-300 hover:border-amber-400/40"
+            )}
             title="Marcar seguimiento como atendido"
           >
             <CheckCircle className="w-3 h-3" />

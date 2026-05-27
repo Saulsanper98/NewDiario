@@ -41,17 +41,19 @@ function isParagraphInnerEffectivelyEmpty(inner: string): boolean {
   return text.length === 0;
 }
 
-/** Varios <p><br></p> seguidos (artefacto) → uno solo (misma intención visual). */
+/**
+ * NOTA: antes esta función colapsaba varios `<p><br></p>` consecutivos a uno
+ * solo, asumiendo que eran un artefacto del editor. Pero el usuario sí utiliza
+ * varios Enter consecutivos para crear espaciado vertical intencional (tanto
+ * en TipTap como en el textarea de Novedades), y al colapsarlos se perdía ese
+ * ritmo al publicar (lo veía mientras escribía pero desaparecía después).
+ *
+ * Ahora preservamos los párrafos vacíos consecutivos. Si en el futuro se
+ * necesita un tope (por ejemplo, no más de N seguidos para evitar abuso),
+ * habría que reintroducirlo de forma explícita y no a uno.
+ */
 function collapseConsecutiveBlankParagraphs(html: string): string {
-  const blankP = String.raw`<p\b[^>]*>(?:\s|<br\b[^>]*\/?>)*<\/p>`;
-  const re = new RegExp(`(${blankP})(?:\\s*${blankP})+`, "gi");
-  let prev: string;
-  let out = html;
-  do {
-    prev = out;
-    out = out.replace(re, "$1");
-  } while (out !== prev);
-  return out;
+  return html;
 }
 
 function appendClassToAttrs(attrs: string, cls: string): string {

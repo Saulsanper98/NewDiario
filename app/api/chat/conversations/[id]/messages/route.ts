@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma/client";
 import { z } from "zod";
 import { NotificationType } from "@/app/generated/prisma/enums";
 import type { SessionUser } from "@/lib/auth/types";
+import { isSuperAdmin } from "@/lib/auth/permissions";
 import { assertChatParticipant } from "@/lib/chat/access";
 import type {
   ChatAttachmentItem,
@@ -159,6 +160,7 @@ function serializeMessage(m: RawMessage, currentUserId: string): ChatMessageItem
     isDeleted,
     replyTo: buildReplySnippet(m.replyTo),
     reactions: isDeleted ? [] : buildReactions(m.reactions, currentUserId),
+    keptAt: m.keptAt ? m.keptAt.toISOString() : null,
   };
 }
 
@@ -268,6 +270,38 @@ export async function POST(
     );
   }
 
+  // ── Validación de acceso para attachments referenciales ──────────────────
+  // El cliente solo debería poder buscar (y por tanto adjuntar) notas de su
+  // propio departamento. Aquí defendemos el endpoint frente a clientes
+  // maliciosos que envíen un refId arbitrario saltándose la búsqueda.
+  // Si en el futuro queremos restringir también TASK/PROJECT aquí, este es
+  // el sitio.
+  const noteRefIds = attachments
+    .filter((a) => a.kind === "NOTE" && typeof a.refId === "string" && a.refId)
+    .map((a) => a.refId as string);
+  if (noteRefIds.length > 0 && !isSuperAdmin(user)) {
+    const myDeptIds = new Set(user.departments.map((d) => d.id));
+    const notes = await prisma.logEntry.findMany({
+      where: { id: { in: noteRefIds }, deletedAt: null },
+      select: { id: true, departmentId: true },
+    });
+    const accessibleIds = new Set(
+      notes
+        .filter((n) => myDeptIds.has(n.departmentId))
+        .map((n) => n.id)
+    );
+    const forbidden = noteRefIds.find((id) => !accessibleIds.has(id));
+    if (forbidden) {
+      return NextResponse.json(
+        {
+          error:
+            "Solo puedes compartir notas del departamento al que perteneces.",
+        },
+        { status: 403 }
+      );
+    }
+  }
+
   // Si nos piden responder a un mensaje, debe existir en ESTA conversacion.
   // Esto evita filtrar mensajes ajenos y respuestas cruzadas.
   if (replyToId) {
@@ -365,15 +399,31 @@ export async function POST(
         : previewBase;
 
     if (others.length > 0) {
-      await tx.notification.createMany({
-        data: others.map((o) => ({
-          userId: o.userId,
-          type: NotificationType.CHAT_MESSAGE,
-          title: `Mensaje de ${user.name}`,
-          message: preview,
-          link: `/chat?c=${conversationId}&m=${created.id}`,
-        })),
+      // Excluir destinatarios con un bloque FOCUS (no molestar) activo.
+      const inFocus = await tx.calendarEvent.findMany({
+        where: {
+          type: "FOCUS",
+          deletedAt: null,
+          authorId: { in: others.map((o) => o.userId) },
+          startsAt: { lte: now },
+          endsAt: { gte: now },
+        },
+        select: { authorId: true },
       });
+      const focusedIds = new Set(inFocus.map((f) => f.authorId));
+      const notifyTargets = others.filter((o) => !focusedIds.has(o.userId));
+
+      if (notifyTargets.length > 0) {
+        await tx.notification.createMany({
+          data: notifyTargets.map((o) => ({
+            userId: o.userId,
+            type: NotificationType.CHAT_MESSAGE,
+            title: `Mensaje de ${user.name}`,
+            message: preview,
+            link: `/chat?c=${conversationId}&m=${created.id}`,
+          })),
+        });
+      }
     }
 
     return {

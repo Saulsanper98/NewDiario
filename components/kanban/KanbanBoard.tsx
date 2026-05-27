@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useMemo, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useVisibleRefresh } from "@/hooks/use-visible-refresh";
 import {
   DragDropContext,
   Droppable,
@@ -15,6 +16,8 @@ import { KanbanCard } from "./KanbanCard";
 import { TaskDetailPanel } from "./TaskDetailPanel";
 import { KanbanWhatIfSimulator } from "./KanbanWhatIfSimulator";
 import { cn } from "@/lib/utils";
+import { useTheme } from "@/components/layout/ThemeProvider";
+import { Listbox } from "@/components/ui/Listbox";
 import type {
   ProjectDetail,
   ProjectKanbanTask,
@@ -132,7 +135,14 @@ interface KanbanBoardProps {
 }
 
 export function KanbanBoard({ project, allUsers }: KanbanBoardProps) {
+  const { theme } = useTheme();
+  const L = theme === "light";
   const router = useRouter();
+  // Polling visible-only para captar cambios de compañeros en el tablero
+  // (nuevas tareas, drag de otros, subtareas, comentarios). El KanbanBoard
+  // compara firmas y sólo aplica si cambia algo, así que el riesgo de
+  // interferir con el drag-and-drop local es mínimo.
+  useVisibleRefresh(45_000);
 
   const [columns, setColumns] = useState<KanbanColumnState[]>(
     project.kanbanColumns ?? []
@@ -664,38 +674,46 @@ export function KanbanBoard({ project, allUsers }: KanbanBoardProps) {
         />
       )}
       {/* Kanban filters */}
-      <div className="kanban-filters-bar px-4 py-2 mt-1 border-b border-white/6 flex flex-wrap items-center gap-x-3 gap-y-1.5 shrink-0">
-        <select
-          value={priorityFilter}
-          onChange={(e) => setPriorityFilter(e.target.value)}
-          aria-label="Filtrar por prioridad"
-          className="h-7 bg-white/5 border border-white/8 rounded-lg px-2.5 text-xs text-white/60 focus:outline-none focus:border-[#ffeb66]/40 focus:bg-white/7"
-        >
-          <option value="">Prioridad</option>
-          <option value="HIGH">Alta</option>
-          <option value="MEDIUM">Media</option>
-          <option value="LOW">Baja</option>
-        </select>
-        <select
-          value={assigneeFilter}
-          onChange={(e) => setAssigneeFilter(e.target.value)}
-          aria-label="Filtrar por responsable"
-          className="h-7 bg-white/5 border border-white/8 rounded-lg px-2.5 text-xs text-white/60 focus:outline-none focus:border-[#ffeb66]/40 focus:bg-white/7"
-        >
-          <option value="">Asignado</option>
-          {allUsers.map((u) => (
-            <option key={u.id} value={u.id}>
-              {u.name}
-            </option>
-          ))}
-        </select>
+      <div className={cn(
+        "kanban-filters-bar px-4 py-2 mt-1 border-b flex flex-wrap items-center gap-x-3 gap-y-1.5 shrink-0",
+        L ? "border-zinc-200 bg-white" : "border-white/6"
+      )}>
+        <div className="min-w-[140px]">
+          <Listbox
+            value={priorityFilter}
+            onChange={(v) => setPriorityFilter(v)}
+            options={[
+              { value: "", label: "Prioridad: todas" },
+              { value: "HIGH", label: "Alta" },
+              { value: "MEDIUM", label: "Media" },
+              { value: "LOW", label: "Baja" },
+            ]}
+            ariaLabel="Filtrar por prioridad"
+            light={L}
+          />
+        </div>
+        <div className="min-w-[180px]">
+          <Listbox
+            value={assigneeFilter}
+            onChange={(v) => setAssigneeFilter(v)}
+            options={[
+              { value: "", label: "Asignado: todos" },
+              ...allUsers.map((u) => ({ value: u.id, label: u.name })),
+            ]}
+            ariaLabel="Filtrar por responsable"
+            light={L}
+          />
+        </div>
         {(priorityFilter || assigneeFilter) && (
           <button
             onClick={() => {
               setPriorityFilter("");
               setAssigneeFilter("");
             }}
-            className="text-xs text-white/40 hover:text-white/70"
+            className={cn(
+              "text-xs transition-colors",
+              L ? "text-zinc-500 hover:text-zinc-800" : "text-white/40 hover:text-white/70"
+            )}
           >
             Limpiar filtros
           </button>
@@ -706,7 +724,12 @@ export function KanbanBoard({ project, allUsers }: KanbanBoardProps) {
             setArchiveOpen(true);
             void loadArchivedCompleted();
           }}
-          className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 text-xs text-white/55 hover:border-[#ffeb66]/30 hover:text-[#ffeb66]/90 transition-colors"
+          className={cn(
+            "flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs transition-colors",
+            L
+              ? "border-zinc-200 bg-white text-zinc-600 hover:border-amber-300 hover:text-amber-700"
+              : "border-white/10 bg-white/5 text-white/55 hover:border-[#ffeb66]/30 hover:text-[#ffeb66]/90"
+          )}
           title="Ver historial de tareas archivadas en completadas"
         >
           <Archive className="w-3.5 h-3.5" />
@@ -716,7 +739,12 @@ export function KanbanBoard({ project, allUsers }: KanbanBoardProps) {
           type="button"
           onClick={() => void clearCompletedColumn()}
           disabled={clearingCompleted || completedTasksInBoard === 0}
-          className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 text-xs text-white/55 hover:border-red-400/30 hover:text-red-300/90 transition-colors disabled:opacity-50"
+          className={cn(
+            "flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs transition-colors disabled:opacity-50",
+            L
+              ? "border-zinc-200 bg-white text-zinc-600 hover:border-red-300 hover:text-red-700"
+              : "border-white/10 bg-white/5 text-white/55 hover:border-red-400/30 hover:text-red-300/90"
+          )}
           title="Vaciar columna de completadas y mover tareas al archivo"
         >
           <Trash2 className="w-3.5 h-3.5" />
@@ -725,7 +753,12 @@ export function KanbanBoard({ project, allUsers }: KanbanBoardProps) {
         <button
           type="button"
           onClick={() => setWhatIfOpen(true)}
-          className="ml-auto flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 text-xs text-white/55 hover:border-[#ffeb66]/30 hover:text-[#ffeb66]/90 transition-colors"
+          className={cn(
+            "ml-auto flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs transition-colors",
+            L
+              ? "border-zinc-200 bg-white text-zinc-600 hover:border-amber-300 hover:text-amber-700"
+              : "border-white/10 bg-white/5 text-white/55 hover:border-[#ffeb66]/30 hover:text-[#ffeb66]/90"
+          )}
           title="Simular carga del tablero sin guardar cambios"
         >
           <FlaskConical className="w-3.5 h-3.5" />

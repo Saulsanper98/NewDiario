@@ -14,8 +14,10 @@ export async function POST(
   const { id } = await params;
   const user = session.user as SessionUser;
   const { content } = await req.json();
-
-  if (!content?.trim()) {
+  const raw = typeof content === "string" ? content : "";
+  const stripped = raw.replace(/<[^>]+>/g, "").trim();
+  const hasImage = /<img\b/i.test(raw);
+  if (!stripped && !hasImage) {
     return NextResponse.json({ error: "Content required" }, { status: 400 });
   }
 

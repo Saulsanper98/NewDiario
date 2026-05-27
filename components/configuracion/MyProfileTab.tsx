@@ -8,7 +8,11 @@ import {
   Crosshair,
   KeyRound,
   Loader2,
+  Mail,
+  Shield,
   Sparkles,
+  Image as ImageIcon,
+  User as UserIcon,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { Avatar } from "@/components/ui/Avatar";
@@ -25,7 +29,6 @@ import { useTheme } from "@/components/layout/ThemeProvider";
 import { USER_ROW_BANNER_HD } from "@/lib/feature-flags";
 import {
   IMAGE_UPLOAD_ACCEPT,
-  IMAGE_UPLOAD_HINT,
   validateProfileImageFile,
 } from "@/lib/upload-file";
 import { SoundLibraryCard } from "@/components/configuracion/SoundLibraryCard";
@@ -59,6 +62,7 @@ export function MyProfileTab({ currentUser }: MyProfileTabProps) {
   );
   const [password, setPassword] = useState("");
   const [password2, setPassword2] = useState("");
+  const [birthday, setBirthday] = useState(currentUser.birthday ?? "");
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [showImageUrl, setShowImageUrl] = useState(true);
@@ -70,9 +74,10 @@ export function MyProfileTab({ currentUser }: MyProfileTabProps) {
   const trimmedImage = image.trim();
   const trimmedBanner = profileBanner.trim();
   const nameDirty = trimmedName !== (currentUser.name ?? "");
+  const birthdayDirty = birthday !== (currentUser.birthday ?? "");
   const imageDirty = trimmedImage !== (currentUser.image ?? "");
   const passwordDirty = password.length > 0;
-  const hasChanges = nameDirty || imageDirty || passwordDirty;
+  const hasChanges = nameDirty || imageDirty || passwordDirty || birthdayDirty;
 
   const defaultDept = useMemo(
     () =>
@@ -188,10 +193,11 @@ export function MyProfileTab({ currentUser }: MyProfileTabProps) {
 
     setSaving(true);
     try {
-      const body: Record<string, string> = {};
+      const body: Record<string, string | null> = {};
       if (nameDirty) body.name = trimmedName;
       if (imageDirty) body.image = trimmedImage;
       if (password) body.password = password;
+      if (birthdayDirty) body.birthday = birthday || null;
 
       const res = await fetch(`/api/users/${currentUser.id}`, {
         method: "PATCH",
@@ -232,27 +238,29 @@ export function MyProfileTab({ currentUser }: MyProfileTabProps) {
       : "border-white/10 bg-gradient-to-b from-[#121a2e]/95 to-[#0d1427]/98 shadow-black/30"
   );
 
-  return (
-    <div className="mx-auto w-full max-w-lg pb-8">
-      <div className="mb-6">
-        <h1
-          className={cn(
-            "text-xl font-semibold tracking-tight",
-            L ? "text-zinc-900" : "text-white"
-          )}
-        >
-          Mi cuenta
-        </h1>
-        <p className={cn("mt-1 text-sm", L ? "text-zinc-600" : "text-white/45")}>
-          Actualiza tu foto, el fondo del menú de perfil y tu contraseña.
-        </p>
-      </div>
+  // Rol "más alto" entre el rol global y los departamentos del usuario, para
+  // mostrarlo como badge en la cabecera.
+  const topRole = useMemo<"SUPERADMIN" | "ADMIN" | "OPERATOR" | null>(() => {
+    if (currentUser.role === "SUPERADMIN") return "SUPERADMIN";
+    const roles = currentUser.departments.map((d) => d.role);
+    if (roles.includes("ADMIN")) return "ADMIN";
+    if (roles.includes("OPERATOR")) return "OPERATOR";
+    return null;
+  }, [currentUser]);
 
+  const ROLE_LABEL: Record<"SUPERADMIN" | "ADMIN" | "OPERATOR", string> = {
+    SUPERADMIN: "Super admin",
+    ADMIN: "Admin",
+    OPERATOR: "Operador",
+  };
+
+  return (
+    <div className="mx-auto w-full max-w-3xl pb-10">
       <form onSubmit={handleSubmit} className={cardClass}>
         {/* Cabecera con fondo de perfil + avatar */}
         <div
           className={cn(
-            "relative overflow-hidden text-center",
+            "relative overflow-hidden",
             L ? "border-b border-zinc-200/80" : "border-b border-white/8"
           )}
         >
@@ -262,9 +270,18 @@ export function MyProfileTab({ currentUser }: MyProfileTabProps) {
             focusY={bannerFocusY}
             accentColor={defaultDept?.accentColor}
             blendToColor={L ? "#fafafa" : "#0d1427"}
-            heightClass="h-28 sm:h-32"
+            heightClass="h-36 sm:h-44"
           />
-          <div className="relative px-6 pb-6 pt-0">
+          {/* Sutil gradiente decorativo en la esquina sup-derecha para más
+              profundidad visual sobre el banner. */}
+          <span
+            aria-hidden
+            className={cn(
+              "pointer-events-none absolute -right-12 -top-12 h-44 w-44 rounded-full blur-3xl",
+              L ? "bg-amber-200/35" : "bg-amber-400/15"
+            )}
+          />
+          <div className="relative px-6 pb-6 pt-0 text-center">
           <input
             ref={fileInputRef}
             type="file"
@@ -277,21 +294,18 @@ export function MyProfileTab({ currentUser }: MyProfileTabProps) {
               e.currentTarget.value = "";
             }}
           />
-          <div className="-mt-10 relative mx-auto inline-flex flex-col items-center gap-2">
+          <div className="-mt-12 relative mx-auto inline-flex flex-col items-center gap-2.5">
+            {/* Avatar XL puro: sin wrapper de color, sin ring, sin padding.
+             *  Solo el avatar. */}
             <button
               type="button"
               onClick={() => trimmedImage && setPreviewOpen(true)}
               disabled={!trimmedImage || uploading}
               title={trimmedImage ? "Ver foto en grande" : "Aún no hay foto"}
               className={cn(
-                "group relative rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ffeb66]/50",
-                trimmedImage && "cursor-zoom-in",
-                "ring-[3px]",
-                L ? "ring-[#fafafa]" : "ring-[#0d1427]"
+                "group relative rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ffeb66]/55",
+                trimmedImage && "cursor-zoom-in"
               )}
-              style={{
-                boxShadow: "0 6px 16px rgba(0,0,0,0.35)",
-              }}
             >
               <Avatar
                 name={currentUser.name}
@@ -301,6 +315,20 @@ export function MyProfileTab({ currentUser }: MyProfileTabProps) {
                 size="xl"
                 effect={avatarEffect}
               />
+              {/* Badge cámara discreto en la esquina, sin ring de color detrás
+               * (el ring del badge antes pintaba un círculo grueso alrededor
+               * del propio badge; ahora va sin ring para no añadir sombras). */}
+              <span
+                aria-hidden
+                className={cn(
+                  "absolute -bottom-0.5 -right-0.5 flex h-7 w-7 items-center justify-center rounded-full transition-transform group-hover:scale-110",
+                  L
+                    ? "bg-white text-zinc-700 border border-zinc-200"
+                    : "bg-[#1a2238] text-white/85 border border-white/10"
+                )}
+              >
+                <Camera className="h-3.5 w-3.5" />
+              </span>
             </button>
             <div className="flex flex-wrap items-center justify-center gap-2">
               <button
@@ -343,43 +371,72 @@ export function MyProfileTab({ currentUser }: MyProfileTabProps) {
 
           <p
             className={cn(
-              "mt-4 text-base font-semibold",
+              "mt-4 text-lg font-semibold tracking-tight",
               L ? "text-zinc-900" : "text-white"
             )}
           >
             {currentUser.name}
           </p>
-          <p className={cn("text-sm", L ? "text-zinc-500" : "text-white/40")}>
+          <p
+            className={cn(
+              "mt-0.5 inline-flex items-center justify-center gap-1.5 text-sm",
+              L ? "text-zinc-500" : "text-white/45"
+            )}
+          >
+            <Mail className="h-3.5 w-3.5 shrink-0 opacity-80" />
             {currentUser.email}
           </p>
 
-          {defaultDept && (
-            <span
-              className={cn(
-                "mt-2 inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-medium",
-                L ? "bg-zinc-100 text-zinc-600" : "bg-white/6 text-white/50"
-              )}
-            >
+          {/* Pills: departamento(s) + rol */}
+          <div className="mt-3 flex flex-wrap items-center justify-center gap-1.5">
+            {currentUser.departments.map((d) => (
               <span
-                className="h-1.5 w-1.5 shrink-0 rounded-full"
-                style={{ backgroundColor: defaultDept.accentColor }}
-              />
-              {defaultDept.name}
-            </span>
-          )}
-
-          <p className={cn("mt-3 text-xs", L ? "text-zinc-400" : "text-white/30")}>
-            Pulsa la foto para verla en grande · «Cambiar foto» o URL abajo para actualizarla
-          </p>
+                key={d.id}
+                className={cn(
+                  "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-medium",
+                  L
+                    ? "border border-zinc-200 bg-white text-zinc-700"
+                    : "border border-white/10 bg-white/[0.04] text-white/65"
+                )}
+              >
+                <span
+                  className="h-1.5 w-1.5 shrink-0 rounded-full"
+                  style={{ backgroundColor: d.accentColor }}
+                />
+                {d.name}
+              </span>
+            ))}
+            {topRole && (
+              <span
+                className={cn(
+                  "inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-semibold ring-1",
+                  topRole === "SUPERADMIN"
+                    ? L
+                      ? "bg-fuchsia-50 text-fuchsia-700 ring-fuchsia-200"
+                      : "bg-fuchsia-500/12 text-fuchsia-200 ring-fuchsia-400/25"
+                    : topRole === "ADMIN"
+                      ? L
+                        ? "bg-amber-50 text-amber-800 ring-amber-200"
+                        : "bg-amber-500/12 text-amber-200 ring-amber-400/25"
+                      : L
+                        ? "bg-zinc-100 text-zinc-700 ring-zinc-200"
+                        : "bg-white/[0.06] text-white/65 ring-white/10"
+                )}
+              >
+                <Shield className="h-3 w-3" />
+                {ROLE_LABEL[topRole]}
+              </span>
+            )}
+          </div>
 
           <p
             className={cn(
-              "mt-2 inline-flex items-center gap-1 text-[11px]",
+              "mt-3 inline-flex items-center gap-1 text-[11px]",
               L ? "text-zinc-400" : "text-white/28"
             )}
           >
             <Sparkles className="h-3 w-3 shrink-0" />
-            El marco decorativo se elige en el menú lateral
+            El marco decorativo del avatar se elige en el menú lateral
           </p>
           </div>
         </div>
@@ -387,10 +444,17 @@ export function MyProfileTab({ currentUser }: MyProfileTabProps) {
         {/* Nombre */}
         <div
           className={cn(
-            "px-6 pt-5 pb-2",
+            "space-y-3 px-6 pt-5 pb-2",
             L ? "border-t border-zinc-200/80" : "border-t border-white/8"
           )}
         >
+          <SectionHeader
+            L={L}
+            icon={UserIcon}
+            tone="violet"
+            title="Datos básicos"
+            description="Tu nombre visible en toda la app."
+          />
           <Input
             light={L}
             label="Nombre"
@@ -403,6 +467,24 @@ export function MyProfileTab({ currentUser }: MyProfileTabProps) {
             maxLength={120}
             required
           />
+          <div className="mt-3">
+            <Input
+              light={L}
+              label="Cumpleaños"
+              type="date"
+              value={birthday}
+              onChange={(e) => setBirthday(e.target.value)}
+              max="9999-12-31"
+            />
+            <p
+              className={cn(
+                "mt-1 text-[11px]",
+                L ? "text-zinc-500" : "text-white/40"
+              )}
+            >
+              Aparecerá como capa opcional en el calendario del equipo. Si lo dejas vacío, no se mostrará.
+            </p>
+          </div>
         </div>
 
         {/* URL opcional */}
@@ -448,12 +530,13 @@ export function MyProfileTab({ currentUser }: MyProfileTabProps) {
             L ? "border-t border-zinc-200/80" : "border-t border-white/8"
           )}
         >
-          <p className={cn("text-sm font-medium", L ? "text-zinc-900" : "text-white")}>
-            Fondo del menú de perfil
-          </p>
-          <p className={cn("mt-1 text-xs", L ? "text-zinc-500" : "text-white/35")}>
-            Se muestra en la cabecera de esta página y al abrir tu perfil en el menú lateral.
-          </p>
+          <SectionHeader
+            L={L}
+            icon={ImageIcon}
+            tone="sky"
+            title="Fondo del menú de perfil"
+            description="Se muestra en la cabecera de esta página y al abrir tu perfil en el menú lateral."
+          />
           {/* Vista previa: cómo se verá el fondo en la fila de Usuarios */}
           {trimmedBanner && (
             <div className="mt-3">
@@ -536,29 +619,13 @@ export function MyProfileTab({ currentUser }: MyProfileTabProps) {
             L ? "border-t border-zinc-200/80" : "border-t border-white/8"
           )}
         >
-          <div className="flex items-center gap-2">
-            <span
-              className={cn(
-                "flex h-8 w-8 items-center justify-center rounded-lg",
-                L ? "bg-amber-50 text-amber-700" : "bg-[#ffeb66]/10 text-[#ffeb66]"
-              )}
-            >
-              <KeyRound className="h-4 w-4" />
-            </span>
-            <div>
-              <p
-                className={cn(
-                  "text-sm font-medium",
-                  L ? "text-zinc-900" : "text-white"
-                )}
-              >
-                Contraseña
-              </p>
-              <p className={cn("text-xs", L ? "text-zinc-500" : "text-white/35")}>
-                Déjala vacía si no quieres cambiarla
-              </p>
-            </div>
-          </div>
+          <SectionHeader
+            L={L}
+            icon={KeyRound}
+            tone="amber"
+            title="Contraseña"
+            description="Déjala vacía si no quieres cambiarla."
+          />
 
           <div className="grid gap-3 sm:grid-cols-2">
             <Input
@@ -637,7 +704,74 @@ export function MyProfileTab({ currentUser }: MyProfileTabProps) {
         />
       )}
 
-      <SoundLibraryCard />
+      <div className="mt-6">
+        <SoundLibraryCard />
+      </div>
+    </div>
+  );
+}
+
+/* ──────────────────────────────────────────────────────────────
+ *  Cabecera consistente para cada sección dentro de Mi cuenta:
+ *  icono coloreado + título + descripción.
+ * ────────────────────────────────────────────────────────────── */
+function SectionHeader({
+  L,
+  icon: Icon,
+  tone,
+  title,
+  description,
+}: {
+  L: boolean;
+  icon: React.ComponentType<{ className?: string }>;
+  tone: "violet" | "sky" | "amber";
+  title: string;
+  description?: string;
+}) {
+  const TONE = {
+    violet: {
+      bgDark: "bg-violet-500/12 text-violet-200 ring-violet-400/25",
+      bgLight: "bg-violet-50 text-violet-700 ring-violet-200",
+    },
+    sky: {
+      bgDark: "bg-sky-500/12 text-sky-200 ring-sky-400/25",
+      bgLight: "bg-sky-50 text-sky-700 ring-sky-200",
+    },
+    amber: {
+      bgDark: "bg-amber-500/12 text-amber-200 ring-amber-400/25",
+      bgLight: "bg-amber-50 text-amber-700 ring-amber-200",
+    },
+  }[tone];
+  return (
+    <div className="flex items-center gap-2.5">
+      <span
+        className={cn(
+          "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ring-1",
+          L ? TONE.bgLight : TONE.bgDark
+        )}
+      >
+        <Icon className="h-4 w-4" />
+      </span>
+      <div className="min-w-0">
+        <p
+          className={cn(
+            "text-sm font-semibold leading-tight",
+            L ? "text-zinc-900" : "text-white"
+          )}
+        >
+          {title}
+        </p>
+        {description && (
+          <p
+            className={cn(
+              "mt-0.5 text-[11.5px] leading-snug",
+              L ? "text-zinc-500" : "text-white/45"
+            )}
+          >
+            {description}
+          </p>
+        )}
+      </div>
     </div>
   );
 }

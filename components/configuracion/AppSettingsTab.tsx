@@ -1,17 +1,34 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Sun, Sunset, Moon, Loader2, Upload, Undo2, ImageOff, LayoutGrid } from "lucide-react";
+import {
+  Sun,
+  Sunset,
+  Moon,
+  Loader2,
+  Upload,
+  Undo2,
+  ImageOff,
+  LayoutGrid,
+  Settings2,
+  Clock,
+  Columns3,
+} from "lucide-react";
 import { useDensity } from "@/lib/hooks/useDensity";
 import toast from "react-hot-toast";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
+import { Switch } from "@/components/ui/Switch";
 import { APP_NAME } from "@/lib/app-brand";
+import { useTheme } from "@/components/layout/ThemeProvider";
+import { cn } from "@/lib/utils";
 
 const LOGO_MAX_BYTES = 280_000;
 
 export function AppSettingsTab() {
+  const { theme } = useTheme();
+  const L = theme === "light";
   const fileRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(true);
   const { compact, toggle: toggleDensity } = useDensity();
@@ -132,231 +149,360 @@ export function AppSettingsTab() {
 
   if (loading) {
     return (
-      <div className="flex items-center gap-2 text-sm text-white/40 py-8">
+      <div className={cn(
+        "flex items-center gap-2 text-sm py-8",
+        L ? "text-zinc-500" : "text-white/40"
+      )}>
         <Loader2 className="w-4 h-4 animate-spin" />
         Cargando configuración…
       </div>
     );
   }
 
+  const shiftBlocks = [
+    { key: "morning" as const, label: "Mañana", icon: Sun, state: shifts.morning, accent: L ? "text-amber-600" : "text-amber-300" },
+    { key: "afternoon" as const, label: "Tarde", icon: Sunset, state: shifts.afternoon, accent: L ? "text-orange-600" : "text-orange-300" },
+    { key: "night" as const, label: "Noche", icon: Moon, state: shifts.night, accent: L ? "text-indigo-600" : "text-indigo-300" },
+  ];
+
   return (
-    <div className="config-appsettings-root space-y-5 max-w-2xl">
-      <Card className="space-y-6 min-w-0 overflow-hidden">
-        <div className="space-y-4">
-          <h3 className="text-sm font-semibold text-white">General</h3>
-          <Input
-            label="Nombre de la aplicación"
-            value={appName}
-            onChange={(e) => setAppName(e.target.value)}
-          />
-          <div className="flex flex-col gap-2">
-            <label className="text-xs font-medium text-white/60 uppercase tracking-wide">
-              Logo
-            </label>
-            <div className="flex flex-col sm:flex-row sm:items-start gap-4">
-              <div className="w-14 h-14 rounded-xl bg-white/5 border border-white/10 overflow-hidden shrink-0 relative flex items-center justify-center">
-                {/* eslint-disable-next-line @next/next/no-img-element -- vista previa puede ser data URL */}
-                <img
-                  src={previewSrc}
-                  alt=""
-                  className="max-w-[90%] max-h-[90%] object-contain"
+    <div className="config-appsettings-root space-y-5 max-w-3xl">
+      {/* Hero */}
+      <section
+        className={cn(
+          "relative overflow-hidden rounded-2xl border px-5 py-5 sm:px-6 sm:py-6",
+          L
+            ? "border-black/[0.08] bg-gradient-to-br from-white via-zinc-50/70 to-amber-50/40 shadow-[var(--lt-shadow-glass)]"
+            : "border-white/10 bg-gradient-to-br from-white/[0.04] via-white/[0.02] to-[#ffeb66]/[0.05]"
+        )}
+      >
+        <div
+          aria-hidden
+          className={cn(
+            "pointer-events-none absolute -top-14 -right-20 h-48 w-48 rounded-full blur-3xl",
+            L ? "bg-amber-200/55" : "bg-[#ffeb66]/12"
+          )}
+        />
+        <div className="relative flex items-start gap-3 sm:gap-4">
+          <div
+            className={cn(
+              "shrink-0 flex items-center justify-center w-11 h-11 sm:w-12 sm:h-12 rounded-2xl",
+              L
+                ? "bg-amber-100 text-amber-700 border border-amber-200"
+                : "bg-[#ffeb66]/15 text-[#ffeb66] border border-[#ffeb66]/25"
+            )}
+          >
+            <Settings2 className="w-5 h-5 sm:w-6 sm:h-6" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p
+              className={cn(
+                "mb-1 text-[10.5px] font-semibold uppercase tracking-[0.18em]",
+                L ? "text-zinc-500" : "text-white/40"
+              )}
+            >
+              Configuración · App
+            </p>
+            <h2
+              className={cn(
+                "text-lg sm:text-xl font-semibold leading-tight tracking-tight",
+                L ? "text-zinc-900" : "text-white"
+              )}
+            >
+              Aplicación, marca y turnos
+            </h2>
+            <p
+              className={cn(
+                "mt-1.5 text-xs sm:text-sm leading-relaxed",
+                L ? "text-zinc-600" : "text-white/55"
+              )}
+            >
+              Personaliza el nombre, el logo y los horarios de turno que la app usa para calcular
+              avisos, traspasos y estadísticas.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* General + Logo */}
+      <Card className="space-y-5 min-w-0 overflow-hidden" light={L}>
+        <div className="flex items-center gap-2">
+          <Settings2 className={cn("w-4 h-4", L ? "text-zinc-500" : "text-white/40")} />
+          <h3 className={cn("text-sm font-semibold", L ? "text-zinc-900" : "text-white")}>
+            General
+          </h3>
+        </div>
+        <Input
+          label="Nombre de la aplicación"
+          value={appName}
+          onChange={(e) => setAppName(e.target.value)}
+        />
+        <div className="flex flex-col gap-2">
+          <label className={cn(
+            "text-[10.5px] font-semibold uppercase tracking-wider",
+            L ? "text-zinc-600" : "text-white/60"
+          )}>
+            Logo
+          </label>
+          <div className="flex flex-col sm:flex-row sm:items-start gap-4">
+            <div
+              className={cn(
+                "w-16 h-16 sm:w-14 sm:h-14 rounded-xl overflow-hidden shrink-0 relative flex items-center justify-center border",
+                L
+                  ? "bg-zinc-50 border-zinc-200"
+                  : "bg-white/5 border-white/10"
+              )}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element -- vista previa puede ser data URL */}
+              <img
+                src={previewSrc}
+                alt=""
+                className="max-w-[90%] max-h-[90%] object-contain"
+              />
+            </div>
+            <div className="flex-1 min-w-0 space-y-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <input
+                  ref={fileRef}
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp,image/svg+xml,.svg"
+                  className="sr-only"
+                  onChange={(e) => {
+                    onPickLogoFile(e.target.files?.[0] ?? null);
+                    e.target.value = "";
+                  }}
                 />
-              </div>
-              <div className="flex-1 min-w-0 space-y-2">
-                <div className="flex flex-wrap items-center gap-2">
-                  <input
-                    ref={fileRef}
-                    type="file"
-                    accept="image/png,image/jpeg,image/webp,image/svg+xml,.svg"
-                    className="sr-only"
-                    onChange={(e) => {
-                      onPickLogoFile(e.target.files?.[0] ?? null);
-                      e.target.value = "";
-                    }}
-                  />
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => fileRef.current?.click()}
+                  className="gap-1.5"
+                >
+                  <Upload className="w-3.5 h-3.5" />
+                  Elegir imagen…
+                </Button>
+                {logoPatch !== null && (
                   <Button
                     type="button"
-                    variant="secondary"
+                    variant="ghost"
                     size="sm"
-                    onClick={() => fileRef.current?.click()}
+                    onClick={() => setLogoPatch(null)}
                     className="gap-1.5"
                   >
-                    <Upload className="w-3.5 h-3.5" />
-                    Elegir imagen…
+                    <Undo2 className="w-3.5 h-3.5" />
+                    Deshacer
                   </Button>
-                  {logoPatch !== null && (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setLogoPatch(null)}
-                      className="gap-1.5 text-white/55 hover:text-white"
-                    >
-                      <Undo2 className="w-3.5 h-3.5" />
-                      Deshacer cambio de logo
-                    </Button>
-                  )}
-                  {storedLogoDataUrl && logoPatch === null && (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setLogoPatch("")}
-                      className="gap-1.5 text-white/50 hover:text-red-300"
-                    >
-                      <ImageOff className="w-3.5 h-3.5" />
-                      Quitar logo guardado
-                    </Button>
-                  )}
-                </div>
-                <p className="text-xs text-white/35 leading-relaxed">
-                  PNG, JPG, WebP o SVG (máx. {Math.round(LOGO_MAX_BYTES / 1024)} KB). Se guarda en la base de datos y
-                  sustituye al <code className="text-white/45">/logo.svg</code> por defecto en toda la app. En
-                  despliegues estáticos también puedes seguir usando{" "}
-                  <code className="text-white/45">public/logo.svg</code>.
-                </p>
+                )}
+                {storedLogoDataUrl && logoPatch === null && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setLogoPatch("")}
+                    className={cn(
+                      "gap-1.5",
+                      L ? "hover:text-red-700" : "hover:text-red-300"
+                    )}
+                  >
+                    <ImageOff className="w-3.5 h-3.5" />
+                    Quitar logo
+                  </Button>
+                )}
               </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="border-t border-white/10 pt-5 space-y-4">
-          <h3 className="text-sm font-semibold text-white">Turnos</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 min-w-0">
-            {[
-              {
-                key: "morning" as const,
-                label: "Mañana",
-                icon: Sun,
-                state: shifts.morning,
-              },
-              {
-                key: "afternoon" as const,
-                label: "Tarde",
-                icon: Sunset,
-                state: shifts.afternoon,
-              },
-              {
-                key: "night" as const,
-                label: "Noche",
-                icon: Moon,
-                state: shifts.night,
-              },
-            ].map(({ key, label, icon: Icon, state }) => (
-              <div
-                key={key}
-                className="p-3 rounded-lg bg-white/3 border border-white/8 space-y-2 min-w-0 overflow-hidden"
-              >
-                <p className="text-xs font-medium text-white/60 flex items-center gap-1.5">
-                  <Icon className="w-3 h-3 shrink-0" />
-                  {label}
-                </p>
-                <div className="flex items-center gap-1.5 min-w-0 w-full">
-                  <input
-                    type="time"
-                    value={state.from}
-                    onChange={(e) =>
-                      setShifts((prev) => ({
-                        ...prev,
-                        [key]: { ...prev[key], from: e.target.value },
-                      }))
-                    }
-                    className="min-w-0 flex-1 max-w-full bg-white/5 border border-white/8 rounded-md px-1.5 py-1.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-[#ffeb66]/25 tabular-nums [color-scheme:dark]"
-                  />
-                  <span className="text-white/20 text-xs shrink-0">→</span>
-                  <input
-                    type="time"
-                    value={state.to}
-                    onChange={(e) =>
-                      setShifts((prev) => ({
-                        ...prev,
-                        [key]: { ...prev[key], to: e.target.value },
-                      }))
-                    }
-                    className="min-w-0 flex-1 max-w-full bg-white/5 border border-white/8 rounded-md px-1.5 py-1.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-[#ffeb66]/25 tabular-nums [color-scheme:dark]"
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="border-t border-white/10 pt-5 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <Button
-            type="button"
-            variant="primary"
-            size="md"
-            loading={saving}
-            onClick={() => void handleSave()}
-            className="w-full sm:w-auto shrink-0 whitespace-nowrap font-semibold tracking-tight !h-auto min-h-[2.75rem] py-2.5 px-8 text-sm shadow-[0_6px_28px_rgba(255,235,102,0.28)] hover:shadow-[0_8px_32px_rgba(255,235,102,0.38)] transition-shadow"
-          >
-            Guardar cambios
-          </Button>
-          <p className="text-[11px] text-white/35 leading-relaxed sm:max-w-md sm:pt-0.5">
-            Aplica el nombre, horarios de turno y, si has elegido o quitado un logo, esa decisión al pulsar el botón.
-          </p>
-        </div>
-      </Card>
-
-      <Card className="space-y-4">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex items-start gap-3 min-w-0">
-            <LayoutGrid className="w-4 h-4 text-white/50 shrink-0 mt-0.5" />
-            <div className="min-w-0">
-              <h3 className="text-sm font-semibold text-white">Vista compacta</h3>
-              <p className="text-xs text-white/40 mt-0.5 leading-relaxed">
-                Reduce el padding de las tarjetas en un 25% para mostrar más contenido en pantalla. No cambia el tamaño del texto.
+              <p className={cn(
+                "text-xs leading-relaxed",
+                L ? "text-zinc-600" : "text-white/35"
+              )}>
+                PNG, JPG, WebP o SVG (máx. {Math.round(LOGO_MAX_BYTES / 1024)} KB). Se guarda en
+                la base de datos y sustituye al logo por defecto en toda la app.
               </p>
             </div>
           </div>
-          <button
-            type="button"
-            role="switch"
-            aria-checked={compact}
-            onClick={toggleDensity}
-            className={[
-              "relative shrink-0 w-10 h-[22px] rounded-full border transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ffeb66]/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a0f1e]",
-              compact
-                ? "bg-[#ffeb66]/20 border-[#ffeb66]/40"
-                : "bg-white/5 border-white/12 hover:border-white/20",
-            ].join(" ")}
-          >
-            <span
-              className={[
-                "absolute top-0.5 w-4 h-4 rounded-full shadow transition-all duration-200",
-                compact
-                  ? "left-5 bg-[#ffeb66]"
-                  : "left-0.5 bg-white/40",
-              ].join(" ")}
-            />
-          </button>
         </div>
       </Card>
 
-      <Card className="space-y-4">
-        <h3 className="text-sm font-semibold text-white">
-          Columnas Kanban por defecto
-        </h3>
-        <p className="text-xs text-white/40">
-          Estas columnas se usan como referencia al crear proyectos desde el flujo
-          estándar (Backlog → Completado).
-        </p>
-        <div className="space-y-2">
-          {["Backlog", "Pendiente", "En Progreso", "En Revisión", "Completado"].map(
-            (col, i) => (
-              <div
-                key={i}
-                className="flex items-center gap-2 p-2.5 rounded-lg bg-white/3 border border-white/6"
-              >
-                <span className="text-xs text-white/30 w-4">{i + 1}</span>
-                <span className="text-sm text-white/70 flex-1">{col}</span>
-                {i === 4 && (
-                  <span className="text-xs text-[#ffeb66]/60">(final)</span>
-                )}
-              </div>
-            )
-          )}
+      {/* Turnos */}
+      <Card className="space-y-4 min-w-0" light={L}>
+        <div className="flex items-center gap-2">
+          <Clock className={cn("w-4 h-4", L ? "text-zinc-500" : "text-white/40")} />
+          <h3 className={cn("text-sm font-semibold", L ? "text-zinc-900" : "text-white")}>
+            Turnos
+          </h3>
         </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 min-w-0">
+          {shiftBlocks.map(({ key, label, icon: Icon, state, accent }) => (
+            <div
+              key={key}
+              className={cn(
+                "p-3 rounded-xl border space-y-2 min-w-0 overflow-hidden",
+                L
+                  ? "bg-zinc-50 border-zinc-200"
+                  : "bg-white/3 border-white/8"
+              )}
+            >
+              <p
+                className={cn(
+                  "text-xs font-semibold flex items-center gap-1.5",
+                  L ? "text-zinc-800" : "text-white/70"
+                )}
+              >
+                <Icon className={cn("w-3.5 h-3.5 shrink-0", accent)} />
+                {label}
+              </p>
+              <div className="flex items-center gap-1.5 min-w-0 w-full">
+                <input
+                  type="time"
+                  value={state.from}
+                  onChange={(e) =>
+                    setShifts((prev) => ({
+                      ...prev,
+                      [key]: { ...prev[key], from: e.target.value },
+                    }))
+                  }
+                  className={cn(
+                    "min-w-0 flex-1 max-w-full rounded-md px-1.5 py-1.5 text-xs tabular-nums focus:outline-none focus:ring-2",
+                    L
+                      ? "bg-white border border-zinc-300 text-zinc-900 focus:ring-amber-300 focus:border-amber-400 [color-scheme:light]"
+                      : "bg-white/5 border border-white/8 text-white focus:ring-[#ffeb66]/25 [color-scheme:dark]"
+                  )}
+                />
+                <span className={cn("text-xs shrink-0", L ? "text-zinc-400" : "text-white/20")}>→</span>
+                <input
+                  type="time"
+                  value={state.to}
+                  onChange={(e) =>
+                    setShifts((prev) => ({
+                      ...prev,
+                      [key]: { ...prev[key], to: e.target.value },
+                    }))
+                  }
+                  className={cn(
+                    "min-w-0 flex-1 max-w-full rounded-md px-1.5 py-1.5 text-xs tabular-nums focus:outline-none focus:ring-2",
+                    L
+                      ? "bg-white border border-zinc-300 text-zinc-900 focus:ring-amber-300 focus:border-amber-400 [color-scheme:light]"
+                      : "bg-white/5 border border-white/8 text-white focus:ring-[#ffeb66]/25 [color-scheme:dark]"
+                  )}
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+      </Card>
+
+      {/* Save bar (sticky-feeling) */}
+      <div
+        className={cn(
+          "rounded-xl border p-4 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4",
+          L
+            ? "border-amber-200 bg-amber-50/70"
+            : "border-[#ffeb66]/22 bg-[#ffeb66]/[0.05]"
+        )}
+      >
+        <p className={cn(
+          "text-xs leading-relaxed flex-1",
+          L ? "text-amber-900" : "text-amber-100/85"
+        )}>
+          Aplica el nombre, horarios de turno y, si has elegido o quitado un logo, esa decisión al
+          pulsar el botón.
+        </p>
+        <Button
+          type="button"
+          variant="primary"
+          size="md"
+          loading={saving}
+          onClick={() => void handleSave()}
+          className="w-full sm:w-auto shrink-0 whitespace-nowrap font-semibold tracking-tight !h-auto min-h-[2.75rem] py-2.5 px-6 text-sm shadow-[0_6px_28px_rgba(255,235,102,0.28)] hover:shadow-[0_8px_32px_rgba(255,235,102,0.38)] transition-shadow"
+        >
+          Guardar cambios
+        </Button>
+      </div>
+
+      {/* Vista compacta */}
+      <Card className="space-y-3" light={L}>
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-start gap-3 min-w-0">
+            <span
+              className={cn(
+                "shrink-0 flex w-8 h-8 items-center justify-center rounded-lg mt-0.5",
+                L ? "bg-zinc-100 text-zinc-700 border border-zinc-200" : "bg-white/6 text-white/55 border border-white/10"
+              )}
+            >
+              <LayoutGrid className="w-4 h-4" />
+            </span>
+            <div className="min-w-0">
+              <h3 className={cn("text-sm font-semibold", L ? "text-zinc-900" : "text-white")}>
+                Vista compacta
+              </h3>
+              <p className={cn(
+                "text-xs mt-0.5 leading-relaxed",
+                L ? "text-zinc-600" : "text-white/45"
+              )}>
+                Reduce el padding de las tarjetas en un 25% para mostrar más contenido en pantalla.
+                No cambia el tamaño del texto.
+              </p>
+            </div>
+          </div>
+          <Switch
+            checked={compact}
+            onCheckedChange={toggleDensity}
+            size="sm"
+            light={L}
+            label="Vista compacta"
+          />
+        </div>
+      </Card>
+
+      {/* Columnas Kanban */}
+      <Card className="space-y-3" light={L}>
+        <div className="flex items-center gap-2">
+          <Columns3 className={cn("w-4 h-4", L ? "text-zinc-500" : "text-white/40")} />
+          <h3 className={cn("text-sm font-semibold", L ? "text-zinc-900" : "text-white")}>
+            Columnas Kanban por defecto
+          </h3>
+        </div>
+        <p className={cn("text-xs leading-relaxed", L ? "text-zinc-600" : "text-white/45")}>
+          Estas columnas se usan como referencia al crear proyectos desde el flujo estándar
+          (Backlog → Completado).
+        </p>
+        <ol className="space-y-1.5">
+          {["Backlog", "Pendiente", "En Progreso", "En Revisión", "Completado"].map((col, i) => (
+            <li
+              key={i}
+              className={cn(
+                "flex items-center gap-3 p-2.5 rounded-lg border",
+                L
+                  ? "bg-zinc-50 border-zinc-200"
+                  : "bg-white/3 border-white/6"
+              )}
+            >
+              <span
+                className={cn(
+                  "shrink-0 flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-semibold tabular-nums",
+                  i === 4
+                    ? L
+                      ? "bg-emerald-100 text-emerald-800 border border-emerald-300"
+                      : "bg-emerald-500/15 text-emerald-300 border border-emerald-400/30"
+                    : L
+                      ? "bg-zinc-200 text-zinc-700"
+                      : "bg-white/10 text-white/50"
+                )}
+              >
+                {i + 1}
+              </span>
+              <span className={cn(
+                "text-sm flex-1",
+                L ? "text-zinc-800" : "text-white/70"
+              )}>{col}</span>
+              {i === 4 && (
+                <span className={cn(
+                  "text-[10px] font-semibold uppercase tracking-wide",
+                  L ? "text-emerald-700" : "text-emerald-300"
+                )}>Final</span>
+              )}
+            </li>
+          ))}
+        </ol>
       </Card>
     </div>
   );

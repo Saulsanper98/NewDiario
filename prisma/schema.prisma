@@ -58,6 +58,94 @@ enum ProjectStatus {
   ARCHIVED
 }
 
+/**
+ * Tipos para eventos del calendario.
+ *
+ *  • `EVENT`   — genérico (reuniones, recordatorios, etc.).
+ *  • `ABSENCE` — ausencia del usuario (vacaciones, baja, etc.).
+ *                Sustituye al antiguo `UserUnavailability`. El `subtype`
+ *                guarda la categoría concreta ("vacations", "sick", "personal",
+ *                "training", "other"). El "color" se decide en el cliente.
+ *  • `FOCUS`   — bloque de no-molestar (silencia notificaciones de chat).
+ *                Reservado para Fase 3.
+ */
+enum CalendarEventType {
+  EVENT
+  ABSENCE
+  FOCUS
+}
+
+/**
+ * Festivo del calendario. Tabla precargada por región. Se proyecta como capa
+ * sobre la vista del calendario; no son `CalendarEvent` para no contaminar
+ * el espacio del usuario.
+ */
+model Holiday {
+  id          String   @id @default(cuid())
+  /** Fecha (mediodía UTC para evitar saltos de TZ). */
+  date        DateTime @db.Date
+  name        String   @db.VarChar(200)
+  /** Código de región: "ES" nacional, "ES-CN" Canarias, etc. */
+  region      String   @db.VarChar(10)
+  /** Si el festivo solo aplica a una localidad concreta (Las Palmas, etc.). */
+  locality    String?  @db.VarChar(100)
+  createdAt   DateTime @default(now())
+
+  @@unique([date, region, locality])
+  @@index([date])
+  @@index([region])
+}
+
+/**
+ * Plantilla reutilizable para crear eventos de calendario rápidamente.
+ * Cada departamento tiene su propio catálogo de plantillas.
+ */
+model CalendarEventTemplate {
+  id             String   @id @default(cuid())
+  departmentId   String
+  authorId       String
+  name           String   @db.VarChar(120)
+  /** Cuerpo opcional de la plantilla. */
+  description    String?  @db.Text
+  /** Duración por defecto en minutos (para eventos con hora). */
+  defaultDurationMinutes Int @default(60)
+  allDay         Boolean  @default(false)
+  color          String   @default("blue") @db.VarChar(20)
+  /** Si la plantilla incluye una regla de recurrencia por defecto. */
+  recurrenceRule String?  @db.Text
+  /** Hora de inicio sugerida en formato "HH:mm" (para mostrarla pre-rellenada). */
+  defaultStartTime String? @db.VarChar(5)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  deletedAt      DateTime?
+
+  department  Department @relation(fields: [departmentId], references: [id])
+  author      User       @relation("CalendarTemplateAuthor", fields: [authorId], references: [id])
+
+  @@index([departmentId])
+  @@index([authorId])
+  @@index([deletedAt])
+}
+
+/**
+ * Tipos para la "bitácora lite" de un proyecto.
+ *
+ *  • PROGRESO  → "hoy he avanzado en X".
+ *  • BLOQUEO   → "no puedo avanzar por Y" (genera notificación a todo el equipo).
+ *  • DECISION  → "hemos decidido Z" (acuerdos / registro decisional).
+ *  • NOTA      → general / observación.
+ *
+ * Deliberadamente diferente de `LogEntryType` (bitácora del depto), porque las
+ * categorías operativas (URGENTE, INCIDENCIA, MANTENIMIENTO…) no aplican a
+ * proyectos: aquí lo importante es el estado del trabajo, no la operación.
+ */
+enum ProjectLogEntryType {
+  PROGRESO
+  BLOQUEO
+  DECISION
+  NOTA
+}
+
 enum DocType {
   SPEC
   DECISION
@@ -83,6 +171,8 @@ enum NotificationType {
   MENTION
   BUG_REPORT_CLOSED
   CHAT_MESSAGE
+  CHAT_RETENTION_WARNING
+  PROJECT_LOG_BLOCKED
 }
 
 enum BugReportStatus {
@@ -110,6 +200,8 @@ model User {
   imageFocusX    Float?
   /** Posición vertical del foco del avatar como porcentaje 0–100. */
   imageFocusY    Float?
+  /** Fecha de cumpleaños (solo día/mes son relevantes — el año es opcional). */
+  birthday       DateTime? @db.Date
   profileBanner  String?
   /** Posición horizontal del foco del fondo de perfil como porcentaje 0–100. */
   bannerFocusX   Float?
@@ -141,7 +233,6 @@ model User {
   boardSnapshotsAuthored ProjectBoardSnapshot[] @relation("BoardSnapshotAuthor")
   projectDocs          ProjectDoc[]
   projectActivities    ProjectActivity[]
-  unavailabilities     UserUnavailability[]
   notifications        Notification[]
   activityLogs         ActivityLog[]
   accounts             Account[]
@@ -155,6 +246,16 @@ model User {
   chatMessageReactions  ChatMessageReaction[]
   pushSubscriptions     PushSubscription[]
   userSounds            UserSound[]
+  releaseNotesAuthored  ReleaseNote[]         @relation("ReleaseNoteAuthor")
+  releaseNoteReads      ReleaseNoteRead[]
+  announcementsAuthored Announcement[]        @relation("AnnouncementAuthor")
+  announcementDismissals AnnouncementDismissal[]
+  projectLogsAuthored   ProjectLogEntry[]    @relation("ProjectLogAuthor")
+  projectLogComments    ProjectLogComment[]  @relation("ProjectLogCommentAuthor")
+  projectLogReactions   ProjectLogReaction[] @relation("ProjectLogReactionUser")
+  projectLogReads       ProjectLogRead[]     @relation("ProjectLogReadUser")
+  calendarEvents        CalendarEvent[]      @relation("CalendarEventAuthor")
+  calendarTemplates     CalendarEventTemplate[] @relation("CalendarTemplateAuthor")
 
   /**
    * Preferencias de sonido del usuario. Mapa categoría -> identificador del
@@ -239,6 +340,8 @@ model Department {
   projects       Project[]
   projectShares  ProjectShare[]   @relation("ProjectSharedWith")
   shiftHandoffs  ShiftHandoff[]
+  calendarEvents    CalendarEvent[]
+  calendarTemplates CalendarEventTemplate[]
 
   @@index([slug])
 }
@@ -257,21 +360,6 @@ model UserDepartment {
   @@unique([userId, departmentId])
   @@index([userId])
   @@index([departmentId])
-}
-
-/** Bloques donde el usuario no debe recibir asignaciones críticas (despacho / ventana de cambio). */
-model UserUnavailability {
-  id        String   @id @default(cuid())
-  userId    String
-  startsAt  DateTime
-  endsAt    DateTime
-  label     String?  @db.VarChar(200)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId, startsAt, endsAt])
 }
 
 // ─── NextAuth ─────────────────────────────────────────────────────────────────
@@ -348,6 +436,7 @@ model LogEntry {
   outgoingLogLinks LogEntryLink[]   @relation("LogLinkFrom")
   incomingLogLinks LogEntryLink[]   @relation("LogLinkTo")
   polls            LogEntryPoll[]
+  elevatedFromProjectLogs ProjectLogEntry[] @relation("ProjectLogElevated")
 
   @@index([authorId])
   @@index([departmentId])
@@ -577,6 +666,8 @@ model Project {
   activityFeed   ProjectActivity[]
   boardSnapshots ProjectBoardSnapshot[]
   docs           ProjectDoc[]
+  logs           ProjectLogEntry[]
+  logReads       ProjectLogRead[]
 
   @@index([departmentId])
   @@index([status])
@@ -863,6 +954,210 @@ model ProjectDoc {
   @@index([type])
 }
 
+/**
+ * Bitácora lite del proyecto.
+ *
+ * A diferencia de `LogEntry` (bitácora del departamento), aquí no hay turno,
+ * métrica, etiquetas ni shares: el contexto es siempre un proyecto y los
+ * lectores son siempre sus miembros. El editor del cuerpo es el mismo de la
+ * bitácora del departamento (TipTap rich text) por coherencia.
+ */
+model ProjectLogEntry {
+  id        String              @id @default(cuid())
+  projectId String
+  authorId  String
+  type      ProjectLogEntryType @default(NOTA)
+  /** Título opcional. Si está vacío, se muestra solo el cuerpo en el feed. */
+  title     String?             @db.VarChar(300)
+  /** Cuerpo rich text HTML ya sanitizado en la API. */
+  content   String              @db.Text
+  /** Solo el owner del proyecto puede fijar entradas; aparecen siempre arriba. */
+  pinned    Boolean             @default(false)
+  /**
+   * Si esta entrada se "elevó" a la bitácora del departamento, aquí guardamos
+   * el id de la nota creada. La entrada original sigue viva en el proyecto y
+   * mostramos un chip enlazando a la nota oficial.
+   *
+   * `onDelete: SetNull` para que si la nota del depto se borra, la entrada
+   * del proyecto sobreviva (queda como si no estuviera elevada).
+   */
+  elevatedToLogEntryId String?
+  elevatedAt           DateTime?
+  createdAt DateTime            @default(now())
+  updatedAt DateTime            @updatedAt
+  /** Soft delete (igual patrón que LogEntry / Task). */
+  deletedAt DateTime?
+
+  project          Project              @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  author           User                 @relation("ProjectLogAuthor", fields: [authorId], references: [id])
+  elevatedToEntry  LogEntry?            @relation("ProjectLogElevated", fields: [elevatedToLogEntryId], references: [id], onDelete: SetNull)
+  comments         ProjectLogComment[]
+  reactions        ProjectLogReaction[]
+
+  @@index([projectId, createdAt])
+  @@index([projectId, pinned])
+  @@index([authorId])
+  @@index([deletedAt])
+  @@index([elevatedToLogEntryId])
+}
+
+model ProjectLogComment {
+  id                String    @id @default(cuid())
+  projectLogEntryId String
+  authorId          String
+  content           String    @db.Text
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  deletedAt         DateTime?
+
+  logEntry ProjectLogEntry @relation(fields: [projectLogEntryId], references: [id], onDelete: Cascade)
+  author   User            @relation("ProjectLogCommentAuthor", fields: [authorId], references: [id])
+
+  @@index([projectLogEntryId, createdAt])
+  @@index([authorId])
+}
+
+/**
+ * Reacción a una entrada de bitácora de proyecto. `@@unique` impide que un
+ * usuario añada dos veces el mismo emoji (idempotencia para toggle).
+ */
+model ProjectLogReaction {
+  id                String   @id @default(cuid())
+  projectLogEntryId String
+  userId            String
+  emoji             String   @db.VarChar(16)
+  createdAt         DateTime @default(now())
+
+  logEntry ProjectLogEntry @relation(fields: [projectLogEntryId], references: [id], onDelete: Cascade)
+  user     User            @relation("ProjectLogReactionUser", fields: [userId], references: [id])
+
+  @@unique([projectLogEntryId, userId, emoji])
+  @@index([projectLogEntryId])
+  @@index([userId])
+}
+
+/**
+ * Última vez que un usuario "vio" la bitácora de un proyecto.
+ *
+ * Sirve para mostrar un badge de "no leído" en la pestaña Bitácora del
+ * proyecto. Es un modelo intencionadamente simple (un timestamp por par
+ * usuario-proyecto) — no almacenamos qué entradas concretas vio, solo cuándo
+ * abrió la tab por última vez. Las entradas creadas después se consideran
+ * "no leídas" para ese usuario.
+ *
+ * Trade-off: si alguien edita una entrada vieja, no la marcamos como nueva.
+ * Para el MVP es suficiente; si en el futuro se quiere distinguir
+ * por-entrada, se cambia este modelo por uno con `entryId`.
+ */
+model ProjectLogRead {
+  id         String   @id @default(cuid())
+  userId     String
+  projectId  String
+  lastSeenAt DateTime @default(now())
+
+  user    User    @relation("ProjectLogReadUser", fields: [userId], references: [id], onDelete: Cascade)
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, projectId])
+  @@index([userId])
+  @@index([projectId])
+}
+
+// ─── Calendario ───────────────────────────────────────────────────────────────
+
+/**
+ * Evento del calendario del departamento.
+ *
+ * Diseño MVP:
+ *  • Visibilidad: solo departamento (autor + miembros del depto). En el futuro
+ *    podríamos añadir `personal`/`shared`/`project` con campos adicionales.
+ *  • Recurrencia: regla RFC 5545 (RRULE) en `recurrenceRule`. Si es null, es
+ *    un evento único. Para expansión usamos `rrule.js` en el servidor.
+ *  • Excepciones: modelo `CalendarEventException` con (eventId, originalDate)
+ *    para "saltar este día" o "esa ocurrencia tiene otra hora/título".
+ *
+ * Las ocurrencias NO se persisten — se calculan en cada request del rango
+ * pedido. Es la forma estándar de implementar calendarios escalables.
+ */
+model CalendarEvent {
+  id              String   @id @default(cuid())
+  departmentId    String
+  authorId        String
+  title           String   @db.VarChar(300)
+  /** Cuerpo opcional rich-text HTML (mismo sanitizado que bitácora). */
+  description     String?  @db.Text
+  /**
+   * Para eventos puntuales: fecha/hora de inicio de la primera ocurrencia.
+   * Para eventos recurrentes: fecha/hora del DTSTART (RFC 5545).
+   * Para allDay: medianoche en zona local convertida a UTC.
+   */
+  startsAt        DateTime
+  /** Fin de la ocurrencia (mismo offset que startsAt). */
+  endsAt          DateTime
+  allDay          Boolean  @default(false)
+  location        String?  @db.VarChar(300)
+  /** Token de color: "blue", "green", "violet", "red", "amber", "sky", "pink" o "#rrggbb". */
+  color           String   @default("blue") @db.VarChar(20)
+  type            CalendarEventType @default(EVENT)
+  /** Etiqueta secundaria libre (categoría/subtipo). */
+  subtype         String?  @db.VarChar(80)
+  /**
+   * Regla de recurrencia RFC 5545 SIN el prefijo "RRULE:".
+   * Ej. "FREQ=DAILY", "FREQ=WEEKLY;BYDAY=MO,WE,FR", "FREQ=MONTHLY;BYDAY=1MO".
+   * Si es null, el evento NO se repite.
+   */
+  recurrenceRule  String?  @db.Text
+  /**
+   * Fecha tope (exclusive) hasta la que se generan ocurrencias. Si es null y
+   * `recurrenceRule` está definido, la serie es indefinida (se trunca por la
+   * ventana visible en cada query).
+   */
+  recurrenceUntil DateTime?
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  deletedAt       DateTime?
+
+  department  Department              @relation(fields: [departmentId], references: [id])
+  author      User                    @relation("CalendarEventAuthor", fields: [authorId], references: [id])
+  exceptions  CalendarEventException[]
+
+  @@index([departmentId, startsAt])
+  @@index([departmentId, endsAt])
+  @@index([authorId])
+  @@index([deletedAt])
+  @@index([recurrenceRule])
+}
+
+/**
+ * Excepción a una ocurrencia recurrente.
+ *
+ *  • `skip = true` → la ocurrencia de esa fecha se elimina por completo
+ *    (típicamente cuando el usuario borra "solo este día").
+ *  • Si hay overrides (startsAt/endsAt/title/description/location) → la
+ *    ocurrencia de esa fecha se renderiza con esos valores en lugar de los
+ *    del evento padre.
+ */
+model CalendarEventException {
+  id            String   @id @default(cuid())
+  eventId       String
+  /** Fecha original (DTSTART) de la ocurrencia que se altera. */
+  originalDate  DateTime
+  skip          Boolean  @default(false)
+  overrideStartsAt    DateTime?
+  overrideEndsAt      DateTime?
+  overrideTitle       String?   @db.VarChar(300)
+  overrideDescription String?   @db.Text
+  overrideLocation    String?   @db.VarChar(300)
+
+  createdAt     DateTime @default(now())
+
+  event  CalendarEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, originalDate])
+  @@index([eventId])
+}
+
 // ─── Notifications ────────────────────────────────────────────────────────────
 
 model Notification {
@@ -942,6 +1237,22 @@ enum ChatAttachmentKind {
   NOTE
 }
 
+// ─── Novedades / Release notes ────────────────────────────────────────────────
+
+enum ReleaseNoteCategory {
+  FEATURE
+  IMPROVEMENT
+  FIX
+  ANNOUNCEMENT
+  BREAKING
+}
+
+enum AnnouncementSeverity {
+  INFO
+  WARNING
+  CRITICAL
+}
+
 model ChatMessage {
   id             String    @id @default(cuid())
   conversationId String
@@ -953,6 +1264,11 @@ model ChatMessage {
   editedAt       DateTime?
   /** Soft-delete: el mensaje se conserva pero se renderiza como "eliminado". */
   deletedAt      DateTime?
+  /** Marca explícita del usuario para evitar el auto-borrado a 72 h. */
+  keptAt         DateTime?
+  /** Cuándo se notificó al usuario que el mensaje iba a borrarse (para no
+      avisar repetidamente). */
+  deletionWarnedAt DateTime?
   /** Si este mensaje es una respuesta a otro, su id. SetNull si el original
       se elimina del todo (no soft-delete) para no romper referencias. */
   replyToId      String?
@@ -967,6 +1283,7 @@ model ChatMessage {
   @@index([conversationId, createdAt])
   @@index([senderId])
   @@index([replyToId])
+  @@index([createdAt, keptAt])
 }
 
 /**
@@ -1062,4 +1379,102 @@ model AppSettings {
   updatedAt DateTime @updatedAt
 
   @@index([key])
+}
+
+// ─── Novedades / Release notes ────────────────────────────────────────────────
+
+/**
+ * Una "novedad" en el changelog visible para todos los usuarios autenticados.
+ * Solo el propietario (saul@movilidadgc.org) puede crearlas, editarlas o
+ * borrarlas. El resto las marca como leídas para limpiar el badge "NEW".
+ */
+model ReleaseNote {
+  id          String              @id @default(cuid())
+  title       String              @db.VarChar(200)
+  /** Etiqueta corta de versión / fecha. Opcional. Ej. "v1.2", "25 may". */
+  version     String?             @db.VarChar(60)
+  /** Resumen muy breve (subtítulo). */
+  summary     String?             @db.VarChar(400)
+  /** HTML sanitizado del cuerpo (puede incluir listas, imágenes, etc.). */
+  body        String              @db.Text
+  category    ReleaseNoteCategory @default(FEATURE)
+  /** Imagen destacada opcional (URL servida por la app o data URL pequeña). */
+  coverImage  String?             @db.VarChar(2048)
+  /** Si true, se ancla arriba del listado. */
+  pinned      Boolean             @default(false)
+  /** Si true, aún no se publica al resto (solo lo ve el propietario). */
+  isDraft     Boolean             @default(false)
+  publishedAt DateTime            @default(now())
+  createdById String
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  deletedAt   DateTime?
+
+  createdBy User              @relation("ReleaseNoteAuthor", fields: [createdById], references: [id])
+  reads     ReleaseNoteRead[]
+
+  @@index([publishedAt])
+  @@index([category])
+  @@index([deletedAt])
+  @@index([pinned, publishedAt])
+  @@index([isDraft])
+}
+
+/** Marca cuándo cada usuario leyó una novedad concreta. */
+model ReleaseNoteRead {
+  id            String   @id @default(cuid())
+  releaseNoteId String
+  userId        String
+  readAt        DateTime @default(now())
+
+  releaseNote ReleaseNote @relation(fields: [releaseNoteId], references: [id], onDelete: Cascade)
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([releaseNoteId, userId])
+  @@index([userId])
+}
+
+/**
+ * Aviso "broadcast" que se muestra como banner pegado arriba para TODOS los
+ * usuarios autenticados. Lo crea exclusivamente el propietario. Permite
+ * comunicar reinicios, mantenimientos, alertas, etc.
+ */
+model Announcement {
+  id          String               @id @default(cuid())
+  title       String               @db.VarChar(200)
+  message     String               @db.Text
+  severity    AnnouncementSeverity @default(INFO)
+  /** Si false, el aviso queda inactivo aunque siga existiendo. */
+  isActive    Boolean              @default(true)
+  /** Si false, el usuario NO puede descartarlo. */
+  dismissible Boolean              @default(true)
+  /** Etiqueta opcional de un botón con acción (p. ej. "Recargar"). */
+  ctaLabel    String?              @db.VarChar(60)
+  /** URL opcional de la acción. "reload://" recarga la página. */
+  ctaUrl      String?              @db.VarChar(500)
+  /** Si está fijado, no se descarta automáticamente. */
+  expiresAt   DateTime?
+  createdById String
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+
+  createdBy  User                    @relation("AnnouncementAuthor", fields: [createdById], references: [id])
+  dismissals AnnouncementDismissal[]
+
+  @@index([isActive, expiresAt])
+  @@index([createdAt])
+}
+
+/** Registro de descarte por usuario. */
+model AnnouncementDismissal {
+  id             String   @id @default(cuid())
+  announcementId String
+  userId         String
+  dismissedAt    DateTime @default(now())
+
+  announcement Announcement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([announcementId, userId])
+  @@index([userId])
 }
