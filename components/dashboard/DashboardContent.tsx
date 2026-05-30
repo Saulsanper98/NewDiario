@@ -227,7 +227,7 @@ function QuickActions({ L }: { L: boolean }) {
   ];
 
   const baseClasses = cn(
-    "dashboard-quick-action flex items-center gap-2.5 px-3 sm:px-4 py-3 rounded-xl border transition-all duration-200",
+    "dashboard-quick-action flex items-center gap-2 px-2.5 sm:px-4 py-2.5 sm:py-3 rounded-xl border transition-all duration-200",
     L ? "bg-white border-zinc-200 shadow-sm" : "glass-hover border-white/8"
   );
 
@@ -240,7 +240,7 @@ function QuickActions({ L }: { L: boolean }) {
               <a.icon className="w-3.5 h-3.5" />
             </div>
             <span className={cn(
-              "text-sm font-medium transition-colors truncate",
+              "text-[13px] sm:text-sm font-medium transition-colors truncate",
               L ? "text-zinc-800 group-hover:text-zinc-900" : "text-white/70 group-hover:text-white"
             )}>
               {a.label}
@@ -260,7 +260,7 @@ function QuickActions({ L }: { L: boolean }) {
             <Search className="w-3.5 h-3.5" />
           </div>
           <span className={cn(
-            "text-sm font-medium transition-colors truncate",
+            "text-[13px] sm:text-sm font-medium transition-colors truncate",
             L ? "text-zinc-800 group-hover:text-zinc-900" : "text-white/70 group-hover:text-white"
           )}>
             Buscar
@@ -311,29 +311,31 @@ export function DashboardContent({
     <div className="p-4 sm:p-6 space-y-5 max-w-7xl mx-auto">
       {/* ── Greeting header ─────────────────────────────────────────── */}
       <div className="widget-appear" style={{ animationDelay: "0ms" }}>
-        <div className="flex items-center justify-between gap-4 flex-wrap">
-          <div className="min-w-0">
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0 flex-1">
             <h1 className={cn(
-              "text-2xl font-bold leading-tight",
+              "text-xl sm:text-2xl font-bold leading-tight truncate",
               L ? "text-zinc-900" : "text-white"
             )}>
               {greeting},{" "}
               <span className={L ? "text-amber-700" : "text-[#ffeb66]"}>{user.name.split(" ")[0]}</span>
             </h1>
             <p className={cn(
-              "text-sm mt-0.5 flex flex-wrap items-center gap-1.5",
+              "text-xs sm:text-sm mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-0",
               L ? "text-zinc-600" : "text-white/40"
             )}>
-              <ShiftIcon className={cn("w-3.5 h-3.5", shiftIconColor)} />
-              <span className="capitalize">{format(now, "EEEE d 'de' MMMM, yyyy", { locale: es })}</span>
-              {" — Turno de "}
+              <ShiftIcon className={cn("w-3.5 h-3.5 shrink-0", shiftIconColor)} />
+              <span className="capitalize">{format(now, "EEEE d 'de' MMM", { locale: es })}</span>
+              <span aria-hidden>·</span>
+              <span>Turno de </span>
               <span className={cn(
                 "font-semibold",
-                L ? "text-amber-700" : "text-[#ffeb66]/70"
+                L ? "text-amber-700" : "text-[#ffeb66]/80"
               )}>{SHIFT_LABELS[currentShift]}</span>
             </p>
           </div>
-          <div className="flex items-center gap-2 shrink-0">
+          {/* Botón solo en sm+ — en móvil ya tenemos "Nueva entrada" en QuickActions y mobile-nav */}
+          <div className="hidden sm:flex items-center gap-2 shrink-0">
             <Link href="/bitacora/nueva">
               <Button variant="primary" size="md">
                 <BookOpen className="w-3.5 h-3.5" />
@@ -480,7 +482,7 @@ export function DashboardContent({
 
       {/* ── Stats bar ───────────────────────────────────────────────── */}
       <div className="widget-appear" style={{ animationDelay: "160ms" }}>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
           <StatCard
             label="Entradas hoy"
             value={stats.entriesToday}
@@ -797,6 +799,22 @@ export function DashboardContent({
         </div>
       </div>
 
+      {/* ── FAB móvil: nueva entrada ─────────────────────────────────── */}
+      <Link
+        href="/bitacora/nueva"
+        aria-label="Nueva entrada de bitácora"
+        className={cn(
+          "sm:hidden fixed safe-fab-br z-40 flex h-12 w-12 items-center justify-center rounded-full",
+          "shadow-[0_8px_24px_-8px_rgba(255,235,102,0.55)] transition-all active:scale-95",
+          L
+            ? "bg-amber-500 text-white hover:bg-amber-600"
+            : "bg-[#ffeb66] text-[#0a0f1e] hover:bg-[#fff080]"
+        )}
+        style={{ bottom: "calc(3.5rem + env(safe-area-inset-bottom, 0px) + 0.75rem)" }}
+      >
+        <BookOpen className="w-5 h-5" />
+      </Link>
+
       {/* ── Projects ────────────────────────────────────────────────── */}
       <div className="widget-appear" style={{ animationDelay: "280ms" }}>
         <Card>
@@ -1020,18 +1038,21 @@ function StatCard({
       <Card
         hover
         className={cn(
-          "flex items-center gap-3 py-3 px-4 transition-all",
+          "flex items-center gap-2 sm:gap-3 py-2.5 sm:py-3 px-3 sm:px-4 transition-all",
           L ? "hover:border-zinc-300" : "hover:border-white/14",
           alert && value > 0 && (L ? "ring-1 ring-red-200" : "ring-1 ring-red-500/20")
         )}
       >
-        <div className={cn("p-2 rounded-lg shrink-0", t.bg)}>
+        <div className={cn("p-1.5 sm:p-2 rounded-lg shrink-0", t.bg)}>
           <span className={t.color}>{icon}</span>
         </div>
-        <div className="min-w-0">
-          <p className={cn("dashboard-stat-value text-xl font-bold tabular-nums leading-none", t.color)}>{animated}</p>
+        <div className="min-w-0 flex-1">
           <p className={cn(
-            "dashboard-stat-label text-[10px] mt-0.5 leading-tight",
+            "dashboard-stat-value text-lg sm:text-xl font-bold tabular-nums leading-none",
+            t.color
+          )}>{animated}</p>
+          <p className={cn(
+            "dashboard-stat-label text-[10px] sm:text-[11px] mt-0.5 leading-tight truncate",
             L ? "text-zinc-600" : "text-white/35"
           )}>{label}</p>
         </div>

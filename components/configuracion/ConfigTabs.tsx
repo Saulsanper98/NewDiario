@@ -418,7 +418,7 @@ export function ConfigTabs({
         <div
           role="tablist"
           className={cn(
-            "flex flex-wrap items-center gap-1 rounded-xl border p-1.5",
+            "flex items-center gap-1 rounded-xl border p-1.5 overflow-x-auto sm:flex-wrap no-scrollbar",
             L
               ? "border-zinc-200 bg-white shadow-sm"
               : "border-white/8 bg-white/[0.025]"
@@ -441,7 +441,7 @@ export function ConfigTabs({
                 }}
                 title={tabMeta.description}
                 className={cn(
-                  "config-tab-trigger group inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[12.5px] font-semibold transition-all",
+                  "config-tab-trigger group inline-flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-[12.5px] font-semibold transition-all",
                   isActive
                     ? cn(
                         "ring-1 shadow-sm",

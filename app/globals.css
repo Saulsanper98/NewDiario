@@ -2415,12 +2415,6 @@ html[data-theme="light"] .chat-page-root .chat-page-inner::before {
     overscroll-behavior-x: none;
   }
 
-  /* Reducir paddings de cards grandes en móvil para aprovechar espacio */
-  .config-microsoft-root .grid,
-  .config-appsettings-root .grid {
-    gap: 0.5rem;
-  }
-
   /* Tablas: no fuerzan layout fijo en móvil; permiten scroll horizontal del contenedor */
   table {
     -webkit-overflow-scrolling: touch;
@@ -2430,6 +2424,51 @@ html[data-theme="light"] .chat-page-root .chat-page-inner::before {
   button,
   a[role="button"] {
     -webkit-tap-highlight-color: rgba(255, 235, 102, 0.18);
+  }
+
+  /* ── Compactar paddings/spacing en móvil (solo dentro de #main-content) ── */
+  /* Reducimos los paddings grandes que vienen de patrones desktop. Limitamos
+     el alcance a #main-content para no afectar a sidebar, modales, toasts. */
+  #main-content .p-6 {
+    padding: 0.875rem;
+  }
+  #main-content .px-6 {
+    padding-left: 0.875rem;
+    padding-right: 0.875rem;
+  }
+  #main-content .py-6 {
+    padding-top: 0.875rem;
+    padding-bottom: 0.875rem;
+  }
+  #main-content .gap-4 {
+    gap: 0.625rem;
+  }
+  #main-content .gap-5 {
+    gap: 0.75rem;
+  }
+  #main-content .gap-6 {
+    gap: 0.875rem;
+  }
+  #main-content .space-y-5 > * + * {
+    margin-top: 0.75rem;
+  }
+  #main-content .space-y-6 > * + * {
+    margin-top: 0.875rem;
+  }
+
+  /* Hero sections con padding 5/6: comprimir un poco en móvil para no ocupar
+     media pantalla. Aplica a las que vienen reescritas con el patrón
+     "rounded-2xl border px-5/px-6 py-5/py-6". */
+  #main-content section.rounded-2xl {
+    padding-left: 0.875rem;
+    padding-right: 0.875rem;
+    padding-top: 0.875rem;
+    padding-bottom: 0.875rem;
+  }
+
+  /* Cards horizontales con muchos hijos (filtros, toolbars) permiten wrap */
+  #main-content .flex.flex-wrap {
+    row-gap: 0.375rem;
   }
 }
 
