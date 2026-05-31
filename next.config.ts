@@ -6,17 +6,20 @@ import type { NextConfig } from "next";
  * Las aplicamos a todas las respuestas servidas por Next, incluyendo APIs.
  * IIS por delante normalmente las respeta tal cual.
  *
- * Notas:
- *   - CSP en modo permisivo pero util: bloquea `<object>`, `<embed>`,
- *     mixed content y limita scripts/styles a la propia app. `unsafe-inline`
- *     se mantiene en `script-src`/`style-src` porque Next ejecuta scripts
- *     inline (hydration, runtime) y tenemos hojas de estilo inline para
- *     temas. Reducirlo a nonces es trabajo de otra iteracion.
- *   - HSTS lo dejamos preload-ready pero sin `preload` por defecto: no
- *     siempre estamos tras HTTPS al 100% (IIS expone https en algunos
- *     deployes, http en otros internos). El valor de 2 anos es estandar.
+ * NOTAS IMPORTANTES sobre el entorno:
+ *   - El servicio expone HTTP en :3000 dentro de la red interna y HTTPS
+ *     publicado por IIS. NO podemos usar `upgrade-insecure-requests` ni
+ *     forzar HTTPS desde CSP porque romperia el acceso HTTP interno
+ *     (estilos/scripts se intentarian cargar por https://host:3000 y
+ *     fallarian, dejando la pagina sin CSS).
+ *   - HSTS solo lo emitimos cuando NEXTAUTH_URL es https. En HTTP el
+ *     navegador lo ignora pero evitamos generar cabeceras enganosas.
+ *   - `unsafe-inline` se queda en script-src/style-src mientras no
+ *     migremos a nonces. 'unsafe-eval' fuera.
  *   - Quitamos `X-Powered-By` (poweredByHeader=false) para no anunciar Next.
  */
+const IS_HTTPS = (process.env.NEXTAUTH_URL ?? "").toLowerCase().startsWith("https:");
+
 const SECURITY_HEADERS = [
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "X-Frame-Options", value: "SAMEORIGIN" },
@@ -26,10 +29,14 @@ const SECURITY_HEADERS = [
     value:
       "camera=(), microphone=(self), geolocation=(), interest-cohort=(), browsing-topics=()",
   },
-  {
-    key: "Strict-Transport-Security",
-    value: "max-age=63072000; includeSubDomains",
-  },
+  ...(IS_HTTPS
+    ? [
+        {
+          key: "Strict-Transport-Security",
+          value: "max-age=63072000; includeSubDomains",
+        },
+      ]
+    : []),
   {
     key: "Content-Security-Policy",
     value: [
@@ -38,16 +45,17 @@ const SECURITY_HEADERS = [
       "form-action 'self'",
       "frame-ancestors 'self'",
       "object-src 'none'",
-      "img-src 'self' data: blob:",
-      "media-src 'self' blob:",
+      "img-src 'self' data: blob: http: https:",
+      "media-src 'self' blob: http: https:",
       "font-src 'self' data:",
       "style-src 'self' 'unsafe-inline'",
       // Next inyecta scripts inline en hidratacion; 'unsafe-inline' se queda
-      // mientras no movamos todo a nonces. 'unsafe-eval' fuera.
+      // mientras no migremos a nonces. 'unsafe-eval' fuera.
       "script-src 'self' 'unsafe-inline'",
-      "connect-src 'self' https: wss: ws:",
+      "connect-src 'self' http: https: wss: ws:",
       "worker-src 'self' blob:",
-      "upgrade-insecure-requests",
+      // upgrade-insecure-requests deliberadamente FUERA: el servicio acepta
+      // HTTP interno y forzar HTTPS rompe la carga de estaticos.
     ].join("; "),
   },
 ];
