@@ -6,6 +6,7 @@ import { Camera, ChevronDown, ChevronRight, Loader2, Trash2 } from "lucide-react
 import { Button } from "@/components/ui/Button";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { cn } from "@/lib/utils";
+import { useTheme } from "@/components/layout/ThemeProvider";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import toast from "react-hot-toast";
@@ -34,6 +35,8 @@ export function BoardSnapshotPanel({
   initialSnapshots,
 }: BoardSnapshotPanelProps) {
   const router = useRouter();
+  const { theme } = useTheme();
+  const L = theme === "light";
   const [open, setOpen] = useState(false);
   const [snapshots, setSnapshots] = useState(initialSnapshots);
 
@@ -149,20 +152,41 @@ export function BoardSnapshotPanel({
 
   return (
     <>
-    <div className="board-snapshot-panel shrink-0 border-b border-white/8 bg-white/[0.02] px-4 py-3 sm:px-6">
+    <div
+      className={cn(
+        "board-snapshot-panel shrink-0 border-b px-4 py-3 sm:px-6",
+        L
+          ? "border-zinc-200/80 bg-zinc-50/60"
+          : "border-white/8 bg-white/[0.02]",
+      )}
+    >
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="board-snapshot-toggle flex w-full items-center justify-between gap-2 text-left text-sm text-white/55 hover:text-white/75 transition-colors"
+        className={cn(
+          "board-snapshot-toggle flex w-full items-center justify-between gap-2 text-left text-sm transition-colors",
+          L
+            ? "text-zinc-600 hover:text-zinc-900"
+            : "text-white/55 hover:text-white/85",
+        )}
       >
         <span className="flex items-center gap-2 font-medium">
-          <Camera className="w-4 h-4 text-[#ffeb66]/75 shrink-0" />
+          <Camera
+            className={cn(
+              "w-4 h-4 shrink-0",
+              L ? "text-amber-600" : "text-[#ffeb66]/75",
+            )}
+          />
           Snapshots del tablero
         </span>
         {open ? (
-          <ChevronDown className="w-4 h-4 text-white/30" />
+          <ChevronDown
+            className={cn("w-4 h-4", L ? "text-zinc-400" : "text-white/30")}
+          />
         ) : (
-          <ChevronRight className="w-4 h-4 text-white/30" />
+          <ChevronRight
+            className={cn("w-4 h-4", L ? "text-zinc-400" : "text-white/30")}
+          />
         )}
       </button>
 
@@ -170,7 +194,12 @@ export function BoardSnapshotPanel({
         <div className="mt-3 space-y-4">
           <div className="flex flex-col sm:flex-row gap-2 sm:items-end">
             <div className="flex-1 min-w-0">
-              <label className="board-snapshot-label block text-[10px] font-semibold uppercase tracking-wide text-white/35 mb-1">
+              <label
+                className={cn(
+                  "board-snapshot-label block text-[10px] font-semibold uppercase tracking-wide mb-1",
+                  L ? "text-zinc-500" : "text-white/35",
+                )}
+              >
                 Etiqueta (opcional)
               </label>
               <input
@@ -179,7 +208,12 @@ export function BoardSnapshotPanel({
                 onChange={(e) => setLabel(e.target.value)}
                 maxLength={200}
                 placeholder="Ej. Antes de la reunión con cliente"
-                className="board-snapshot-input w-full rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white placeholder:text-white/28 focus:border-[#ffeb66]/35 focus:outline-none focus:ring-1 focus:ring-[#ffeb66]/20"
+                className={cn(
+                  "board-snapshot-input w-full rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 transition-colors",
+                  L
+                    ? "border border-zinc-200 bg-white text-zinc-900 placeholder:text-zinc-400 focus:border-amber-400 focus:ring-amber-300/40"
+                    : "border border-white/10 bg-white/[0.04] text-white placeholder:text-white/28 focus:border-[#ffeb66]/35 focus:ring-[#ffeb66]/20",
+                )}
               />
             </div>
             <Button
@@ -194,13 +228,25 @@ export function BoardSnapshotPanel({
               Congelar tablero ahora
             </Button>
           </div>
-          <p className="board-snapshot-help text-[11px] text-white/35 leading-relaxed">
+          <p
+            className={cn(
+              "board-snapshot-help text-[11px] leading-relaxed",
+              L ? "text-zinc-500" : "text-white/35",
+            )}
+          >
             Guarda el orden de columnas y de tareas tal como está ahora. Útil para
             auditorías o comparar después de cambios grandes.
           </p>
 
           {snapshots.length === 0 ? (
-            <p className="board-snapshot-empty-msg text-xs">Aún no hay snapshots.</p>
+            <p
+              className={cn(
+                "board-snapshot-empty-msg text-xs",
+                L ? "text-zinc-500" : "text-white/40",
+              )}
+            >
+              Aún no hay snapshots.
+            </p>
           ) : (
             <ul className="space-y-1 max-h-52 overflow-y-auto pr-1">
               {snapshots.map((s) => {
@@ -209,28 +255,54 @@ export function BoardSnapshotPanel({
                 return (
                   <li
                     key={s.id}
-                    className="rounded-lg border border-white/8 bg-white/[0.03] overflow-hidden"
+                    className={cn(
+                      "rounded-lg overflow-hidden border",
+                      L
+                        ? "border-zinc-200 bg-white"
+                        : "border-white/8 bg-white/[0.03]",
+                    )}
                   >
                     <div className="flex items-stretch gap-0">
                       <button
                         type="button"
                         onClick={() => void loadDetail(s.id)}
-                        className="flex min-w-0 flex-1 items-center gap-2 px-3 py-2 text-left text-xs hover:bg-white/[0.04] transition-colors"
+                        className={cn(
+                          "flex min-w-0 flex-1 items-center gap-2 px-3 py-2 text-left text-xs transition-colors",
+                          L
+                            ? "hover:bg-zinc-50"
+                            : "hover:bg-white/[0.04]",
+                        )}
                       >
                         {loadingDetailId === s.id ? (
-                          <Loader2 className="w-3.5 h-3.5 shrink-0 animate-spin text-white/40" />
+                          <Loader2
+                            className={cn(
+                              "w-3.5 h-3.5 shrink-0 animate-spin",
+                              L ? "text-zinc-400" : "text-white/40",
+                            )}
+                          />
                         ) : (
                           <ChevronRight
                             className={cn(
-                              "w-3.5 h-3.5 shrink-0 text-white/25 transition-transform",
+                              "w-3.5 h-3.5 shrink-0 transition-transform",
+                              L ? "text-zinc-400" : "text-white/25",
                               isOpen && "rotate-90"
                             )}
                           />
                         )}
-                        <span className="min-w-0 flex-1 truncate text-white/65">
+                        <span
+                          className={cn(
+                            "min-w-0 flex-1 truncate",
+                            L ? "text-zinc-800" : "text-white/70",
+                          )}
+                        >
                           {s.label || "Sin etiqueta"}
                         </span>
-                        <span className="shrink-0 text-white/30">
+                        <span
+                          className={cn(
+                            "shrink-0",
+                            L ? "text-zinc-400" : "text-white/35",
+                          )}
+                        >
                           {format(
                             s.createdAt instanceof Date
                               ? s.createdAt
@@ -239,7 +311,12 @@ export function BoardSnapshotPanel({
                             { locale: es }
                           )}
                         </span>
-                        <span className="hidden shrink-0 text-white/35 max-w-[100px] truncate sm:inline">
+                        <span
+                          className={cn(
+                            "hidden shrink-0 max-w-[100px] truncate sm:inline",
+                            L ? "text-zinc-500" : "text-white/40",
+                          )}
+                        >
                           {s.author.name}
                         </span>
                       </button>
@@ -253,7 +330,12 @@ export function BoardSnapshotPanel({
                             e.stopPropagation();
                             setDeleteConfirmId(s.id);
                           }}
-                          className="shrink-0 border-l border-white/8 px-2.5 text-white/30 hover:bg-rose-500/10 hover:text-rose-400 disabled:opacity-40 transition-colors"
+                          className={cn(
+                            "shrink-0 border-l px-2.5 disabled:opacity-40 transition-colors",
+                            L
+                              ? "border-zinc-200 text-zinc-400 hover:bg-rose-50 hover:text-rose-600"
+                              : "border-white/8 text-white/30 hover:bg-rose-500/10 hover:text-rose-400",
+                          )}
                         >
                           {deletingId === s.id ? (
                             <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -264,13 +346,24 @@ export function BoardSnapshotPanel({
                       )}
                     </div>
                     {isOpen && detailCache[s.id] !== undefined && (
-                      <div className="border-t border-white/6 px-3 py-2 text-[11px] text-white/45 space-y-1.5">
+                      <div
+                        className={cn(
+                          "border-t px-3 py-2 text-[11px] space-y-1.5",
+                          L
+                            ? "border-zinc-200 text-zinc-600"
+                            : "border-white/6 text-white/45",
+                        )}
+                      >
                         {detail === null && (
                           <p>No se pudo leer el formato del snapshot.</p>
                         )}
                         {detail && (
                           <>
-                            <p className="text-white/50">
+                            <p
+                              className={cn(
+                                L ? "text-zinc-700" : "text-white/55",
+                              )}
+                            >
                               {detail.columns.length} columnas ·{" "}
                               {detail.columns.reduce(
                                 (n, c) => n + c.taskIds.length,
@@ -281,8 +374,18 @@ export function BoardSnapshotPanel({
                             <ul className="space-y-1 max-h-36 overflow-y-auto">
                               {detail.columns.map((col) => (
                                 <li key={col.id}>
-                                  <span className="text-white/55">{col.name}</span>
-                                  <span className="text-white/30">
+                                  <span
+                                    className={cn(
+                                      L ? "text-zinc-800" : "text-white/65",
+                                    )}
+                                  >
+                                    {col.name}
+                                  </span>
+                                  <span
+                                    className={cn(
+                                      L ? "text-zinc-400" : "text-white/30",
+                                    )}
+                                  >
                                     {" "}
                                     ({col.taskIds.length})
                                   </span>
@@ -308,10 +411,8 @@ export function BoardSnapshotPanel({
         message={
           <>
             ¿Eliminar el snapshot{" "}
-            <strong className="text-white/90">
-              «{pendingDelete.label || "Sin etiqueta"}»
-            </strong>
-            ? No se puede deshacer.
+            <strong>«{pendingDelete.label || "Sin etiqueta"}»</strong>? No se
+            puede deshacer.
           </>
         }
         confirmLabel="Eliminar"

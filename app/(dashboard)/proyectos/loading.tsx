@@ -19,7 +19,7 @@ export default function ProyectosLoading() {
           </div>
 
           {/* Filter bar */}
-          <div className="glass rounded-xl p-3 flex items-center gap-3 flex-wrap">
+          <div className="loading-card p-3 flex items-center gap-3 flex-wrap">
             <div className="skeleton h-8 flex-1 min-w-40 rounded-lg" />
             {[...Array(5)].map((_, i) => (
               <div key={i} className="skeleton h-7 w-20 rounded-lg shrink-0" />
@@ -30,7 +30,7 @@ export default function ProyectosLoading() {
           {/* Project grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             {[...Array(6)].map((_, i) => (
-              <div key={i} className="glass rounded-xl p-4 space-y-3 flex flex-col">
+              <div key={i} className="loading-card p-4 space-y-3 flex flex-col">
                 <div className="flex items-center gap-2">
                   <div className="skeleton h-5 w-16 rounded-md" />
                   <div className="skeleton h-5 w-12 rounded-md" />
@@ -45,7 +45,7 @@ export default function ProyectosLoading() {
                   </div>
                   <div className="skeleton h-1.5 w-full rounded-full" />
                 </div>
-                <div className="flex items-center justify-between pt-2 border-t border-white/6">
+                <div className="flex items-center justify-between pt-2 border-t border-zinc-200/50">
                   <div className="skeleton h-3 w-24 rounded" />
                   <div className="skeleton w-5 h-5 rounded-full" />
                 </div>

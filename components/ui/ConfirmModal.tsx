@@ -3,6 +3,8 @@
 import type { ReactNode } from "react";
 import { AlertTriangle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { useTheme } from "@/components/layout/ThemeProvider";
+import { cn } from "@/lib/utils";
 
 interface ConfirmModalProps {
   title: string;
@@ -28,31 +30,99 @@ export function ConfirmModal({
   onConfirm,
   onCancel,
 }: ConfirmModalProps) {
-  const iconColor = variant === "danger" ? "text-red-400" : "text-amber-400";
-  const iconBg    = variant === "danger" ? "bg-red-400/10"  : "bg-amber-400/10";
-  const btnClass  = variant === "danger"
-    ? "bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30"
-    : "bg-amber-500/20 text-amber-400 border border-amber-500/30 hover:bg-amber-500/30";
+  const { theme } = useTheme();
+  const L = theme === "light";
+
+  const iconColor =
+    variant === "danger"
+      ? L
+        ? "text-rose-600"
+        : "text-rose-400"
+      : L
+        ? "text-amber-600"
+        : "text-amber-400";
+
+  const iconBg =
+    variant === "danger"
+      ? L
+        ? "bg-rose-100"
+        : "bg-rose-400/10"
+      : L
+        ? "bg-amber-100"
+        : "bg-amber-400/10";
+
+  const iconRing =
+    variant === "danger"
+      ? L
+        ? "ring-rose-200"
+        : "ring-rose-500/20"
+      : L
+        ? "ring-amber-200"
+        : "ring-amber-500/20";
+
+  const btnClass =
+    variant === "danger"
+      ? L
+        ? "bg-rose-600 text-white border border-rose-600 hover:bg-rose-700 hover:border-rose-700 shadow-sm"
+        : "bg-red-500/20 text-red-300 border border-red-500/30 hover:bg-red-500/30"
+      : L
+        ? "bg-amber-500 text-white border border-amber-500 hover:bg-amber-600 hover:border-amber-600 shadow-sm"
+        : "bg-amber-500/20 text-amber-300 border border-amber-500/30 hover:bg-amber-500/30";
+
+  const focusRing =
+    variant === "danger"
+      ? "focus-visible:ring-rose-500/60"
+      : "focus-visible:ring-amber-500/60";
 
   return (
     <div data-app-confirm-modal>
       <div
-        className="confirm-modal-scrim fixed inset-0 z-[200] bg-[#020308]/85 animate-in fade-in duration-150"
+        className={cn(
+          "confirm-modal-scrim fixed inset-0 z-[200] animate-in fade-in duration-150",
+          L
+            ? "bg-slate-900/45 backdrop-blur-[2px]"
+            : "bg-[#020308]/85",
+        )}
         onClick={onCancel}
         aria-hidden
       />
       <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 pointer-events-none">
         <div
-          className="confirm-modal-card rounded-2xl border border-white/14 bg-[#0a0f1e] p-6 w-full max-w-sm shadow-2xl pointer-events-auto animate-in fade-in zoom-in-95 duration-200"
+          className={cn(
+            "confirm-modal-card rounded-2xl p-6 w-full max-w-sm pointer-events-auto animate-in fade-in zoom-in-95 duration-200",
+            L
+              ? "bg-white border border-slate-200 shadow-[0_20px_60px_-15px_rgba(15,23,42,0.25)]"
+              : "bg-[#0a0f1e] border border-white/14 shadow-2xl",
+          )}
           onClick={(e) => e.stopPropagation()}
         >
           <div className="flex flex-col items-center text-center gap-4">
-            <div className={`w-12 h-12 rounded-full flex items-center justify-center ${iconBg}`}>
-              <AlertTriangle className={`w-6 h-6 ${iconColor}`} />
+            <div
+              className={cn(
+                "w-12 h-12 rounded-full flex items-center justify-center ring-4",
+                iconBg,
+                iconRing,
+              )}
+            >
+              <AlertTriangle className={cn("w-6 h-6", iconColor)} />
             </div>
             <div className="space-y-1.5">
-              <h3 className="text-base font-semibold text-white">{title}</h3>
-              <div className="text-sm text-white/50 text-left">{message}</div>
+              <h3
+                className={cn(
+                  "text-base font-semibold",
+                  L ? "text-slate-900" : "text-white",
+                )}
+              >
+                {title}
+              </h3>
+              <div
+                className={cn(
+                  "text-sm text-left",
+                  L ? "text-slate-600" : "text-white/55",
+                )}
+              >
+                {message}
+              </div>
             </div>
             <div className="flex gap-3 w-full mt-1">
               <Button
@@ -70,11 +140,22 @@ export function ConfirmModal({
                 disabled={loading}
                 aria-busy={loading}
                 onClick={onConfirm}
-                className={`flex-1 flex items-center justify-center gap-2 h-8 px-3 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a0f1e] ${variant === "danger" ? "focus-visible:ring-red-500/60" : "focus-visible:ring-amber-500/60"} ${btnClass}`}
+                className={cn(
+                  "flex-1 flex items-center justify-center gap-2 h-8 px-3 rounded-lg text-sm font-medium transition-colors",
+                  "disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
+                  L
+                    ? "focus-visible:ring-offset-white"
+                    : "focus-visible:ring-offset-[#0a0f1e]",
+                  focusRing,
+                  btnClass,
+                )}
               >
                 {loading ? (
                   <>
-                    <Loader2 className="w-3.5 h-3.5 shrink-0 animate-spin" aria-hidden />
+                    <Loader2
+                      className="w-3.5 h-3.5 shrink-0 animate-spin"
+                      aria-hidden
+                    />
                     {confirmLoadingLabel}
                   </>
                 ) : (

@@ -24,7 +24,7 @@ export default function TraspasoLoading() {
           {/* Shift counters */}
           <div className="grid grid-cols-3 gap-3">
             {[...Array(3)].map((_, i) => (
-              <div key={i} className="glass rounded-xl p-5 flex flex-col items-center gap-2">
+              <div key={i} className="loading-card p-5 flex flex-col items-center gap-2">
                 <div className="skeleton w-6 h-6 rounded" />
                 <div className="skeleton h-8 w-8 rounded" />
                 <div className="skeleton h-3 w-28 rounded" />
@@ -33,7 +33,7 @@ export default function TraspasoLoading() {
           </div>
 
           {/* Recent logs card */}
-          <div className="glass rounded-xl p-4 space-y-3">
+          <div className="loading-card p-4 space-y-3">
             <div className="flex items-center justify-between mb-1">
               <div className="skeleton h-4 w-48 rounded" />
               <div className="skeleton h-5 w-8 rounded-md" />
@@ -53,10 +53,10 @@ export default function TraspasoLoading() {
           </div>
 
           {/* Shift tasks card */}
-          <div className="glass rounded-xl p-4 space-y-3">
+          <div className="loading-card p-4 space-y-3">
             <div className="skeleton h-4 w-40 rounded" />
             {[...Array(3)].map((_, i) => (
-              <div key={i} className="flex items-center gap-3 p-2.5 rounded-lg bg-white/3">
+              <div key={i} className="flex items-center gap-3 p-2.5 rounded-lg bg-zinc-100/40">
                 <div className="skeleton w-2 h-2 rounded-full shrink-0" />
                 <div className="flex-1 space-y-1">
                   <div className="skeleton h-3.5 w-3/4 rounded" />

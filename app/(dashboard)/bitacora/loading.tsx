@@ -37,7 +37,7 @@ export default function BitacoraLoading() {
       <div className="flex-1 overflow-auto">
         <div className="p-6 max-w-4xl mx-auto space-y-4">
           {/* Hero */}
-          <div className="rounded-2xl border border-white/8 dark:border-white/10 bg-white/[0.03] px-5 py-5 sm:px-7 sm:py-6 relative overflow-hidden">
+          <div className="loading-card !rounded-2xl px-5 py-5 sm:px-7 sm:py-6 relative overflow-hidden">
             <div className="flex items-start gap-4">
               <div className="skeleton h-10 w-10 rounded-xl shrink-0" />
               <div className="flex-1 space-y-2.5">
@@ -54,7 +54,7 @@ export default function BitacoraLoading() {
             {[...Array(4)].map((_, i) => (
               <div
                 key={i}
-                className="rounded-xl border border-white/8 bg-white/[0.03] px-3 py-3 flex items-start justify-between"
+                className="loading-card px-3 py-3 flex items-start justify-between"
               >
                 <div className="space-y-1.5">
                   <div className="skeleton h-2.5 w-16 rounded" />
@@ -66,7 +66,7 @@ export default function BitacoraLoading() {
           </div>
 
           {/* Filter bar */}
-          <div className="glass rounded-xl p-3 flex items-center gap-3 flex-wrap">
+          <div className="loading-card p-3 flex items-center gap-3 flex-wrap">
             <div className="skeleton h-8 w-24 rounded-lg shrink-0" />
             <div className="skeleton h-8 flex-1 min-w-40 rounded-lg" />
             <div className="skeleton h-8 w-8 rounded-md" />
@@ -82,7 +82,7 @@ export default function BitacoraLoading() {
                 <div className="skeleton h-3 w-28 rounded" />
                 <div className="skeleton h-2 w-2 rounded-full" />
                 <div className="skeleton h-3 w-24 rounded" />
-                <div className="flex-1 h-px bg-white/[0.06] rounded ml-2" />
+                <div className="flex-1 h-px bg-zinc-300/40 rounded ml-2" />
               </div>
 
               {/* Cards */}
@@ -91,7 +91,7 @@ export default function BitacoraLoading() {
                 return (
                   <div
                     key={j}
-                    className={`glass rounded-xl p-5 flex items-start gap-4 border-l-[4px] ${shiftCls} ${TYPE_TINTS[idx]}`}
+                    className={`loading-card p-5 flex items-start gap-4 border-l-[4px] ${shiftCls} ${TYPE_TINTS[idx]}`}
                     style={{
                       animation: "card-slide-in 0.45s ease-out both",
                       animationDelay: `${(gi * 2 + j) * 45}ms`,
