@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { unlink } from "fs/promises";
-import path from "path";
+import { unlink } from "node:fs/promises";
+import path from "node:path";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma/client";
 import { hasProjectAccess } from "@/lib/auth/permissions";
 import type { SessionUser } from "@/lib/auth/types";
+import { deletePrivateFile } from "@/lib/uploads";
 
 export async function DELETE(
   _req: NextRequest,
@@ -38,11 +39,22 @@ export async function DELETE(
 
   await prisma.taskAttachment.delete({ where: { id: attachmentId } });
 
-  try {
-    const filePath = path.join(process.cwd(), "public", attachment.url);
-    await unlink(filePath);
-  } catch {
-    /* file may already be gone — not fatal */
+  // Borrar el fichero del disco: si vive en almacenamiento privado nuevo
+  // usamos storageKey; si es legacy (`/uploads/tasks/...`) buscamos en
+  // public/. Idempotente (no falla si ya no existe).
+  if (attachment.storageKey) {
+    await deletePrivateFile(attachment.storageKey);
+  } else if (attachment.url?.startsWith("/uploads/")) {
+    try {
+      const filePath = path.join(
+        /*turbopackIgnore: true*/ process.cwd(),
+        "public",
+        attachment.url.replace(/^\/+/, ""),
+      );
+      await unlink(filePath);
+    } catch {
+      /* legacy file may already be gone */
+    }
   }
 
   return NextResponse.json({ success: true });

@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma/client";
 import { isPlatformOwnerUser } from "@/lib/auth/permissions";
 import type { SessionUser } from "@/lib/auth/types";
 import { AnnouncementSeverity } from "@/app/generated/prisma/enums";
+import { safeLinkUrl } from "@/lib/safe-url";
 
 const patchSchema = z
   .object({
@@ -49,6 +50,22 @@ export async function PATCH(
 
   const d = parsed.data;
 
+  // H5 del audit: validamos ctaUrl en la actualizacion tambien.
+  let safeCta: string | null | undefined = undefined;
+  if (d.ctaUrl !== undefined) {
+    if (!d.ctaUrl) {
+      safeCta = null;
+    } else {
+      safeCta = safeLinkUrl(d.ctaUrl);
+      if (!safeCta) {
+        return NextResponse.json(
+          { error: "La URL del botón no es válida." },
+          { status: 400 }
+        );
+      }
+    }
+  }
+
   await prisma.$transaction(async (tx) => {
     await tx.announcement.update({
       where: { id },
@@ -61,7 +78,7 @@ export async function PATCH(
         ...(d.ctaLabel !== undefined
           ? { ctaLabel: d.ctaLabel || null }
           : {}),
-        ...(d.ctaUrl !== undefined ? { ctaUrl: d.ctaUrl || null } : {}),
+        ...(safeCta !== undefined ? { ctaUrl: safeCta } : {}),
         ...(d.expiresAt !== undefined
           ? { expiresAt: d.expiresAt ? new Date(d.expiresAt) : null }
           : {}),

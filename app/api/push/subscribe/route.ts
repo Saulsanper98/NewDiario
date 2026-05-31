@@ -7,8 +7,42 @@ import type { SessionUser } from "@/lib/auth/types";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+/**
+ * Hosts oficiales de los principales servicios Web Push.
+ * Aceptamos solo endpoints que terminen en uno de estos: asi evitamos que
+ * un cliente malicioso registre un endpoint propio (`https://evil/x`) para
+ * provocar exfiltracion / abuso de cuota / requests salientes con datos.
+ */
+const ALLOWED_PUSH_HOSTS_SUFFIX = [
+  "googleapis.com",        // FCM (Chrome, Firefox Android)
+  "mozilla.com",           // Firefox desktop
+  "mozilla.org",
+  "notify.windows.com",    // WNS (Edge en Windows)
+  "push.apple.com",        // APNs (Safari)
+  "windows.com",           // WNS variantes
+];
+
 const subscribeSchema = z.object({
-  endpoint: z.string().url().min(10).max(2048),
+  endpoint: z
+    .string()
+    .url()
+    .min(10)
+    .max(2048)
+    .refine(
+      (raw) => {
+        try {
+          const u = new URL(raw);
+          if (u.protocol !== "https:") return false;
+          const host = u.hostname.toLowerCase();
+          return ALLOWED_PUSH_HOSTS_SUFFIX.some(
+            (suf) => host === suf || host.endsWith(`.${suf}`),
+          );
+        } catch {
+          return false;
+        }
+      },
+      { message: "Endpoint push no proviene de un servicio reconocido." },
+    ),
   keys: z.object({
     p256dh: z.string().min(10).max(512),
     auth: z.string().min(10).max(512),

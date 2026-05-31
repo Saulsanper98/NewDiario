@@ -46,7 +46,19 @@ export function hasAccessToDepartment(
   return user.departments.some((d) => d.id === departmentId);
 }
 
-/** Puede gestionar un usuario según departamentos compartidos. */
+/**
+ * Puede gestionar un usuario segun departamentos compartidos.
+ *
+ * C9 del audit:
+ *   Antes el check final permitia gestionar si el actor era admin GLOBAL
+ *   (`User.role === "ADMIN"`), aunque en ese departamento concreto fuera
+ *   solo OPERATOR. Eso permitia a un admin escalar privilegios fuera de
+ *   su perimetro funcional: si compartia el depto X con la victima (como
+ *   operador), podia editarla.
+ *   Ahora exigimos ser admin REAL del departamento (UserDepartment.role)
+ *   o SuperAdmin global. El rol GLOBAL ADMIN deja de implicar admin de
+ *   cualquier departamento que se comparta.
+ */
 export function canManageTargetUser(
   actor: SessionUser,
   targetDepartmentIds: string[],
@@ -58,10 +70,9 @@ export function canManageTargetUser(
   if (isSuperAdmin(actor)) return true;
   if (!isAdminOrAbove(actor)) return false;
   if (targetDepartmentIds.length === 0) return false;
-  return targetDepartmentIds.some((departmentId) => {
-    if (!hasAccessToDepartment(actor, departmentId)) return false;
-    return actor.role === "ADMIN" || isAdminOfDepartment(actor, departmentId);
-  });
+  return targetDepartmentIds.some((departmentId) =>
+    isAdminOfDepartment(actor, departmentId),
+  );
 }
 
 const PROFILE_SELF_FIELDS = [
@@ -74,6 +85,8 @@ const PROFILE_SELF_FIELDS = [
   "bannerFocusX",
   "bannerFocusY",
   "password",
+  "currentPassword",
+  "birthday",
 ] as const;
 
 /** Actualización de perfil propio (sin rol ni estado). */

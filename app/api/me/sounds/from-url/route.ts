@@ -6,6 +6,7 @@ import path from "path";
 import { randomUUID } from "crypto";
 import { fileTypeFromBuffer } from "file-type";
 import { checkRateLimit } from "@/lib/chat/rate-limit";
+import { safeFetch, SsrfError } from "@/lib/ssrf-guard";
 
 const UPLOAD_DIR =
   process.env.UPLOAD_DIR ?? path.join(process.cwd(), "uploads");
@@ -35,40 +36,15 @@ const EXT_FROM_MIME: Record<string, string> = {
 };
 
 /**
- * Bloqueamos URLs que apunten a IPs privadas / localhost para prevenir SSRF
- * (server-side request forgery). Si la URL resuelve a un host privado, el
- * servidor estaría haciendo de proxy hacia recursos internos.
- */
-function isHttpsUrlSafe(raw: string): URL | null {
-  let u: URL;
-  try {
-    u = new URL(raw);
-  } catch {
-    return null;
-  }
-  if (u.protocol !== "https:" && u.protocol !== "http:") return null;
-  const host = u.hostname.toLowerCase();
-  if (
-    host === "localhost" ||
-    host === "127.0.0.1" ||
-    host === "::1" ||
-    host.endsWith(".local") ||
-    host.endsWith(".internal") ||
-    /^10\./.test(host) ||
-    /^192\.168\./.test(host) ||
-    /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(host)
-  ) {
-    return null;
-  }
-  return u;
-}
-
-/**
  * Descarga un audio desde una URL pública y lo guarda como sonido personal
  * del usuario. Body JSON: { url, name? }.
  *
- * El archivo final se sirve desde /api/media/<uuid>, lo mismo que los
- * adjuntos del chat: una vez importado, el origen externo ya no se usa.
+ * H1 del audit: usamos `safeFetch` (lib/ssrf-guard) que:
+ *   - Resuelve el DNS y rechaza si la IP es privada (no solo el hostname
+ *     literal, como hacia la version anterior).
+ *   - Bloquea TODAS las familias de IPs privadas en IPv4 e IPv6.
+ *   - Re-valida cada redirect manualmente para que un Location a IP
+ *     interna no escape al check.
  */
 export async function POST(req: NextRequest) {
   const session = await auth();
@@ -98,25 +74,24 @@ export async function POST(req: NextRequest) {
   const rawUrl = typeof body.url === "string" ? body.url.trim() : "";
   const displayName = typeof body.name === "string" ? body.name.trim() : "";
 
-  const url = isHttpsUrlSafe(rawUrl);
-  if (!url) {
-    return NextResponse.json(
-      { error: "URL no válida o apunta a un host privado" },
-      { status: 400 }
-    );
+  if (!rawUrl || rawUrl.length > 2048) {
+    return NextResponse.json({ error: "URL no válida" }, { status: 400 });
   }
 
   let res: Response;
+  let resolvedUrl: URL;
   try {
-    res = await fetch(url.toString(), {
-      // Timeout corto para evitar quedarnos colgados.
-      signal: AbortSignal.timeout(15_000),
-      redirect: "follow",
-    });
+    res = await safeFetch(rawUrl, { timeoutMs: 15_000, maxRedirects: 3 });
+    resolvedUrl = new URL(res.url || rawUrl);
   } catch (err) {
-    const msg = err instanceof Error ? err.message : "Error de red";
+    if (err instanceof SsrfError) {
+      return NextResponse.json(
+        { error: "URL no permitida (host privado, redirect inseguro o protocolo)." },
+        { status: 400 }
+      );
+    }
     return NextResponse.json(
-      { error: `No se pudo descargar el audio: ${msg}` },
+      { error: "No se pudo descargar el audio." },
       { status: 400 }
     );
   }
@@ -178,7 +153,9 @@ export async function POST(req: NextRequest) {
   await writeFile(path.join(UPLOAD_DIR, storedName), buffer);
 
   // Nombre legible por defecto: el segmento final de la URL sin la extensión.
-  const lastSeg = decodeURIComponent(url.pathname.split("/").filter(Boolean).pop() ?? "");
+  const lastSeg = decodeURIComponent(
+    resolvedUrl.pathname.split("/").filter(Boolean).pop() ?? ""
+  );
   const guessedName = lastSeg.replace(/\.[^.]+$/, "");
   const finalName = (displayName || guessedName || `Audio importado`).slice(0, 80);
 
@@ -190,7 +167,7 @@ export async function POST(req: NextRequest) {
       mimeType: effectiveMime,
       sizeBytes: arrayBuffer.byteLength,
       source: "URL",
-      originalUrl: url.toString().slice(0, 500),
+      originalUrl: rawUrl.slice(0, 500),
     },
     select: {
       id: true,

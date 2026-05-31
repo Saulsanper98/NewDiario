@@ -91,6 +91,17 @@ export const edgeAuthConfig: NextAuthConfig = {
   },
   callbacks: {
     authorized({ auth, request: { nextUrl } }) {
+      // Bloqueo permanente (C1/C2/C3 del audit): los uploads de proyectos
+      // y tareas YA NO se sirven como estaticos. Devolvemos 410 Gone para
+      // que cualquier URL antigua cacheada deje de funcionar y obligue al
+      // cliente a usar /api/projects/:id/docs/:docId/file.
+      if (
+        nextUrl.pathname.startsWith("/uploads/projects/") ||
+        nextUrl.pathname.startsWith("/uploads/tasks/")
+      ) {
+        return new Response("Gone", { status: 410 });
+      }
+
       // Dejar pasar rutas Auth.js; si no, authorized devuelve redirect HTML y el cliente recibe HTML en lugar de JSON (signIn / CSRF).
       if (nextUrl.pathname.startsWith("/api/auth")) return true;
       // Rutas API públicas (accesibles sin sesión)
@@ -101,7 +112,9 @@ export const edgeAuthConfig: NextAuthConfig = {
         nextUrl.pathname === "/api/login-departments"
       ) return true;
 
-      const isLoggedIn = !!auth?.user;
+      // Si refreshTokenUserFromDb invalido el token (id vacio), tratamos
+      // la sesion como inexistente.
+      const isLoggedIn = !!auth?.user?.id;
       const isOnLoginPage = nextUrl.pathname.startsWith("/login");
 
       if (isOnLoginPage) {
@@ -169,6 +182,10 @@ export const edgeAuthConfig: NextAuthConfig = {
       return token;
     },
     async session({ session, token }) {
+      // Token invalidado por refreshTokenUserFromDb: no propagar nada.
+      if (typeof token.id !== "string" || token.id === "") {
+        return { ...session, user: undefined as unknown as typeof session.user };
+      }
       if (token.id) session.user.id = token.id;
       if (typeof token.name === "string") session.user.name = token.name;
       if (typeof token.email === "string") session.user.email = token.email;
@@ -200,5 +217,7 @@ export const edgeAuthConfig: NextAuthConfig = {
     },
   },
   providers: [],
-  session: { strategy: "jwt" },
+  // 7 dias de session JWT (default es 30). Reduce ventana en caso de
+  // robo de cookie sin pedir nueva contrasena.
+  session: { strategy: "jwt", maxAge: 60 * 60 * 24 * 7 },
 };

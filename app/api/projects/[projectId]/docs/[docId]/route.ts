@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
+import { unlink } from "node:fs/promises";
+import path from "node:path";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma/client";
 import { hasProjectAccess } from "@/lib/auth/permissions";
 import type { SessionUser } from "@/lib/auth/types";
 import { z } from "zod";
+import { deletePrivateFile } from "@/lib/uploads";
 
 const patchSchema = z
   .object({
@@ -70,6 +73,24 @@ export async function DELETE(
   if (!doc) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   await prisma.projectDoc.delete({ where: { id: docId } });
+
+  // Borrar tambien el fichero del disco (H4 del audit: ficheros borrados
+  // persistian indefinidamente y combinados con C3/C4 seguian siendo
+  // accesibles con la URL antigua).
+  if (doc.storageKey) {
+    await deletePrivateFile(doc.storageKey);
+  } else if (doc.fileUrl?.startsWith("/uploads/")) {
+    try {
+      const legacy = path.join(
+        /*turbopackIgnore: true*/ process.cwd(),
+        "public",
+        doc.fileUrl.replace(/^\/+/, ""),
+      );
+      await unlink(legacy);
+    } catch {
+      /* legacy file may not exist */
+    }
+  }
 
   return NextResponse.json({ success: true });
 }

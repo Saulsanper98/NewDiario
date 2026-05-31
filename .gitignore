@@ -60,3 +60,7 @@ next-env.d.ts
 /app/generated/prisma
 
 .test-cookies.txt
+
+# Uploads privados (fuera de /public, servidos via API autorizada)
+uploads-private/
+

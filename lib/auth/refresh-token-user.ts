@@ -1,7 +1,16 @@
 import { prisma } from "@/lib/prisma/client";
 import type { UserDepartment } from "@/lib/auth/types";
 
-/** Sincroniza rol y departamentos del JWT con la base de datos (p. ej. tras ascender a SuperAdmin). */
+/**
+ * Sincroniza rol y departamentos del JWT con la base de datos.
+ *
+ * Tambien invalida el token si la contrasena ha cambiado despues de que
+ * el token fuese emitido (H2 del audit). El criterio: comparamos
+ * `dbUser.passwordChangedAt` con el `token.passwordChangedAt` que se
+ * congelo cuando el usuario hizo login. Si la BD tiene una marca mas
+ * reciente, vaciamos el `id` para forzar al callback `authorized` a
+ * redirigir a /login.
+ */
 export async function refreshTokenUserFromDb(
   token: import("next-auth/jwt").JWT
 ): Promise<void> {
@@ -23,6 +32,7 @@ export async function refreshTokenUserFromDb(
       canManageSuperAdmins: true,
       isActive: true,
       deletedAt: true,
+      passwordChangedAt: true,
       departments: {
         include: { department: true },
         where: { department: { isArchived: false } },
@@ -30,7 +40,23 @@ export async function refreshTokenUserFromDb(
     },
   });
 
-  if (!dbUser || !dbUser.isActive || dbUser.deletedAt) return;
+  if (!dbUser || !dbUser.isActive || dbUser.deletedAt) {
+    // Usuario desactivado o borrado: invalidar token.
+    token.id = "";
+    return;
+  }
+
+  // Si la pw cambio en BD despues de que se emitio este token, invalidar.
+  // Asi al cambiar contrasena en un dispositivo, las sesiones de otros
+  // dispositivos se cierran en la siguiente request.
+  if (dbUser.passwordChangedAt) {
+    const dbMs = dbUser.passwordChangedAt.getTime();
+    const tokenMs = token.passwordChangedAt ?? 0;
+    if (dbMs > (tokenMs ?? 0)) {
+      token.id = "";
+      return;
+    }
+  }
 
   const defaultDept =
     dbUser.departments.find((d) => d.isDefault) ?? dbUser.departments[0];

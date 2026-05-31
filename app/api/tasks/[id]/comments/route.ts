@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma/client";
+import { hasProjectAccess } from "@/lib/auth/permissions";
 import type { SessionUser } from "@/lib/auth/types";
 import { resolveMentionNotificationUserIds } from "@/lib/bitacora-mentions";
+import { sanitizeHtml } from "@/lib/sanitize-html";
 
 export async function POST(
   req: NextRequest,
@@ -16,8 +18,12 @@ export async function POST(
   const { content } = await req.json();
 
   const raw = typeof content === "string" ? content : "";
-  const stripped = raw.replace(/<[^>]+>/g, "").trim();
-  const hasImage = /<img\b/i.test(raw);
+  // M9 del audit: sanear HTML SIEMPRE al guardar (no solo al renderizar).
+  // Asi un consumidor que use el JSON crudo no inyecta XSS si en el futuro
+  // se renderiza con dangerouslySetInnerHTML sin pasar por sanitizeHtml.
+  const safe = raw ? sanitizeHtml(raw) : "";
+  const stripped = safe.replace(/<[^>]+>/g, "").trim();
+  const hasImage = /<img\b/i.test(safe);
   if (!stripped && !hasImage) {
     return NextResponse.json({ error: "Content required" }, { status: 400 });
   }
@@ -29,14 +35,24 @@ export async function POST(
       projectId: true,
       assigneeId: true,
       createdById: true,
-      project: { select: { name: true, departmentId: true } },
+      project: {
+        select: {
+          name: true,
+          departmentId: true,
+          shares: { select: { departmentId: true } },
+        },
+      },
     },
   });
   if (!task) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  // C5 del audit: comprobamos acceso al proyecto antes de comentar.
+  if (!hasProjectAccess(user, task.project)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
 
   const comment = await prisma.taskComment.create({
     data: {
-      content,
+      content: safe,
       taskId: id,
       authorId: user.id,
     },
@@ -60,7 +76,7 @@ export async function POST(
     },
   });
 
-  const mentionedIds = await resolveMentionNotificationUserIds(prisma, content as string, {
+  const mentionedIds = await resolveMentionNotificationUserIds(prisma, safe, {
     departmentId: task.project.departmentId,
     excludeUserId: user.id,
   });

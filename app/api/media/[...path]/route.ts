@@ -1,26 +1,44 @@
+/**
+ * Sirve los ficheros guardados en `UPLOAD_DIR`.
+ *
+ * SEGURIDAD (C4 del audit). Antes:
+ *   - Cualquier autenticado podia leer cualquier fichero de UPLOAD_DIR
+ *     conociendo (o adivinando) el UUID. Como los UUIDs viajan por chat /
+ *     correos / capturas, era una IDOR pura sobre adjuntos privados de
+ *     conversaciones de otros y sobre sonidos personales de otros usuarios.
+ *
+ * Ahora autorizamos por recurso:
+ *   - ChatAttachment: el solicitante debe ser PARTICIPANTE de la
+ *     conversacion del mensaje al que pertenece el adjunto.
+ *   - UserSound:      el solicitante debe ser el OWNER del sonido (o
+ *     superadmin).
+ *   - Avatar/Banner:  los `User.image` y `User.profileBanner` son
+ *     compartidos por todo el directorio interno (el avatar tiene que
+ *     verse en bitacoras, comentarios, etc.). Cualquier autenticado los ve.
+ *
+ * Si el fichero existe en disco pero NO esta referenciado por ningun
+ * recurso de los anteriores, devolvemos 404 (huerfanos no se sirven).
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { readFile } from "fs/promises";
-import path from "path";
+import { readFile } from "node:fs/promises";
+import path from "node:path";
 import { prisma } from "@/lib/prisma/client";
+import { isSuperAdmin } from "@/lib/auth/permissions";
+import type { SessionUser } from "@/lib/auth/types";
 
 const UPLOAD_DIR =
   process.env.UPLOAD_DIR ?? path.join(/*turbopackIgnore: true*/ process.cwd(), "uploads");
 
 const EXT_MIME: Record<string, string> = {
-  // Imágenes
   jpg: "image/jpeg",
   jpeg: "image/jpeg",
   png: "image/png",
   gif: "image/gif",
   webp: "image/webp",
-  // Vídeo
   mp4: "video/mp4",
   webm: "video/webm",
   mov: "video/quicktime",
-  // Audio (sonidos personalizados de usuario y notas de voz del chat).
-  // Sin estas entradas, /api/media/sound-<uuid>.<ext> devolvía 404 y los
-  // sonidos custom no sonaban nunca aunque estuvieran bien guardados.
   mp3: "audio/mpeg",
   m4a: "audio/mp4",
   wav: "audio/wav",
@@ -30,9 +48,6 @@ const EXT_MIME: Record<string, string> = {
   flac: "audio/flac",
   weba: "audio/webm",
   opus: "audio/ogg",
-  // Documentos (sincronizados con la lista blanca de /api/chat/upload).
-  // Sin esta sección, los adjuntos PDF/DOCX/XLSX/etc del chat devolvían
-  // 404 al intentar previsualizarlos o descargarlos.
   pdf: "application/pdf",
   doc: "application/msword",
   docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
@@ -43,17 +58,11 @@ const EXT_MIME: Record<string, string> = {
   txt: "text/plain; charset=utf-8",
   csv: "text/csv; charset=utf-8",
   rtf: "application/rtf",
-  // Comprimidos
   zip: "application/zip",
   "7z": "application/x-7z-compressed",
   rar: "application/vnd.rar",
 };
 
-/**
- * Extensiones que se pueden previsualizar nativamente en el navegador. El
- * resto se sirven con `Content-Disposition: attachment` para que se
- * descarguen directamente (Word, Excel, ZIP, etc.).
- */
 const INLINE_EXTS = new Set([
   "jpg", "jpeg", "png", "gif", "webp",
   "mp4", "webm", "mov",
@@ -61,25 +70,111 @@ const INLINE_EXTS = new Set([
   "pdf", "txt", "csv",
 ]);
 
-/** Saneamos el nombre para usarlo dentro de `filename="..."` (cabecera HTTP). */
 function sanitizeFilenameForHeader(name: string): string {
   return name.replace(/[\\"\r\n]/g, "_").slice(0, 200);
 }
 
+type AuthDecision =
+  | {
+      ok: true;
+      /** Nombre original a presentar al usuario en Content-Disposition. */
+      displayName: string;
+      /** Si true se puede cachear de forma agresiva (cuando es un avatar/banner publico). */
+      publicLike: boolean;
+    }
+  | { ok: false; status: 401 | 403 | 404 };
+
+/**
+ * Resuelve si el solicitante puede leer el fichero indicado en BD.
+ * Devuelve 404 si el fichero no esta referenciado por ningun recurso
+ * conocido (no exponemos la existencia en disco a quien no debe).
+ */
+async function resolveAccess(
+  filename: string,
+  user: SessionUser,
+): Promise<AuthDecision> {
+  const mediaUrl = `/api/media/${filename}`;
+
+  // 1. ChatAttachment: participante.
+  const attachment = await prisma.chatAttachment.findFirst({
+    where: { fileUrl: mediaUrl },
+    select: {
+      fileName: true,
+      message: {
+        select: {
+          conversationId: true,
+          conversation: {
+            select: {
+              participants: { select: { userId: true } },
+            },
+          },
+        },
+      },
+    },
+  });
+  if (attachment) {
+    const isParticipant = attachment.message.conversation.participants.some(
+      (p) => p.userId === user.id,
+    );
+    if (!isParticipant && !isSuperAdmin(user)) {
+      return { ok: false, status: 403 };
+    }
+    return {
+      ok: true,
+      displayName: attachment.fileName ?? filename,
+      publicLike: false,
+    };
+  }
+
+  // 2. UserSound: owner.
+  const sound = await prisma.userSound.findFirst({
+    where: { fileUrl: mediaUrl },
+    select: { userId: true, name: true },
+  });
+  if (sound) {
+    if (sound.userId !== user.id && !isSuperAdmin(user)) {
+      return { ok: false, status: 403 };
+    }
+    return { ok: true, displayName: sound.name ?? filename, publicLike: false };
+  }
+
+  // 3. Avatar / banner: cualquier autenticado del directorio.
+  const userMatch = await prisma.user.findFirst({
+    where: {
+      OR: [{ image: mediaUrl }, { profileBanner: mediaUrl }],
+      deletedAt: null,
+    },
+    select: { id: true, name: true },
+  });
+  if (userMatch) {
+    return { ok: true, displayName: filename, publicLike: true };
+  }
+
+  // 4. Huerfano (no referenciado por nadie): 404. No revelamos existencia
+  //    en disco a usuarios sin permiso.
+  return { ok: false, status: 404 };
+}
+
 export async function GET(
   req: NextRequest,
-  { params }: { params: Promise<{ path: string[] }> }
+  { params }: { params: Promise<{ path: string[] }> },
 ) {
   const session = await auth();
   if (!session?.user)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  const user = session.user as SessionUser;
   const forceDownload = req.nextUrl.searchParams.get("download") === "1";
 
   const { path: segments } = await params;
 
-  // Allow only a single flat filename — no path traversal
-  if (segments.length !== 1 || segments[0].includes("..") || segments[0].includes("/")) {
+  // Path traversal: solo aceptamos un segmento plano.
+  if (
+    segments.length !== 1 ||
+    segments[0].includes("..") ||
+    segments[0].includes("/") ||
+    segments[0].includes("\\")
+  ) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
@@ -88,7 +183,20 @@ export async function GET(
   const mime = EXT_MIME[ext];
   if (!mime) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  const filepath = path.join(UPLOAD_DIR, filename);
+  const decision = await resolveAccess(filename, user);
+  if (!decision.ok) {
+    return NextResponse.json(
+      { error: decision.status === 403 ? "Forbidden" : "Not found" },
+      { status: decision.status },
+    );
+  }
+
+  // Resolver path absoluto y verificar que esta dentro de UPLOAD_DIR.
+  const absRoot = path.resolve(UPLOAD_DIR);
+  const filepath = path.resolve(absRoot, filename);
+  if (!filepath.startsWith(absRoot + path.sep) && filepath !== absRoot) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
 
   let buffer: Buffer;
   try {
@@ -97,33 +205,26 @@ export async function GET(
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  // Para los adjuntos del chat, intentamos recuperar el nombre original
-  // (`ChatAttachment.fileName`) para que la pestaña del visor o la
-  // descarga lo muestren en lugar del UUID interno. No es crítico: si la
-  // BBDD falla seguimos con el nombre por defecto.
   const isInline = INLINE_EXTS.has(ext);
-  let dispositionFilename = filename;
-  try {
-    const attachment = await prisma.chatAttachment.findFirst({
-      where: { fileUrl: `/api/media/${filename}` },
-      select: { fileName: true },
-    });
-    if (attachment?.fileName) dispositionFilename = attachment.fileName;
-  } catch {
-    /* BBDD inaccesible: nombre por defecto */
-  }
-
-  const safeName = sanitizeFilenameForHeader(dispositionFilename);
-  const encodedName = encodeURIComponent(dispositionFilename);
-  // `?download=1` fuerza descarga aunque el formato sea previsualizable
-  // (botón "descargar" junto al adjunto del chat).
   const disposition = !forceDownload && isInline ? "inline" : "attachment";
+  const safeName = sanitizeFilenameForHeader(decision.displayName);
+  const encodedName = encodeURIComponent(decision.displayName);
+
+  // Cache:
+  //   - publicLike (avatares/banners): cacheable, no es informacion sensible.
+  //   - resto (chat / sounds): private + no-store para que ni proxies ni
+  //     navegadores compartan el blob entre cuentas.
+  const cacheControl = decision.publicLike
+    ? "private, max-age=86400"
+    : "private, no-store";
 
   return new NextResponse(new Uint8Array(buffer), {
     headers: {
       "Content-Type": mime,
-      "Cache-Control": "private, max-age=31536000, immutable",
+      "Cache-Control": cacheControl,
       "Content-Length": String(buffer.byteLength),
+      "X-Content-Type-Options": "nosniff",
+      "Referrer-Policy": "no-referrer",
       "Content-Disposition": `${disposition}; filename="${safeName}"; filename*=UTF-8''${encodedName}`,
     },
   });

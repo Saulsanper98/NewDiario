@@ -1,20 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
-import { writeFile, mkdir } from "fs/promises";
-import path from "path";
-import { randomUUID } from "crypto";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma/client";
 import { hasProjectAccess } from "@/lib/auth/permissions";
 import type { SessionUser } from "@/lib/auth/types";
+import {
+  validateUploadedFile,
+  writePrivateFile,
+  deletePrivateFile,
+} from "@/lib/uploads";
 
 const MAX_BYTES = 45 * 1024 * 1024; // 45 MB
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const session = await auth();
-  if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!session?.user)
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id: taskId } = await params;
   const user = session.user as SessionUser;
@@ -23,12 +26,18 @@ export async function POST(
     where: { id: taskId, deletedAt: null },
     include: {
       project: {
-        select: { id: true, departmentId: true, shares: { select: { departmentId: true } } },
+        select: {
+          id: true,
+          departmentId: true,
+          shares: { select: { departmentId: true } },
+        },
       },
     },
   });
-  if (!task) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  if (!hasProjectAccess(user, task.project)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!task)
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!hasProjectAccess(user, task.project))
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   let formData: FormData;
   try {
@@ -38,28 +47,57 @@ export async function POST(
   }
 
   const file = formData.get("file") as File | null;
-  if (!file || file.size === 0) return NextResponse.json({ error: "No file provided" }, { status: 400 });
-  if (file.size > MAX_BYTES) return NextResponse.json({ error: "El archivo supera el límite de 45 MB" }, { status: 413 });
+  if (!file)
+    return NextResponse.json({ error: "No file provided" }, { status: 400 });
 
-  const ext = path.extname(file.name).toLowerCase();
-  const safeName = `${randomUUID()}${ext}`;
-  const uploadDir = path.join(process.cwd(), "public", "uploads", "tasks", taskId);
-
-  await mkdir(uploadDir, { recursive: true });
-  const bytes = await file.arrayBuffer();
-  await writeFile(path.join(uploadDir, safeName), Buffer.from(bytes));
-
-  const url = `/uploads/tasks/${taskId}/${safeName}`;
+  const validation = await validateUploadedFile(file, { maxBytes: MAX_BYTES });
+  if (!validation.ok) {
+    return NextResponse.json(
+      { error: validation.error },
+      { status: validation.status },
+    );
+  }
+  const { buffer, effectiveMime, size, ext, displayName } = validation.data;
 
   const attachment = await prisma.taskAttachment.create({
     data: {
       taskId,
-      filename: file.name,
-      url,
-      mimeType: file.type || "application/octet-stream",
-      size: file.size,
+      filename: displayName,
+      url: "",
+      mimeType: effectiveMime,
+      size,
+      storageKey: "",
     },
   });
 
-  return NextResponse.json(attachment, { status: 201 });
+  const storageKey = `tasks/${taskId}/${attachment.id}.${ext}`;
+  const url = `/api/tasks/${taskId}/attachments/${attachment.id}/file`;
+
+  try {
+    await writePrivateFile(storageKey, buffer);
+  } catch (err) {
+    console.error("[task-attachments] write failed", err);
+    await prisma.taskAttachment
+      .delete({ where: { id: attachment.id } })
+      .catch(() => {});
+    return NextResponse.json(
+      { error: "No se pudo guardar el fichero." },
+      { status: 500 },
+    );
+  }
+
+  try {
+    const updated = await prisma.taskAttachment.update({
+      where: { id: attachment.id },
+      data: { url, storageKey },
+    });
+    return NextResponse.json(updated, { status: 201 });
+  } catch (err) {
+    console.error("[task-attachments] update paths failed", err);
+    await deletePrivateFile(storageKey).catch(() => {});
+    await prisma.taskAttachment
+      .delete({ where: { id: attachment.id } })
+      .catch(() => {});
+    return NextResponse.json({ error: "Internal error" }, { status: 500 });
+  }
 }

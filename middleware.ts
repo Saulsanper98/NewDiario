@@ -58,6 +58,20 @@ export default auth((req) => {
   ) {
     return;
   }
+
+  // BLOQUEO DE SEGURIDAD (C1/C2/C3 del audit): los uploads de proyectos y
+  // tareas vivian en /public/uploads/{projects,tasks}/... y Next los servia
+  // como estaticos sin autorizacion por recurso. Ahora se sirven via
+  // /api/projects/:id/docs/:docId/file y /api/tasks/:id/attachments/:id/file.
+  // Cualquier intento de leer los paths antiguos devuelve 410 Gone, asi
+  // forzamos al cliente a regenerar el URL y prevenimos que el atacante
+  // siga usando una URL antigua que tuviese cacheada.
+  if (
+    nextUrl.pathname.startsWith("/uploads/projects/") ||
+    nextUrl.pathname.startsWith("/uploads/tasks/")
+  ) {
+    return new Response("Gone", { status: 410 });
+  }
   const isLoggedIn = !!session;
   const isLoginPage = nextUrl.pathname.startsWith("/login");
   const isApiRoute = nextUrl.pathname.startsWith("/api");

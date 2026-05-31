@@ -12,6 +12,12 @@ import { z } from "zod";
 import bcrypt from "bcryptjs";
 import type { Role } from "@/app/generated/prisma/enums";
 import type { SessionUser } from "@/lib/auth/types";
+import {
+  MIN_PASSWORD_LENGTH,
+  validatePasswordPolicy,
+} from "@/lib/auth/password-policy";
+import { BCRYPT_COST } from "@/lib/auth/config";
+import { safeImageUrl } from "@/lib/safe-url";
 
 const deptEntrySchema = z.object({
   departmentId: z.string().min(1),
@@ -23,7 +29,12 @@ const createUserSchema = z.object({
   name: z.string().min(2).max(120),
   email: z.string().email(),
   image: z.union([z.string().max(2048), z.literal(""), z.null()]).optional(),
-  password: z.string().min(8, "La contraseña debe tener al menos 8 caracteres"),
+  password: z
+    .string()
+    .min(
+      MIN_PASSWORD_LENGTH,
+      `La contraseña debe tener al menos ${MIN_PASSWORD_LENGTH} caracteres`,
+    ),
   departments: z.array(deptEntrySchema).min(1, "Selecciona al menos un departamento"),
 });
 
@@ -53,6 +64,12 @@ export async function POST(req: NextRequest) {
   }
 
   const { name, email, image, password, departments } = parsed.data;
+
+  // Politica de complejidad por encima del schema (que solo mira longitud).
+  const pwCheck = validatePasswordPolicy(password);
+  if (!pwCheck.ok) {
+    return NextResponse.json({ error: pwCheck.error }, { status: 400 });
+  }
 
   const defaults = departments.filter((d) => d.isDefault);
   if (defaults.length !== 1) {
@@ -119,13 +136,25 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Departamento no válido" }, { status: 400 });
   }
 
-  const hashed = await bcrypt.hash(password, 10);
+  const hashed = await bcrypt.hash(password, BCRYPT_COST);
+
+  // M7: validar URL del avatar tambien al crear.
+  let safeImage: string | null = null;
+  if (image && image.trim() !== "") {
+    safeImage = safeImageUrl(image.trim());
+    if (!safeImage) {
+      return NextResponse.json(
+        { error: "La URL del avatar no es válida." },
+        { status: 400 }
+      );
+    }
+  }
 
   const user = await prisma.user.create({
     data: {
       name: name.trim(),
       email: email.toLowerCase().trim(),
-      image: image && image.trim() !== "" ? image.trim() : null,
+      image: safeImage,
       password: hashed,
       role: globalRole,
       departments: {

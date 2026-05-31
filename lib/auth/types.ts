@@ -24,6 +24,13 @@ export interface SessionUser {
   role: Role;
   /** Solo el propietario puede activar este permiso para otros SuperAdmin. */
   canManageSuperAdmins?: boolean;
+  /**
+   * Timestamp ms del ultimo cambio de password. Si en BD existe uno mas
+   * reciente que este, `refreshTokenUserFromDb` invalida el token para
+   * cerrar sesiones activas en otros dispositivos cuando se rota la pw
+   * (H2 del audit de seguridad).
+   */
+  passwordChangedAt?: number | null;
   departments: UserDepartment[];
   activeDepartmentId: string | null;
 }
@@ -45,6 +52,8 @@ declare module "next-auth/jwt" {
     bannerFocusY?: number | null;
     role?: Role;
     canManageSuperAdmins?: boolean;
+    /** Timestamp ms del ultimo cambio de password segun lo conoce el token. */
+    passwordChangedAt?: number | null;
     departments?: UserDepartment[];
     activeDepartmentId?: string | null;
   }

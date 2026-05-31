@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma/client";
 import type { SessionUser } from "@/lib/auth/types";
+import { canAccessLogEntry } from "@/lib/log-entry-access";
 
 const ALLOWED_EMOJIS = new Set(["👍", "❤️", "😮", "⚠️", "✅"]);
 
@@ -20,13 +21,22 @@ export async function POST(
     return NextResponse.json({ error: "Invalid emoji" }, { status: 400 });
   }
 
-  const userId = (session.user as SessionUser).id;
+  const user = session.user as SessionUser;
+  const userId = user.id;
 
   const entry = await prisma.logEntry.findFirst({
     where: { id: logEntryId, deletedAt: null, status: "PUBLISHED" },
-    select: { id: true },
+    select: {
+      id: true,
+      departmentId: true,
+      shares: { select: { departmentId: true } },
+    },
   });
   if (!entry) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  // C6 del audit: validamos acceso al log entry antes de permitir reaccionar.
+  if (!canAccessLogEntry(user, entry)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
 
   const existing = await prisma.logReaction.findUnique({
     where: { logEntryId_userId_emoji: { logEntryId, userId, emoji } },

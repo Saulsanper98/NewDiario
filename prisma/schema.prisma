@@ -211,6 +211,21 @@ model User {
   /** Solo el propietario puede activarlo; permite a este SuperAdmin asignar / quitar el rol SuperAdmin a otros. */
   canManageSuperAdmins Boolean @default(false)
   isActive  Boolean   @default(true)
+  /**
+   * Contador de intentos fallidos consecutivos de login. Se incrementa en
+   * cada fallo de password y se resetea tras un login exitoso o tras un
+   * lockout. Permite el bloqueo persistente (no se evita con `localStorage`).
+   */
+  failedLoginAttempts Int       @default(0)
+  /** Bloqueo temporal por fuerza bruta. Si > now(), authorize devuelve null antes de bcrypt. */
+  lockedUntil         DateTime?
+  /**
+   * Marca de tiempo del ultimo cambio de password. Si el JWT (token.iat) es
+   * anterior, refreshTokenUserFromDb lo invalida; asi cerramos sesiones
+   * activas cuando se cambia la contrasena (defensa frente a sesiones
+   * robadas).
+   */
+  passwordChangedAt   DateTime?
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
@@ -895,10 +910,16 @@ model TaskComment {
 model TaskAttachment {
   id        String   @id @default(cuid())
   filename  String
+  // Antes apuntaba al fichero en /public/uploads/tasks/... (deuda de
+  // seguridad: cualquier autenticado lo leia). Ahora apunta al handler
+  // privado /api/tasks/<taskId>/attachments/<attachmentId>/file.
   url       String
   mimeType  String
   size      Int
   taskId    String
+  /// Path relativo al UPLOAD_PRIVATE_DIR (p.ej. "tasks/<taskId>/<id>.pdf").
+  /// Nullable para registros antiguos pre-migracion.
+  storageKey String? @db.VarChar(500)
   createdAt DateTime @default(now())
 
   task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
@@ -938,10 +959,16 @@ model ProjectDoc {
   title       String   @db.VarChar(300)
   content     String?  @db.Text
   type        DocType  @default(SPEC)
+  // URL publica del fichero. Ahora apunta al handler privado
+  // /api/projects/<projectId>/docs/<docId>/file. Nullable para docs sin
+  // fichero (notas markdown).
   fileUrl     String?  @db.VarChar(1000)
   fileName    String?  @db.VarChar(500)
   fileType    String?  @db.VarChar(100)
   fileSize    Int?
+  /// Path relativo al UPLOAD_PRIVATE_DIR (p.ej. "projects/<projectId>/<id>.pdf").
+  /// Nullable para registros antiguos pre-migracion o docs sin fichero.
+  storageKey  String?  @db.VarChar(500)
   pinned      Boolean  @default(false)
   createdById String
   createdAt   DateTime @default(now())

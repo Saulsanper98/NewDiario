@@ -14,6 +14,12 @@ import { isPlatformOwner, isPlatformOwnerEmail } from "@/lib/platform-owner";
 import type { SessionUser } from "@/lib/auth/types";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
+import {
+  MIN_PASSWORD_LENGTH,
+  validatePasswordPolicy,
+} from "@/lib/auth/password-policy";
+import { BCRYPT_COST } from "@/lib/auth/config";
+import { safeImageUrl } from "@/lib/safe-url";
 
 const patchUserSchema = z
   .object({
@@ -29,7 +35,14 @@ const patchUserSchema = z
       .optional(),
     bannerFocusX: z.union([z.number().min(0).max(100), z.null()]).optional(),
     bannerFocusY: z.union([z.number().min(0).max(100), z.null()]).optional(),
-    password: z.string().min(8).optional(),
+    password: z.string().min(MIN_PASSWORD_LENGTH).optional(),
+    /**
+     * Solo necesario cuando el propio usuario cambia su email o su password.
+     * H2 del audit: sin esta verificacion, un JWT robado permitia tomar
+     * control total de la cuenta (cambio de pw + cambio de email para
+     * recuperacion). Los admins gestionando otros usuarios NO lo necesitan.
+     */
+    currentPassword: z.string().min(1).max(256).optional(),
     canManageSuperAdmins: z.boolean().optional(),
     /** Fecha de cumpleaños ISO (YYYY-MM-DD) o null/"" para limpiar. */
     birthday: z
@@ -79,19 +92,76 @@ export async function PATCH(
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  if (
-    body.role !== undefined &&
-    body.role !== target.role &&
-    (body.role === "SUPERADMIN" || target.role === "SUPERADMIN") &&
-    !canManageSuperAdminRoleOn(actor, target.email)
-  ) {
-    return NextResponse.json(
-      {
-        error:
-          "No tienes permiso para asignar / quitar el rol SuperAdmin. Pídelo al propietario.",
-      },
-      { status: 403 }
-    );
+  // H2 del audit: cambios sensibles propios (password y email) exigen
+  // re-autenticacion. Defensa frente a JWT robados o sesiones secuestradas.
+  // Admins editando a OTROS no la necesitan: ya tienen autoridad.
+  if (isSelf) {
+    const wantsPasswordChange = body.password !== undefined;
+    const wantsEmailChange =
+      body.email !== undefined &&
+      body.email.toLowerCase().trim() !== target.email.toLowerCase();
+    if (wantsPasswordChange || wantsEmailChange) {
+      if (!body.currentPassword) {
+        return NextResponse.json(
+          {
+            error:
+              "Para cambiar tu contraseña o tu email tienes que introducir tu contraseña actual.",
+          },
+          { status: 400 }
+        );
+      }
+      if (!target.password) {
+        return NextResponse.json(
+          {
+            error:
+              "Tu cuenta no tiene contraseña local (login federado). No se puede cambiar desde aquí.",
+          },
+          { status: 400 }
+        );
+      }
+      const matches = await bcrypt.compare(
+        body.currentPassword,
+        target.password
+      );
+      if (!matches) {
+        return NextResponse.json(
+          { error: "La contraseña actual no es correcta." },
+          { status: 403 }
+        );
+      }
+    }
+  }
+
+  if (body.role !== undefined && body.role !== target.role) {
+    // C9 del audit: el rol GLOBAL `User.role` solo lo modifica un
+    // SuperAdmin. Los permisos funcionales por departamento se cambian
+    // via `UserDepartment.role`. Asi evitamos que un ADMIN global se
+    // multiplique a si mismo creando nuevos admins globales.
+    if (
+      (body.role === "SUPERADMIN" || target.role === "SUPERADMIN") &&
+      !canManageSuperAdminRoleOn(actor, target.email)
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "No tienes permiso para asignar / quitar el rol SuperAdmin. Pídelo al propietario.",
+        },
+        { status: 403 }
+      );
+    }
+    if (
+      body.role !== "SUPERADMIN" &&
+      target.role !== "SUPERADMIN" &&
+      !isSuperAdmin(actor)
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "El rol global solo lo asigna un SuperAdmin. Cambia el rol del usuario en el departamento concreto.",
+        },
+        { status: 403 }
+      );
+    }
   }
 
   if (body.canManageSuperAdmins !== undefined && !isPlatformOwner(actor)) {
@@ -147,7 +217,19 @@ export async function PATCH(
   if (body.isActive !== undefined) data.isActive = body.isActive;
   if (body.role !== undefined) data.role = body.role;
   if (body.image !== undefined) {
-    data.image = body.image === "" || body.image === null ? null : body.image;
+    if (body.image === "" || body.image === null) {
+      data.image = null;
+    } else {
+      // M7 del audit: bloquear javascript:/data: en avatar.
+      const safe = safeImageUrl(body.image);
+      if (!safe) {
+        return NextResponse.json(
+          { error: "La URL del avatar no es válida (solo http/https o ruta interna)." },
+          { status: 400 }
+        );
+      }
+      data.image = safe;
+    }
   }
   if (body.imageFocusX !== undefined) data.imageFocusX = body.imageFocusX;
   if (body.imageFocusY !== undefined) data.imageFocusY = body.imageFocusY;
@@ -165,15 +247,30 @@ export async function PATCH(
     }
   }
   if (body.profileBanner !== undefined) {
-    data.profileBanner =
-      body.profileBanner === "" || body.profileBanner === null
-        ? null
-        : body.profileBanner;
+    if (body.profileBanner === "" || body.profileBanner === null) {
+      data.profileBanner = null;
+    } else {
+      const safe = safeImageUrl(body.profileBanner);
+      if (!safe) {
+        return NextResponse.json(
+          { error: "La URL del banner no es válida." },
+          { status: 400 }
+        );
+      }
+      data.profileBanner = safe;
+    }
   }
   if (body.bannerFocusX !== undefined) data.bannerFocusX = body.bannerFocusX;
   if (body.bannerFocusY !== undefined) data.bannerFocusY = body.bannerFocusY;
   if (body.password !== undefined) {
-    data.password = await bcrypt.hash(body.password, 10);
+    const pwCheck = validatePasswordPolicy(body.password);
+    if (!pwCheck.ok) {
+      return NextResponse.json({ error: pwCheck.error }, { status: 400 });
+    }
+    data.password = await bcrypt.hash(body.password, BCRYPT_COST);
+    // Marca de tiempo: usada por refreshTokenUserFromDb para invalidar
+    // sesiones activas con JWT anterior a este cambio.
+    data.passwordChangedAt = new Date();
   }
   if (body.canManageSuperAdmins !== undefined) {
     data.canManageSuperAdmins = body.canManageSuperAdmins;

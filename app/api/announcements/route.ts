@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma/client";
 import { isPlatformOwnerUser } from "@/lib/auth/permissions";
 import type { SessionUser } from "@/lib/auth/types";
 import { AnnouncementSeverity } from "@/app/generated/prisma/enums";
+import { safeLinkUrl } from "@/lib/safe-url";
 
 const createSchema = z
   .object({
@@ -108,6 +109,18 @@ export async function POST(req: NextRequest) {
   }
 
   const d = parsed.data;
+  // H5 del audit: validar ctaUrl antes de persistir. Rechazamos
+  // javascript:, data:, file: y cualquier otro esquema raro.
+  let safeCta: string | null = null;
+  if (d.ctaUrl) {
+    safeCta = safeLinkUrl(d.ctaUrl);
+    if (!safeCta) {
+      return NextResponse.json(
+        { error: "La URL del botón no es válida (solo http/https/mailto/tel/rutas internas)." },
+        { status: 400 }
+      );
+    }
+  }
   const ann = await prisma.announcement.create({
     data: {
       title: d.title,
@@ -116,7 +129,7 @@ export async function POST(req: NextRequest) {
       isActive: d.isActive ?? true,
       dismissible: d.dismissible ?? true,
       ctaLabel: d.ctaLabel || null,
-      ctaUrl: d.ctaUrl || null,
+      ctaUrl: safeCta,
       expiresAt: d.expiresAt ? new Date(d.expiresAt) : null,
       createdById: user.id,
     },
