@@ -1190,6 +1190,13 @@ export default function LoginPage() {
     } catch {
       /* AudioContext sin gesto previo en algunos navegadores */
     }
+    // Marca que el siguiente paint del dashboard debe mostrar el
+    // WelcomeOverlay personalizado con el avatar y el saludo.
+    try {
+      window.sessionStorage.setItem("cc-welcome", "1");
+    } catch {
+      /* ignore: navegador con storage bloqueado */
+    }
     wipeTimerRef.current = setTimeout(() => {
       router.push("/dashboard");
       router.refresh();
@@ -1199,6 +1206,11 @@ export default function LoginPage() {
   async function handleMicrosoft() {
     setLoginPhase("checking");
     setError(null);
+    try {
+      window.sessionStorage.setItem("cc-welcome", "1");
+    } catch {
+      /* ignore */
+    }
     await signIn("microsoft-entra-id", { callbackUrl: "/dashboard" });
     setLoginPhase("idle");
   }

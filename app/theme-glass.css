@@ -1,0 +1,1107 @@
+/* ══════════════════════════════════════════════════════════════════════════
+ *  Tema CRISTAL (liquid glass) — paleta violeta + halos magenta
+ *
+ *  REGLA DE ORO: TODAS las reglas viven bajo `html[data-theme="glass"]`.
+ *  Si ese atributo no está en el <html>, ninguna regla aplica. Aurora,
+ *  Light y Dark son indistinguibles antes y después de añadir este
+ *  archivo.
+ *
+ *  Spec viene de un prototipo HTML validado; los valores son intencionados
+ *  (no "redondear" hacia lo corporativo: este tema rompe deliberadamente
+ *  con el azul-marino CCMGC para sentirse como un producto distinto).
+ *
+ *  Estructura del archivo:
+ *    Fase 2  → Tokens + .glass-surface (con reflejo ::before)
+ *    Fase 3  → Marco exterior .glass-shell-frame / .glass-shell-inner
+ *              y fondo violeta multicapa (clases para <GlassBackground />)
+ *    Fase 5  → Overrides de componentes existentes (sidebar, header,
+ *              cards globales, modales, mobile-nav, tipografía fina)
+ *    Fase 6  → Microinteracciones + reglas adicionales
+ * ══════════════════════════════════════════════════════════════════════════ */
+
+
+/* ───────────────────────── FASE 2 — Tokens del tema ─────────────────────── */
+
+html[data-theme="glass"] {
+  color-scheme: dark;
+
+  /* Base violeta */
+  --bg-deep: #1c0d31;
+  --accent: #ffeb66;
+  --text: #f6f2ff;
+  --text-dim: #c4b6dd;
+  --text-faint: #9385b0;
+
+  /* Capas de cristal — alpha bajísima para velo finísimo */
+  --glass-bg: rgba(255, 255, 255, 0.045);
+  --glass-bg-2: rgba(255, 255, 255, 0.09);
+  --glass-border: rgba(255, 255, 255, 0.14);
+  --glass-border-strong: rgba(255, 255, 255, 0.22);
+  --glass-border-glow: rgba(232, 121, 249, 0.55);
+  --glass-blur: 24px;
+  --glass-shadow: 0 10px 44px rgba(0, 0, 0, 0.30);
+  /* Doble highlight: borde superior + borde izquierdo → simula canto de vidrio */
+  --glass-highlight:
+    inset 0 1px 0 rgba(255, 255, 255, 0.30),
+    inset 1px 0 0 rgba(255, 255, 255, 0.10);
+
+  /* Glow magenta para hover/elementos vivos */
+  --glow-magenta: rgba(232, 121, 249, 0.28);
+
+  /* ── Acento por departamento ─────────────────────────────────────────────
+   *  `<UserAccent />` sobre-escribe estas tres vars en `<html>` con los
+   *  componentes RGB del accentColor del departamento activo del usuario.
+   *  Si el componente aún no se ha montado o el color no se puede parsear,
+   *  caemos al magenta de marca (232, 121, 249) para mantener coherencia. */
+  --user-accent-r: 232;
+  --user-accent-g: 121;
+  --user-accent-b: 249;
+  --user-accent: rgb(var(--user-accent-r), var(--user-accent-g), var(--user-accent-b));
+
+  /* Geometría */
+  --glass-radius: 22px;
+  --glass-radius-shell: 30px;
+}
+
+
+/* ── Body / canvas — el fondo real lo pinta <GlassBackground /> ───────────
+ *  Color sólido violeta como respaldo si JS aún no ha montado nada.
+ *  Tipografía global del tema: peso 400 base, fina y elegante. */
+html[data-theme="glass"] body {
+  background-color: var(--bg-deep);
+  background-image: none;
+  color: var(--text);
+  font-weight: 400;
+  min-height: 100vh;
+}
+
+
+/* ───────────────────────── FASE 2 — .glass-surface ──────────────────────── */
+/* Pieza central. Cualquier elemento con esta clase se convierte en cristal.
+ * Tiene reflejo diagonal vía ::before. El contenido del elemento debe ir
+ * sobre el reflejo (regla `& > *`). */
+
+html[data-theme="glass"] .glass-surface {
+  position: relative;
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur)) saturate(150%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(150%);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow), var(--glass-highlight);
+  border-radius: var(--glass-radius);
+  transition:
+    background 0.3s ease,
+    border-color 0.3s ease,
+    box-shadow 0.3s ease,
+    transform 0.3s ease;
+  overflow: hidden;
+}
+
+/* Reflejo diagonal — IMPRESCINDIBLE: es lo que hace que parezca vidrio real.
+ * Intensidad bajada (0.18 → 0.12, 42% → 35%) para no blanquear el
+ * contenido cuando el card es alto. */
+html[data-theme="glass"] .glass-surface::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.12) 0%,
+    rgba(255, 255, 255, 0.04) 18%,
+    transparent 35%
+  );
+  border-radius: inherit;
+  z-index: 0;
+}
+
+/* El contenido por encima del reflejo */
+html[data-theme="glass"] .glass-surface > * {
+  position: relative;
+  z-index: 1;
+}
+
+html[data-theme="glass"] .glass-surface:hover {
+  background: var(--glass-bg-2);
+  border-color: var(--glass-border-glow);
+  transform: translateY(-2px);
+  box-shadow:
+    0 16px 54px rgba(0, 0, 0, 0.35),
+    0 0 34px var(--glow-magenta),
+    var(--glass-highlight);
+}
+
+
+/* ════════════════════════ FASE 3 — Fondo violeta + halos ═════════════════ */
+/* Usado por <GlassBackground />. Fondo fijo al viewport detrás de todo. */
+
+html[data-theme="glass"] .glass-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -10;
+  overflow: hidden;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      ellipse 90% 70% at 88% 95%,
+      rgba(232, 121, 249, 0.40),
+      transparent 55%
+    ),
+    radial-gradient(
+      ellipse 70% 55% at 5% 8%,
+      rgba(124, 77, 255, 0.30),
+      transparent 55%
+    ),
+    radial-gradient(
+      ellipse 50% 45% at 60% 50%,
+      rgba(70, 100, 220, 0.18),
+      transparent 60%
+    ),
+    var(--bg-deep);
+}
+
+html[data-theme="glass"] .parallax-orb {
+  position: absolute;
+  border-radius: 50%;
+  will-change: transform;
+  pointer-events: none;
+}
+
+html[data-theme="glass"] .orb-1 {
+  width: 820px;
+  height: 820px;
+  background: radial-gradient(
+    circle,
+    rgba(232, 121, 249, 0.42),
+    transparent 62%
+  );
+  filter: blur(60px);
+  bottom: -28%;
+  right: -8%;
+}
+
+html[data-theme="glass"] .orb-2 {
+  width: 640px;
+  height: 640px;
+  background: radial-gradient(
+    circle,
+    rgba(124, 77, 255, 0.35),
+    transparent 64%
+  );
+  filter: blur(75px);
+  top: -18%;
+  left: -10%;
+}
+
+html[data-theme="glass"] .orb-3 {
+  width: 540px;
+  height: 540px;
+  background: radial-gradient(
+    circle,
+    rgba(255, 235, 102, 0.16),
+    transparent 68%
+  );
+  filter: blur(72px);
+  top: 30%;
+  right: 8%;
+}
+
+html[data-theme="glass"] .noise {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.045;
+  background-image: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* Si el usuario pide menos movimiento, los orbes se quedan estáticos.
+ * El hook de parallax (Fase 4) tampoco se activa. */
+@media (prefers-reduced-motion: reduce) {
+  html[data-theme="glass"] .parallax-orb {
+    transform: none;
+  }
+}
+
+
+/* ════════════════════════ FASE 3 — Marco exterior con glow ═══════════════ */
+/* <div class="glass-shell-frame">      ← borde gradiente magenta-amarillo
+ *   <div class="glass-shell-inner">    ← contenido del shell con cristal
+ *     ...dashboard...
+ *   </div>
+ * </div>
+ *
+ * En otros temas, los dos wrappers están en el DOM pero SIN estilos
+ * propios (las reglas viven aquí, bajo el selector de Glass). Heredan
+ * solo el `flex: 1 / min-height: 0` declarado por Tailwind en el JSX,
+ * por lo que son inocuos en Aurora/Light/Dark.
+ */
+html[data-theme="glass"] .glass-shell-frame {
+  margin: 22px;
+  padding: 1.5px;
+  border-radius: var(--glass-radius-shell);
+  /* Gradiente del borde: arranca con el acento del departamento (cae a
+   * magenta de marca si no hay departamento activo), pasa por violeta
+   * profundo y termina con un toque amarillo de marca. Personaliza el
+   * marco según el equipo al que pertenezca el usuario. */
+  background: linear-gradient(
+    135deg,
+    rgba(var(--user-accent-r), var(--user-accent-g), var(--user-accent-b), 0.75),
+    rgba(124, 77, 255, 0.35) 45%,
+    rgba(255, 235, 102, 0.30)
+  );
+  box-shadow:
+    0 0 80px rgba(var(--user-accent-r), var(--user-accent-g), var(--user-accent-b), 0.45),
+    0 0 160px rgba(124, 77, 255, 0.25);
+}
+
+html[data-theme="glass"] .glass-shell-inner {
+  border-radius: calc(var(--glass-radius-shell) - 2px);
+  background: rgba(28, 13, 49, 0.35);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  overflow: hidden;
+}
+
+/* En móvil reducimos margen del marco — 22 px es mucho en pantallas
+ * pequeñas y "come" espacio útil. */
+@media (max-width: 640px) {
+  html[data-theme="glass"] .glass-shell-frame {
+    margin: 10px;
+    border-radius: 24px;
+  }
+  html[data-theme="glass"] .glass-shell-inner {
+    border-radius: 22px;
+  }
+}
+
+
+/* ════════════════ FASE 5 — Cristal aplicado a componentes ════════════════ */
+/* Todo bajo el selector del tema. Los componentes no se modifican: solo
+ * sobreescribimos las clases globales que ya emiten en su JSX.
+ */
+
+/* ── Lienzo dashboard: transparente para ver el cristal y los orbes ─────── */
+html[data-theme="glass"] .app-dashboard-root {
+  background: transparent;
+  /* Respiración entre el sidebar transparente y el main para que el
+   * contenido no quede "pegado" al borde izquierdo. Como el sidebar es
+   * transparente, el gap deja ver el fondo violeta entre el sidebar y
+   * la primera card del main. Generoso (16 px) tras feedback. */
+  gap: 16px;
+}
+
+/* Aire interior del shell: el marco exterior ya separa de los bordes de
+ * la pantalla; este padding separa además el contenido (header, sidebar,
+ * main) del propio borde redondeado del marco. Generoso (20 px) tras
+ * feedback — el objetivo es que las cards no queden "aprisionadas". */
+html[data-theme="glass"] .glass-shell-inner {
+  padding: 20px;
+}
+
+/* En móvil bajamos a valores más conservadores: el espacio es oro y los
+ * cards mismos ya tienen su propio padding. */
+@media (max-width: 768px) {
+  html[data-theme="glass"] .glass-shell-inner {
+    padding: 12px;
+  }
+  html[data-theme="glass"] .app-dashboard-root {
+    gap: 10px;
+  }
+}
+@media (max-width: 480px) {
+  html[data-theme="glass"] .glass-shell-inner {
+    padding: 8px;
+  }
+  html[data-theme="glass"] .app-dashboard-root {
+    gap: 6px;
+  }
+}
+
+
+/* ── Sidebar: TRANSPARENTE en Glass (decisión del usuario) ──────────────── */
+html[data-theme="glass"] .app-sidebar-shell {
+  background: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: none;
+}
+
+/* Cuando el sidebar se expande sobre el contenido (modo "Automático"
+ * abierto), debe TAPAR completamente lo que hay detrás — si no, se ven
+ * a la vez la cabecera "CCMGC OPS" del sidebar y el título del header
+ * del dashboard. Por eso usamos un fondo casi opaco con blur fuerte
+ * (no transparente como el sidebar colapsado). Border redondeado para
+ * que parezca un panel flotante coherente con el resto del Glass. */
+html[data-theme="glass"] .app-sidebar-shell.sidebar-expanded-solid {
+  background: linear-gradient(
+    180deg,
+    rgba(28, 13, 49, 0.96) 0%,
+    rgba(20, 8, 38, 0.97) 100%
+  ) !important;
+  backdrop-filter: blur(28px) saturate(150%) !important;
+  -webkit-backdrop-filter: blur(28px) saturate(150%) !important;
+  border-right: 1px solid var(--glass-border) !important;
+  box-shadow:
+    var(--glass-highlight),
+    8px 0 32px rgba(0, 0, 0, 0.45),
+    0 0 60px rgba(232, 121, 249, 0.08);
+  border-radius: 14px;
+}
+
+/* Item activo: tinte magenta y glow magenta (spec). Vencemos las
+ * utilidades Tailwind del JSX (bg-[#ffeb66]/12, ring-[#ffeb66]/25) con
+ * !important — solo dentro de Glass. */
+html[data-theme="glass"] .sidebar-nav-link-active {
+  background: rgba(232, 121, 249, 0.22) !important;
+  color: var(--text) !important;
+  border-color: transparent !important;
+  box-shadow:
+    inset 0 0 0 1px var(--glass-border-glow),
+    0 0 20px rgba(232, 121, 249, 0.18) !important;
+}
+
+/* Hover de los items no activos del sidebar: tinte con el accent del
+ * departamento activo (fallback magenta). Mantiene la coherencia con el
+ * item activo y refuerza la sensación de "este es mi departamento". */
+html[data-theme="glass"] .sidebar-nav-link:not(.sidebar-nav-link-active):hover {
+  background: rgba(var(--user-accent-r), var(--user-accent-g), var(--user-accent-b), 0.10);
+  color: var(--text);
+  box-shadow: inset 0 0 0 1px rgba(var(--user-accent-r), var(--user-accent-g), var(--user-accent-b), 0.15);
+}
+
+
+/* ── Header / topbar TRANSPARENTE en Glass ──────────────────────────────────
+ *  Decisión de diseño tras feedback: el header NO debe parecer un
+ *  contenedor rectangular separado del fondo. Igual que el sidebar, en
+ *  Glass es totalmente transparente y sus controles (logo, breadcrumbs,
+ *  buscador, iconos) flotan directamente sobre el fondo violeta y los
+ *  orbes. El objetivo de referencia (dashboard "Hello, Anton") es justo
+ *  esto: sin línea inferior, sin sombra, sin fondo de barra.
+ * ─────────────────────────────────────────────────────────────────────── */
+html[data-theme="glass"] .app-top-header {
+  background: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: none !important;
+  border-bottom: none !important;
+  box-shadow: none !important;
+}
+
+
+/* ── Cards globales (.glass / .glass-1 / .glass-2 / .glass-3) ───────────────
+ *  ESTRATEGIA TRAS FEEDBACK DE USABILIDAD:
+ *  - NO usamos `overflow: hidden` (cortaba texto largo, p.ej. detalle de
+ *    nota en bitácora — issue real reportado por el usuario).
+ *  - NO añadimos pseudoelemento `::before` con reflejo aquí (tapaba parte
+ *    del contenido cuando el card es alto/denso). El reflejo diagonal se
+ *    reserva a `.glass-surface` (clase opt-in, sin uso global previo) y
+ *    al modal (que ya tiene overflow:hidden por su propia clase).
+ *  - Para conservar el efecto cristal: borde luminoso + `--glass-highlight`
+ *    (canto inset superior + izquierdo) + backdrop-filter. Es lo que la
+ *    spec llama "doble highlight + borde claro" y es suficiente para que
+ *    parezca vidrio sin riesgo de tapar contenido.
+ *  - Blur bajado a 14px en cards pequeñas (.glass/.glass-1): hay listas
+ *    largas (bitácora, tareas) con muchos cards visibles a la vez y un
+ *    `backdrop-filter: blur(24px)` por item destroza el FPS.
+ *  - Hover SIN translateY en .glass: las cards no deben "saltar" en
+ *    listas (es disruptivo). El translateY se reserva a .glass-hover y
+ *    .glass-surface (opt-in interactivo).
+ * ─────────────────────────────────────────────────────────────────────── */
+
+/* Reglas comunes para todos los niveles de cristal */
+html[data-theme="glass"] .glass,
+html[data-theme="glass"] .glass-1,
+html[data-theme="glass"] .glass-2,
+html[data-theme="glass"] .glass-3 {
+  isolation: isolate;
+  position: relative;
+  border-radius: var(--glass-radius);
+  transition:
+    background 0.3s ease,
+    border-color 0.3s ease,
+    box-shadow 0.3s ease;
+}
+
+/* ── .glass: PRÁCTICAMENTE INVISIBLE — cabeceras / contenedores grandes ───
+ *  Se usa en cabecera del proyecto, toolbars grandes, etc. La spec del
+ *  usuario es que esté COMPLETAMENTE integrado con el fondo violeta: ni
+ *  fondo blanco perceptible, ni borde visible, ni sombra, ni highlight.
+ *  El contenido (título, tabs, badges) flota sobre el lienzo.
+ *
+ *  Conservamos un blur mínimo (4 px) para que el contenido por encima
+ *  del fondo sea legible cuando un orbe queda justo detrás, pero sin
+ *  generar la "isla blanquecina" que parecía una card flotante.
+ *
+ *  Sin :hover global (las cabeceras no son interactivas; los hover
+ *  específicos los aportan los hijos: tabs, botones, etc.). */
+html[data-theme="glass"] .glass {
+  background: rgba(255, 255, 255, 0.012);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  box-shadow: none;
+}
+
+/* ── .glass-1: cards individuales (item de lista, nota de bitácora) ────────
+ *  Más visible que .glass para que cada card se distinga, pero aún sutil.
+ *  Blur ligero porque suelen aparecer muchas en lista. */
+html[data-theme="glass"] .glass-1 {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(14px) saturate(135%);
+  -webkit-backdrop-filter: blur(14px) saturate(135%);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: var(--glass-shadow), var(--glass-highlight);
+}
+
+/* ── .glass-2: contenedores grandes con info densa (detalle de nota) ───────
+ *  Más opaco para mejorar legibilidad sobre los orbes. Blur completo. */
+html[data-theme="glass"] .glass-2 {
+  background: rgba(255, 255, 255, 0.065);
+  backdrop-filter: blur(20px) saturate(145%);
+  -webkit-backdrop-filter: blur(20px) saturate(145%);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow: var(--glass-shadow), var(--glass-highlight);
+}
+
+/* ── .glass-3: overlays / popovers (el más opaco) ─────────────────────────── */
+html[data-theme="glass"] .glass-3 {
+  background: linear-gradient(
+    155deg,
+    rgba(28, 13, 49, 0.45) 0%,
+    rgba(255, 255, 255, 0.08) 45%,
+    rgba(255, 255, 255, 0.04) 100%
+  );
+  backdrop-filter: blur(var(--glass-blur)) saturate(150%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(150%);
+  border: 1px solid var(--glass-border-strong);
+  box-shadow: var(--glass-shadow), var(--glass-highlight);
+}
+
+/* Hover sutil — solo en cards interactivas (no en cabeceras .glass).
+ * SIN translateY para no romper listas largas. El lift queda reservado
+ * a .glass-hover y .glass-surface. */
+html[data-theme="glass"] .glass-1:hover,
+html[data-theme="glass"] .glass-2:hover,
+html[data-theme="glass"] .glass-3:hover {
+  border-color: var(--glass-border-glow);
+}
+
+/* .glass-hover (cards explícitamente marcadas como interactivas en JSX,
+ * p.ej. <Card hover> de los stats del dashboard) sí elevan al hover. */
+html[data-theme="glass"] .glass-hover:hover {
+  background: var(--glass-bg-2);
+  border-color: var(--glass-border-glow);
+  transform: translateY(-2px);
+  box-shadow:
+    0 16px 54px rgba(0, 0, 0, 0.35),
+    0 0 34px var(--glow-magenta),
+    var(--glass-highlight);
+}
+
+
+/* ── Barra de filtros sticky de la bitácora ─────────────────────────────── */
+html[data-theme="glass"] .glass-opaque-bitacora {
+  background: linear-gradient(
+    180deg,
+    rgba(28, 13, 49, 0.78) 0%,
+    rgba(20, 8, 38, 0.85) 100%
+  );
+  backdrop-filter: blur(22px) saturate(140%);
+  -webkit-backdrop-filter: blur(22px) saturate(140%);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-highlight), 0 6px 24px rgba(0, 0, 0, 0.38);
+}
+
+
+/* ── Skeleton/loading ───────────────────────────────────────────────────── */
+html[data-theme="glass"] .loading-card {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+
+/* ── Modal (dialog + backdrop) ──────────────────────────────────────────── */
+/* `<Modal />` añade `data-modal-surface="dark"` cuando no es tema claro.
+ * En Glass, esa rama trae `bg-[#0a0f1e]` sólido por Tailwind: lo
+ * sobreescribimos con cristal grueso violeta. */
+html[data-theme="glass"] .app-modal-dialog[data-modal-surface="dark"] {
+  position: relative;
+  background: linear-gradient(
+    155deg,
+    rgba(60, 30, 90, 0.55) 0%,
+    rgba(28, 13, 49, 0.70) 100%
+  ) !important;
+  backdrop-filter: blur(var(--glass-blur)) saturate(150%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(150%);
+  border-color: var(--glass-border) !important;
+  box-shadow:
+    0 24px 64px rgba(0, 0, 0, 0.45),
+    0 0 48px rgba(232, 121, 249, 0.18),
+    var(--glass-highlight) !important;
+  overflow: hidden;
+}
+
+/* Reflejo diagonal del modal — más sutil que la spec original (0.18 era
+ * excesivo y blanqueaba el header). El modal ya tiene overflow:hidden
+ * por su clase Tailwind, así que el reflejo se clipa correctamente. */
+html[data-theme="glass"] .app-modal-dialog[data-modal-surface="dark"]::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.10) 0%,
+    rgba(255, 255, 255, 0.03) 18%,
+    transparent 32%
+  );
+  border-radius: inherit;
+  z-index: 0;
+}
+html[data-theme="glass"] .app-modal-dialog[data-modal-surface="dark"] > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Backdrop: tono magenta/violeta en vez de negro plano */
+html[data-theme="glass"] .modal-backdrop {
+  background: rgba(20, 8, 38, 0.55);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+
+/* ── Mobile bottom nav ──────────────────────────────────────────────────── */
+html[data-theme="glass"] .mobile-bottom-nav {
+  background: linear-gradient(
+    180deg,
+    rgba(28, 13, 49, 0.60) 0%,
+    rgba(20, 8, 38, 0.78) 100%
+  ) !important;
+  border-top-color: var(--glass-border) !important;
+  backdrop-filter: blur(22px) saturate(150%);
+  -webkit-backdrop-filter: blur(22px) saturate(150%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.10),
+    0 -8px 28px rgba(0, 0, 0, 0.42);
+}
+
+
+/* ── Parches anti-azul-marino ──────────────────────────────────────────────
+ *  Varios componentes existentes usan tonos del oscuro corporativo
+ *  (#0a0f1e / #060a14) que en Glass aparecen como "bandas negras" que
+ *  rompen la paleta violeta. Aquí los reemplazamos por el equivalente
+ *  violeta del tema. Selectores tomados tal cual de globals.css.
+ * ─────────────────────────────────────────────────────────────────────── */
+
+/* Kanban: fade de scroll al fondo de cada columna (era casi negro). */
+html[data-theme="glass"] .kanban-column-well::after {
+  background: linear-gradient(
+    to top,
+    rgba(28, 13, 49, 0.85) 0%,
+    transparent 100%
+  );
+}
+
+/* Editor TipTap: bloques de código <pre> tenían fondo azul-marino casi
+ * negro. Lo adaptamos a violeta translúcido coherente. */
+html[data-theme="glass"] .ProseMirror pre {
+  background: rgba(28, 13, 49, 0.6) !important;
+  border: 1px solid var(--glass-border);
+}
+
+/* Overlay del fullscreen del detalle de nota (B56) — TRANSPARENTE.
+ *
+ * El usuario no quiere que el fondo cambie ni se oscurezca al expandir
+ * la nota: cualquier color/halo propio del overlay rompe la ilusión de
+ * continuidad con el resto del tema. Por eso eliminamos cualquier
+ * background y pseudo-elemento.
+ *
+ * Resultado: el overlay sólo aporta el layout (fixed, full viewport,
+ * scroll interno) y deja ver el fondo Glass global (`.glass-bg` +
+ * orbes flotantes) tal cual.
+ *
+ * Triplicación de clase para vencer al `bg-[#060a14]` de Tailwind que
+ * el JSX aplica con alta especificidad. */
+html[data-theme="glass"]
+  .detail-fullscreen-bg.detail-fullscreen-bg.detail-fullscreen-bg {
+  background: transparent !important;
+  background-image: none !important;
+}
+
+html[data-theme="glass"] .detail-fullscreen-bg::before {
+  content: none;
+}
+
+
+/* ── Parche universal Tailwind arbitrary hex (azul-marino → violeta) ───────
+ *  Muchos componentes usan `bg-[#0a0f1e]`, `bg-[#0d1324]`, `bg-[#0f1424]`,
+ *  etc. directamente en JSX como rama "no light". En Glass aparecen como
+ *  islas azul-oscuro que rompen la paleta violeta. Los traducimos a su
+ *  equivalente violeta translúcido sin tocar JSX. Aplica a popovers,
+ *  dropdowns, toolbars del editor, chips de filtros y modales sólidos.
+ *
+ *  Convención de equivalencia:
+ *    #060a14 / #060a12 / #060b18 / #020308 / #020408   → violeta profundo
+ *    #0a0f1e / #0a1020                                  → violeta medio
+ *    #0c12xx / #0d13xx / #0d14xx / #0f14xx / #0f15xx   → violeta
+ *    #121a2e / #161f36 / #1a2238                       → translúcido claro
+ *
+ *  Tailwind genera nombres de clase con los `[` `#` `/` escapados; aquí
+ *  escapamos con `\` para que el selector matchee la clase compilada. */
+
+/* Muy oscuros (backdrops, fondos opacos profundos) → violeta deep */
+html[data-theme="glass"] .bg-\[\#060a14\],
+html[data-theme="glass"] .bg-\[\#060a12\],
+html[data-theme="glass"] .bg-\[\#060b18\],
+html[data-theme="glass"] .bg-\[\#020308\]\/85,
+html[data-theme="glass"] .bg-\[\#020408\]\/80 {
+  background-color: rgba(20, 8, 38, 0.85) !important;
+}
+
+/* Azul-marino medio (popovers, dropdowns, chips de tags grandes) → violeta */
+html[data-theme="glass"] .bg-\[\#0a0f1e\],
+html[data-theme="glass"] .bg-\[\#0a0f1e\]\/95,
+html[data-theme="glass"] .bg-\[\#0a0f1e\]\/88,
+html[data-theme="glass"] .bg-\[\#0a0f1e\]\/85,
+html[data-theme="glass"] .bg-\[\#0a0f1e\]\/72,
+html[data-theme="glass"] .bg-\[\#0a0f1e\]\/40,
+html[data-theme="glass"] .bg-\[\#0a0f1e\]\/15,
+html[data-theme="glass"] .bg-\[\#0a1020\] {
+  background-color: rgba(28, 13, 49, 0.88) !important;
+}
+
+/* Variantes #0cxxxx / #0dxxxx / #0fxxxx → violeta translúcido coherente */
+html[data-theme="glass"] .bg-\[\#0c1224\]\/95,
+html[data-theme="glass"] .bg-\[\#0c1325\],
+html[data-theme="glass"] .bg-\[\#0d1324\]\/96,
+html[data-theme="glass"] .bg-\[\#0d1324\]\/92,
+html[data-theme="glass"] .bg-\[\#0d1325\],
+html[data-theme="glass"] .bg-\[\#0d1427\]\/95,
+html[data-theme="glass"] .bg-\[\#0d1428\],
+html[data-theme="glass"] .bg-\[\#0d1428\]\/95,
+html[data-theme="glass"] .bg-\[\#0f1424\],
+html[data-theme="glass"] .bg-\[\#0f1524\] {
+  background-color: rgba(28, 13, 49, 0.90) !important;
+  backdrop-filter: blur(18px) saturate(140%);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+}
+
+/* Tonos azul-marino claros (chips/tags pequeños) → translúcido suave */
+html[data-theme="glass"] .bg-\[\#121a2e\],
+html[data-theme="glass"] .bg-\[\#161f36\],
+html[data-theme="glass"] .bg-\[\#1a2238\] {
+  background-color: rgba(255, 255, 255, 0.06) !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+/* ── Buscador del header (Command Palette trigger) ─────────────────────────
+ *  Con el header transparente, el trigger del buscador "Buscar..." se
+ *  perdía en el fondo violeta. En Glass lo tintamos con cristal magenta
+ *  para indicar que es un elemento interactivo y darle identidad. */
+html[data-theme="glass"] #cmd-palette-trigger {
+  background: rgba(232, 121, 249, 0.06) !important;
+  border-color: rgba(232, 121, 249, 0.28) !important;
+  color: rgba(255, 255, 255, 0.70) !important;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+html[data-theme="glass"] #cmd-palette-trigger:hover {
+  background: rgba(232, 121, 249, 0.14) !important;
+  border-color: rgba(232, 121, 249, 0.50) !important;
+  color: var(--text) !important;
+  box-shadow: 0 0 20px rgba(232, 121, 249, 0.20);
+}
+html[data-theme="glass"] #cmd-palette-trigger kbd {
+  background: rgba(232, 121, 249, 0.16) !important;
+  border-color: rgba(232, 121, 249, 0.30) !important;
+  color: var(--text);
+}
+
+
+/* ── Avatares con foto: ring magenta sutil ─────────────────────────────────
+ *  Las fotos de avatar tienen colores muy variados (rojo, azul, gris)
+ *  que destacan mucho contra el cristal violeta. Un anillo magenta
+ *  finísimo (1px, 0.30 alpha) inset las "ata" al tema sin tapar la foto.
+ *  Aplicado vía `box-shadow: inset` para no requerir espacio (el
+ *  contenedor tiene `overflow: hidden` y un ring externo sería
+ *  clipeado). */
+html[data-theme="glass"] img.rounded-full.object-cover {
+  box-shadow: inset 0 0 0 1px rgba(232, 121, 249, 0.32);
+}
+
+
+/* ── Avatar: dot de presencia con borde corporativo (#0a0f1e) ─────────────
+ *  El componente `<Avatar />` pinta un `border-[#0a0f1e]` (azul-marino
+ *  corporativo) alrededor del dot de presencia. En Glass ese marrón
+ *  azulado choca con el violeta del fondo. Tiñe el borde y unifica el
+ *  color del dot online al verde del chat (#22c55e) para coherencia
+ *  visual entre dashboard y chat. */
+html[data-theme="glass"] .border-\[\#0a0f1e\] {
+  border-color: rgba(28, 13, 49, 0.95) !important;
+}
+html[data-theme="glass"] .bg-green-400 {
+  background-color: #22c55e !important;
+}
+
+
+/* ── Banner "Sin incidencias activas" del dashboard ───────────────────────
+ *  Por defecto en dark usa `bg-emerald-500/6` con borde
+ *  `border-emerald-500/20` y un icono verde. Mantenemos el icono y el
+ *  texto verde como acentos de OK (semántica), pero el fondo y el
+ *  borde se atenúan hacia un cristal violeta con un toque verde, para
+ *  que se sienta del mundo Glass. */
+html[data-theme="glass"] .dashboard-allgood-banner {
+  background: linear-gradient(
+    135deg,
+    rgba(16, 185, 129, 0.06) 0%,
+    rgba(232, 121, 249, 0.05) 100%
+  ) !important;
+  border-color: rgba(255, 255, 255, 0.10) !important;
+  backdrop-filter: blur(14px) saturate(135%);
+  -webkit-backdrop-filter: blur(14px) saturate(135%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.10),
+    0 0 24px rgba(16, 185, 129, 0.06);
+}
+
+/* El círculo del icono pierde el sólido verde y queda translúcido para
+ * casar con el cristal del banner. */
+html[data-theme="glass"] .dashboard-allgood-icon {
+  background: rgba(16, 185, 129, 0.18) !important;
+  box-shadow: inset 0 0 0 1px rgba(16, 185, 129, 0.30);
+}
+
+
+/* ── Badges semánticos (Informativo, Sin novedades, Urgente, etc.) ─────────
+ *  La paleta `bitacora-palette.ts` y el componente `<Badge />` usan
+ *  Tailwind con tinte azul/verde/naranja/rojo (`bg-sky-400/10`,
+ *  `bg-emerald-400/10`…). El color es semántico (no se puede cambiar
+ *  sin perder usabilidad), pero sobre el cristal violeta se nota muy
+ *  "ajeno" a la paleta.
+ *
+ *  Solución sin perder semántica: añadir un velo violeta translúcido
+ *  vía `background-image` (se pinta ENCIMA del `background-color` y
+ *  conserva el color base). Así el chip mantiene su identidad sky /
+ *  emerald / etc. y a la vez se siente del mundo Glass.
+ *
+ *  Las clases listadas son las que aparecen como tinte en la app
+ *  (TYPE_DARK, Badge variantes dark, glow inset en cards). */
+html[data-theme="glass"] .bg-sky-400\/10,
+html[data-theme="glass"] .bg-emerald-400\/10,
+html[data-theme="glass"] .bg-orange-400\/10,
+html[data-theme="glass"] .bg-red-400\/10,
+html[data-theme="glass"] .bg-red-500\/10,
+html[data-theme="glass"] .bg-violet-400\/10,
+html[data-theme="glass"] .bg-yellow-400\/10,
+html[data-theme="glass"] .bg-green-400\/10,
+html[data-theme="glass"] .bg-blue-400\/10,
+html[data-theme="glass"] .bg-amber-400\/10,
+html[data-theme="glass"] .bg-indigo-400\/10 {
+  background-image: linear-gradient(
+    rgba(232, 121, 249, 0.055),
+    rgba(124, 77, 255, 0.04)
+  );
+}
+
+
+/* ── Barra "Progreso del turno" del dashboard ──────────────────────────────
+ *  El componente aplica `backgroundColor` inline (amarillo macizo según
+ *  el turno) que sobre el cristal violeta queda muy saturado. Aquí lo
+ *  cubrimos con un degradado horizontal amarillo → magenta + glow para
+ *  integrarlo en la paleta sin perder la lectura del progreso.
+ *  Usamos `background-image` (no `background-color`) para vencer el
+ *  inline style. */
+html[data-theme="glass"] .dashboard-shift-fill {
+  background-image: linear-gradient(
+    90deg,
+    rgba(255, 235, 102, 0.95) 0%,
+    rgba(255, 200, 130, 0.95) 55%,
+    rgba(232, 121, 249, 0.95) 100%
+  ) !important;
+  box-shadow:
+    0 0 12px rgba(255, 235, 102, 0.35),
+    0 0 22px rgba(232, 121, 249, 0.30);
+}
+
+/* La pista de fondo de la barra: un velo cristal sutil en vez del
+ * `bg-white/6` plano. */
+html[data-theme="glass"] .dashboard-shift-track {
+  background: rgba(255, 255, 255, 0.05) !important;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+
+/* Backdrops y overlays opacos (`bg-black/N`, `bg-slate-900/N`,
+ * `bg-zinc-900`) → violeta translúcido. Cubre toda la rejilla de
+ * alphas comunes que aparecen en modales, overlays, sticky bars,
+ * dividers y hovers sutiles a lo largo de la app. */
+html[data-theme="glass"] .bg-slate-900\/45,
+html[data-theme="glass"] .bg-black\/75,
+html[data-theme="glass"] .bg-black\/65,
+html[data-theme="glass"] .bg-black\/60,
+html[data-theme="glass"] .bg-black\/55,
+html[data-theme="glass"] .bg-black\/45,
+html[data-theme="glass"] .bg-black\/40,
+html[data-theme="glass"] .bg-black\/35 {
+  background-color: rgba(20, 8, 38, 0.55) !important;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+/* Tonos sutiles (hovers, dividers, fades) → violeta MUY translúcido */
+html[data-theme="glass"] .bg-black\/30,
+html[data-theme="glass"] .bg-black\/25,
+html[data-theme="glass"] .bg-black\/20,
+html[data-theme="glass"] .bg-black\/15,
+html[data-theme="glass"] .bg-black\/10 {
+  background-color: rgba(28, 13, 49, 0.25) !important;
+}
+
+/* Hover muy fino tipo `bg-black/[0.04]` → tinte blanco translúcido
+ * en lugar de oscurecimiento */
+html[data-theme="glass"] .bg-black\/\[0\.05\],
+html[data-theme="glass"] .bg-black\/\[0\.04\],
+html[data-theme="glass"] .bg-black\/\[0\.06\] {
+  background-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+/* Botones sólidos azul-marino → violeta deep que conserva contraste */
+html[data-theme="glass"] .bg-zinc-900,
+html[data-theme="glass"] .bg-zinc-800,
+html[data-theme="glass"] .hover\:bg-zinc-800:hover {
+  background-color: rgba(28, 13, 49, 0.92) !important;
+  border-color: var(--glass-border-strong) !important;
+}
+
+/* Texto inverso de chips amarillos (`text-[#0a0f1e]` = azul-marino
+ * sobre fondo amarillo). El contraste se mantiene perfectamente con
+ * el violeta deep. */
+html[data-theme="glass"] .text-\[\#0a0f1e\] {
+  color: rgba(28, 13, 49, 1) !important;
+}
+
+
+/* ── Dropdowns del header (notificaciones + departamentos) ─────────────────
+ *  Ambos usan la clase `.app-dropdown-panel` y un `style` inline con un
+ *  degradado azul-marino oscuro. En Glass los reemplazamos por cristal
+ *  violeta. `!important` necesario porque el style inline tiene mayor
+ *  prioridad que el `background` normal. */
+html[data-theme="glass"] .app-dropdown-panel {
+  background: linear-gradient(
+    155deg,
+    rgba(60, 30, 90, 0.82) 0%,
+    rgba(28, 13, 49, 0.92) 100%
+  ) !important;
+  backdrop-filter: blur(22px) saturate(140%) !important;
+  -webkit-backdrop-filter: blur(22px) saturate(140%) !important;
+  border-color: var(--glass-border) !important;
+  box-shadow:
+    var(--glass-highlight),
+    0 22px 48px rgba(0, 0, 0, 0.5),
+    0 0 32px rgba(232, 121, 249, 0.18) !important;
+}
+
+
+/* NOTA: NO añadimos un focus-ring global :focus-visible para inputs.
+ * Cada componente (chat, login, editor, formularios) ya define su
+ * propio focus ring (amarillo `--ccmgc-primary` en los principales), y
+ * un outline global encima genera dos rings superpuestos con colores
+ * incompatibles (amarillo + violeta) y geometrías distintas (outline
+ * no respeta border-radius en muchos casos). Si un input concreto
+ * queda sin focus visible en Glass, se patchea puntualmente aquí. */
+
+
+/* ── Tooltips ────────────────────────────────────────────────────────────── */
+/* `<Tooltip />` global usa fondo oscuro sólido. En Glass lo cambiamos a
+ * cristal violeta translúcido coherente con el resto. */
+html[data-theme="glass"] [data-tooltip-content],
+html[data-theme="glass"] [role="tooltip"] {
+  background: linear-gradient(
+    155deg,
+    rgba(60, 30, 90, 0.78) 0%,
+    rgba(28, 13, 49, 0.85) 100%
+  ) !important;
+  border: 1px solid var(--glass-border) !important;
+  color: var(--text) !important;
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  box-shadow: var(--glass-shadow), var(--glass-highlight);
+}
+
+
+/* ── Scrollbar hover en Glass — tinte magenta en vez de blanco ──────────── */
+/* Mantenemos el ancho global (4px) definido en globals.css y solo
+ * cambiamos el color del thumb visible en hover/focus. */
+html[data-theme="glass"] .overflow-y-auto:hover::-webkit-scrollbar-thumb,
+html[data-theme="glass"] .overflow-x-auto:hover::-webkit-scrollbar-thumb,
+html[data-theme="glass"] .overflow-auto:hover::-webkit-scrollbar-thumb,
+html[data-theme="glass"] *:hover::-webkit-scrollbar-thumb {
+  background: rgba(232, 121, 249, 0.40);
+}
+html[data-theme="glass"] ::-webkit-scrollbar-thumb:hover {
+  background: rgba(232, 121, 249, 0.55);
+}
+
+
+/* ── Toaster ────────────────────────────────────────────────────────────── */
+html[data-theme="glass"] .toast-glass {
+  background: linear-gradient(
+    155deg,
+    rgba(60, 30, 90, 0.55) 0%,
+    rgba(28, 13, 49, 0.65) 100%
+  ) !important;
+  border-color: var(--glass-border) !important;
+  color: var(--text) !important;
+  backdrop-filter: blur(var(--glass-blur)) !important;
+  -webkit-backdrop-filter: blur(var(--glass-blur)) !important;
+  box-shadow: var(--glass-highlight), var(--glass-shadow) !important;
+}
+
+
+/* ══════════════════ FASE 5 — Tipografía fina (peso 300) ══════════════════ */
+/* Solo dentro del dashboard, solo en Glass. Más elegante, menos
+ * "corporativo plano". El primario amarillo conserva su peso intacto. */
+
+html[data-theme="glass"] .app-dashboard-root h1,
+html[data-theme="glass"] .app-dashboard-root h2 {
+  font-weight: 300;
+  letter-spacing: -0.01em;
+}
+
+/* Números grandes (stats, indicadores) → peso 300 con tabular-nums */
+html[data-theme="glass"] .app-dashboard-root .text-3xl,
+html[data-theme="glass"] .app-dashboard-root .text-4xl,
+html[data-theme="glass"] .app-dashboard-root .text-2xl.tabular-nums,
+html[data-theme="glass"] .dashboard-stat-value {
+  font-weight: 300 !important;
+}
+
+/* Labels de stats: tono atenuado coherente con la paleta */
+html[data-theme="glass"] .dashboard-stat-label {
+  color: var(--text-faint);
+}
+
+/* El acento amarillo conserva su nombre con peso 500 (spec):
+ * "el `Buenos días, Saul` va en 300, solo el nombre en 500 amarillo".
+ * No tenemos un span identificable para el nombre sin tocar JSX, así
+ * que conservamos el peso global del h1 en 300. Aceptable: la spec
+ * habla del banner; el conjunto sigue siendo "fino y elegante". */
+
+
+/* ════════════ FASE 6 — Microinteracciones (envueltas en motion) ══════════ */
+
+@media (prefers-reduced-motion: no-preference) {
+
+  /* Entrada del lienzo dashboard al primer paint (fade + lift sutil).
+   * Solo afecta a main/section dentro del shell.
+   *
+   * NOTA: Anteriormente había un "stagger" en cada `.grid > *` del
+   * dashboard, pero afectaba a TODOS los grids anidados (kanban, listas
+   * de bitácora, agrupaciones de filtros) ralentizando la entrada y
+   * dando un ruido visual molesto. Eliminado tras feedback. La sola
+   * animación del main es suficiente y barata. */
+  @keyframes glass-stage-in {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  html[data-theme="glass"] .app-dashboard-root > main,
+  html[data-theme="glass"] .app-dashboard-root > section {
+    animation: glass-stage-in 360ms cubic-bezier(0.2, 0.6, 0.2, 1) both;
+  }
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+ *  C10 — Shine diagonal en hover (cards principales)
+ *
+ *  Efecto: una banda blanca translúcida atraviesa la card en diagonal
+ *  cuando el cursor entra. Inspirado en el shimmer de los productos
+ *  Apple (App Store, Settings). Lo aplicamos sólo a:
+ *    • `.glass-hover` — stats cards del dashboard, cards de proyectos,
+ *      cualquier wrapper marcado como interactivo.
+ *    • `.glass-surface` — la pieza central (bitácora, modales pequeños)
+ *      que ya tiene `overflow: hidden` y reflejo en ::before.
+ *
+ *  Implementación:
+ *    • Se usa `::after` (el `::before` está reservado al reflejo).
+ *    • El padre necesita `overflow: hidden` para clipear la banda;
+ *      `.glass-hover` lo añade abajo, `.glass-surface` ya lo trae.
+ *    • Tono de la banda: blanco MUY translúcido (0.14) — refuerza la
+ *      sensación de cristal sin saturar el contenido.
+ *    • Duración 900 ms con `cubic-bezier(0.22, 1, 0.36, 1)` (ease-out
+ *      "back" suave) → fluido, sin parecer un GIF de loading.
+ *    • `prefers-reduced-motion` desactiva la animación.
+ * ──────────────────────────────────────────────────────────────────────── */
+
+html[data-theme="glass"] .glass-hover {
+  overflow: hidden;
+}
+
+html[data-theme="glass"] .glass-hover::after,
+html[data-theme="glass"] .glass-surface::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    115deg,
+    transparent 30%,
+    rgba(255, 255, 255, 0.14) 50%,
+    transparent 70%
+  );
+  transform: translateX(-110%);
+  transition: transform 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+  border-radius: inherit;
+  /* z-index 0: por encima del reflejo ::before (que también está en 0
+   * pero va antes en el árbol) y por DEBAJO del contenido (que se
+   * eleva a z-index 1 con la regla `> *` siguiente). */
+  z-index: 0;
+}
+
+/* Garantiza que cualquier hijo directo de una card con shine quede por
+ * encima de la banda. `.glass-surface > *` ya lo tenía; aquí lo
+ * extendemos a `.glass-hover`. */
+html[data-theme="glass"] .glass-hover > * {
+  position: relative;
+  z-index: 1;
+}
+
+html[data-theme="glass"] .glass-hover:hover::after,
+html[data-theme="glass"] .glass-surface:hover::after {
+  transform: translateX(110%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-theme="glass"] .glass-hover::after,
+  html[data-theme="glass"] .glass-surface::after {
+    display: none;
+  }
+}
+
+
+/* ──────────────────────────────────────────────────────────────────────────
+ *  GARANTÍAS DE AISLAMIENTO — recordatorio en código.
+ *
+ *  Cada selector de este archivo arranca con `html[data-theme="glass"]`.
+ *  Si esa marca no está en el <html>, NINGUNA regla aplica. Aurora,
+ *  Light y Dark son indistinguibles antes y después de añadir este
+ *  archivo. El componente `<GlassBackground />` devuelve `null` fuera de
+ *  Glass y el hook `useGlassParallax` no registra listeners.
+ *
+ *  Los wrappers `.glass-shell-frame` / `.glass-shell-inner` viven en el
+ *  DOM en todos los temas pero SIN estilos propios: heredan únicamente
+ *  las clases Tailwind `flex flex-1 min-h-0 overflow-hidden` del JSX,
+ *  comportándose como contenedores flex transparentes.
+ * ──────────────────────────────────────────────────────────────────────── */
+
+

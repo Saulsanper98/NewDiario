@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useLayoutEffect } from "react";
 import { createPortal } from "react-dom";
-import { Sun, Moon, Sparkles, Check, ChevronDown } from "lucide-react";
+import { Sun, Moon, Sparkles, Check, ChevronDown, Droplets } from "lucide-react";
 import { useTheme } from "@/components/layout/ThemeProvider";
 import type { ThemeMode } from "@/lib/theme";
 import { cn } from "@/lib/utils";
@@ -16,6 +16,7 @@ const OPTIONS: {
   { id: "aurora", label: "Tema Aurora", hint: "Oscuro con orbes animados (predeterminado)", Icon: Sparkles },
   { id: "light", label: "Tema claro", hint: "Cristal premium sobre lienzo suave (sin orbes)", Icon: Sun },
   { id: "dark", label: "Tema oscuro", hint: "Interfaz oscura, sin orbes", Icon: Moon },
+  { id: "glass", label: "Tema Cristal", hint: "Glassmorphism elegante con fondo en parallax", Icon: Droplets },
 ];
 
 type PanelCoords = { top: number; right: number; width: number };

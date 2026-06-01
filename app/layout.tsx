@@ -2,11 +2,13 @@ import type { Metadata } from "next";
 import { Sora } from "next/font/google";
 import { Toaster } from "react-hot-toast";
 import { BackgroundOrbs } from "@/components/layout/BackgroundOrbs";
+import { GlassBackground } from "@/components/layout/GlassBackground";
 import { SessionProvider } from "@/components/layout/SessionProvider";
 import { ThemeProvider } from "@/components/layout/ThemeProvider";
 import { defaultMetadata } from "@/lib/app-brand";
 import "./globals.css";
 import "./theme-light.css";
+import "./theme-glass.css";
 
 const sora = Sora({
   subsets: ["latin"],
@@ -30,13 +32,14 @@ export default function RootLayout({
       <head>
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var k='cc-ops-theme',r=document.documentElement,t=localStorage.getItem(k);r.removeAttribute('data-theme');r.removeAttribute('data-aurora');if(t==='light')r.setAttribute('data-theme','light');else if(t==='dark'){}else r.setAttribute('data-aurora','true');}catch(e){}})();`,
+            __html: `(function(){try{var k='cc-ops-theme',r=document.documentElement,t=localStorage.getItem(k);r.removeAttribute('data-theme');r.removeAttribute('data-aurora');if(t==='light')r.setAttribute('data-theme','light');else if(t==='glass')r.setAttribute('data-theme','glass');else if(t==='dark'){}else r.setAttribute('data-aurora','true');}catch(e){}})();`,
           }}
         />
       </head>
       <body className="h-full font-sans antialiased">
         <ThemeProvider>
           <BackgroundOrbs />
+          <GlassBackground />
           <SessionProvider>{children}</SessionProvider>
         </ThemeProvider>
         <Toaster

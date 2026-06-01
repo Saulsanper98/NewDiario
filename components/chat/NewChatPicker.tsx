@@ -58,6 +58,13 @@ export function NewChatPicker({
   const [groupTitle, setGroupTitle] = useState("");
   const [creating, setCreating] = useState(false);
 
+  // Presencia: IDs de usuarios online (cualquier usuario, no solo peers).
+  // Se carga al montar el picker y se mantiene actualizada vía SSE para
+  // los usuarios con los que el actor ya comparte conversación (resto
+  // queda con el snapshot inicial, que es suficiente para el caso de
+  // uso de "iniciar nuevo chat").
+  const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -73,6 +80,51 @@ export function NewChatPicker({
     })();
     return () => {
       cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/chat/presence?scope=all", {
+          cache: "no-store",
+        });
+        if (!res.ok) return;
+        const data = (await res.json()) as { online?: string[] };
+        if (!cancelled && data.online) {
+          setOnlineUsers(new Set(data.online));
+        }
+      } catch {
+        /* Ignorado: si falla, no se muestran dots y ya está. */
+      }
+    })();
+
+    const es = new EventSource("/api/chat/stream");
+    es.addEventListener("presence", (ev) => {
+      try {
+        const data = JSON.parse((ev as MessageEvent).data) as {
+          userId: string;
+          online: boolean;
+        };
+        setOnlineUsers((prev) => {
+          const next = new Set(prev);
+          if (data.online) next.add(data.userId);
+          else next.delete(data.userId);
+          return next;
+        });
+      } catch {
+        /* ignore */
+      }
+    });
+
+    return () => {
+      cancelled = true;
+      try {
+        es.close();
+      } catch {
+        /* ignore */
+      }
     };
   }, []);
 
@@ -720,13 +772,24 @@ export function NewChatPicker({
                               : "hover:border-[#ffeb66]/25 hover:bg-[#ffeb66]/6"
                         )}
                       >
-                        <Avatar
-                          name={u.name}
-                          image={u.image}
-                          focusX={u.imageFocusX}
-                          focusY={u.imageFocusY}
-                          size="sm"
-                        />
+                        <span className="relative shrink-0">
+                          <Avatar
+                            name={u.name}
+                            image={u.image}
+                            focusX={u.imageFocusX}
+                            focusY={u.imageFocusY}
+                            size="sm"
+                          />
+                          {onlineUsers.has(u.id) && (
+                            <span
+                              className={cn(
+                                "chat-presence-dot",
+                                isLight && "is-light"
+                              )}
+                              title="En línea"
+                            />
+                          )}
+                        </span>
                         <span className="min-w-0 flex-1">
                           <span
                             className={cn(

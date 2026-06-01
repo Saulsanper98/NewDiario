@@ -354,6 +354,7 @@ export function NovedadesView({
             setEditing(it);
             setEditorOpen(true);
           }}
+          onRefresh={() => void refresh()}
         />
       ) : (
         <AnnouncementsList
@@ -535,6 +536,7 @@ interface NovedadesListProps {
   filter: FilterValue;
   onFilter: (v: FilterValue) => void;
   onEdit: (it: ReleaseNoteItem) => void;
+  onRefresh: () => void;
 }
 
 function NovedadesList({
@@ -545,6 +547,7 @@ function NovedadesList({
   filter,
   onFilter,
   onEdit,
+  onRefresh,
 }: NovedadesListProps) {
   // Count per category
   const counts = useMemo(() => {
@@ -632,6 +635,7 @@ function NovedadesList({
                       isLight={isLight}
                       isOwner={isOwner}
                       onEdit={() => onEdit(it)}
+                      onRefresh={onRefresh}
                       pinnedAccent
                     />
                   </div>
@@ -720,6 +724,7 @@ function NovedadesList({
                               isLight={isLight}
                               isOwner={isOwner}
                               onEdit={() => onEdit(it)}
+                              onRefresh={onRefresh}
                             />
                           </li>
                         );
@@ -892,18 +897,44 @@ function ReleaseNoteCard({
   isLight,
   isOwner,
   onEdit,
+  onRefresh,
   pinnedAccent,
 }: {
   item: ReleaseNoteItem;
   isLight: boolean;
   isOwner: boolean;
   onEdit: () => void;
+  onRefresh: () => void;
   /** Estilo extra para tarjetas destacadas (sección "Destacadas"). */
   pinnedAccent?: boolean;
 }) {
   const meta = CATEGORY_META[item.category];
   const Icon = meta.Icon;
   const isNew = !item.isRead && !item.isDraft;
+  const [deleting, setDeleting] = useState(false);
+
+  async function remove() {
+    if (
+      !confirm(
+        `¿Eliminar la novedad "${item.title}"? Esta acción no se puede deshacer.`,
+      )
+    ) {
+      return;
+    }
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/release-notes/${item.id}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) throw new Error();
+      toast.success("Novedad eliminada");
+      onRefresh();
+    } catch {
+      toast.error("No se pudo eliminar la novedad");
+    } finally {
+      setDeleting(false);
+    }
+  }
 
   return (
     <article
@@ -1010,6 +1041,22 @@ function ReleaseNoteCard({
                 )}
               >
                 <Pencil className="w-3.5 h-3.5" />
+              </button>
+              <button
+                type="button"
+                onClick={() => void remove()}
+                disabled={deleting}
+                aria-label="Eliminar novedad"
+                title="Eliminar novedad"
+                className={cn(
+                  "p-1.5 rounded-md transition-colors",
+                  isLight
+                    ? "text-zinc-500 hover:text-rose-600 hover:bg-rose-50"
+                    : "text-white/40 hover:text-rose-300 hover:bg-rose-500/10",
+                  deleting && "opacity-60 cursor-not-allowed",
+                )}
+              >
+                <Trash2 className="w-3.5 h-3.5" />
               </button>
             </div>
           )}

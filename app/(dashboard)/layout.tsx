@@ -8,6 +8,8 @@ import { MobileNav } from "@/components/layout/MobileNav";
 import { PageTransition } from "@/components/layout/PageTransition";
 import { ChatNotifier } from "@/components/layout/ChatNotifier";
 import { AnnouncementBanner } from "@/components/layout/AnnouncementBanner";
+import { WelcomeOverlay } from "@/components/layout/WelcomeOverlay";
+import { UserAccent } from "@/components/layout/UserAccent";
 import { isAdminOrAbove, getActiveDepartmentId } from "@/lib/auth/permissions";
 import { isBugReportsAdmin } from "@/lib/bug-reports";
 import type { SessionUser } from "@/lib/auth/types";
@@ -67,35 +69,61 @@ export default async function DashboardLayout({
 
   const unreadReleaseNotes = await countUnreadReleaseNotes(user.id);
 
+  const activeDept = user.departments.find((d) => d.id === deptId) ?? null;
+
   return (
     <div className="flex h-screen flex-col overflow-hidden print:h-auto print:min-h-0 print:overflow-visible">
+      <UserAccent accentColor={activeDept?.accentColor ?? null} />
+      <WelcomeOverlay
+        name={user.name}
+        image={user.image ?? null}
+        imageFocusX={user.imageFocusX ?? null}
+        imageFocusY={user.imageFocusY ?? null}
+        profileBanner={user.profileBanner ?? null}
+        bannerFocusX={user.bannerFocusX ?? null}
+        bannerFocusY={user.bannerFocusY ?? null}
+        departmentName={activeDept?.name ?? null}
+        birthday={user.birthday ?? null}
+      />
       <AnnouncementBanner />
-      <div className="app-dashboard-root flex flex-1 min-h-0 overflow-hidden relative print:h-auto print:min-h-0 print:overflow-visible">
-        <SkipToMain />
-        <Sidebar
-          user={user}
-          isAdmin={isAdminOrAbove(user)}
-          pendingFollowups={pendingFollowups}
-          isBugReportsAdmin={bugReportsAdmin}
-          openBugReports={openBugReports}
-          unreadChatMessages={unreadChatMessages}
-          unreadReleaseNotes={unreadReleaseNotes}
-        />
-        <main
-          id="main-content"
-          className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-transparent relative z-10 print:h-auto print:min-h-0 print:overflow-visible"
-          tabIndex={-1}
-        >
-          <PageTransition>
-            {children}
-          </PageTransition>
-        </main>
-        <KeyboardShortcuts />
-        <MobileNav
-          pendingFollowups={pendingFollowups}
-          unreadReleaseNotes={unreadReleaseNotes}
-        />
-        <ChatNotifier initialUnread={unreadChatMessages} />
+      {/*
+        glass-shell-frame / glass-shell-inner — marco con glow magenta
+        EXCLUSIVO del tema Cristal (todas las reglas viven en
+        `app/theme-glass.css` bajo `html[data-theme="glass"]`). En Aurora,
+        Light y Dark estos dos divs heredan solo el `flex` declarado en su
+        propio className y se comportan como contenedores transparentes
+        que no alteran el layout.
+      */}
+      <div className="glass-shell-frame flex flex-1 min-h-0 overflow-hidden print:contents">
+        <div className="glass-shell-inner flex flex-1 min-h-0 overflow-hidden print:contents">
+          <div className="app-dashboard-root flex flex-1 min-h-0 overflow-hidden relative print:h-auto print:min-h-0 print:overflow-visible">
+            <SkipToMain />
+            <Sidebar
+              user={user}
+              isAdmin={isAdminOrAbove(user)}
+              pendingFollowups={pendingFollowups}
+              isBugReportsAdmin={bugReportsAdmin}
+              openBugReports={openBugReports}
+              unreadChatMessages={unreadChatMessages}
+              unreadReleaseNotes={unreadReleaseNotes}
+            />
+            <main
+              id="main-content"
+              className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-transparent relative z-10 print:h-auto print:min-h-0 print:overflow-visible"
+              tabIndex={-1}
+            >
+              <PageTransition>
+                {children}
+              </PageTransition>
+            </main>
+            <KeyboardShortcuts />
+            <MobileNav
+              pendingFollowups={pendingFollowups}
+              unreadReleaseNotes={unreadReleaseNotes}
+            />
+            <ChatNotifier initialUnread={unreadChatMessages} />
+          </div>
+        </div>
       </div>
     </div>
   );

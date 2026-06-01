@@ -11,6 +11,7 @@ import {
   Eye,
   EyeOff,
   Wand2,
+  ImagePlus,
 } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
@@ -39,6 +40,8 @@ export function ReleaseNoteEditor({
   const { theme } = useTheme();
   const isLight = theme === "light";
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const inlineFileInputRef = useRef<HTMLInputElement>(null);
+  const bodyTextareaRef = useRef<HTMLTextAreaElement>(null);
 
   const [title, setTitle] = useState("");
   const [version, setVersion] = useState("");
@@ -52,6 +55,8 @@ export function ReleaseNoteEditor({
   const [isDraft, setIsDraft] = useState(false);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [uploadingInline, setUploadingInline] = useState(false);
+  const [bodyDragOver, setBodyDragOver] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [autodrafting, setAutodrafting] = useState(false);
 
@@ -91,12 +96,85 @@ export function ReleaseNoteEditor({
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error ?? "Error subiendo imagen");
       setCoverImage(data.url as string);
-      toast.success("Imagen subida");
+      toast.success("Imagen de portada subida");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "No se pudo subir");
     } finally {
       setUploading(false);
     }
+  }
+
+  /**
+   * Sube una imagen y la inserta en el cuerpo de la novedad como
+   * `<img src="..." alt="" />` justo en la posición del cursor del
+   * textarea (o al final si no hay cursor activo).
+   */
+  async function handleInsertInlineImage(file: File) {
+    if (!file.type.startsWith("image/")) {
+      toast.error("Solo imágenes (JPG, PNG, GIF, WebP)");
+      return;
+    }
+    setUploadingInline(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch("/api/uploads", { method: "POST", body: fd });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error ?? "Error subiendo imagen");
+      const url = data.url as string;
+      const tag = `<img src="${url}" alt="" />`;
+      const textarea = bodyTextareaRef.current;
+      if (textarea) {
+        const start = textarea.selectionStart ?? body.length;
+        const end = textarea.selectionEnd ?? body.length;
+        // Si el cursor no está justo después de salto de línea, prefijar
+        // \n para que la imagen quede en línea propia.
+        const before = body.slice(0, start);
+        const after = body.slice(end);
+        const needsLeadingNl = before.length > 0 && !before.endsWith("\n");
+        const needsTrailingNl = after.length > 0 && !after.startsWith("\n");
+        const insertion =
+          (needsLeadingNl ? "\n\n" : "") +
+          tag +
+          (needsTrailingNl ? "\n\n" : "");
+        const next = before + insertion + after;
+        setBody(next);
+        // Restaurar el cursor justo después de la imagen insertada
+        const newPos = start + insertion.length;
+        requestAnimationFrame(() => {
+          textarea.focus();
+          textarea.setSelectionRange(newPos, newPos);
+        });
+      } else {
+        setBody((prev) => prev + (prev ? "\n\n" : "") + tag);
+      }
+      toast.success("Imagen insertada en el contenido");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "No se pudo subir");
+    } finally {
+      setUploadingInline(false);
+    }
+  }
+
+  /** Drag & drop sobre el textarea: si hay imagen, la inserta inline. */
+  function handleBodyDrop(e: React.DragEvent<HTMLTextAreaElement>) {
+    e.preventDefault();
+    setBodyDragOver(false);
+    const file = Array.from(e.dataTransfer?.files ?? []).find((f) =>
+      f.type.startsWith("image/"),
+    );
+    if (file) void handleInsertInlineImage(file);
+  }
+
+  /** Paste de imagen del portapapeles -> insertar inline. */
+  function handleBodyPaste(e: React.ClipboardEvent<HTMLTextAreaElement>) {
+    const items = Array.from(e.clipboardData?.items ?? []);
+    const imageItem = items.find((it) => it.type.startsWith("image/"));
+    if (!imageItem) return;
+    const file = imageItem.getAsFile();
+    if (!file) return;
+    e.preventDefault();
+    void handleInsertInlineImage(file);
   }
 
   async function handleSave() {
@@ -373,22 +451,75 @@ export function ReleaseNoteEditor({
         </div>
 
         <div className="space-y-1.5">
-          <label
-            className={cn(
-              "block text-xs font-semibold uppercase tracking-wider",
-              isLight ? "text-zinc-500" : "text-white/40"
-            )}
-          >
-            Contenido
-          </label>
+          <div className="flex items-end justify-between gap-3 flex-wrap">
+            <label
+              className={cn(
+                "block text-xs font-semibold uppercase tracking-wider",
+                isLight ? "text-zinc-500" : "text-white/40"
+              )}
+            >
+              Contenido
+            </label>
+            <div className="flex items-center gap-2">
+              <input
+                ref={inlineFileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) void handleInsertInlineImage(f);
+                  e.target.value = "";
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => inlineFileInputRef.current?.click()}
+                disabled={uploadingInline}
+                className={cn(
+                  "inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[11px] font-semibold border transition-colors",
+                  isLight
+                    ? "border-zinc-200 text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900"
+                    : "border-white/10 text-white/55 hover:bg-white/5 hover:text-white",
+                  uploadingInline && "opacity-60 cursor-not-allowed"
+                )}
+              >
+                {uploadingInline ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <ImagePlus className="w-3.5 h-3.5" />
+                )}
+                {uploadingInline ? "Subiendo…" : "Insertar imagen"}
+              </button>
+            </div>
+          </div>
           <textarea
+            ref={bodyTextareaRef}
             value={body}
             onChange={(e) => setBody(e.target.value)}
+            onDragEnter={(e) => {
+              if (Array.from(e.dataTransfer?.items ?? []).some((it) => it.kind === "file")) {
+                setBodyDragOver(true);
+              }
+            }}
+            onDragOver={(e) => {
+              if (Array.from(e.dataTransfer?.items ?? []).some((it) => it.kind === "file")) {
+                e.preventDefault();
+                setBodyDragOver(true);
+              }
+            }}
+            onDragLeave={() => setBodyDragOver(false)}
+            onDrop={handleBodyDrop}
+            onPaste={handleBodyPaste}
             rows={10}
-            placeholder={`Explica el cambio, con ejemplos si ayudan.\n\nPuedes usar Markdown sencillo:\n- Una lista de mejoras\n- **Negrita** o *cursiva*\n\nO HTML básico (<strong>, <em>, <ul>, <li>, <p>).`}
+            placeholder={`Explica el cambio, con ejemplos si ayudan.\n\nPuedes usar Markdown sencillo:\n- Una lista de mejoras\n- **Negrita** o *cursiva*\n\nO HTML básico (<strong>, <em>, <ul>, <li>, <p>).\n\nTambién puedes arrastrar o pegar imágenes aquí y se insertarán en el sitio del cursor.`}
             className={cn(
               inputCn(isLight),
-              "min-h-[220px] font-mono text-[12.5px] leading-relaxed resize-y"
+              "min-h-[220px] font-mono text-[12.5px] leading-relaxed resize-y transition-all",
+              bodyDragOver &&
+                (isLight
+                  ? "border-violet-400 ring-2 ring-violet-200 bg-violet-50/40"
+                  : "border-violet-400/70 ring-2 ring-violet-400/30 bg-violet-500/[0.06]")
             )}
           />
           <p
@@ -398,7 +529,8 @@ export function ReleaseNoteEditor({
             )}
           >
             Se guarda como HTML sanitizado. Soporta listas, negrita, cursiva,
-            enlaces, imágenes y vídeo.
+            enlaces, imágenes y vídeo. Arrastra, pega o usa el botón
+            «Insertar imagen» para añadir imágenes al cuerpo.
           </p>
         </div>
 
