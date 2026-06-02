@@ -206,6 +206,40 @@ export function Sidebar({
   const isOverlayMode = mode === "smart";
   const isExpanded = mode === "expanded" || (mode === "smart" && hovered);
 
+  /*
+   * Modo Automático (overlay) expandido: el panel cubre el contenido y deja
+   * ver migas de pan / contenido detrás del cristal. Aplicamos DOS empujes
+   * redundantes para asegurar que el shift se produzca sí o sí:
+   *
+   *   1) Estilo inline sobre `#main-content` (máxima prioridad de cascada).
+   *   2) Atributo `data-cc-sidebar-overlay="expanded"` sobre `<html>`, que
+   *      activa una regla CSS con `!important` en globals.css. Sirve de red
+   *      por si el inline style se pierde con HMR o lo pisa cualquier otra
+   *      hoja cacheada.
+   *
+   * El delta es w-60 (240px) − w-16 (64px) = 11rem y la animación corre por
+   * la `transition: padding-left 200ms ease-out` declarada en globals.css,
+   * sincronizada con la animación de ancho del propio sidebar. En modos
+   * `expanded` / `collapsed` no aplica, porque el sidebar ya empuja el flow.
+   */
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const main = document.getElementById("main-content");
+    const root = document.documentElement;
+    const active = isOverlayMode && isExpanded;
+    if (active) {
+      if (main) main.style.paddingLeft = "11rem";
+      root.setAttribute("data-cc-sidebar-overlay", "expanded");
+    } else {
+      if (main) main.style.paddingLeft = "";
+      root.removeAttribute("data-cc-sidebar-overlay");
+    }
+    return () => {
+      if (main) main.style.paddingLeft = "";
+      root.removeAttribute("data-cc-sidebar-overlay");
+    };
+  }, [isOverlayMode, isExpanded]);
+
   const isActive = (item: NavItem) => {
     if (item.exact) return pathname === item.href;
     if (item.href === "/bitacora/dia") return pathname.startsWith("/bitacora");

@@ -9,7 +9,6 @@ import { PageTransition } from "@/components/layout/PageTransition";
 import { ChatNotifier } from "@/components/layout/ChatNotifier";
 import { AnnouncementBanner } from "@/components/layout/AnnouncementBanner";
 import { WelcomeOverlay } from "@/components/layout/WelcomeOverlay";
-import { UserAccent } from "@/components/layout/UserAccent";
 import { isAdminOrAbove, getActiveDepartmentId } from "@/lib/auth/permissions";
 import { isBugReportsAdmin } from "@/lib/bug-reports";
 import type { SessionUser } from "@/lib/auth/types";
@@ -73,7 +72,6 @@ export default async function DashboardLayout({
 
   return (
     <div className="flex h-screen flex-col overflow-hidden print:h-auto print:min-h-0 print:overflow-visible">
-      <UserAccent accentColor={activeDept?.accentColor ?? null} />
       <WelcomeOverlay
         name={user.name}
         image={user.image ?? null}

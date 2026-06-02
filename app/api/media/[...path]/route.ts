@@ -15,6 +15,14 @@
  *   - Avatar/Banner:  los `User.image` y `User.profileBanner` son
  *     compartidos por todo el directorio interno (el avatar tiene que
  *     verse en bitacoras, comentarios, etc.). Cualquier autenticado los ve.
+ *   - Uploader propietario (RichEditor): los uploads desde el editor
+ *     vienen con filename prefijado `u_<userId>__<uuid>.<ext>`. El
+ *     uploader puede leer SIEMPRE su archivo (caso: editor abierto, aun
+ *     no se ha guardado el HTML embebido en ninguna tabla).
+ *   - HTML embebido: si el `mediaUrl` aparece en el `content` /
+ *     `description` / `body` de un LogEntry, LogComment, ReleaseNote,
+ *     Announcement, Task, Task/Project Comment, ShiftHandoff, etc.,
+ *     cualquier autenticado del directorio interno puede verlo.
  *
  * Si el fichero existe en disco pero NO esta referenciado por ningun
  * recurso de los anteriores, devolvemos 404 (huerfanos no se sirven).
@@ -85,6 +93,49 @@ type AuthDecision =
   | { ok: false; status: 401 | 403 | 404 };
 
 /**
+ * Comprueba si el `mediaUrl` aparece embebido en alguno de los campos
+ * HTML / texto ricos de la app. Si aparece (en cualquier tabla) cualquier
+ * autenticado del directorio interno tiene derecho a verlo: el contenido
+ * ya esta visible para todos los usuarios que tienen acceso al recurso
+ * (bitacora, anuncios, etc.) y el media es parte del cuerpo.
+ *
+ * Lanza las queries en paralelo; en cuanto UNA encuentra el media damos
+ * el OK. Coste maximo: una query por tabla, ejecutadas en paralelo, con
+ * `contains` indexado parcialmente por LIKE (suficiente: el uso real es
+ * 1 hit por lectura de imagen y se cachea en el browser).
+ */
+async function isMediaReferencedInRichText(mediaUrl: string): Promise<boolean> {
+  const where = { content: { contains: mediaUrl } } as const;
+  const whereBody = { body: { contains: mediaUrl } } as const;
+  const whereDescription = { description: { contains: mediaUrl } } as const;
+  const whereMessage = { message: { contains: mediaUrl } } as const;
+
+  const checks = await Promise.all([
+    prisma.logEntry.findFirst({ where, select: { id: true } }),
+    prisma.logComment.findFirst({ where, select: { id: true } }),
+    prisma.projectLogEntry.findFirst({ where, select: { id: true } }),
+    prisma.projectLogComment.findFirst({ where, select: { id: true } }),
+    prisma.projectComment.findFirst({ where, select: { id: true } }),
+    prisma.taskComment.findFirst({ where, select: { id: true } }),
+    prisma.releaseNote.findFirst({ where: whereBody, select: { id: true } }),
+    prisma.announcement.findFirst({ where: whereMessage, select: { id: true } }),
+    prisma.task.findFirst({ where: whereDescription, select: { id: true } }),
+    prisma.bugReport.findFirst({ where: whereDescription, select: { id: true } }),
+    prisma.shiftHandoff.findFirst({
+      where: {
+        OR: [
+          { pendingText: { contains: mediaUrl } },
+          { watchText: { contains: mediaUrl } },
+          { avoidText: { contains: mediaUrl } },
+        ],
+      },
+      select: { id: true },
+    }),
+  ]);
+  return checks.some((row) => row !== null);
+}
+
+/**
  * Resuelve si el solicitante puede leer el fichero indicado en BD.
  * Devuelve 404 si el fichero no esta referenciado por ningun recurso
  * conocido (no exponemos la existencia en disco a quien no debe).
@@ -94,6 +145,20 @@ async function resolveAccess(
   user: SessionUser,
 ): Promise<AuthDecision> {
   const mediaUrl = `/api/media/${filename}`;
+
+  // 0. Uploader propietario (filename `u_<userId>__<uuid>.<ext>`).
+  //    El propio uploader puede leer SIEMPRE su archivo. Necesario para
+  //    que las imagenes recien subidas al RichEditor se rendericen en el
+  //    editor antes de que el HTML embebido este guardado en una tabla.
+  if (filename.startsWith("u_")) {
+    const sep = filename.indexOf("__");
+    if (sep !== -1) {
+      const uploaderId = filename.slice(2, sep);
+      if (uploaderId === user.id) {
+        return { ok: true, displayName: filename, publicLike: false };
+      }
+    }
+  }
 
   // 1. ChatAttachment: participante.
   const attachment = await prisma.chatAttachment.findFirst({
@@ -150,7 +215,15 @@ async function resolveAccess(
     return { ok: true, displayName: filename, publicLike: true };
   }
 
-  // 4. Huerfano (no referenciado por nadie): 404. No revelamos existencia
+  // 4. HTML embebido en bitacora, comentarios, anuncios, novedades,
+  //    tareas, bug reports, traspasos. Si el media aparece dentro de un
+  //    rich text guardado en BD, todos los autenticados del directorio
+  //    interno pueden verlo (es contenido visible para todos).
+  if (await isMediaReferencedInRichText(mediaUrl)) {
+    return { ok: true, displayName: filename, publicLike: false };
+  }
+
+  // 5. Huerfano (no referenciado por nadie): 404. No revelamos existencia
   //    en disco a usuarios sin permiso.
   return { ok: false, status: 404 };
 }

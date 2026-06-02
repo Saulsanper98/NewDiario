@@ -1,0 +1,1328 @@
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║          TEMA  "SLATE"  ·  Grafito esmerilado (gemelo de Cristal)        ║
+ * ║                                                                          ║
+ * ║   Slate es el "gemelo grafito" de Cristal (Glass). Misma estructura y    ║
+ * ║   técnicas, distinta paleta — sobria, profesional, sin colores vivos.    ║
+ * ║                                                                          ║
+ * ║   Identidad visual:                                                      ║
+ * ║     · Fondo grafito (#0f1318) con halos radiales acero + 3 orbes a la   ║
+ * ║       deriva (acero claro, slate-500, punto cian frío).                 ║
+ * ║     · Marco exterior con gradiente cian → acero → slate y glow plata.   ║
+ * ║     · Cards translúcidas con `backdrop-filter` REAL en 4 niveles        ║
+ * ║       diferenciados (.glass casi invisible → .glass-3/4 popovers).      ║
+ * ║     · Reflejo diagonal + shine acero en hover (0.10, sobrio).           ║
+ * ║     · Borde animado opcional (.glow-border) — destello acero+cian.      ║
+ * ║     · Aparición escalonada al cargar (auto stage-in + .reveal opt-in).  ║
+ * ║     · Tipografía fina (300) en títulos/stats, amarillo CCMGC sólido     ║
+ * ║       SOLO para el CTA primario (`Nueva entrada`, etc.).                ║
+ * ║     · Paleta de hover/focus/glow: acero slate-400. NUNCA magenta.        ║
+ * ║                                                                          ║
+ * ║   AISLAMIENTO TOTAL                                                      ║
+ * ║   --------------------                                                   ║
+ * ║   Cada selector empieza con `html[data-theme="slate"]`. Sin esa marca,  ║
+ * ║   ninguna regla aplica. No toca otros temas (theme-glass / globals).    ║
+ * ║                                                                          ║
+ * ║   CLAVE DEL ARREGLO (¡leer si vas a tocar algo!)                        ║
+ * ║   ---------------------------------------------                          ║
+ * ║   El glassmorphism necesita VER los orbes detrás de las cards. Por eso: ║
+ * ║     1) `body` debe ser TRANSPARENTE (vía `--app-canvas-color:           ║
+ * ║        transparent` / `--app-canvas-image: none` en los tokens).        ║
+ * ║     2) NINGÚN ancestro de las cards puede tener `isolation: isolate`,   ║
+ * ║        `transform`, `filter` ni `will-change` (crean nuevo stacking     ║
+ * ║        context y el `backdrop-filter` deja de ver el fondo global).     ║
+ * ║        Lo neutralizamos con `--card-isolation: auto`.                   ║
+ * ║     3) NO `overflow: hidden` en el wrapper común de `.glass-*` (corta   ║
+ * ║        texto largo en bitácora). El reflejo `::before` usa             ║
+ * ║        `border-radius: inherit` y no necesita clip del padre.           ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                         1.  PALETA Y TOKENS                              ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="slate"] {
+  /* ─ Lienzo grafito ─ */
+  --bg-deep: #0f1318;                              /* grafito profundo, NO azul-marino */
+  --accent: #FFEB66;                               /* amarillo CCMGC */
+
+  --text: #eef1f5;
+  --text-dim: #aeb6c2;
+  --text-faint: #6f7783;
+
+  /* ─ Cristal (mismos blurs y opacidades que Cristal, paleta acero) ─ */
+  --glass-bg: rgba(255, 255, 255, 0.04);
+  --glass-bg-2: rgba(255, 255, 255, 0.08);
+  --glass-border: rgba(255, 255, 255, 0.12);
+  --glass-border-glow: rgba(148, 163, 184, 0.50);  /* ACERO slate-400, NO magenta */
+  --glass-blur: 22px;
+  --glass-shadow: 0 12px 48px rgba(0, 0, 0, 0.45);
+  --glass-highlight:
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    inset 1px 0 0 rgba(255, 255, 255, 0.07);
+
+  /* Glow acero para hover (paralelo a `--glow-magenta` de Cristal) */
+  --glow-steel: rgba(148, 163, 184, 0.22);
+
+  /* ─ Stats enfriados a tonos slate/cyan/emerald (decisión del usuario) ─ */
+  --stat-purple: #a5b4fc;                          /* indigo-300 (más frío que el púrpura) */
+  --stat-blue:   #93c5fd;                          /* blue-300 */
+  --stat-cyan:   #67e8f9;                          /* cyan-300 */
+  --stat-green:  #86efac;                          /* green-300 */
+
+  /* ─ Capa theme-driven (paralela a la de Cristal) ─ */
+  --app-canvas-color: transparent;
+  --app-canvas-image: none;
+  --card-isolation: auto;
+
+  /* ─ Geometría (marco grafito sutil, distinto al magenta de Cristal) ─ */
+  --slate-radius: 18px;
+  --slate-radius-shell: 24px;
+
+  color-scheme: dark;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║              2.  FIX DE CAPAS OPACAS  (Fase 0.B del prompt)              ║
+ * ║                                                                          ║
+ * ║   Sin esto, los orbes nunca se ven y el cristal queda plano.             ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+/* ── Body / canvas ─────────────────────────────────────────────────────────
+ *  El fondo lo pinta `<SlateBackground />` (`.slate-bg`, z-index:-10).
+ *  Para que sus orbes sean visibles, el body debe ser TRANSPARENTE — lo
+ *  conseguimos con `--app-canvas-color: transparent` / `--app-canvas-image: none`
+ *  en el bloque de tokens (arriba). La regla base de `globals.css` consume
+ *  esas variables, así que aquí sólo conservamos lo que NO es fondo. */
+html[data-theme="slate"] body {
+  color: var(--text);
+  font-weight: 400;
+  min-height: 100vh;
+}
+
+/* Neutralizar stacking-contexts creados por la base — dejan al                */
+/* `backdrop-filter` sin nada que difuminar.                                   */
+html[data-theme="slate"] .app-sidebar-shell,
+html[data-theme="slate"] .app-top-header {
+  isolation: auto !important;
+}
+
+/* ── Marco grafito (estructura idéntica a Cristal, paleta acero+cian) ─────
+ *  Aurora NO tiene marco; Cristal tiene marco con gradiente violeta-magenta
+ *  + glow magenta. Slate replica la misma técnica pero con un gradiente
+ *  acero-cian sobrio (sky-200 → slate-400 → slate-600) y un glow gris-acero
+ *  mucho más tenue. Resultado: marco premium pero serio, sin tono cálido. */
+html[data-theme="slate"] .glass-shell-frame {
+  margin: 18px;
+  padding: 1.5px;
+  border-radius: var(--slate-radius-shell);                 /* 24px */
+  background: linear-gradient(
+    135deg,
+    rgba(186, 230, 253, 0.45),                              /* sky-200 cian */
+    rgba(148, 163, 184, 0.28) 45%,                          /* slate-400 acero */
+    rgba(71, 85, 105, 0.22)                                 /* slate-600 sombra */
+  );
+  box-shadow:
+    0 0 60px rgba(148, 163, 184, 0.22),
+    0 0 120px rgba(56, 189, 248, 0.10);
+}
+
+html[data-theme="slate"] .glass-shell-inner {
+  border-radius: calc(var(--slate-radius-shell) - 2px);     /* 22px */
+  background: rgba(15, 19, 24, 0.32);                       /* grafito translúcido */
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  overflow: hidden;
+  padding: 20px;
+}
+
+/* Responsive — replica las breakpoints de Cristal con valores equivalentes. */
+@media (max-width: 768px) {
+  html[data-theme="slate"] .glass-shell-inner { padding: 12px; }
+  html[data-theme="slate"] .app-dashboard-root { gap: 10px; }
+}
+@media (max-width: 640px) {
+  html[data-theme="slate"] .glass-shell-frame {
+    margin: 10px;
+    border-radius: 22px;
+  }
+  html[data-theme="slate"] .glass-shell-inner {
+    border-radius: 20px;
+  }
+}
+@media (max-width: 480px) {
+  html[data-theme="slate"] .glass-shell-inner { padding: 8px; }
+  html[data-theme="slate"] .app-dashboard-root { gap: 8px; }
+}
+
+/* Limpiar pseudos heredados de otro tema sobre el marco. */
+html[data-theme="slate"] .glass-shell-frame::before,
+html[data-theme="slate"] .glass-shell-frame::after,
+html[data-theme="slate"] .glass-shell-inner::before,
+html[data-theme="slate"] .glass-shell-inner::after {
+  display: none !important;
+}
+
+/* Dashboard root transparente + gap interior para que el contenido no quede
+ * aprisionado contra el sidebar transparente (mismo gap que Cristal: 16 px,
+ * reducido en responsive más abajo en el bloque de marco). */
+html[data-theme="slate"] .app-dashboard-root {
+  background: transparent !important;
+  gap: 16px;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                  3.  FONDO  ·  <SlateBackground />                       ║
+ * ║                                                                          ║
+ * ║   ÚNICA capa con color sólido. Está fija detrás de todo el documento.    ║
+ * ║   Los 3 orbes se mueven solos con animación CSS (sin JS).                ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="slate"] .slate-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -10;
+  overflow: hidden;
+  /* Capa base con halos radiales sutiles: rompe la planicie del color
+     sólido y da el "esmerilado grafito" que diferencia visualmente Slate
+     del azul plano de Aurora. */
+  background:
+    radial-gradient(ellipse 65% 50% at 14% 10%, rgba(148, 163, 184, 0.13), transparent 60%),
+    radial-gradient(ellipse 70% 55% at 88% 92%, rgba(100, 116, 139, 0.12), transparent 60%),
+    radial-gradient(ellipse 45% 40% at 55% 48%, rgba(56, 189, 248, 0.07), transparent 65%),
+    var(--bg-deep);
+  pointer-events: none;
+}
+
+html[data-theme="slate"] .slate-bg .orb {
+  position: absolute;
+  border-radius: 50%;
+  will-change: transform;
+}
+
+/* Orbe 1 — acero claro (slate-400), esquina superior izquierda.
+   Subida de alpha respecto al primer intento: a 0.08 los orbes eran
+   invisibles y Slate se confundía con Aurora. Ahora deben PERCIBIRSE. */
+html[data-theme="slate"] .slate-bg .orb-1 {
+  width: 720px; height: 720px;
+  background: radial-gradient(circle, rgba(148, 163, 184, 0.38), transparent 64%);
+  filter: blur(70px);
+  top: -4%;
+  left: 6%;
+  animation: slate-drift1 24s ease-in-out infinite;
+}
+
+/* Orbe 2 — acero medio (slate-500), esquina inferior derecha. */
+html[data-theme="slate"] .slate-bg .orb-2 {
+  width: 620px; height: 620px;
+  background: radial-gradient(circle, rgba(100, 116, 139, 0.32), transparent 66%);
+  filter: blur(80px);
+  bottom: -6%;
+  right: 4%;
+  animation: slate-drift2 30s ease-in-out infinite;
+}
+
+/* Orbe 3 — punto de cian frío (sky-400). Marca acento de la familia: el
+   cian-acero es lo que diferencia Slate de Aurora (azul puro) y de Cristal
+   (violeta). Visible pero sin saturar. */
+html[data-theme="slate"] .slate-bg .orb-3 {
+  width: 500px; height: 500px;
+  background: radial-gradient(circle, rgba(56, 189, 248, 0.18), transparent 68%);
+  filter: blur(75px);
+  top: 38%;
+  left: 50%;
+  animation: slate-drift3 27s ease-in-out infinite;
+}
+
+@keyframes slate-drift1 {
+  0%, 100% { transform: translate(0, 0); }
+  33%      { transform: translate(70px, 45px); }
+  66%      { transform: translate(-45px, 30px); }
+}
+@keyframes slate-drift2 {
+  0%, 100% { transform: translate(0, 0); }
+  50%      { transform: translate(-80px, -55px); }
+}
+@keyframes slate-drift3 {
+  0%, 100% { transform: translate(0, 0); }
+  40%      { transform: translate(55px, -45px); }
+  75%      { transform: translate(-35px, 55px); }
+}
+
+/* Capa de grano fino para romper el degradado puro. */
+html[data-theme="slate"] .slate-bg .slate-noise {
+  position: absolute;
+  inset: 0;
+  opacity: 0.04;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  pointer-events: none;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                4.  CLASE DE CRISTAL  ·  .glass-surface                   ║
+ * ║                                                                          ║
+ * ║   Aplícala a paneles, cards, modales y al header. Hace el blur real.     ║
+ * ║   ⚠️  No ponerla en un wrapper que envuelva otras .glass-surface.        ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="slate"] .glass-surface {
+  position: relative;
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur)) saturate(140%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(140%);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow), var(--glass-highlight);
+  border-radius: var(--slate-radius);
+  transition:
+    border-color 0.3s ease,
+    transform 0.3s ease,
+    background 0.3s ease,
+    box-shadow 0.3s ease;
+  overflow: hidden;
+}
+
+/* Reflejo diagonal sutil en el canto superior-izquierdo (cristal real). */
+html[data-theme="slate"] .glass-surface::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.15) 0%,
+    rgba(255, 255, 255, 0.04) 22%,
+    transparent 46%
+  );
+  border-radius: inherit;
+}
+
+/* Contenido por encima del reflejo. */
+html[data-theme="slate"] .glass-surface > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Hover limpio: eleva + borde se ilumina (NO sigue al cursor).
+ * Lift -2px unificado con `.glass-hover` para consistencia visual entre
+ * los dos opt-in interactivos. */
+html[data-theme="slate"] .glass-surface:hover {
+  border-color: var(--glass-border-glow);
+  transform: translateY(-2px);
+  background: var(--glass-bg-2);
+  box-shadow:
+    0 16px 54px rgba(0, 0, 0, 0.40),
+    0 0 28px var(--glow-steel),
+    var(--glass-highlight);
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║              5.  ALIAS  ·  Cards del sistema → .glass-surface            ║
+ * ║                                                                          ║
+ * ║   La app usa `.glass`, `.glass-1`, `.glass-2`, `.glass-3` (y `.glass-4`) ║
+ * ║   pintadas en globals.css con gradientes opacos. En Slate las dejamos    ║
+ * ║   transparentes para que herede el cristal de `.glass-surface`-like.    ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+/* ── Wrapper común de los 5 niveles ──────────────────────────────────────
+ *  Réplica del patrón de Cristal: cada nivel define su PROPIO fondo / blur /
+ *  borde (más abajo). Aquí sólo van las propiedades comunes a todos.
+ *
+ *  ⚠️  NO `overflow: hidden` aquí (mismo razonamiento que Cristal): clipa
+ *  el texto largo de cards densas (detalle de nota en bitácora, etc.).
+ *  El reflejo diagonal `::before` usa `border-radius: inherit` y se
+ *  renderiza correctamente sin necesidad de clip del padre. El shine
+ *  hover vive en `.glass-hover` (que SÍ define su propio overflow). */
+html[data-theme="slate"] .glass,
+html[data-theme="slate"] .glass-1,
+html[data-theme="slate"] .glass-2,
+html[data-theme="slate"] .glass-3,
+html[data-theme="slate"] .glass-4 {
+  isolation: var(--card-isolation);
+  position: relative;
+  border-radius: var(--slate-radius);
+  transition:
+    background 0.3s ease,
+    border-color 0.3s ease,
+    box-shadow 0.3s ease,
+    transform 0.3s ease;
+}
+
+/* .glass — CASI INVISIBLE: cabeceras de proyecto, toolbars grandes. Se
+ * integra con el lienzo grafito; sin sombra ni borde marcado. Blur mínimo
+ * para que el texto siga siendo legible cuando hay un orbe detrás. */
+html[data-theme="slate"] .glass {
+  background: rgba(255, 255, 255, 0.012);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  box-shadow: none;
+}
+
+/* .glass-1 — cards de lista (notas de bitácora, items). Sutil pero
+ * diferenciado del fondo. Blur ligero (hay muchas a la vez). */
+html[data-theme="slate"] .glass-1 {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(14px) saturate(135%);
+  -webkit-backdrop-filter: blur(14px) saturate(135%);
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  box-shadow: var(--glass-shadow), var(--glass-highlight);
+}
+
+/* .glass-2 — contenedores grandes con info densa (detalle de nota). Más
+ * opaco para mejorar legibilidad sobre los orbes. */
+html[data-theme="slate"] .glass-2 {
+  background: rgba(255, 255, 255, 0.065);
+  backdrop-filter: blur(20px) saturate(145%);
+  -webkit-backdrop-filter: blur(20px) saturate(145%);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: var(--glass-shadow), var(--glass-highlight);
+}
+
+/* .glass-3 / .glass-4 — overlays y popovers (los más opacos). Gradient
+ * grafito → translúcido para que el contenido encima sea inmediato. */
+html[data-theme="slate"] .glass-3,
+html[data-theme="slate"] .glass-4 {
+  background: linear-gradient(
+    155deg,
+    rgba(15, 19, 24, 0.45) 0%,
+    rgba(255, 255, 255, 0.08) 45%,
+    rgba(255, 255, 255, 0.04) 100%
+  );
+  backdrop-filter: blur(var(--glass-blur)) saturate(150%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(150%);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: var(--glass-shadow), var(--glass-highlight);
+}
+
+/* Reflejo diagonal (todos los niveles) — el toque "cristal real". */
+html[data-theme="slate"] .glass::before,
+html[data-theme="slate"] .glass-1::before,
+html[data-theme="slate"] .glass-2::before,
+html[data-theme="slate"] .glass-3::before,
+html[data-theme="slate"] .glass-4::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.12) 0%,
+    rgba(255, 255, 255, 0.04) 22%,
+    transparent 46%
+  );
+  border-radius: inherit;
+}
+
+html[data-theme="slate"] .glass > *,
+html[data-theme="slate"] .glass-1 > *,
+html[data-theme="slate"] .glass-2 > *,
+html[data-theme="slate"] .glass-3 > *,
+html[data-theme="slate"] .glass-4 > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Hover sutil — sólo cards no-cabecera (NO .glass). Sin translateY: en
+ * listas largas las cards no deben "saltar" (decisión UX heredada de
+ * Cristal). El lift queda reservado a .glass-hover y .glass-surface. */
+html[data-theme="slate"] .glass-1:hover,
+html[data-theme="slate"] .glass-2:hover,
+html[data-theme="slate"] .glass-3:hover,
+html[data-theme="slate"] .glass-4:hover {
+  border-color: var(--glass-border-glow);
+}
+
+/* .glass-hover (opt-in interactivo, p.ej. stats cards del dashboard) sí
+ * eleva al hover, con glow acero. */
+html[data-theme="slate"] .glass-hover:hover {
+  background: var(--glass-bg-2);
+  border-color: var(--glass-border-glow);
+  transform: translateY(-2px);
+  box-shadow:
+    0 16px 54px rgba(0, 0, 0, 0.40),
+    0 0 34px var(--glow-steel),
+    var(--glass-highlight);
+}
+
+/* Override compacto: cuando una `.glass-hover` vive DENTRO de otra
+ * `.glass-*` (caso típico "Proyectos activos" → cards de proyecto), el
+ * halo acero exterior se desbordaba del Card padre. Aquí lo eliminamos
+ * por completo: dejamos solo un drop sutil + el highlight interno. El
+ * feedback de hover (lift, cambio de fondo y de borde) sigue siendo claro
+ * gracias a la regla base de `.glass-hover`, pero ahora es imposible que el
+ * resplandor salga del contenedor por construcción. Las stats top-level
+ * del dashboard (fuera de cualquier glass padre) conservan el glow grande. */
+html[data-theme="slate"] .glass .glass-hover:hover,
+html[data-theme="slate"] .glass-1 .glass-hover:hover,
+html[data-theme="slate"] .glass-2 .glass-hover:hover,
+html[data-theme="slate"] .glass-3 .glass-hover:hover,
+html[data-theme="slate"] .glass-4 .glass-hover:hover {
+  /* CERO glow exterior. Solo highlight INSET (imposible que se desborde) y sin
+   * lift. El hover se sigue notando por el cambio de fondo y borde de la regla
+   * base `.glass-hover`. */
+  transform: none !important;
+  box-shadow: var(--glass-highlight) !important;
+}
+
+/* Cinturón de seguridad: si un `.glass` (típicamente la Card padre de
+ * "Proyectos activos") contiene `.glass-hover` (las tiles interactivas),
+ * recortamos cualquier desbordamiento del hijo dentro del padre. Esto evita
+ * que un futuro efecto (sombra, pseudo-elemento, transform) genere ancho de
+ * página o scroll horizontal. Acotado por `:has()` para NO afectar a Cards
+ * sin hijos interactivos (modales con dropdowns, listas, etc.). */
+html[data-theme="slate"] .glass:has(.glass-hover) {
+  overflow: hidden;
+}
+
+/* Acciones rápidas del dashboard (Nueva entrada / Traspaso / Mis tareas /
+ * Buscar): viven sueltas, no las cubre el override de anidado. El grid usa
+ * `gap-2` (8px) y los botones tienen border-radius 12px, así que limitamos
+ * el halo a <= 4px para que no invada los botones vecinos ni desborde la
+ * pastilla redondeada del propio botón. */
+html[data-theme="slate"] .dashboard-quick-action.glass-hover:hover {
+  transform: translateY(-1px);
+  box-shadow:
+    0 1px 4px rgba(0, 0, 0, 0.28),
+    0 0 3px rgba(148, 163, 184, 0.24),
+    var(--glass-highlight);
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║          6.  BORDE ANIMADO  ·  .glow-border  (cards destacadas)          ║
+ * ║                                                                          ║
+ * ║   Destello que recorre el borde. Solo en cards destacadas para no        ║
+ * ║   saturar. Usa @property para animar el ángulo del conic-gradient.       ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+@property --slate-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+html[data-theme="slate"] .glow-border {
+  position: relative;
+}
+
+html[data-theme="slate"] .glow-border::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1.5px;
+  background: conic-gradient(
+    from var(--slate-angle),
+    transparent 0%,
+    transparent 70%,
+    rgba(148, 163, 184, 0.85) 82%,   /* acero slate-400 */
+    rgba(186, 230, 253, 0.80) 88%,   /* cian acero sky-200 */
+    transparent 96%
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+          mask-composite: exclude;
+  animation: slate-border-run 7s linear infinite;
+  pointer-events: none;
+  z-index: 2;
+}
+
+@keyframes slate-border-run {
+  to { --slate-angle: 360deg; }
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                  7.  APARICIÓN ESCALONADA  ·  .reveal                    ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="slate"] .reveal {
+  opacity: 0;
+  transform: translateY(14px);
+  animation: slate-reveal-up 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes slate-reveal-up {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                  8.  CHROME  ·  Sidebar + Header + Main                  ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+/* Sidebar transparente. El blur ahora SÍ ve el fondo global (isolation: auto). */
+html[data-theme="slate"] .app-sidebar-shell {
+  background: transparent !important;
+  background-image: none !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.07);
+  backdrop-filter: blur(14px) saturate(130%);
+  -webkit-backdrop-filter: blur(14px) saturate(130%);
+  box-shadow: none;
+}
+
+/* Sidebar expandido sobre el contenido (modo "Automático" abierto): debe
+ * tapar lo que hay detrás SIN parecer un bloque negro flotante. El truco
+ * para que NO destaque sobre el cristal grafito del shell-inner es bajar
+ * la opacidad lo justo y dejar al backdrop-filter completar la integración.
+ *
+ * Tono: grafito acero (no negro azulado) para emparentarlo con los orbes
+ * y los bordes acero del resto del tema. */
+html[data-theme="slate"] .app-sidebar-shell.sidebar-expanded-solid {
+  background: linear-gradient(
+    180deg,
+    rgba(24, 30, 40, 0.78) 0%,
+    rgba(18, 23, 30, 0.82) 100%
+  ) !important;
+  backdrop-filter: blur(32px) saturate(150%) !important;
+  -webkit-backdrop-filter: blur(32px) saturate(150%) !important;
+  border-right: 1px solid var(--glass-border) !important;
+  box-shadow:
+    var(--glass-highlight),
+    8px 0 28px rgba(0, 0, 0, 0.35),
+    0 0 60px rgba(148, 163, 184, 0.06) !important;
+  /* Sin border-radius propio: la geometría la define el shell-inner. Un
+   * radius local creaba la sensación de "panel negro flotante". */
+  border-radius: 0 !important;
+}
+
+/* Item activo del sidebar: tinte acero + glow + ribete.
+ *  Selector real (`.sidebar-nav-link-active`) que el JSX pinta junto a
+ *  utilidades Tailwind `bg-[#ffeb66]/12 text-[#ffeb66] ring-2`. Vencemos
+ *  esas utilidades con !important — sólo dentro de Slate. */
+html[data-theme="slate"] .sidebar-nav-link-active {
+  background: rgba(148, 163, 184, 0.20) !important;
+  color: var(--text) !important;
+  border-color: transparent !important;
+  box-shadow:
+    inset 0 0 0 1px var(--glass-border-glow),
+    0 0 20px rgba(148, 163, 184, 0.18) !important;
+}
+
+/* Hover de items NO activos del sidebar: tinte acero sutil. */
+html[data-theme="slate"] .sidebar-nav-link:not(.sidebar-nav-link-active):hover {
+  background: rgba(148, 163, 184, 0.10);
+  color: var(--text);
+  box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.15);
+}
+
+/* Header / topbar TRANSPARENTE en Slate.
+ *  Idéntica decisión que Cristal: el header NO debe parecer una "banda"
+ *  pegada arriba. Sin fondo, sin línea inferior, sin sombra. Sus controles
+ *  (logo, breadcrumbs, buscador, iconos) flotan directamente sobre el
+ *  cristal grafito del shell-inner. */
+html[data-theme="slate"] .app-top-header {
+  background: transparent !important;
+  background-image: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: none !important;
+  border-bottom: none !important;
+  box-shadow: none !important;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                  9.  TIPOGRAFÍA  ·  Fina (300) en títulos y stats        ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+/* Títulos grandes — fina y elegante. */
+html[data-theme="slate"] h1,
+html[data-theme="slate"] h2,
+html[data-theme="slate"] h3,
+html[data-theme="slate"] .text-2xl,
+html[data-theme="slate"] .text-3xl,
+html[data-theme="slate"] .text-4xl {
+  font-weight: 300;
+  letter-spacing: -0.01em;
+}
+
+/* Números de stats grandes (Bitácora, dashboards) — fina + colores variados. */
+html[data-theme="slate"] [data-stat-value],
+html[data-theme="slate"] .stat-value,
+html[data-theme="slate"] .text-4xl.font-bold,
+html[data-theme="slate"] .text-3xl.font-bold {
+  font-weight: 300 !important;
+  letter-spacing: -0.02em;
+}
+
+/* Botón primario — texto en negrita 600 sobre amarillo. */
+html[data-theme="slate"] button[data-variant="primary"],
+html[data-theme="slate"] .btn-primary,
+html[data-theme="slate"] [data-cta="primary"] {
+  font-weight: 600;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                10.  CTA AMARILLO  ·  Nueva entrada / acción primaria     ║
+ * ║                                                                          ║
+ * ║   El CTA primario es OPACO (no cristal) — amarillo CCMGC sólido.        ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="slate"] button[data-variant="primary"]:not(:disabled),
+html[data-theme="slate"] .btn-primary:not(:disabled),
+html[data-theme="slate"] [data-cta="primary"]:not(:disabled) {
+  background: var(--accent) !important;
+  color: #1a1500 !important;
+  border: none !important;
+  box-shadow: 0 8px 24px rgba(255, 235, 102, 0.20);
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+html[data-theme="slate"] button[data-variant="primary"]:hover:not(:disabled),
+html[data-theme="slate"] .btn-primary:hover:not(:disabled),
+html[data-theme="slate"] [data-cta="primary"]:hover:not(:disabled) {
+  background: #FFE94D !important;
+  box-shadow: 0 10px 30px rgba(255, 235, 102, 0.30);
+  transform: translateY(-1px);
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║      11.  PARCHE Tailwind arbitrary hex (azul-marino → grafito)          ║
+ * ║                                                                          ║
+ * ║   Muchos componentes usan `bg-[#0a0f1e]`, `bg-[#0d1324]/95`, etc. en    ║
+ * ║   JSX como rama "no light". En Slate esos hex aparecen como islas       ║
+ * ║   azul-oscuro que rompen la paleta grafito. Los traducimos a su        ║
+ * ║   equivalente grafito translúcido. Lista exacta (NO `[class*="bg-[#0a"]║
+ * ║   amplio) para evitar capturar clases no deseadas y NO aplicamos        ║
+ * ║   border genérico (rompía elementos sin borde original).                 ║
+ * ║                                                                          ║
+ * ║   Mapeo (paralelo al de Cristal con paleta grafito):                    ║
+ * ║     #060a14 / #060a12 / #060b18 / #020308 / #020408 → grafito profundo  ║
+ * ║     #0a0f1e / #0a1020                                → grafito medio    ║
+ * ║     #0cxxxx / #0dxxxx / #0fxxxx                      → grafito + blur   ║
+ * ║     #121a2e / #161f36 / #1a2238                      → translúcido suave║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+/* Muy oscuros (backdrops, fondos opacos profundos) → grafito deep. */
+html[data-theme="slate"] .bg-\[\#060a14\],
+html[data-theme="slate"] .bg-\[\#060a12\],
+html[data-theme="slate"] .bg-\[\#060b18\],
+html[data-theme="slate"] .bg-\[\#020308\]\/85,
+html[data-theme="slate"] .bg-\[\#020408\]\/80 {
+  background-color: rgba(12, 16, 22, 0.85) !important;
+}
+
+/* Azul-marino medio (popovers, dropdowns, chips de tags grandes) → grafito. */
+html[data-theme="slate"] .bg-\[\#0a0f1e\],
+html[data-theme="slate"] .bg-\[\#0a0f1e\]\/95,
+html[data-theme="slate"] .bg-\[\#0a0f1e\]\/88,
+html[data-theme="slate"] .bg-\[\#0a0f1e\]\/85,
+html[data-theme="slate"] .bg-\[\#0a0f1e\]\/72,
+html[data-theme="slate"] .bg-\[\#0a0f1e\]\/40,
+html[data-theme="slate"] .bg-\[\#0a0f1e\]\/15,
+html[data-theme="slate"] .bg-\[\#0a1020\] {
+  background-color: rgba(18, 23, 30, 0.88) !important;
+}
+
+/* Variantes #0cxxxx / #0dxxxx / #0fxxxx → grafito translúcido + blur. */
+html[data-theme="slate"] .bg-\[\#0c1224\]\/95,
+html[data-theme="slate"] .bg-\[\#0c1325\],
+html[data-theme="slate"] .bg-\[\#0d1324\]\/96,
+html[data-theme="slate"] .bg-\[\#0d1324\]\/92,
+html[data-theme="slate"] .bg-\[\#0d1325\],
+html[data-theme="slate"] .bg-\[\#0d1427\]\/95,
+html[data-theme="slate"] .bg-\[\#0d1428\],
+html[data-theme="slate"] .bg-\[\#0d1428\]\/95,
+html[data-theme="slate"] .bg-\[\#0f1424\],
+html[data-theme="slate"] .bg-\[\#0f1524\] {
+  background-color: rgba(18, 23, 30, 0.90) !important;
+  backdrop-filter: blur(18px) saturate(140%);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+}
+
+/* Tonos azul-marino claros (chips/tags pequeños) → translúcido suave. */
+html[data-theme="slate"] .bg-\[\#121a2e\],
+html[data-theme="slate"] .bg-\[\#161f36\],
+html[data-theme="slate"] .bg-\[\#1a2238\] {
+  background-color: rgba(255, 255, 255, 0.06) !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║               12.  DROPDOWNS  ·  Panel de menú cristal                   ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="slate"] .app-dropdown-panel {
+  background: linear-gradient(
+    155deg,
+    rgba(28, 36, 48, 0.82) 0%,
+    rgba(15, 19, 24, 0.92) 100%
+  ) !important;
+  backdrop-filter: blur(22px) saturate(140%) !important;
+  -webkit-backdrop-filter: blur(22px) saturate(140%) !important;
+  border-color: var(--glass-border) !important;
+  box-shadow:
+    var(--glass-highlight),
+    0 22px 48px rgba(0, 0, 0, 0.55),
+    0 0 32px rgba(148, 163, 184, 0.14) !important;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║         13.  KANBAN  ·  Columnas / pseudo elementos opacos              ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="slate"] .kanban-column-well {
+  background: transparent !important;
+}
+html[data-theme="slate"] .kanban-column-well::after,
+html[data-theme="slate"] .kanban-column-well::before {
+  background: transparent !important;
+  display: none !important;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║         14.  EDITOR  ·  ProseMirror / Tiptap (bloques de código)         ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="slate"] .ProseMirror pre {
+  background: rgba(12, 16, 22, 0.78) !important;     /* grafito profundo */
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║         15.  DETAIL FULL-SCREEN  ·  Nota expandida                       ║
+ * ║                                                                          ║
+ * ║   No oscurecer la nota expandida.                                        ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+/* Triplicación de clase para vencer al `bg-[#060a14]` de Tailwind que el
+ * JSX aplica con alta especificidad. Sin esto, la nota expandida se ve
+ * con fondo azul-marino corporativo en lugar de la continuidad grafito. */
+html[data-theme="slate"]
+  .detail-fullscreen-bg.detail-fullscreen-bg.detail-fullscreen-bg {
+  background: transparent !important;
+  background-image: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+html[data-theme="slate"] .detail-fullscreen-bg::before {
+  content: none;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                16.  INPUTS  ·  Fields, search, command-palette           ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="slate"] input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]),
+html[data-theme="slate"] textarea,
+html[data-theme="slate"] select {
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid var(--glass-border);
+  color: var(--text);
+}
+
+html[data-theme="slate"] input:focus,
+html[data-theme="slate"] textarea:focus,
+html[data-theme="slate"] select:focus {
+  outline: none;
+  border-color: var(--glass-border-glow);
+  box-shadow: 0 0 0 3px rgba(148, 163, 184, 0.20);
+}
+
+html[data-theme="slate"] #cmd-palette-trigger {
+  background: rgba(148, 163, 184, 0.06) !important;
+  border-color: rgba(148, 163, 184, 0.28) !important;
+  color: var(--text-dim) !important;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+html[data-theme="slate"] #cmd-palette-trigger:hover {
+  background: rgba(148, 163, 184, 0.14) !important;
+  border-color: var(--glass-border-glow) !important;
+  color: var(--text) !important;
+  box-shadow: 0 0 20px rgba(148, 163, 184, 0.20);
+}
+/* Atajo de teclado (`<kbd>Ctrl K</kbd>`) dentro del trigger: chip acero. */
+html[data-theme="slate"] #cmd-palette-trigger kbd {
+  background: rgba(148, 163, 184, 0.16) !important;
+  border-color: rgba(148, 163, 184, 0.30) !important;
+  color: var(--text);
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                  17.  SCROLLBARS  ·  Sutiles                             ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="slate"] ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.10);
+  border-radius: 6px;
+}
+html[data-theme="slate"] ::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.32);
+}
+/* Hover sobre cualquier contenedor scrollable: el thumb gana tinte acero
+ * para indicar que está activo. Mismo patrón que Cristal con magenta. */
+html[data-theme="slate"] .overflow-y-auto:hover::-webkit-scrollbar-thumb,
+html[data-theme="slate"] .overflow-x-auto:hover::-webkit-scrollbar-thumb,
+html[data-theme="slate"] .overflow-auto:hover::-webkit-scrollbar-thumb,
+html[data-theme="slate"] *:hover::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.28);
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║              18.  STATS / DASHBOARD  ·  Colores y barra de progreso      ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+/* Set de colores rotativos para "data-stat-color". */
+html[data-theme="slate"] [data-stat-color="purple"] { color: var(--stat-purple); }
+html[data-theme="slate"] [data-stat-color="blue"]   { color: var(--stat-blue); }
+html[data-theme="slate"] [data-stat-color="cyan"]   { color: var(--stat-cyan); }
+html[data-theme="slate"] [data-stat-color="green"]  { color: var(--stat-green); }
+
+/* Barra de progreso del dashboard de turno — gradiente amarillo CCMGC → acero. */
+html[data-theme="slate"] .dashboard-shift-track {
+  background: rgba(255, 255, 255, 0.06) !important;
+  border: 1px solid var(--glass-border);
+  overflow: hidden;
+}
+html[data-theme="slate"] .dashboard-shift-fill {
+  background: linear-gradient(90deg, #FFEB66 0%, #94a3b8 100%) !important;
+  box-shadow: 0 0 12px rgba(148, 163, 184, 0.40);
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                  19.  PRESENCIA / AVATAR RING                            ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="slate"] .presence-online,
+html[data-theme="slate"] [data-online="true"] .presence-dot {
+  box-shadow:
+    0 0 0 2px var(--bg-deep),
+    0 0 12px rgba(110, 231, 183, 0.55);
+}
+
+html[data-theme="slate"] .user-avatar-ring {
+  box-shadow:
+    0 0 0 2px var(--bg-deep),
+    0 0 0 3px var(--glass-border-glow);
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║      21.  BARRA STICKY DE LA BITÁCORA  ·  .glass-opaque-bitacora         ║
+ * ║                                                                          ║
+ * ║   Misma técnica que Cristal: `isolation: auto` para que el blur vea los  ║
+ * ║   orbes y no se quede como banda plana. Tono grafito.                    ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+/* Mismo tono cristal claro que `.glass-2` (densos) en vez de grafito deep
+ * casi opaco: sobre el fondo grafito + halos del tema, el deep se veía
+ * como una banda oscura que cortaba la composición. Ahora la barra
+ * "respira" y deja pasar el grafito difuminado. */
+html[data-theme="slate"] .glass-opaque-bitacora {
+  isolation: auto;
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(22px) saturate(145%);
+  -webkit-backdrop-filter: blur(22px) saturate(145%);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-highlight), 0 6px 24px rgba(0, 0, 0, 0.30);
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║      22.  MODAL  ·  dialog + backdrop + reflejo diagonal                 ║
+ * ║                                                                          ║
+ * ║   `<Modal />` añade `data-modal-surface="dark"` cuando no es light: trae ║
+ * ║   `bg-[#0a0f1e]` sólido por Tailwind. Lo cubrimos con cristal grueso     ║
+ * ║   grafito con reflejo y glow acero.                                      ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="slate"] .app-modal-dialog[data-modal-surface="dark"] {
+  position: relative;
+  background: linear-gradient(
+    155deg,
+    rgba(28, 36, 48, 0.58) 0%,
+    rgba(15, 19, 24, 0.74) 100%
+  ) !important;
+  backdrop-filter: blur(var(--glass-blur)) saturate(150%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(150%);
+  border-color: var(--glass-border) !important;
+  box-shadow:
+    0 24px 64px rgba(0, 0, 0, 0.50),
+    0 0 48px rgba(148, 163, 184, 0.14),
+    var(--glass-highlight) !important;
+  overflow: hidden;
+}
+
+/* Reflejo diagonal del modal (sutil para no blanquear el header del modal). */
+html[data-theme="slate"] .app-modal-dialog[data-modal-surface="dark"]::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.10) 0%,
+    rgba(255, 255, 255, 0.03) 18%,
+    transparent 32%
+  );
+  border-radius: inherit;
+  z-index: 0;
+}
+html[data-theme="slate"] .app-modal-dialog[data-modal-surface="dark"] > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Backdrop del modal: grafito translúcido, no negro plano. */
+html[data-theme="slate"] .modal-backdrop {
+  background: rgba(12, 16, 22, 0.55);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║      23.  MOBILE BOTTOM NAV  ·  .mobile-bottom-nav                       ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="slate"] .mobile-bottom-nav {
+  background: linear-gradient(
+    180deg,
+    rgba(18, 23, 30, 0.62) 0%,
+    rgba(12, 16, 22, 0.80) 100%
+  ) !important;
+  border-top-color: var(--glass-border) !important;
+  backdrop-filter: blur(22px) saturate(150%);
+  -webkit-backdrop-filter: blur(22px) saturate(150%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 -8px 28px rgba(0, 0, 0, 0.42);
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║      24.  TOOLTIPS  ·  [data-tooltip-content], [role="tooltip"]          ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="slate"] [data-tooltip-content],
+html[data-theme="slate"] [role="tooltip"] {
+  background: linear-gradient(
+    155deg,
+    rgba(28, 36, 48, 0.80) 0%,
+    rgba(15, 19, 24, 0.88) 100%
+  ) !important;
+  border: 1px solid var(--glass-border) !important;
+  color: var(--text) !important;
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  box-shadow: var(--glass-shadow), var(--glass-highlight);
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║      25.  TOASTER  ·  .toast-glass                                       ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="slate"] .toast-glass {
+  background: linear-gradient(
+    155deg,
+    rgba(28, 36, 48, 0.82) 0%,
+    rgba(15, 19, 24, 0.90) 100%
+  ) !important;
+  border: 1px solid var(--glass-border) !important;
+  color: var(--text) !important;
+  backdrop-filter: blur(22px) saturate(150%);
+  -webkit-backdrop-filter: blur(22px) saturate(150%);
+  box-shadow:
+    var(--glass-highlight),
+    0 18px 40px rgba(0, 0, 0, 0.50),
+    0 0 28px rgba(148, 163, 184, 0.10);
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║      26.  LOADING / SKELETON  ·  .loading-card                           ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="slate"] .loading-card {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║      27.  BANNER "SIN INCIDENCIAS ACTIVAS"                               ║
+ * ║                                                                          ║
+ * ║   Mantenemos el verde como SEMÁNTICA de OK (icono, texto), pero el      ║
+ * ║   fondo y el borde se atenúan a cristal grafito con tinte verde sutil.  ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="slate"] .dashboard-allgood-banner {
+  background: linear-gradient(
+    135deg,
+    rgba(16, 185, 129, 0.06) 0%,
+    rgba(148, 163, 184, 0.05) 100%
+  ) !important;
+  border-color: rgba(255, 255, 255, 0.10) !important;
+  backdrop-filter: blur(14px) saturate(135%);
+  -webkit-backdrop-filter: blur(14px) saturate(135%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 0 24px rgba(16, 185, 129, 0.06);
+}
+
+html[data-theme="slate"] .dashboard-allgood-icon {
+  background: rgba(16, 185, 129, 0.18) !important;
+  box-shadow: inset 0 0 0 1px rgba(16, 185, 129, 0.30);
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║      28.  BADGES SEMÁNTICOS  ·  islas de color                           ║
+ * ║                                                                          ║
+ * ║   `bitacora-palette.ts` y `<Badge />` usan tinte azul/verde/naranja/    ║
+ * ║   rojo (sky/emerald/amber…). El color es semántico y se conserva, pero  ║
+ * ║   añadimos un velo acero translúcido vía `background-image` (se pinta   ║
+ * ║   ENCIMA del background-color) para que se sientan del mundo Slate.     ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+/* Badges con tinte `bg-{color}-{400|500}/{N}` — `N` cubre los valores que
+ * la app realmente usa en `bitacora-palette.ts`, `<Badge />`, dashboard,
+ * proyectos, configuración, calendario. Sin esto, los chips se vuelven
+ * "islas" verdes/azules/amarillas vivas sobre el grafito. */
+html[data-theme="slate"] .bg-sky-400\/10,
+html[data-theme="slate"] .bg-emerald-400\/10,
+html[data-theme="slate"] .bg-orange-400\/10,
+html[data-theme="slate"] .bg-red-400\/10,
+html[data-theme="slate"] .bg-red-500\/10,
+html[data-theme="slate"] .bg-violet-400\/10,
+html[data-theme="slate"] .bg-yellow-400\/10,
+html[data-theme="slate"] .bg-green-400\/10,
+html[data-theme="slate"] .bg-blue-400\/10,
+html[data-theme="slate"] .bg-amber-400\/10,
+html[data-theme="slate"] .bg-indigo-400\/10,
+/* Variantes alpha más bajas (banners, fondos suaves) */
+html[data-theme="slate"] .bg-emerald-500\/6,
+html[data-theme="slate"] .bg-emerald-500\/8,
+html[data-theme="slate"] .bg-emerald-400\/8,
+html[data-theme="slate"] .bg-emerald-400\/\[0\.06\],
+html[data-theme="slate"] .bg-emerald-400\/5,
+html[data-theme="slate"] .bg-amber-400\/8,
+/* Variantes alpha medias-altas (chips destacados, configuración, badges) */
+html[data-theme="slate"] .bg-emerald-500\/12,
+html[data-theme="slate"] .bg-emerald-500\/15,
+html[data-theme="slate"] .bg-rose-400\/10,
+html[data-theme="slate"] .bg-rose-500\/10,
+/* Hovers de chips (rose, sky, etc.) */
+html[data-theme="slate"] .hover\:bg-rose-500\/10:hover,
+html[data-theme="slate"] .hover\:bg-rose-50:hover {
+  background-image: linear-gradient(
+    rgba(148, 163, 184, 0.05),
+    rgba(100, 116, 139, 0.04)
+  );
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║      29.  OVERLAYS OSCUROS  ·  bg-black/N, bg-slate-900/N, bg-zinc-*    ║
+ * ║                                                                          ║
+ * ║   Estos tonos negros sólidos aparecen en modales secundarios, fades,    ║
+ * ║   hovers y dividers. Traducimos a grafito translúcido coherente.         ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+/* Backdrops opacos profundos → grafito translúcido con blur. */
+html[data-theme="slate"] .bg-slate-900\/45,
+html[data-theme="slate"] .bg-black\/75,
+html[data-theme="slate"] .bg-black\/65,
+html[data-theme="slate"] .bg-black\/60,
+html[data-theme="slate"] .bg-black\/55,
+html[data-theme="slate"] .bg-black\/45,
+html[data-theme="slate"] .bg-black\/40,
+html[data-theme="slate"] .bg-black\/35 {
+  background-color: rgba(12, 16, 22, 0.55) !important;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+/* Tonos sutiles (hovers, dividers, fades) → grafito MUY translúcido */
+html[data-theme="slate"] .bg-black\/30,
+html[data-theme="slate"] .bg-black\/25,
+html[data-theme="slate"] .bg-black\/20,
+html[data-theme="slate"] .bg-black\/15,
+html[data-theme="slate"] .bg-black\/10 {
+  background-color: rgba(18, 23, 30, 0.28) !important;
+}
+
+/* Hovers finísimos `bg-black/[0.04]` → tinte blanco translúcido. */
+html[data-theme="slate"] .bg-black\/\[0\.05\],
+html[data-theme="slate"] .bg-black\/\[0\.04\],
+html[data-theme="slate"] .bg-black\/\[0\.06\] {
+  background-color: rgba(255, 255, 255, 0.04) !important;
+}
+
+/* Botones sólidos azul-marino → grafito deep que conserva contraste. */
+html[data-theme="slate"] .bg-zinc-900,
+html[data-theme="slate"] .bg-zinc-800,
+html[data-theme="slate"] .hover\:bg-zinc-800:hover {
+  background-color: rgba(18, 23, 30, 0.92) !important;
+  border-color: rgba(255, 255, 255, 0.18) !important;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║      30.  TEXTO INVERSO  ·  text-[#0a0f1e] sobre chips amarillos         ║
+ * ║                                                                          ║
+ * ║   El amarillo se sigue usando como CTA (identidad CCMGC), y el texto    ║
+ * ║   inverso debe seguir siendo oscuro legible. Lo enraizamos al grafito.  ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="slate"] .text-\[\#0a0f1e\] {
+  color: rgba(15, 19, 24, 1) !important;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║      31.  AVATAR  ·  ring acero sutil + dot de presencia                 ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+/* Foto de avatar: ring acero finísimo inset para "atarlo" al tema sin
+ * tapar la foto. Equivalente al ring magenta de Cristal. */
+html[data-theme="slate"] img.rounded-full.object-cover {
+  box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.30);
+}
+
+/* Avatar dot de presencia: el componente pinta `border-[#0a0f1e]` (azul
+ * marino corporativo). En Slate lo enraizamos al grafito. */
+html[data-theme="slate"] .border-\[\#0a0f1e\] {
+  border-color: rgba(15, 19, 24, 0.95) !important;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║      32.  AUTO-STAGE-IN  ·  Entrada del lienzo dashboard al primer paint ║
+ * ║                                                                          ║
+ * ║   Réplica de `glass-stage-in` de Cristal: fade + lift sutil al cargar.   ║
+ * ║   Sólo afecta a main/section dentro del shell (sin stagger anidado,      ║
+ * ║   que genera ruido en grids de bitácora/kanban).                         ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes slate-stage-in {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  html[data-theme="slate"] .app-dashboard-root > main,
+  html[data-theme="slate"] .app-dashboard-root > section {
+    animation: slate-stage-in 360ms cubic-bezier(0.2, 0.6, 0.2, 1) both;
+  }
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║      33.  SHINE DIAGONAL EN HOVER  ·  cards principales                  ║
+ * ║                                                                          ║
+ * ║   Una banda blanca translúcida atraviesa la card en diagonal cuando el  ║
+ * ║   cursor entra. Inspirado en el shimmer de los productos Apple.         ║
+ * ║   Aplicado a `.glass-hover` y `.glass-surface`.                          ║
+ * ║                                                                          ║
+ * ║   Nota: usa `::after` (el `::before` está reservado al reflejo).         ║
+ * ║   El padre necesita `overflow: hidden` para clipear la banda.            ║
+ * ║   Tono blanco MUY translúcido (0.10) — un punto más sutil que el 0.14   ║
+ * ║   de Cristal para mantener el tono grafito sobrio.                       ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="slate"] .glass-hover {
+  overflow: hidden;
+}
+
+html[data-theme="slate"] .glass-hover::after,
+html[data-theme="slate"] .glass-surface::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    115deg,
+    transparent 30%,
+    rgba(255, 255, 255, 0.10) 50%,
+    transparent 70%
+  );
+  transform: translateX(-110%);
+  transition: transform 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+  border-radius: inherit;
+  /* z-index 0: por encima del reflejo ::before (que también está en 0
+   * pero va antes en el árbol) y por DEBAJO del contenido (que se
+   * eleva a z-index 1 con la regla `> *`). */
+  z-index: 0;
+}
+
+html[data-theme="slate"] .glass-hover > * {
+  position: relative;
+  z-index: 1;
+}
+
+html[data-theme="slate"] .glass-hover:hover::after,
+html[data-theme="slate"] .glass-surface:hover::after {
+  transform: translateX(110%);
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                  20.  ACCESIBILIDAD  ·  prefers-reduced-motion           ║
+ * ║                                                                          ║
+ * ║   Desactiva orbes, borde animado, reveal, stage-in y shine. Mantiene    ║
+ * ║   transiciones de color/border (hover usable) pero quita movimiento.    ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-theme="slate"] .slate-bg .orb {
+    animation: none !important;
+  }
+  html[data-theme="slate"] .glow-border::after {
+    animation: none !important;
+  }
+  html[data-theme="slate"] .reveal {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+  html[data-theme="slate"] .app-dashboard-root > main,
+  html[data-theme="slate"] .app-dashboard-root > section {
+    animation: none !important;
+  }
+  html[data-theme="slate"] .glass-hover::after,
+  html[data-theme="slate"] .glass-surface::after {
+    display: none !important;
+  }
+  html[data-theme="slate"] .glass-surface,
+  html[data-theme="slate"] .glass,
+  html[data-theme="slate"] .glass-1,
+  html[data-theme="slate"] .glass-2,
+  html[data-theme="slate"] .glass-3,
+  html[data-theme="slate"] .glass-4 {
+    transition: none !important;
+  }
+}

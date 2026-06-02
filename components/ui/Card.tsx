@@ -21,7 +21,7 @@ export function Card({ className, hover, light, children, ...props }: CardProps)
       className={cn(
         "rounded-xl p-4",
         L
-          ? "border border-black/[0.07] bg-white/82 backdrop-blur-md shadow-[var(--lt-shadow-glass)]"
+          ? "glass"
           : "glass",
         hover &&
           (L

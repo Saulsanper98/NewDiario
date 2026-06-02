@@ -116,6 +116,49 @@
   --transition-ui: var(--duration-normal) ease;
 }
 
+/* ── Theme-driven surfaces (refactor — capa base) ──────────────────────────
+   Estas variables son la CAPA THEME-DRIVEN del sistema. Hoy contienen
+   exactamente los valores hardcodeados del tema base (los que vivían
+   inline en `body`, `.glass` y `.glass-1`). El refactor las introduce
+   con valor IDÉNTICO al actual — ningún tema cambia de aspecto.
+
+   En el futuro, cada tema puede redefinir cualquiera de estas variables
+   en su archivo `theme-*.css` y cambiar el aspecto general sin tocar JS
+   ni componentes.
+
+   `--card-blur` y `--card-shadow` referencian variables existentes
+   (`--blur-glass`, `--glass-edge`, `--shadow-z2`) para que no puedan
+   divergir si en el futuro alguien retoca los tokens base.
+
+   Reglas de uso:
+   - Para alterar el lienzo de un tema, redefine `--app-canvas-color`
+     y/o `--app-canvas-image` bajo `html[data-theme="X"]`.
+   - Para alterar las cards `.glass` / `.glass-1` de un tema, redefine
+     `--card-bg`, `--card-blur`, `--card-border`, `--card-shadow` o
+     `--card-isolation` bajo `html[data-theme="X"]`.
+   - NO añadas overrides aquí: este bloque define únicamente los
+     valores BASE (= dark/aurora). */
+:root {
+  /* Lienzo de la app — equivalente al `body` base */
+  --app-canvas-color: #060a14;
+  --app-canvas-image:
+    radial-gradient(ellipse 120% 80% at 50% -20%, rgba(74, 158, 255, 0.07), transparent 55%),
+    radial-gradient(ellipse 80% 50% at 100% 50%, rgba(255, 235, 102, 0.05), transparent 45%),
+    linear-gradient(180deg, #0a0f1e 0%, #060a14 100%);
+
+  /* Superficie de cristal — equivalente al `.glass` / `.glass-1` base */
+  --card-bg: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.09) 0%,
+    rgba(255, 255, 255, 0.04) 45%,
+    rgba(255, 255, 255, 0.025) 100%
+  );
+  --card-blur: var(--blur-glass);
+  --card-border: 1px solid rgba(255, 255, 255, 0.11);
+  --card-shadow: var(--glass-edge), var(--shadow-z2);
+  --card-isolation: isolate;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .bg-orb:not(.bg-orb--js-motion),
   .bg-orb-1:not(.bg-orb--js-motion),
@@ -191,12 +234,15 @@ html {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Lienzo de la app (theme-driven).
+   Valores por defecto = los que vivían inline aquí antes del refactor
+   (definidos en `:root` arriba como `--app-canvas-*`). Los temas
+   light/glass/slate siguen sobreescribiendo esta regla por mayor
+   especificidad (`html[data-theme="X"] body`) o por `!important`.
+   Aurora y dark heredan estos valores tal cual. */
 body {
-  background-color: #060a14;
-  background-image:
-    radial-gradient(ellipse 120% 80% at 50% -20%, rgba(74, 158, 255, 0.07), transparent 55%),
-    radial-gradient(ellipse 80% 50% at 100% 50%, rgba(255, 235, 102, 0.05), transparent 45%),
-    linear-gradient(180deg, #0a0f1e 0%, #060a14 100%);
+  background-color: var(--app-canvas-color);
+  background-image: var(--app-canvas-image);
   color: #f0f4ff;
   font-family: "Sora", system-ui, sans-serif;
   min-height: 100vh;
@@ -206,22 +252,23 @@ body {
    Todas las variantes usan position: relative (stacking + ::after textura).
    No combines solo `glass` + utilidades Tailwind `fixed`/`absolute`/`sticky` en
    el mismo nodo: en cascada este relative gana salvo `!fixed` / style inline. */
+/* Superficie de cristal base (theme-driven).
+   Valores por defecto = los que estaban inline aquí antes del refactor
+   (definidos en `:root` arriba como `--card-*`). Los temas light/glass/
+   slate sobreescriben estas mismas propiedades por especificidad mayor
+   (`html[data-theme="X"] .glass{,-1}`). En esta fase mantenemos
+   `--card-isolation: isolate` para preservar comportamiento idéntico
+   al actual; tocar ese valor es competencia de la fase de rediseño
+   de Glass (no este refactor). */
 .glass,
 .glass-1 {
-  isolation: isolate;
+  isolation: var(--card-isolation);
   position: relative;
-  background: linear-gradient(
-    145deg,
-    rgba(255, 255, 255, 0.09) 0%,
-    rgba(255, 255, 255, 0.04) 45%,
-    rgba(255, 255, 255, 0.025) 100%
-  );
-  backdrop-filter: blur(var(--blur-glass));
-  -webkit-backdrop-filter: blur(var(--blur-glass));
-  border: 1px solid rgba(255, 255, 255, 0.11);
-  box-shadow:
-    var(--glass-edge),
-    var(--shadow-z2);
+  background: var(--card-bg);
+  backdrop-filter: blur(var(--card-blur));
+  -webkit-backdrop-filter: blur(var(--card-blur));
+  border: var(--card-border);
+  box-shadow: var(--card-shadow);
 }
 
 /* Toolbar proyecto: sin borde superior (evita doble línea con .app-top-header). */
@@ -331,6 +378,40 @@ html[data-aurora] .app-sidebar-shell {
   -webkit-backdrop-filter: blur(14px) saturate(1.06) !important;
 }
 
+/*
+ * Modo «Automático» (overlay) expandido: el sidebar tapa parcialmente las migas
+ * de pan y el contenido porque el panel translúcido se monta encima del rail
+ * (w-16). Empujamos `<main>` 11rem (w-60 − w-16) para que las migas de pan,
+ * la barra de búsqueda y todo lo que vive dentro acompañen al panel cuando se
+ * expande sobre el contenido.
+ *
+ * Aplicamos el empuje por TRES vías redundantes, para que funcione aunque
+ * alguna falle (HMR roto, browser sin `:has()`, JS no ejecutado, ...):
+ *
+ *   1) Regla CSS pura con `:has()` que detecta la clase `.sidebar-expanded-solid`
+ *      sobre el `<aside>` — no necesita ejecutar JS, solo cargar la hoja.
+ *   2) Atributo `data-cc-sidebar-overlay="expanded"` sobre `<html>`, puesto
+ *      por `Sidebar.tsx`. Útil si el navegador no soporta `:has()`.
+ *   3) Estilo inline directo sobre `#main-content`, también desde Sidebar.tsx.
+ *
+ * Con cualquiera de las tres activa, las migas se desplazan. La transición
+ * en `#main-content` deja el cambio suave (200ms ease-out, sincronizado con
+ * la animación de ancho del propio sidebar).
+ */
+#main-content {
+  transition: padding-left 200ms ease-out;
+}
+.app-dashboard-root:has(> .app-sidebar-shell.sidebar-expanded-solid) > #main-content,
+html[data-cc-sidebar-overlay="expanded"] #main-content {
+  padding-left: 11rem !important;
+}
+@media print {
+  #main-content {
+    padding-left: 0 !important;
+    transition: none !important;
+  }
+}
+
 .app-sidebar-shell::after {
   content: "";
   position: absolute;
@@ -398,6 +479,39 @@ html[data-aurora] .app-sidebar-shell {
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.16),
     0 8px 36px rgba(0, 0, 0, 0.42);
+}
+
+/* ────────────────────────────────────────────────────────────────────────
+ * Containment del glow EXCLUSIVO para Aurora (`html[data-aurora]`).
+ *
+ * La regla base `.glass-hover:hover` (líneas 472–482) usa un drop grande
+ * `0 8px 36px` que en cards anidadas (Proyectos activos → tiles, dashboard
+ * quick actions) se desborda visualmente del contenedor. Para Aurora —y SÓLO
+ * para Aurora— eliminamos ese glow exterior en los dos casos problemáticos.
+ *
+ * Los demás temas NO se ven afectados:
+ *   • Cristal (`html[data-theme="glass"]`) y Slate (`html[data-theme="slate"]`)
+ *     definen sus propios overrides en `theme-glass.css` / `theme-slate.css`.
+ *   • Light (`html[data-theme="light"]`) define su propio `.glass-hover:hover`
+ *     en `theme-light.css`.
+ *   • Dark conserva el comportamiento original de la regla base.
+ *
+ * Selector `html[data-aurora]` por coherencia con el resto del archivo
+ * (líneas 351, 665), que ya usa la forma sin valor del atributo.
+ * ──────────────────────────────────────────────────────────────────────── */
+html[data-aurora] .glass .glass-hover:hover,
+html[data-aurora] .glass-1 .glass-hover:hover,
+html[data-aurora] .glass-2 .glass-hover:hover,
+html[data-aurora] .glass-3 .glass-hover:hover,
+html[data-aurora] .glass-4 .glass-hover:hover {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14) !important;
+  transform: none !important;
+}
+
+html[data-aurora] .dashboard-quick-action.glass-hover:hover {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.16),
+    0 1px 4px rgba(0, 0, 0, 0.30);
 }
 
 /* Motion tokens (reducir “salto” entre vistas) */

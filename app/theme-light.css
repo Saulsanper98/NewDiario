@@ -75,19 +75,18 @@ html[data-theme="light"] {
   --shell-canvas-bottom: #dedee2;
   --shadow-elevated: 0 12px 36px rgba(15, 23, 42, 0.07);
   --border-subtle: rgba(15, 23, 42, 0.09);
+
+  /* `globals.css` define `.glass { isolation: var(--card-isolation); }` con
+   * default `isolate`. En claro, `isolate` corta el efecto del fondo pastel
+   * a través del cristal (los gradientes del body no se ven bajo la card).
+   * Lo equivalente que hacen Cristal y Slate en su sitio: `auto`. */
+  --card-isolation: auto;
 }
 
-html[data-theme="light"] body {
-  background-color: #e2e2ea !important;
-  /* Malla suave (azul / violeta / acento) visible bajo el blur — equivalente «claro» a los orbes Aurora */
-  background-image:
-    radial-gradient(ellipse 120% 75% at 8% -5%, rgba(59, 130, 246, 0.16), transparent 55%),
-    radial-gradient(ellipse 95% 65% at 102% 8%, rgba(139, 92, 246, 0.12), transparent 50%),
-    radial-gradient(ellipse 85% 50% at 50% 108%, rgba(var(--lt-yellow-rgb), 0.1), transparent 58%),
-    linear-gradient(188deg, #ebebf0 0%, #e4e4ec 48%, #dedee6 100%) !important;
-  background-attachment: fixed;
-  color: #18181b !important;
-}
+/* `html[data-theme="light"] body` se define más abajo en una única regla
+ * (Fase 1 — Light premium glass). Anteriormente había DOS reglas body en
+ * este archivo (aquí y ~1555), la segunda machacaba parcialmente a la
+ * primera y la combinación era plana. Ahora vive en un solo sitio. */
 
 html[data-theme="light"] #main-content {
   background-color: transparent;
@@ -1551,13 +1550,31 @@ html[data-theme="light"] textarea {
   border-color: rgba(15, 23, 42, 0.18);
 }
 
-/* Base premium light: fondo frío suave y separación shell/main */
+/* ────────────────────────────────────────────────────────────────────────
+ * FASE 1 — Light premium glass: fondo pastel frío con orbes ESTÁTICOS
+ *
+ * Hermano luminoso de Cristal: lavanda + cielo + menta sobre lienzo blanco
+ * azulado. Sin componente JS — todo en gradientes radiales del body. Con
+ * `background-attachment: fixed` los orbes permanecen al hacer scroll
+ * (mismo efecto que Cristal/Slate sin renderizar nodos extra).
+ *
+ * Alphas un punto más altas que en Cristal porque sobre claro los pastel
+ * se perciben menos. Esta regla es la ÚNICA `html[data-theme="light"] body`
+ * del archivo (antes había un duplicado al principio que se cargaba).
+ * ──────────────────────────────────────────────────────────────────────── */
 html[data-theme="light"] body {
-  background-color: #f5f7fa !important;
+  background-color: #eef1f7 !important;
   background-image:
-    radial-gradient(ellipse 120% 78% at 8% -6%, rgba(59, 130, 246, 0.12), transparent 56%),
-    radial-gradient(ellipse 90% 62% at 100% 10%, rgba(139, 92, 246, 0.08), transparent 52%),
-    linear-gradient(180deg, #f6f8fb 0%, #f2f5f9 100%) !important;
+    /* Lavanda — esquina superior izquierda */
+    radial-gradient(ellipse 70% 55% at 12% 8%, rgba(196, 181, 253, 0.45), transparent 55%),
+    /* Azul cielo — esquina superior derecha */
+    radial-gradient(ellipse 80% 60% at 90% 12%, rgba(186, 230, 253, 0.40), transparent 55%),
+    /* Menta — abajo centro */
+    radial-gradient(ellipse 60% 50% at 50% 100%, rgba(187, 247, 208, 0.32), transparent 58%),
+    /* Lienzo base muy suave */
+    linear-gradient(180deg, #f4f6fb 0%, #eef1f7 100%) !important;
+  background-attachment: fixed;
+  color: #1a1f2e !important;
 }
 
 html[data-theme="light"] .app-sidebar-shell {

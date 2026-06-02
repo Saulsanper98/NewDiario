@@ -8,6 +8,7 @@ import {
   formatUploadMaxMb,
   resolveUploadExt,
 } from "@/lib/upload-file";
+import type { SessionUser } from "@/lib/auth/types";
 
 const UPLOAD_DIR =
   process.env.UPLOAD_DIR ?? path.join(/*turbopackIgnore: true*/ process.cwd(), "uploads");
@@ -51,7 +52,18 @@ export async function POST(req: NextRequest) {
 
   await mkdir(UPLOAD_DIR, { recursive: true });
 
-  const filename = `${randomUUID()}.${ext}`;
+  /* Filename con prefijo del uploaderId.
+   *
+   * Formato: `u_<userId>__<uuid>.<ext>` (separador `__` para distinguirlo
+   * de uploads antiguos UUID puro y de archivos de perfil sin prefijo).
+   *
+   * Esto permite al endpoint /api/media/[...path] reconocer al
+   * propietario del archivo SIN consultar BD y autorizarlo a leerlo,
+   * incluso antes de que el HTML que lo embebe esté guardado en
+   * cualquier tabla referenciada (el caso típico: el usuario sube una
+   * imagen al RichEditor y aún no ha pulsado "Guardar"). */
+  const uploaderId = (session.user as SessionUser).id;
+  const filename = `u_${uploaderId}__${randomUUID()}.${ext}`;
   const filepath = path.join(UPLOAD_DIR, filename);
   const bytes = await file.arrayBuffer();
   await writeFile(filepath, Buffer.from(bytes));

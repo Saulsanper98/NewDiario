@@ -5,12 +5,16 @@ export const THEME_STORAGE_KEY = "cc-ops-theme";
  *   - `aurora`: oscuro base con orbes animados (predeterminado).
  *   - `light` : claro (overrides en `app/theme-light.css`).
  *   - `dark`  : oscuro plano sin orbes.
- *   - `glass` : cristal esmerilado + parallax (overrides en `app/theme-glass.css`,
- *               fondo propio en `<GlassBackground />`). Independiente de Aurora.
+ *   - `glass` : cristal esmerilado violeta + parallax (overrides en
+ *               `app/theme-glass.css`, fondo propio en `<GlassBackground />`).
+ *   - `slate` : cristal neutro grafito sin marco — pensado para uso diario
+ *               (overrides en `app/theme-slate.css`, fondo propio en
+ *               `<SlateBackground />`). Misma arquitectura que Glass pero
+ *               paleta totalmente desaturada (slate/zinc) y sin glow.
  */
-export type ThemeMode = "dark" | "light" | "aurora" | "glass";
+export type ThemeMode = "dark" | "light" | "aurora" | "glass" | "slate";
 
-export const THEME_MODES: ThemeMode[] = ["aurora", "light", "dark", "glass"];
+export const THEME_MODES: ThemeMode[] = ["aurora", "light", "dark", "glass", "slate"];
 
 export function getStoredTheme(): ThemeMode {
   if (typeof window === "undefined") return "aurora";
@@ -28,6 +32,8 @@ export function getStoredTheme(): ThemeMode {
  *   - `data-theme="light"` para el tema claro.
  *   - `data-theme="glass"` para el tema Cristal (sin `data-aurora` — los orbes
  *     los gestiona `<GlassBackground />`, no se reusan los de Aurora).
+ *   - `data-theme="slate"` para el tema Slate (fondo grafito; orbes
+ *     gestionados por `<SlateBackground />`).
  *   - `data-aurora="true"` para Aurora.
  *   - Sin atributos para el oscuro plano (estado base del CSS).
  */
@@ -41,6 +47,11 @@ export function applyThemeToDocument(mode: ThemeMode): void {
   }
   if (mode === "glass") {
     root.dataset.theme = "glass";
+    root.removeAttribute("data-aurora");
+    return;
+  }
+  if (mode === "slate") {
+    root.dataset.theme = "slate";
     root.removeAttribute("data-aurora");
     return;
   }
