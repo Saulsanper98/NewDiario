@@ -974,7 +974,12 @@ function MessageAttachments({
               className={cn(
                 "flex items-center gap-2.5 rounded-lg border px-2.5 py-2 text-xs transition-colors",
                 isMine
-                  ? "border-white/15 bg-black/15 text-white"
+                  ? isLight
+                    // Burbuja propia light: la tarjeta de adjunto vive
+                    // sobre fondo ámbar, así que usamos un tono más
+                    // claro de ámbar + texto oscuro legible.
+                    ? "border-amber-300/85 bg-amber-50/80 text-amber-950"
+                    : "border-white/15 bg-black/15 text-white"
                   : isLight
                     ? "border-zinc-200 bg-zinc-50 text-zinc-800"
                     : "border-white/10 bg-white/[0.04] text-white"
@@ -987,7 +992,9 @@ function MessageAttachments({
                 className={cn(
                   "flex min-w-0 flex-1 items-center gap-2.5 rounded -mx-1 px-1 -my-1 py-1 transition-colors",
                   isMine
-                    ? "hover:bg-black/15"
+                    ? isLight
+                      ? "hover:bg-amber-100/70"
+                      : "hover:bg-black/15"
                     : isLight
                       ? "hover:bg-zinc-100"
                       : "hover:bg-white/[0.04]"
@@ -998,7 +1005,9 @@ function MessageAttachments({
                   className={cn(
                     "flex h-8 w-8 shrink-0 items-center justify-center rounded",
                     isMine
-                      ? "bg-white/15"
+                      ? isLight
+                        ? "bg-white shadow-sm shadow-amber-900/10"
+                        : "bg-white/15"
                       : isLight
                         ? "bg-white"
                         : "bg-white/[0.08]"
@@ -1024,7 +1033,9 @@ function MessageAttachments({
                 className={cn(
                   "flex h-7 w-7 shrink-0 items-center justify-center rounded transition-colors",
                   isMine
-                    ? "text-white/85 hover:bg-white/15 hover:text-white"
+                    ? isLight
+                      ? "text-amber-800/85 hover:bg-amber-200/70 hover:text-amber-950"
+                      : "text-white/85 hover:bg-white/15 hover:text-white"
                     : isLight
                       ? "text-zinc-500 hover:bg-zinc-200 hover:text-zinc-800"
                       : "text-white/70 hover:bg-white/10 hover:text-white"
@@ -1045,7 +1056,9 @@ function MessageAttachments({
               className={cn(
                 "flex h-8 w-8 shrink-0 items-center justify-center rounded",
                 isMine
-                  ? "bg-white/15 text-white"
+                  ? isLight
+                    ? "bg-white text-amber-800 shadow-sm shadow-amber-900/10"
+                    : "bg-white/15 text-white"
                   : isLight
                     ? "bg-white text-zinc-700"
                     : "bg-white/[0.07] text-white/80"
@@ -1057,7 +1070,13 @@ function MessageAttachments({
               <span
                 className={cn(
                   "block text-[10px] uppercase tracking-wide opacity-70",
-                  isMine ? "text-white/80" : isLight ? "text-zinc-500" : "text-white/55"
+                  isMine
+                    ? isLight
+                      ? "text-amber-800/85"
+                      : "text-white/80"
+                    : isLight
+                      ? "text-zinc-500"
+                      : "text-white/55"
                 )}
               >
                 {attachmentKindLabel(a.kind)}
@@ -1071,7 +1090,9 @@ function MessageAttachments({
         const className = cn(
           "flex items-center gap-2.5 rounded-lg border px-2.5 py-2 text-xs transition-colors",
           isMine
-            ? "border-white/15 bg-black/15 text-white hover:bg-black/25"
+            ? isLight
+              ? "border-amber-300/85 bg-amber-50/80 text-amber-950 hover:bg-amber-100/70"
+              : "border-white/15 bg-black/15 text-white hover:bg-black/25"
             : isLight
               ? "border-zinc-200 bg-zinc-50 text-zinc-800 hover:bg-zinc-100"
               : "border-white/10 bg-white/[0.04] text-white hover:bg-white/[0.08]"
@@ -1199,7 +1220,12 @@ function MessageQuoteBlock({
       className={cn(
         "mb-1.5 flex w-full max-w-full items-start gap-2 rounded-md border-l-2 px-2 py-1 text-left text-[11px] transition-colors",
         isMine
-          ? "border-[#ffeb66]/70 bg-black/15 hover:bg-black/25"
+          ? isLight
+            // En burbuja propia light la burbuja es ámbar → el `bg-black/15`
+            // anterior generaba un cuadrado oscuro feo. Ahora usamos
+            // ámbar más profundo dentro del ámbar de la burbuja.
+            ? "border-amber-500/80 bg-amber-50/85 hover:bg-amber-100/75"
+            : "border-[#ffeb66]/70 bg-black/15 hover:bg-black/25"
           : isLight
             ? "border-zinc-300 bg-zinc-50 hover:bg-zinc-100"
             : "border-white/25 bg-white/5 hover:bg-white/10"
@@ -1211,7 +1237,9 @@ function MessageQuoteBlock({
           className={cn(
             "block truncate font-semibold",
             isMine
-              ? "text-white/90"
+              ? isLight
+                ? "text-amber-950"
+                : "text-white/90"
               : isLight
                 ? "text-zinc-700"
                 : "text-white/85"
@@ -1224,7 +1252,9 @@ function MessageQuoteBlock({
             "block truncate",
             snippet.isDeleted && "italic",
             isMine
-              ? "text-white/70"
+              ? isLight
+                ? "text-amber-800/85"
+                : "text-white/70"
               : isLight
                 ? "text-zinc-500"
                 : "text-white/55"
@@ -1462,6 +1492,13 @@ function formatListTime(iso: string) {
 export function ChatView() {
   const { theme } = useTheme();
   const L = theme === "light";
+  // El chat usaba la misma rama para Aurora, Cristal, Slate y Dark. Esto se
+  // notaba en Cristal (caja navy opaca sobre fondo violeta cristal) y un
+  // poco en Slate (tonos navy en lugar de slate-acero). Estas dos
+  // constantes permiten ramificar los estilos donde toca, manteniendo
+  // intactos Aurora y Dark (que comparten la rama "no isGlass && no isSlate").
+  const isGlass = theme === "glass";
+  const isSlate = theme === "slate";
   const router = useRouter();
   const searchParams = useSearchParams();
   const avatarEffect = useAvatarFrameEffect();
@@ -3275,16 +3312,29 @@ export function ChatView() {
     const bx = c.isGroup ? 50 : c.peer?.bannerFocusX ?? 50;
     const by = c.isGroup ? 50 : c.peer?.bannerFocusY ?? 50;
     const displayName = conversationDisplayName(c);
+    // Color base del overlay del banner por tema. Antes usaba navy
+    // hardcodeado (`rgba(10,15,30,X)`) para los 4 temas oscuros, lo que
+    // en Cristal generaba un parche navy sobre el fondo violeta y en
+    // Slate un tono más azul de la cuenta.
+    const overlayRgb = isGlass
+      ? "28, 13, 49" // violeta deep del tema Cristal
+      : isSlate
+        ? "15, 23, 42" // slate-900
+        : "10, 15, 30"; // navy (Aurora / Dark)
     const itemBgStyle: React.CSSProperties | undefined = banner
       ? L
+        // Overlay reforzado para tema claro: el banner del peer compite con
+        // el contenido (nombre + último mensaje) si se ve demasiado. Subimos
+        // a 96%-90% para inactivos (antes 92%-82%) y mantenemos algo más
+        // permeable en activo para no perder la firma visual.
         ? {
-            backgroundImage: `linear-gradient(90deg, rgba(255,255,255,${active ? 0.85 : 0.92}) 0%, rgba(255,255,255,${active ? 0.65 : 0.82}) 100%), url(${banner})`,
+            backgroundImage: `linear-gradient(90deg, rgba(255,255,255,${active ? 0.9 : 0.96}) 0%, rgba(255,255,255,${active ? 0.78 : 0.9}) 100%), url(${banner})`,
             backgroundRepeat: "no-repeat, no-repeat",
             backgroundSize: "cover, cover",
             backgroundPosition: `center, ${bx}% ${by}%`,
           }
         : {
-            backgroundImage: `linear-gradient(90deg, rgba(10,15,30,${active ? 0.78 : 0.88}) 0%, rgba(10,15,30,${active ? 0.55 : 0.78}) 60%, rgba(10,15,30,${active ? 0.78 : 0.92}) 100%), url(${banner})`,
+            backgroundImage: `linear-gradient(90deg, rgba(${overlayRgb},${active ? 0.78 : 0.88}) 0%, rgba(${overlayRgb},${active ? 0.55 : 0.78}) 60%, rgba(${overlayRgb},${active ? 0.78 : 0.92}) 100%), url(${banner})`,
             backgroundRepeat: "no-repeat, no-repeat",
             backgroundSize: "cover, cover",
             backgroundPosition: `center, ${bx}% ${by}%`,
@@ -3566,14 +3616,26 @@ export function ChatView() {
     "flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border shadow-xl backdrop-blur-xl",
     L
       ? "border-zinc-200/90 bg-white/90 shadow-zinc-200/30"
-      : "border-white/10 bg-[#0a0f1e]/75 shadow-black/40"
+      : isGlass
+        // Cristal: violeta deep translúcido del mundo Glass, blur fuerte
+        // para que los orbes detrás se difuminen y un ring inset con el
+        // reflejo blanco que firma el resto de cards `.glass-surface`.
+        ? "border-white/12 bg-[rgba(28,13,49,0.5)] ring-1 ring-inset ring-white/[0.06] shadow-[0_0_34px_rgba(180,80,240,0.15)]"
+        : isSlate
+          // Slate: tonos acero del tema, no navy.
+          ? "border-slate-700/45 bg-slate-900/65 shadow-black/35"
+          : "border-white/10 bg-[#0a0f1e]/75 shadow-black/40"
   );
 
   const threadPanelClass = cn(
     "flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border shadow-xl backdrop-blur-xl",
     L
       ? "border-zinc-200/90 bg-white/85 shadow-zinc-200/25"
-      : "border-white/10 bg-[#080d18]/80 shadow-black/35"
+      : isGlass
+        ? "border-white/12 bg-[rgba(20,10,40,0.5)] ring-1 ring-inset ring-white/[0.06] shadow-[0_0_34px_rgba(180,80,240,0.15)]"
+        : isSlate
+          ? "border-slate-700/45 bg-slate-950/70 shadow-black/30"
+          : "border-white/10 bg-[#080d18]/80 shadow-black/35"
   );
 
   return (
@@ -4159,6 +4221,13 @@ export function ChatView() {
               // Gradient que termina en el color de fondo del panel del hilo
               // para que el banner se funda con el area de mensajes sin dejar
               // una linea clara en el borde inferior.
+              // Overlay del header del thread por tema. Antes navy
+              // hardcodeado para los 4 temas oscuros.
+              const headerOverlayRgb = isGlass
+                ? "20, 10, 40" // violeta cristal más oscuro para fundir con el thread
+                : isSlate
+                  ? "10, 15, 27" // slate-950
+                  : "8, 13, 24"; // navy (Aurora / Dark)
               const headerBgStyle: React.CSSProperties | undefined = banner
                 ? L
                   ? {
@@ -4168,7 +4237,7 @@ export function ChatView() {
                       backgroundPosition: `center, ${bx}% ${by}%`,
                     }
                   : {
-                      backgroundImage: `linear-gradient(180deg, rgba(8,13,24,0.65) 0%, rgba(8,13,24,0.82) 60%, rgba(8,13,24,0.96) 92%, rgba(8,13,24,1) 100%), url(${banner})`,
+                      backgroundImage: `linear-gradient(180deg, rgba(${headerOverlayRgb},0.65) 0%, rgba(${headerOverlayRgb},0.82) 60%, rgba(${headerOverlayRgb},0.96) 92%, rgba(${headerOverlayRgb},1) 100%), url(${banner})`,
                       backgroundRepeat: "no-repeat, no-repeat",
                       backgroundSize: "cover, cover",
                       backgroundPosition: `center, ${bx}% ${by}%`,
@@ -4180,12 +4249,21 @@ export function ChatView() {
                   className={cn(
                     "relative flex shrink-0 items-center gap-3 px-4 py-3.5 backdrop-blur-md",
                     // Solo dibujamos border-b cuando NO hay banner: el degradado
-                    // del banner ya se funde con el resto del panel.
+                    // del banner ya se funde con el resto del panel. En light
+                    // sin banner añadimos un gradient muy sutil del acento
+                    // (ámbar) para que el header tenga carácter; el azul
+                    // oscuro del modo dark ya tiene su propio tono.
                     banner
                       ? ""
                       : L
-                        ? "border-b border-zinc-200/80 bg-white/80"
-                        : "border-b border-white/8 bg-[#0a0f1e]/70"
+                        ? "border-b border-amber-200/40 bg-gradient-to-r from-amber-50/35 via-white/85 to-white/80"
+                        : isGlass
+                          // Cristal: tinte violeta translúcido en lugar
+                          // del navy plano.
+                          ? "border-b border-white/10 bg-gradient-to-r from-[rgba(50,20,80,0.35)] via-[rgba(28,13,49,0.45)] to-[rgba(28,13,49,0.55)]"
+                          : isSlate
+                            ? "border-b border-slate-700/35 bg-slate-900/60"
+                            : "border-b border-white/8 bg-[#0a0f1e]/70"
                   )}
                   style={headerBgStyle}
                 >
@@ -4290,14 +4368,51 @@ export function ChatView() {
                             L ? "text-zinc-900" : "text-white"
                           )}
                         />
-                        <p
-                          className={cn(
-                            "truncate text-[11px]",
-                            L ? "text-zinc-500" : "text-white/45"
-                          )}
-                        >
-                          {activeConv.peer!.email}
-                        </p>
+                        {/* Subtítulo: chip de presencia + email truncado.
+                         * Antes solo se veía el email gris claro, que en
+                         * light desaparecía sobre el fondo del header. */}
+                        <div className="mt-0.5 flex items-center gap-2 min-w-0">
+                          {(() => {
+                            const online = activeConv.peer?.id
+                              ? onlineUsers.has(activeConv.peer.id)
+                              : false;
+                            return (
+                              <span
+                                className={cn(
+                                  "inline-flex shrink-0 items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-semibold border",
+                                  online
+                                    ? L
+                                      ? "border-emerald-200/80 bg-emerald-50 text-emerald-700"
+                                      : "border-emerald-400/30 bg-emerald-500/[0.12] text-emerald-200/95"
+                                    : L
+                                      ? "border-zinc-200/90 bg-zinc-50 text-zinc-500"
+                                      : "border-white/10 bg-white/[0.05] text-white/45"
+                                )}
+                                title={online ? "En línea" : "Desconectado"}
+                              >
+                                <span
+                                  className={cn(
+                                    "h-1.5 w-1.5 rounded-full",
+                                    online
+                                      ? L ? "bg-emerald-500" : "bg-emerald-400"
+                                      : L ? "bg-zinc-300" : "bg-white/30"
+                                  )}
+                                  aria-hidden
+                                />
+                                {online ? "En línea" : "Desconectado"}
+                              </span>
+                            );
+                          })()}
+                          <p
+                            className={cn(
+                              "truncate text-[11px] min-w-0",
+                              L ? "text-zinc-500" : "text-white/45"
+                            )}
+                            title={activeConv.peer!.email}
+                          >
+                            {activeConv.peer!.email}
+                          </p>
+                        </div>
                       </>
                     )}
                   </div>
@@ -4337,7 +4452,17 @@ export function ChatView() {
               ref={messagesContainerRef}
               className={cn(
                 "chat-messages-scroll h-full overflow-y-auto px-4 py-5 space-y-3",
-                !L && "bg-[radial-gradient(ellipse_at_50%_0%,rgba(255,235,102,0.06),transparent_55%)]"
+                // Radial sutil del color del acento por tema. En Cristal
+                // tira a magenta (acento del tema), en Slate mantiene el
+                // amarillo corporativo pero más tenue, en Aurora/Dark el
+                // yellow original.
+                L
+                  ? "bg-[radial-gradient(ellipse_at_50%_0%,rgba(245,158,11,0.07),transparent_60%)]"
+                  : isGlass
+                    ? "bg-[radial-gradient(ellipse_at_50%_0%,rgba(217,70,239,0.07),transparent_55%)]"
+                    : isSlate
+                      ? "bg-[radial-gradient(ellipse_at_50%_0%,rgba(255,235,102,0.04),transparent_55%)]"
+                      : "bg-[radial-gradient(ellipse_at_50%_0%,rgba(255,235,102,0.06),transparent_55%)]"
               )}
             >
               {loadingMessages && messages.length === 0 ? (
@@ -4425,21 +4550,37 @@ export function ChatView() {
                       className={cn(sameAsPrev ? "space-y-0.5" : "space-y-3")}
                     >
                       {showDay && (
-                        <div className="flex items-center gap-3 py-1.5">
+                        <div className="flex items-center gap-3 py-2">
+                          {/* Línea con tinte del acento del tema (ámbar en
+                           * light, yellow en oscuro). Antes era zinc neutro
+                           * y se mezclaba con el fondo. En Cristal usamos
+                           * tinte magenta (acento del tema). */}
                           <div
                             className={cn(
                               "h-px flex-1",
                               L
-                                ? "bg-gradient-to-r from-transparent via-zinc-200 to-transparent"
-                                : "bg-gradient-to-r from-transparent via-white/15 to-transparent"
+                                ? "bg-gradient-to-r from-transparent via-amber-300/55 to-transparent"
+                                : isGlass
+                                  ? "bg-gradient-to-r from-transparent via-fuchsia-300/30 to-transparent"
+                                  : "bg-gradient-to-r from-transparent via-[#ffeb66]/30 to-transparent"
                             )}
                           />
+                          {/* Pill con tipografía caps + tracking. En light
+                           * usa tonos ámbar para destacar como hito visual
+                           * en la conversación, no como un mero "tag" gris. */}
                           <span
                             className={cn(
-                              "rounded-full border px-2.5 py-0.5 text-[10px] font-medium capitalize tracking-wide shadow-sm",
+                              "rounded-full border px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider shadow-sm",
                               L
-                                ? "border-zinc-200/90 bg-white/95 text-zinc-500 backdrop-blur"
-                                : "border-white/10 bg-[#0a0f1e]/85 text-white/55 backdrop-blur"
+                                ? "border-amber-200/80 bg-amber-50/90 text-amber-800 backdrop-blur shadow-amber-900/[0.05]"
+                                : isGlass
+                                  // Cristal: pill cristal real (translúcida
+                                  // + blur + reflejo interior). En el
+                                  // mundo Glass nada debería ser opaco.
+                                  ? "border-white/15 bg-white/[0.08] text-white/70 backdrop-blur-md shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
+                                  : isSlate
+                                    ? "border-slate-600/40 bg-slate-800/70 text-white/65 backdrop-blur"
+                                    : "border-white/10 bg-[#0a0f1e]/85 text-white/55 backdrop-blur"
                             )}
                           >
                             {daySeparatorLabel(m.createdAt)}
@@ -4448,8 +4589,10 @@ export function ChatView() {
                             className={cn(
                               "h-px flex-1",
                               L
-                                ? "bg-gradient-to-r from-transparent via-zinc-200 to-transparent"
-                                : "bg-gradient-to-r from-transparent via-white/15 to-transparent"
+                                ? "bg-gradient-to-r from-transparent via-amber-300/55 to-transparent"
+                                : isGlass
+                                  ? "bg-gradient-to-r from-transparent via-fuchsia-300/30 to-transparent"
+                                  : "bg-gradient-to-r from-transparent via-[#ffeb66]/30 to-transparent"
                             )}
                           />
                         </div>
@@ -4546,10 +4689,33 @@ export function ChatView() {
                                       : "border-white/8 bg-white/[0.03] text-white/45"
                                   )
                                 : m.isMine
-                                  ? "border border-[#ffeb66]/30 bg-gradient-to-br from-[#ffeb66]/30 via-[#d4af37]/14 to-[#1a2a42]/88 text-white shadow-[0_4px_22px_rgba(255,235,102,0.16)] hover:shadow-[0_4px_28px_rgba(255,235,102,0.22)]"
+                                  ? L
+                                    // Burbuja propia en tema claro: ámbar
+                                    // cálido sólido + texto oscuro legible.
+                                    // Antes compartía el gradient con oscuro
+                                    // (paradas amarillas translúcidas + azul
+                                    // oscuro al 88%) y sobre fondo blanco
+                                    // quedaba casi invisible.
+                                    ? "border border-amber-300/85 bg-gradient-to-br from-amber-100 via-amber-100 to-amber-200 text-amber-950 shadow-[0_2px_12px_rgba(245,158,11,0.18)] hover:shadow-[0_4px_18px_rgba(245,158,11,0.25)]"
+                                    : "border border-[#ffeb66]/30 bg-gradient-to-br from-[#ffeb66]/30 via-[#d4af37]/14 to-[#1a2a42]/88 text-white shadow-[0_4px_22px_rgba(255,235,102,0.16)] hover:shadow-[0_4px_28px_rgba(255,235,102,0.22)]"
                                   : L
-                                    ? "border border-zinc-200/90 bg-white text-zinc-900"
-                                    : "border border-white/10 bg-gradient-to-br from-[#161f33]/95 to-[#0f1729]/95 text-white backdrop-blur-sm"
+                                    // Burbujas ajenas en light: antes
+                                    // se diluían sobre el fondo blanco
+                                    // (border zinc-200 sin sombra). Ahora
+                                    // un anillo extra y una sombra más
+                                    // marcada las hacen "flotar".
+                                    ? "border border-zinc-200/90 bg-white text-zinc-900 shadow-[0_2px_8px_rgba(15,23,42,0.06)] ring-1 ring-zinc-100/70"
+                                    : isGlass
+                                      // Cristal: burbuja de vidrio real
+                                      // (translúcida + blur + reflejo
+                                      // sutil interior). Antes era un
+                                      // rectángulo navy opaco que
+                                      // rompía el lenguaje del tema.
+                                      ? "border border-white/15 bg-white/[0.06] text-white backdrop-blur-md shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
+                                      : isSlate
+                                        // Slate: tonos acero traslúcidos.
+                                        ? "border border-slate-600/35 bg-gradient-to-br from-slate-800/85 to-slate-900/90 text-white backdrop-blur-sm"
+                                        : "border border-white/10 bg-gradient-to-br from-[#161f33]/95 to-[#0f1729]/95 text-white backdrop-blur-sm"
                             )}
                             title={formatFullDateTime(m.createdAt)}
                           >
@@ -4599,7 +4765,9 @@ export function ChatView() {
                                   className={cn(
                                     "w-full resize-none rounded-md border bg-transparent px-2 py-1.5 text-sm outline-none",
                                     m.isMine
-                                      ? "border-white/30 text-white placeholder:text-white/45"
+                                      ? L
+                                        ? "border-amber-400/70 text-amber-950 placeholder:text-amber-700/50"
+                                        : "border-white/30 text-white placeholder:text-white/45"
                                       : L
                                         ? "border-zinc-200 text-zinc-900"
                                         : "border-white/15 text-white"
@@ -4613,7 +4781,9 @@ export function ChatView() {
                                     className={cn(
                                       "rounded-md px-2 py-1 text-[11px] font-semibold transition-colors",
                                       m.isMine
-                                        ? "text-white/70 hover:bg-black/15"
+                                        ? L
+                                          ? "text-amber-900/80 hover:bg-amber-200/60"
+                                          : "text-white/70 hover:bg-black/15"
                                         : L
                                           ? "text-zinc-600 hover:bg-zinc-100"
                                           : "text-white/65 hover:bg-white/10"
@@ -4669,7 +4839,9 @@ export function ChatView() {
                                 className={cn(
                                   "mt-1 flex items-center gap-1.5 text-[10px] tabular-nums",
                                   m.isMine
-                                    ? "text-white/55 justify-end"
+                                    ? L
+                                      ? "text-amber-900/65 justify-end"
+                                      : "text-white/55 justify-end"
                                     : L
                                       ? "text-zinc-400"
                                       : "text-white/40"
@@ -4686,7 +4858,9 @@ export function ChatView() {
                                     className={cn(
                                       "inline-flex items-center gap-0.5",
                                       m.isMine
-                                        ? "text-amber-200"
+                                        ? L
+                                          ? "text-amber-700"
+                                          : "text-amber-200"
                                         : L
                                           ? "text-amber-600"
                                           : "text-amber-300"
@@ -4740,7 +4914,9 @@ export function ChatView() {
                                         className={cn(
                                           "h-3.5 w-3.5",
                                           r.status === "read"
-                                            ? "text-sky-300"
+                                            ? L
+                                              ? "text-emerald-600"
+                                              : "text-sky-300"
                                             : "opacity-75"
                                         )}
                                         aria-label={title}
@@ -4766,7 +4942,12 @@ export function ChatView() {
                                 <button
                                   type="button"
                                   onClick={() => discardFailed(m.id)}
-                                  className="text-[10px] font-semibold text-white/65 hover:text-white"
+                                  className={cn(
+                                    "text-[10px] font-semibold transition-colors",
+                                    L
+                                      ? "text-amber-900/70 hover:text-amber-950"
+                                      : "text-white/65 hover:text-white"
+                                  )}
                                 >
                                   Descartar
                                 </button>
@@ -5020,9 +5201,23 @@ export function ChatView() {
               onSubmit={handleSend}
               className={cn(
                 "relative shrink-0 border-t p-3 sm:p-4",
+                // Footer del composer: en light, gradient ámbar muy sutil
+                // (papel cálido) para diferenciarlo del thread y dar
+                // sensación de "zona de escritura". Antes era casi
+                // indistinguible del área de mensajes.
                 L
-                  ? "border-zinc-200/80 bg-white/90"
-                  : "border-white/8 bg-[#060a14]/90"
+                  ? "border-amber-200/40 bg-gradient-to-b from-amber-50/30 to-white/95"
+                  : isGlass
+                    // Cristal: footer translúcido violeta deep + borde
+                    // blanco sutil para diferenciar del thread.
+                    ? "border-white/10 bg-[rgba(28,13,49,0.55)] backdrop-blur-xl"
+                    : isSlate
+                      // Slate: mismo patrón que Cristal (translúcido + blur
+                      // + borde sutil blanco) pero sobre paleta slate-900.
+                      // Antes era opaco (`slate-950/80`) y no combinaba con
+                      // el resto del tema; ahora respira igual que Cristal.
+                      ? "border-white/10 bg-[rgba(15,23,42,0.55)] backdrop-blur-xl"
+                      : "border-white/8 bg-[#060a14]/90"
               )}
             >
               {/* Chip de respondiendo a... */}
@@ -5099,10 +5294,12 @@ export function ChatView() {
 
               <div
                 className={cn(
-                  "chat-composer-shell group/composer flex items-end gap-1 rounded-2xl border p-1.5 transition-all",
-                  L
-                    ? "border-zinc-200/90 bg-zinc-50/90 focus-within:border-[#ffeb66]/55"
-                    : "border-white/10 bg-white/[0.035] focus-within:border-[#ffeb66]/55"
+                  // Caja del composer: sin contenedor interior en NINGÚN
+                  // tema. El input y los botones viven directamente sobre
+                  // el footer del composer; las reglas residuales de
+                  // `.chat-composer-shell` (inset-shadow y halo de focus)
+                  // se neutralizan globalmente en globals.css.
+                  "chat-composer-shell group/composer flex items-end gap-1 rounded-2xl border-0 bg-transparent p-1.5",
                 )}
               >
                 {/* Adjuntar archivo */}

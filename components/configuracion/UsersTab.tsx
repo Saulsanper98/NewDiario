@@ -43,6 +43,41 @@ import {
 import { isPlatformOwnerEmail } from "@/lib/platform-owner";
 import { USER_ROW_BANNER_HD } from "@/lib/feature-flags";
 
+/**
+ * Extrae un mensaje legible del campo `error` que devuelven los endpoints.
+ * Acepta:
+ *   - string: se devuelve tal cual (ruta feliz, p.ej. validatePasswordPolicy).
+ *   - objeto flatten de Zod: `{ fieldErrors: { campo: ["msg"] }, formErrors }`.
+ *     Devolvemos el primer mensaje útil (formErrors[0], si no, el primero de
+ *     fieldErrors[*][0]).
+ *   - cualquier otra cosa: devolvemos `fallback`.
+ *
+ * Sin este helper, cuando Zod rechazaba un campo el cliente caía al fallback
+ * genérico "No se pudo actualizar el usuario" y el usuario no sabía por qué.
+ */
+function extractErrorMessage(error: unknown, fallback: string): string {
+  if (typeof error === "string" && error.trim().length > 0) return error;
+  if (error && typeof error === "object") {
+    const e = error as {
+      formErrors?: string[];
+      fieldErrors?: Record<string, string[]>;
+    };
+    const firstForm = e.formErrors?.[0];
+    if (typeof firstForm === "string" && firstForm.trim().length > 0) {
+      return firstForm;
+    }
+    if (e.fieldErrors) {
+      for (const msgs of Object.values(e.fieldErrors)) {
+        const first = msgs?.[0];
+        if (typeof first === "string" && first.trim().length > 0) {
+          return first;
+        }
+      }
+    }
+  }
+  return fallback;
+}
+
 interface UsersTabProps {
   users: ConfigPageUser[];
   departments: ConfigPageDepartment[];
@@ -354,10 +389,15 @@ export function UsersTab({
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        const msg =
-          typeof data?.error === "string"
-            ? data.error
-            : "No se pudo actualizar el usuario";
+        // El servidor puede devolver `error` como string (mensajes claros de
+        // validatePasswordPolicy, permisos, etc.) o como objeto flattened de
+        // Zod (`{ fieldErrors: { campo: ["msg"] }, formErrors: [] }`). Si es
+        // un objeto, intentamos sacar el primer mensaje útil para no caer al
+        // toast genérico.
+        const msg = extractErrorMessage(
+          data?.error,
+          "No se pudo actualizar el usuario"
+        );
         throw new Error(msg);
       }
       toast.success("Usuario actualizado");

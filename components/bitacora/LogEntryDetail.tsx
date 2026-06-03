@@ -7,6 +7,9 @@ import {
   Tag,
   Share2,
   MessageSquare,
+  MessageCircle,
+  Image as ImageIcon,
+  Loader2,
   Edit,
   History,
   CheckCircle,
@@ -64,6 +67,7 @@ import {
 import { renderPlainTextWithMentions } from "@/components/ui/PlainTextWithMentions";
 import { CommentEditor, type CommentEditorHandle } from "@/components/shared/CommentEditor";
 import { useVisibleRefresh } from "@/hooks/use-visible-refresh";
+import { hasSubstantiveLogEntryBody } from "@/lib/log-entry-body";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -192,7 +196,12 @@ function logEntryPlainTextFromHtml(html: string): string {
 }
 
 function isLogEntryBodyEmpty(html: string | null | undefined): boolean {
-  return logEntryPlainTextFromHtml(html ?? "").length === 0;
+  /* Una nota con SOLO imágenes/GIFs o vídeos (sin texto) tiene contenido
+     publicable. Antes solo medíamos texto plano, lo que hacía desaparecer
+     el cuerpo al renderizar (hasRichBody = false → div oculto). Delegamos
+     en `hasSubstantiveLogEntryBody`, la misma fuente que usa el formulario
+     de creación. */
+  return !hasSubstantiveLogEntryBody(html ?? "");
 }
 
 function processHeadings(html: string): { toc: TocItem[]; html: string } {
@@ -283,6 +292,10 @@ export function LogEntryDetail({
   // ── State ─────────────────────────────────────────────────────────────────
   const [comment, setComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  // Refleja el estado de subida del CommentEditor para que el botón "Imagen"
+  // del footer compuesto del composer (que vive fuera del editor) pueda
+  // mostrar un spinner mientras se sube la imagen.
+  const [composerUploading, setComposerUploading] = useState(false);
   const [comments, setComments] = useState(entry.comments);
   const [linkCopied, setLinkCopied] = useState(false);
   const [tocOpen, setTocOpen] = useState(false);
@@ -1258,71 +1271,107 @@ export function LogEntryDetail({
             </div>
           )}
 
-          {/* ── Comentarios (misma ficha que encuesta/reacciones; siempre bajo «Reaccionar») ── */}
+          {/* ── Comentarios ────────────────────────────────────────────────
+           *
+           * Una sola superficie con tres zonas (franja de acento, header,
+           * body único). El body aloja la lista (o el estado vacío) y, sin
+           * contenedor propio, el composer. Antes había una "caja dentro de
+           * otra caja" — el form vivía en un `<form>` con borde y fondo
+           * distintos al body, generando anidación visual.
+           */}
           <section
             id="bitacora-entry-comments"
             aria-labelledby="log-entry-comments-heading"
             className={cn(
               "relative z-0 mt-7 scroll-mt-24 rounded-xl border overflow-hidden",
               L
-                ? "border-zinc-200/80 bg-white/70 shadow-sm shadow-zinc-900/[0.04]"
-                : "border-white/[0.07] bg-white/[0.025] ring-1 ring-inset ring-white/[0.04]"
+                ? "border-zinc-200/80 bg-gradient-to-b from-white/85 to-zinc-50/40 shadow-sm shadow-zinc-900/[0.04]"
+                : "border-white/[0.07] bg-gradient-to-b from-white/[0.03] to-white/[0.012] ring-1 ring-inset ring-white/[0.04]"
             )}
           >
+          {/* Franja superior de acento — fina, pero firma la sección. */}
           <div
+            aria-hidden
             className={cn(
-              "relative z-10 px-4 py-3.5 sm:px-5 sm:py-4 border-b",
-              L ? "border-zinc-200/70 bg-zinc-50/50" : "border-white/[0.06] bg-black/15"
+              "h-px w-full",
+              L
+                ? "bg-gradient-to-r from-transparent via-amber-300/55 to-transparent"
+                : "bg-gradient-to-r from-transparent via-[#ffeb66]/35 to-transparent"
+            )}
+          />
+
+          {/* Header — chip de icono con halo radial del acento + microcopia */}
+          <header
+            className={cn(
+              "relative z-10 flex items-center justify-between gap-3 px-4 py-3.5 sm:px-5 sm:py-4 border-b",
+              L
+                ? "border-zinc-200/70 bg-gradient-to-b from-white/75 to-white/30"
+                : "border-white/[0.06] bg-gradient-to-b from-white/[0.025] to-transparent"
             )}
           >
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-3 min-w-0">
+            <div className="flex items-center gap-3 min-w-0">
+              {/* Icono: chip con halo radial detrás (sin estridencia, ~10% opacidad) */}
+              <span className="relative shrink-0">
+                <span
+                  aria-hidden
+                  className={cn(
+                    "absolute -inset-2 rounded-full blur-md opacity-70",
+                    L
+                      ? "bg-amber-300/15"
+                      : "bg-[#ffeb66]/10"
+                  )}
+                />
                 <span
                   className={cn(
-                    "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border",
+                    "relative flex h-9 w-9 items-center justify-center rounded-xl border",
                     L
-                      ? "border-zinc-200 bg-white text-zinc-700 shadow-sm"
-                      : "border-white/10 bg-white/[0.05] text-[#ffeb66]/90"
+                      ? "border-amber-200/70 bg-white text-amber-700 shadow-sm shadow-amber-900/[0.06]"
+                      : "border-white/10 bg-white/[0.04] text-[#ffeb66]/95"
                   )}
                 >
                   <MessageSquare className="h-4 w-4" aria-hidden />
                 </span>
-                <div className="min-w-0">
-                  <h3
-                    id="log-entry-comments-heading"
-                    className={cn(
-                      "text-sm font-semibold tracking-tight",
-                      L ? "text-zinc-900" : "text-white/88"
-                    )}
-                  >
-                    Comentarios
-                  </h3>
-                  <p className={cn("text-[11px] mt-0.5", L ? "text-zinc-500" : "text-white/38")}>
-                    Conversación sobre esta nota
-                  </p>
-                </div>
+              </span>
+              <div className="min-w-0">
+                <h3
+                  id="log-entry-comments-heading"
+                  className={cn(
+                    "text-sm font-semibold tracking-tight",
+                    L ? "text-zinc-900" : "text-white/90"
+                  )}
+                >
+                  Comentarios
+                </h3>
+                <p className={cn("text-[11px] mt-0.5", L ? "text-zinc-500" : "text-white/40")}>
+                  Conversación sobre esta nota
+                </p>
               </div>
+            </div>
+            {/* Microcopia con punto del acento — sustituye al pill numérico
+             * solitario, gana en legibilidad y no compite con el header. */}
+            {comments.length > 0 && (
               <span
                 className={cn(
-                  "tabular-nums shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium border",
-                  L
-                    ? "border-zinc-200 bg-white text-zinc-600"
-                    : "border-white/10 bg-white/[0.05] text-white/55"
+                  "shrink-0 inline-flex items-center gap-1.5 text-[12px] font-medium tabular-nums",
+                  L ? "text-zinc-600" : "text-white/55"
                 )}
               >
-                {comments.length}
+                <span
+                  className={cn(
+                    "h-1.5 w-1.5 rounded-full",
+                    L ? "bg-amber-500" : "bg-[#ffeb66]/85"
+                  )}
+                  aria-hidden
+                />
+                {comments.length === 1 ? "1 comentario" : `${comments.length} comentarios`}
               </span>
-            </div>
-          </div>
-
-          <div
-            className={cn(
-              "relative z-10 px-4 py-4 sm:px-5 sm:py-5",
-              L ? "bg-white/50" : "bg-black/10"
             )}
-          >
-          {comments.length > 0 && (
-            <div className="space-y-3.5 mb-5">
+          </header>
+
+          {/* Body único — lista (o empty state) + divisor + composer */}
+          <div className="relative z-10 px-4 py-4 sm:px-5 sm:py-5">
+          {comments.length > 0 ? (
+            <div className="space-y-3.5">
               {comments.map((c: LogCommentRow) => {
                 const plainForReply = commentPlainText(c.content);
                 const replyParsed = parseLeadingReplyMention(
@@ -1334,69 +1383,74 @@ export function LogEntryDetail({
                 const isReply = Boolean(replyTarget);
                 const structured = commentHasRichHtml(c.content);
                 return (
-                  <div
+                  <article
                     key={c.id}
                     className={cn(
-                      "flex gap-3 sm:gap-3.5 items-start group/comment",
-                      isReply && "relative ml-0.5 sm:ml-1.5 pl-2 sm:pl-3"
+                      "group/comment relative flex gap-3 transition-colors duration-150",
+                      isReply && "pl-3 sm:pl-3.5"
                     )}
                   >
-                    <div className="relative shrink-0 pt-0.5">
-                      <Avatar
-                        name={c.author.name}
-                        image={c.author.image}
-                        size="sm"
+                    {/* Barra de respuesta como elemento exterior, no como
+                     * border-l de la tarjeta interna. Queda alineada con
+                     * varias respuestas seguidas y no choca con el padding. */}
+                    {isReply && (
+                      <span
+                        aria-hidden
                         className={cn(
-                          "ring-1",
-                          L
-                            ? "ring-white shadow-sm border border-zinc-200/80"
-                            : "ring-white/10 border border-white/[0.08]",
-                          isReply && (L ? "ring-emerald-200/60" : "ring-emerald-400/25")
+                          "absolute left-0 top-2 bottom-2 w-[3px] rounded-full",
+                          L ? "bg-emerald-400/70" : "bg-emerald-400/55"
                         )}
                       />
-                    </div>
+                    )}
+
+                    <Avatar
+                      name={c.author.name}
+                      image={c.author.image}
+                      size="sm"
+                      className={cn(
+                        "shrink-0 mt-0.5 ring-1",
+                        L
+                          ? "ring-white shadow-sm border border-zinc-200/80"
+                          : "ring-white/10 border border-white/[0.08]",
+                        isReply && (L ? "ring-emerald-200/60" : "ring-emerald-400/25")
+                      )}
+                    />
+
                     <div
                       className={cn(
-                        "flex-1 min-w-0 rounded-xl px-3.5 py-3 sm:px-4 sm:py-3.5 transition-colors duration-150",
-                        "border",
-                        isReply
-                          ? L
-                            ? "bg-zinc-50/90 border-zinc-200/80 border-l-2 border-l-emerald-400/50"
-                            : "bg-white/[0.035] border-white/[0.08] border-l-2 border-l-emerald-400/40"
-                          : L
-                            ? "bg-white border-zinc-200/85 shadow-sm"
-                            : "bg-white/[0.04] border-white/[0.08] group-hover/comment:border-white/12 group-hover/comment:bg-white/[0.055]"
+                        "flex-1 min-w-0 rounded-xl px-3 py-2.5 transition-colors duration-150 border",
+                        L
+                          ? "bg-white border-zinc-200/80 shadow-[0_1px_0_rgba(0,0,0,0.02)]"
+                          : "bg-white/[0.035] border-white/[0.07] group-hover/comment:bg-white/[0.05] group-hover/comment:border-white/[0.11]"
                       )}
                     >
-                      <div className="flex items-start gap-2 mb-2 flex-wrap">
-                        <div className="flex flex-col sm:flex-row sm:items-baseline sm:gap-2 min-w-0 gap-0.5">
-                          <UserProfilePopover
-                            userId={c.author.id}
-                            name={c.author.name}
-                            image={c.author.image}
-                            nameClassName={cn(
-                              "text-[13px] font-medium tracking-tight truncate",
-                              L ? "text-zinc-900" : "text-white/82"
-                            )}
-                          />
-                          <span
-                            className={cn(
-                              "inline-flex w-fit items-center rounded-md px-1.5 py-0.5 text-[10px] font-medium tabular-nums",
-                              L
-                                ? "bg-zinc-100 text-zinc-500 border border-zinc-200/70"
-                                : "bg-white/[0.06] text-white/42 border border-white/[0.06]"
-                            )}
-                          >
-                            {formatRelative(c.createdAt)}
-                          </span>
-                        </div>
+                      <header className="flex items-center gap-2 mb-1.5">
+                        <UserProfilePopover
+                          userId={c.author.id}
+                          name={c.author.name}
+                          image={c.author.image}
+                          nameClassName={cn(
+                            "text-[13px] font-semibold tracking-tight truncate",
+                            L ? "text-zinc-900" : "text-white/88"
+                          )}
+                        />
+                        {/* Fecha discreta en línea (antes era un chip cuadrado
+                         * con borde y fondo que recargaba demasiado). */}
+                        <span
+                          className={cn(
+                            "text-[11px] tabular-nums shrink-0",
+                            L ? "text-zinc-400" : "text-white/35"
+                          )}
+                        >
+                          · {formatRelative(c.createdAt)}
+                        </span>
                         {isReply && (
                           <span
                             className={cn(
-                              "text-[9px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-md border shrink-0",
+                              "text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-md border shrink-0",
                               L
                                 ? "text-emerald-800 bg-emerald-50 border-emerald-200/80"
-                                : "text-emerald-200/85 bg-emerald-500/[0.08] border-emerald-400/25"
+                                : "text-emerald-200/85 bg-emerald-500/[0.07] border-emerald-400/22"
                             )}
                           >
                             Respuesta
@@ -1407,10 +1461,10 @@ export function LogEntryDetail({
                             type="button"
                             onClick={() => startReply(c.author.name)}
                             className={cn(
-                              "p-1.5 rounded-lg transition-colors",
+                              "p-1 rounded-md transition-colors",
                               L
                                 ? "text-zinc-400 hover:text-amber-700 hover:bg-amber-50"
-                                : "text-white/35 hover:text-[#ffeb66]/80 hover:bg-white/[0.06]"
+                                : "text-white/35 hover:text-[#ffeb66]/85 hover:bg-white/[0.06]"
                             )}
                             aria-label="Responder"
                           >
@@ -1421,7 +1475,7 @@ export function LogEntryDetail({
                               type="button"
                               onClick={() => deleteComment(c.id)}
                               className={cn(
-                                "p-1.5 rounded-lg transition-colors",
+                                "p-1 rounded-md transition-colors",
                                 L
                                   ? "text-zinc-400 hover:text-red-600 hover:bg-red-50"
                                   : "text-white/30 hover:text-red-400 hover:bg-white/[0.06]"
@@ -1432,12 +1486,12 @@ export function LogEntryDetail({
                             </button>
                           )}
                         </div>
-                      </div>
+                      </header>
 
                       {replyTarget && !structured && (
                         <div
                           className={cn(
-                            "flex items-center gap-1.5 mb-2 text-xs",
+                            "flex items-center gap-1.5 mb-1.5 text-[11.5px]",
                             L ? "text-zinc-500" : "text-white/35"
                           )}
                         >
@@ -1459,8 +1513,8 @@ export function LogEntryDetail({
                       ) : replyTarget ? (
                         <div
                           className={cn(
-                            "text-sm leading-relaxed whitespace-pre-wrap break-words",
-                            L ? "text-zinc-700" : "text-white/70"
+                            "text-[13.5px] leading-relaxed whitespace-pre-wrap break-words",
+                            L ? "text-zinc-700" : "text-white/72"
                           )}
                         >
                           <span
@@ -1477,68 +1531,153 @@ export function LogEntryDetail({
                         commentBodyNode(c.content, true)
                       )}
                     </div>
-                  </div>
+                  </article>
                 );
               })}
             </div>
-          )}
-
-          {/* B59: Active reply banner */}
-          {replyTo && (
-            <div
+          ) : (
+            // Empty state premium. Icono envuelto por un halo radial
+            // difuso del acento del tema y un anillo interior translúcido.
+            // El bloque entero es clicable: enfoca el editor del composer.
+            <button
+              type="button"
+              onClick={() => commentEditorRef.current?.focus()}
               className={cn(
-                "flex items-center gap-2 mb-4 px-3 py-2.5 rounded-lg border text-xs print:hidden",
+                "group/empty flex w-full flex-col items-center justify-center text-center py-7 sm:py-8 rounded-xl transition-colors duration-200",
                 L
-                  ? "bg-emerald-50/80 border-emerald-200/80 text-emerald-950"
-                  : "bg-white/[0.04] border-white/[0.08] text-white/65"
+                  ? "hover:bg-amber-50/40"
+                  : "hover:bg-white/[0.015]"
               )}
             >
-              <CornerDownLeft className={cn("w-3.5 h-3.5 shrink-0", L ? "text-emerald-700/80" : "text-white/40")} />
-              Respondiendo a{" "}
-              <strong className={cn("font-medium", L ? "" : "text-white/85")}>{replyTo.name}</strong>
-              <button
-                type="button"
-                onClick={() => { setReplyTo(null); setComment(""); }}
-                className={cn(
-                  "ml-auto p-1 rounded-md transition-colors",
-                  L ? "text-emerald-700 hover:bg-emerald-100" : "text-white/40 hover:text-white/75 hover:bg-white/[0.06]"
-                )}
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          )}
-
-          {/* Comment form — mismo lenguaje que chips / campos de la nota */}
-          <form
-            onSubmit={submitComment}
-            className={cn(
-              "flex gap-3 sm:gap-3.5 print:hidden rounded-xl border p-3 sm:p-3.5",
-              L
-                ? "border-zinc-200/90 bg-zinc-50/90"
-                : "border-white/[0.08] bg-black/25"
-            )}
-          >
-            <div className="relative shrink-0 pt-0.5">
-              <Avatar
-                name={currentUser.name}
-                image={currentUser.image}
-                size="sm"
-                className={cn(
-                  "ring-1",
-                  L ? "ring-white border border-zinc-200/70" : "ring-white/10 border border-white/[0.08]"
-                )}
-              />
-            </div>
-            <div className="flex-1 space-y-2 min-w-0">
+              <span className="relative">
+                {/* Halo radial difuso del acento */}
+                <span
+                  aria-hidden
+                  className={cn(
+                    "absolute -inset-4 rounded-full blur-2xl opacity-80 transition-opacity duration-200 group-hover/empty:opacity-100",
+                    L
+                      ? "bg-amber-300/25"
+                      : "bg-[#ffeb66]/12"
+                  )}
+                />
+                {/* Anillo interior translúcido */}
+                <span
+                  aria-hidden
+                  className={cn(
+                    "absolute -inset-1.5 rounded-2xl",
+                    L
+                      ? "ring-1 ring-amber-200/40"
+                      : "ring-1 ring-[#ffeb66]/12"
+                  )}
+                />
+                {/* Chip principal */}
+                <span
+                  className={cn(
+                    "relative flex h-16 w-16 items-center justify-center rounded-2xl border transition-transform duration-200 group-hover/empty:scale-[1.04]",
+                    L
+                      ? "border-amber-200/80 bg-gradient-to-br from-amber-50/90 to-white shadow-sm shadow-amber-900/[0.06]"
+                      : "border-white/[0.09] bg-white/[0.04] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
+                  )}
+                >
+                  <MessageCircle
+                    className={cn(
+                      "h-7 w-7",
+                      L ? "text-amber-600/90" : "text-[#ffeb66]/85"
+                    )}
+                    aria-hidden
+                  />
+                </span>
+              </span>
               <p
                 className={cn(
-                  "text-[10px] font-semibold uppercase tracking-wider",
-                  L ? "text-zinc-500" : "text-white/38"
+                  "mt-4 text-[15px] font-medium tracking-tight",
+                  L ? "text-zinc-800" : "text-white/85"
                 )}
               >
-                Tu comentario
+                Aún no hay comentarios
               </p>
+              <p
+                className={cn(
+                  "mt-1 text-[12.5px] max-w-[14rem]",
+                  L ? "text-zinc-500" : "text-white/42"
+                )}
+              >
+                Sé el primero en aportar algo sobre esta nota.
+              </p>
+            </button>
+          )}
+
+          {/* Divisor sutil — separa lista/empty del composer sin meter una
+           * "caja" más. Es un degradado horizontal de 1px del color del
+           * tema, igual que la franja superior pero más tenue. */}
+          <div
+            aria-hidden
+            className={cn(
+              "my-4 h-px",
+              L
+                ? "bg-gradient-to-r from-transparent via-zinc-200/85 to-transparent"
+                : "bg-gradient-to-r from-transparent via-white/[0.07] to-transparent"
+            )}
+          />
+
+          {/* Composer — avatar + columna con (opcional) reply banner + editor
+           * compacto (sin toolbar interna) + footer compuesto: Imagen, hint,
+           * Enviar. Antes el botón "Imagen" vivía DENTRO del editor en una
+           * barra propia y el botón Enviar fuera, generando dos sitios para
+           * acciones del composer. Ahora todo va en la misma fila. */}
+          <form
+            onSubmit={submitComment}
+            className="flex gap-3 print:hidden"
+          >
+            <Avatar
+              name={currentUser.name}
+              image={currentUser.image}
+              size="sm"
+              className={cn(
+                "shrink-0 mt-0.5 ring-1",
+                L
+                  ? "ring-white border border-zinc-200/70 shadow-sm"
+                  : "ring-white/10 border border-white/[0.08]"
+              )}
+            />
+            <div className="flex-1 min-w-0 space-y-1.5">
+              {replyTo && (
+                <div
+                  className={cn(
+                    "flex items-center gap-2 px-3 py-2 rounded-lg border-l-[3px] text-[12px]",
+                    L
+                      ? "bg-emerald-50/70 border-l-emerald-500 text-emerald-900"
+                      : "bg-white/[0.04] border-l-emerald-400/60 text-white/72"
+                  )}
+                >
+                  <CornerDownLeft
+                    className={cn(
+                      "w-3.5 h-3.5 shrink-0",
+                      L ? "text-emerald-700/85" : "text-emerald-300/80"
+                    )}
+                  />
+                  <span className="min-w-0 truncate">
+                    Respondiendo a{" "}
+                    <strong className={cn("font-semibold", L ? "" : "text-white/90")}>
+                      {replyTo.name}
+                    </strong>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => { setReplyTo(null); setComment(""); }}
+                    className={cn(
+                      "ml-auto p-1 rounded-md transition-colors",
+                      L
+                        ? "text-emerald-700 hover:bg-emerald-100"
+                        : "text-white/40 hover:text-white/75 hover:bg-white/[0.08]"
+                    )}
+                    aria-label="Cancelar respuesta"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
+
               <CommentEditor
                 ref={commentEditorRef}
                 value={comment}
@@ -1550,26 +1689,66 @@ export function LogEntryDetail({
                 placeholder={
                   replyTo
                     ? `Respondiendo a @${replyTo.name}…`
-                    : "Añadir comentario… (@ + texto para mencionar, Enter para enviar)"
+                    : "Escribe un comentario…"
                 }
                 variant="log"
                 onSubmit={() => void submitComment()}
                 disabled={submitting}
+                hideToolbar
+                onUploadingChange={setComposerUploading}
               />
 
-              <div className="flex items-center justify-between gap-3 flex-wrap">
-                <p
-                  className={cn(
-                    "flex items-center gap-1.5 text-[11px] max-w-[min(100%,32rem)]",
-                    L ? "text-zinc-500" : "text-white/45"
-                  )}
-                >
-                  <AtSign className="w-3.5 h-3.5 shrink-0 opacity-70" />
-                  <span>
-                    @ y al menos una letra para buscar (@all = todo el depto). Adjunta imágenes pegando o arrastrando.{" "}
-                    <span className={L ? "text-zinc-700" : "text-white/65"}>Shift+Enter</span> = nueva línea
-                  </span>
-                </p>
+              {/* Footer compuesto: botón Imagen (delega al editor) +
+               * hint compacto + botón Enviar. Una sola fila bien densa. */}
+              <div className="flex items-center justify-between gap-2 flex-wrap pt-0.5">
+                <div className="flex items-center gap-2 min-w-0">
+                  <button
+                    type="button"
+                    onClick={() => commentEditorRef.current?.triggerFileUpload()}
+                    disabled={submitting || composerUploading}
+                    title="Adjuntar imagen"
+                    aria-label="Adjuntar imagen"
+                    className={cn(
+                      "inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[11.5px] font-medium transition-colors",
+                      (submitting || composerUploading) && "opacity-40 cursor-not-allowed",
+                      L
+                        ? "text-zinc-600 hover:text-amber-700 hover:bg-amber-50"
+                        : "text-white/60 hover:text-[#ffeb66]/90 hover:bg-white/[0.06]"
+                    )}
+                  >
+                    {composerUploading ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <ImageIcon className="w-3.5 h-3.5" />
+                    )}
+                    <span className="hidden sm:inline">
+                      {composerUploading ? "Subiendo…" : "Imagen"}
+                    </span>
+                  </button>
+                  <span
+                    aria-hidden
+                    className={cn(
+                      "h-3 w-px",
+                      L ? "bg-zinc-300/80" : "bg-white/12"
+                    )}
+                  />
+                  <p
+                    className={cn(
+                      "flex items-center gap-1 text-[11px] min-w-0",
+                      L ? "text-zinc-500" : "text-white/42"
+                    )}
+                  >
+                    <AtSign className="w-3.5 h-3.5 shrink-0 opacity-70" />
+                    <span className="truncate">
+                      <span className="font-medium">@</span> nombre ·{" "}
+                      <span className="font-medium">@all</span> = depto ·{" "}
+                      <span className={L ? "text-zinc-700 font-medium" : "text-white/70 font-medium"}>
+                        Shift+Enter
+                      </span>{" "}
+                      = línea
+                    </span>
+                  </p>
+                </div>
                 <Button
                   type="submit"
                   variant="primary"

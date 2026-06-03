@@ -39,6 +39,15 @@ export function Modal({
   const dialogRef = useRef<HTMLDivElement>(null);
   const [mounted, setMounted] = useState(false);
   const [closing, setClosing] = useState(false);
+  /**
+   * Guarda dónde se inició el `mousedown`. Sirve para distinguir entre un
+   * click puro sobre el backdrop (cerrar) y un drag que se inició dentro del
+   * diálogo y terminó fuera (NO cerrar). El bug previo: al soltar una
+   * selección de texto fuera del modal, el `click` sintético se disparaba
+   * sobre el ancestro común (el wrapper) con `target === currentTarget`, y
+   * el modal se cerraba sin querer.
+   */
+  const mouseDownTargetRef = useRef<EventTarget | null>(null);
 
   /* Abrir: montar; cerrar desde el padre (p. ej. tras crear): desmontar sin depender solo de la animación */
   useEffect(() => {
@@ -92,8 +101,20 @@ export function Modal({
       <div className={cn("fixed inset-0 modal-backdrop", closing && "modal-backdrop-closing")} />
       <div
         className="relative flex min-h-[100dvh] items-center justify-center p-4 py-8"
+        onMouseDown={(e) => {
+          mouseDownTargetRef.current = e.target;
+        }}
         onClick={(e) => {
-          if (e.target === e.currentTarget) triggerClose();
+          /* Solo cerramos si el gesto fue íntegramente sobre el backdrop:
+           * el `mousedown` Y el `mouseup`/`click` deben caer sobre el
+           * propio wrapper. Si se inició dentro del diálogo (p.ej. drag de
+           * selección de texto) y se soltó fuera, NO cerramos. */
+          const startedOnBackdrop =
+            mouseDownTargetRef.current === e.currentTarget;
+          mouseDownTargetRef.current = null;
+          if (startedOnBackdrop && e.target === e.currentTarget) {
+            triggerClose();
+          }
         }}
       >
         <div
@@ -140,8 +161,16 @@ export function Modal({
             type="button"
             onClick={triggerClose}
             aria-label="Cerrar"
+            /* `z-[2]` (no `z-[1]`): los temas Cristal y Slate elevan los hijos
+             * directos del diálogo a `z-index: 1` para que floten sobre el
+             * reflejo decorativo `::before`. Si el botón cerrar y los wrappers
+             * de contenido comparten `z-index: 1`, los wrappers que vienen
+             * después en el DOM tapan al X y se comen los clicks. Subiéndolo
+             * a 2 garantizamos que el X sea siempre clickable, también en
+             * modales que no usan el header interno del Modal (p.ej.
+             * `ReportBugDialog`, que monta un hero propio dentro del form). */
             className={cn(
-              "absolute top-4 right-4 z-[1] p-1.5 rounded-lg transition-all duration-200",
+              "absolute top-4 right-4 z-[2] p-1.5 rounded-lg transition-all duration-200",
               isLight
                 ? "text-zinc-400 hover:text-zinc-800 hover:bg-zinc-100"
                 : "text-white/40 hover:text-white hover:bg-white/8"

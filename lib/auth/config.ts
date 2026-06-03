@@ -8,6 +8,7 @@ import { edgeAuthConfig } from "./edge-config";
 import { refreshTokenUserFromDb } from "@/lib/auth/refresh-token-user";
 import { checkRateLimit } from "@/lib/chat/rate-limit";
 import type { SessionUser, UserDepartment } from "@/lib/auth/types";
+import { isPlatformOwnerEmail } from "@/lib/platform-owner";
 
 const loginSchema = z.object({
   email: z.string().email(),
@@ -162,6 +163,13 @@ const credentialProvider = Credentials({
       user.departments.find((d: { isDefault: boolean }) => d.isDefault) ??
       user.departments[0];
 
+    // Platform owner override: el propietario siempre entra con SUPERADMIN
+    // y `canManageSuperAdmins` activado, independientemente de lo que tenga
+    // grabado en BD. Misma justificación que en `refresh-token-user.ts`.
+    const isOwner = isPlatformOwnerEmail(user.email);
+    const effectiveRole = isOwner ? "SUPERADMIN" : user.role;
+    const effectiveCanManage = isOwner ? true : canManage;
+
     return {
       id: user.id,
       name: user.name,
@@ -172,8 +180,8 @@ const credentialProvider = Credentials({
       profileBanner: user.profileBanner,
       bannerFocusX: user.bannerFocusX ?? null,
       bannerFocusY: user.bannerFocusY ?? null,
-      role: user.role,
-      canManageSuperAdmins: canManage,
+      role: effectiveRole,
+      canManageSuperAdmins: effectiveCanManage,
       passwordChangedAt: user.passwordChangedAt?.getTime() ?? null,
       departments: user.departments.map((d: { departmentId: string; department: { name: string; slug: string; accentColor: string }; role: string; isDefault: boolean }) => ({
         id: d.departmentId,
@@ -252,6 +260,9 @@ export const authConfig = {
             const defaultDept =
               dbUser.departments.find((d) => d.isDefault) ??
               dbUser.departments[0];
+            // Platform owner override (Microsoft Entra ID): mismo criterio
+            // que en credenciales y en `refresh-token-user.ts`.
+            const isOwner = isPlatformOwnerEmail(dbUser.email);
             token.id = dbUser.id;
             token.name = dbUser.name;
             token.email = dbUser.email;
@@ -261,7 +272,8 @@ export const authConfig = {
             token.profileBanner = dbUser.profileBanner;
             token.bannerFocusX = dbUser.bannerFocusX ?? null;
             token.bannerFocusY = dbUser.bannerFocusY ?? null;
-            token.role = dbUser.role;
+            token.role = isOwner ? "SUPERADMIN" : dbUser.role;
+            if (isOwner) token.canManageSuperAdmins = true;
             token.departments = dbUser.departments.map((d) => ({
               id: d.departmentId,
               name: d.department.name,

@@ -2,7 +2,11 @@ import type { SessionUser } from "./types";
 import { isPlatformOwner, isPlatformOwnerEmail } from "@/lib/platform-owner";
 
 export function isSuperAdmin(user: SessionUser): boolean {
-  return user.role === "SUPERADMIN";
+  // Doble cinturón: el platform owner cuenta SIEMPRE como SuperAdmin, aunque
+  // por alguna razón el `role` que viene en la sesión no esté sincronizado.
+  // En condiciones normales esto ya se garantiza en el token (ver
+  // `refresh-token-user.ts`), pero dejamos el bypass aquí por defensa.
+  return user.role === "SUPERADMIN" || isPlatformOwner(user);
 }
 
 /** Puede asignar rol global SUPERADMIN o gestionar la cuenta del propietario. */
@@ -26,14 +30,17 @@ export function canManageSuperAdminRoleOn(
 }
 
 export function isAdminOrAbove(user: SessionUser): boolean {
-  return user.role === "SUPERADMIN" || user.role === "ADMIN";
+  // Usamos el helper `isSuperAdmin` (que ya incluye el bypass del propietario)
+  // en lugar de comparar `role` directamente, para que el dueño cuente como
+  // admin/above aunque su fila en BD no lo refleje.
+  return isSuperAdmin(user) || user.role === "ADMIN";
 }
 
 export function isAdminOfDepartment(
   user: SessionUser,
   departmentId: string
 ): boolean {
-  if (user.role === "SUPERADMIN") return true;
+  if (isSuperAdmin(user)) return true;
   const dept = user.departments.find((d) => d.id === departmentId);
   return dept?.role === "ADMIN" || dept?.role === "SUPERADMIN";
 }
@@ -42,7 +49,7 @@ export function hasAccessToDepartment(
   user: SessionUser,
   departmentId: string
 ): boolean {
-  if (user.role === "SUPERADMIN") return true;
+  if (isSuperAdmin(user)) return true;
   return user.departments.some((d) => d.id === departmentId);
 }
 

@@ -20,9 +20,23 @@ describe("sanitizeHtml (bitácora)", () => {
     expect(out).toContain("B");
   });
 
-  it("elimina párrafos vacíos sin br", () => {
-    expect(sanitizeHtml("<p></p><p>Hola</p>")).not.toMatch(/<p>\s*<\/p>/);
-    expect(sanitizeHtml("<p>Hola</p>")).toContain("Hola");
+  it("preserva <p></p> vacíos del editor como línea en blanco intencional", () => {
+    /* TipTap serializa el doble Enter del usuario como `<p></p>` puro.
+       Antes se borraban; ahora los normalizamos a `<p><br></p>` con la
+       clase de línea en blanco, para respetar el espaciado vertical que
+       el autor escribió en el editor. */
+    const out = sanitizeHtml("<p>A</p><p></p><p>B</p>");
+    expect(out).toContain("A");
+    expect(out).toContain("B");
+    expect(out).toContain(BITACORA_BLANK_LINE_CLASS);
+    expect(out).toMatch(/<p[^>]*class="[^"]*bitacora-blank-line[^"]*"[^>]*>\s*<br\s*\/?>/i);
+  });
+
+  it("normaliza <p>&nbsp;</p> y <p> </p> a línea en blanco", () => {
+    const a = sanitizeHtml("<p>X</p><p>&nbsp;</p><p>Y</p>");
+    const b = sanitizeHtml("<p>X</p><p> </p><p>Y</p>");
+    expect(a).toContain(BITACORA_BLANK_LINE_CLASS);
+    expect(b).toContain(BITACORA_BLANK_LINE_CLASS);
   });
 
   it("colapsa espacio antes de puntuación tras cerrar negrita", () => {

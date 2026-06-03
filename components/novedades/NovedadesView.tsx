@@ -46,7 +46,13 @@ import { AnnouncementEditor } from "./AnnouncementEditor";
 import type { AnnouncementItem, ReleaseNoteItem } from "./types";
 
 interface NovedadesViewProps {
+  /** Propietario de la plataforma. Único que ve drafts y autodraft. */
   isOwner: boolean;
+  /**
+   * Puede gestionar el banner global de avisos. Cualquier SuperAdmin lo
+   * tiene; ya no es exclusivo del propietario.
+   */
+  canManageAnnouncements: boolean;
   initialItems: ReleaseNoteItem[];
   initialAnnouncements: AnnouncementItem[];
 }
@@ -56,6 +62,7 @@ type FilterValue = "ALL" | "UNREAD" | ReleaseNoteCategory;
 
 export function NovedadesView({
   isOwner,
+  canManageAnnouncements,
   initialItems,
   initialAnnouncements,
 }: NovedadesViewProps) {
@@ -78,7 +85,7 @@ export function NovedadesView({
     try {
       const [n, a] = await Promise.all([
         fetch("/api/release-notes").then((r) => r.json()),
-        isOwner
+        canManageAnnouncements
           ? fetch("/api/announcements?scope=admin").then((r) => r.json())
           : Promise.resolve({ items: [] }),
       ]);
@@ -88,7 +95,7 @@ export function NovedadesView({
     } catch {
       // silent: el estado local sigue siendo válido
     }
-  }, [isOwner, router]);
+  }, [canManageAnnouncements, router]);
 
   const unreadCount = items.filter((it) => !it.isRead && !it.isDraft).length;
 
@@ -300,8 +307,9 @@ export function NovedadesView({
               />
             </div>
 
-            {/* Tabs propietario */}
-            {isOwner && (
+            {/* Tabs visibles a quien pueda gestionar el banner global de avisos.
+             * Antes estaba restringido al propietario; ahora todos los SuperAdmin. */}
+            {canManageAnnouncements && (
               <div
                 className={cn(
                   "mt-5 flex items-center gap-1 border-t pt-4 flex-wrap",
@@ -372,22 +380,26 @@ export function NovedadesView({
         />
       )}
 
+      {/* Editor de notas de la versión: sigue siendo exclusivo del propietario
+       * (gestiona drafts, autodraft, etc.). */}
       {isOwner && (
-        <>
-          <ReleaseNoteEditor
-            open={editorOpen}
-            onClose={() => setEditorOpen(false)}
-            initial={editing}
-            onSaved={() => void refresh()}
-            canAutodraft={isOwner}
-          />
-          <AnnouncementEditor
-            open={annEditorOpen}
-            onClose={() => setAnnEditorOpen(false)}
-            initial={editingAnn}
-            onSaved={() => void refresh()}
-          />
-        </>
+        <ReleaseNoteEditor
+          open={editorOpen}
+          onClose={() => setEditorOpen(false)}
+          initial={editing}
+          onSaved={() => void refresh()}
+          canAutodraft={isOwner}
+        />
+      )}
+
+      {/* Editor del banner global: visible a TODOS los SuperAdmin. */}
+      {canManageAnnouncements && (
+        <AnnouncementEditor
+          open={annEditorOpen}
+          onClose={() => setAnnEditorOpen(false)}
+          initial={editingAnn}
+          onSaved={() => void refresh()}
+        />
       )}
     </div>
   );

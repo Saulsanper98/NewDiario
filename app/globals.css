@@ -753,6 +753,15 @@ html[data-theme="light"] .loading-card {
   min-height: 200px;
 }
 
+/* El composer de comentarios usa un editor compacto: su shell envuelve al
+ * `.ProseMirror` interno y queremos que la altura la determine el contenido
+ * (gestionada por la clase `min-h-[2.4rem]` de la prose-class del componente),
+ * no el `min-height: 200px` global pensado para editores largos (notas, tareas).
+ * Selector con especificidad (0,2,0) gana sobre `.ProseMirror` (0,1,0). */
+.comment-editor-shell .ProseMirror {
+  min-height: 0;
+}
+
 html:not([data-theme="light"]) .ProseMirror p.is-editor-empty:first-child::before {
   color: rgba(240, 244, 255, 0.3);
   content: attr(data-placeholder);
@@ -3514,22 +3523,25 @@ textarea::placeholder {
 }
 
 
-/* Composer del chat: brillo dorado al enfocar el textarea/boton sin que
-   el anillo cambie de forma. Usamos un box-shadow exterior porque el
-   ring de Tailwind, combinado con border y shadow-inner, perdia la
-   curvatura del rounded-2xl en algunos puntos. */
-.chat-composer-shell {
-  /* Sutil iluminacion interior superior, mismo shape que el contenedor. */
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
-  transition: box-shadow 180ms ease, border-color 180ms ease;
-}
-/* En focus: SOLO endurecemos el borde existente (1px) y anadimos un
-   resplandor difuso (blur) en lugar de un anillo de spread, para que la
-   forma se mantenga IDENTICA al contenedor (rounded-2xl). */
+/* Composer del chat: SIN caja interior en ningún tema. El input y los
+   botones viven directamente sobre el footer; el textarea se integra
+   visualmente con el área de escritura del chat. Anulamos el
+   inset-shadow base y el halo de focus que existían antes, manteniendo
+   solo el reset de outline de los focusables (regla siguiente). */
+.chat-composer-shell,
 .chat-composer-shell:focus-within {
-  border-color: rgba(255, 235, 102, 0.6);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.05),
-    0 0 0 1px rgba(255, 235, 102, 0.45),
-    0 0 16px -2px rgba(255, 235, 102, 0.25);
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+
+/* El textarea del composer del chat ignora los bordes/fondos globales
+   que los temas (Slate, Light, etc.) aplican a TODOS los `<textarea>`.
+   Sin esta excepción, esas reglas dibujan un rectángulo alrededor del
+   campo de mensaje y rompen la integración con el footer. */
+.chat-composer-shell textarea,
+.chat-composer-shell textarea:focus {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
 }

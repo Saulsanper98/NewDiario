@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma/client";
 import type { UserDepartment } from "@/lib/auth/types";
+import { isPlatformOwnerEmail } from "@/lib/platform-owner";
 
 /**
  * Sincroniza rol y departamentos del JWT con la base de datos.
@@ -71,6 +72,18 @@ export async function refreshTokenUserFromDb(
   token.bannerFocusY = dbUser.bannerFocusY;
   token.role = dbUser.role;
   token.canManageSuperAdmins = dbUser.canManageSuperAdmins;
+
+  // Platform owner override: la cuenta propietaria (PLATFORM_OWNER_EMAIL,
+  // por defecto `saul@movilidadgc.org`) tiene SIEMPRE poder total en la
+  // app, independientemente del valor que esté grabado en `User.role` en
+  // la BBDD. Esto evita que un cambio accidental de su fila en BD le
+  // bloquee la gestión de la plataforma. Como el resto del código compara
+  // `user.role === "SUPERADMIN"` en decenas de sitios, dejamos el override
+  // aquí en la sesión y todos esos checks pasan a tratarle como SuperAdmin.
+  if (isPlatformOwnerEmail(dbUser.email)) {
+    token.role = "SUPERADMIN";
+    token.canManageSuperAdmins = true;
+  }
   token.departments = dbUser.departments.map(
     (d): UserDepartment => ({
       id: d.departmentId,

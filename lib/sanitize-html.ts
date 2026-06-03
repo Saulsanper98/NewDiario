@@ -137,10 +137,33 @@ function collapseSpaceBeforePunctuationInHtml(html: string): string {
   return out;
 }
 
+/**
+ * TipTap, al pulsar el usuario `Enter` dos veces, suele serializar el
+ * párrafo vacío como `<p></p>` PURO (sin `<br>` real; el
+ * `ProseMirror-trailingBreak` es decorativo y no se serializa).
+ *
+ * El resto del pipeline ya sabe preservar `<p><br></p>` como "línea en
+ * blanco intencional", pero borraba los `<p></p>` puros considerándolos
+ * espurios. Esto hacía que los saltos en blanco que el usuario escribía
+ * en el editor desaparecieran al publicar la nota.
+ *
+ * Por eso, antes del sanitizador, normalizamos `<p></p>` (incluido el
+ * caso con solo whitespace o `&nbsp;` por dentro) a `<p><br></p>`, para
+ * que pasen por la rama "preservar como línea en blanco".
+ */
+function normalizeEmptyParagraphsToBlankLines(html: string): string {
+  return html.replace(
+    /<p\b([^>]*)>(?:\s|&nbsp;|&#160;|&#x0*A0;|\u00a0)*<\/p>/gi,
+    (_, attrs: string) => `<p${attrs}><br></p>`,
+  );
+}
+
 /** HTML seguro para renderizar en el cliente (bitácora, descripciones). */
 export function sanitizeHtml(dirty: string): string {
   /* Antes y después de DOMPurify: si el purificador quita `class` del <br>, el segundo paso sigue limpiando el patrón completo. */
-  const pre = stripProseMirrorHackNodes(dirty);
+  const pre = stripProseMirrorHackNodes(
+    normalizeEmptyParagraphsToBlankLines(dirty),
+  );
   const clean = stripProseMirrorHackNodes(
     DOMPurify.sanitize(pre, {
     USE_PROFILES: { html: true },

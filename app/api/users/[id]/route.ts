@@ -15,7 +15,7 @@ import type { SessionUser } from "@/lib/auth/types";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 import {
-  MIN_PASSWORD_LENGTH,
+  MAX_PASSWORD_LENGTH,
   validatePasswordPolicy,
 } from "@/lib/auth/password-policy";
 import { BCRYPT_COST } from "@/lib/auth/config";
@@ -35,7 +35,15 @@ const patchUserSchema = z
       .optional(),
     bannerFocusX: z.union([z.number().min(0).max(100), z.null()]).optional(),
     bannerFocusY: z.union([z.number().min(0).max(100), z.null()]).optional(),
-    password: z.string().min(MIN_PASSWORD_LENGTH).optional(),
+    /**
+     * Solo validamos tipo y MAX_PASSWORD_LENGTH aquí. La política completa
+     * (longitud mínima, mezcla de clases, lista negra de contraseñas comunes)
+     * se aplica más abajo con `validatePasswordPolicy`, que devuelve mensajes
+     * legibles. Si dejásemos el `.min(MIN_PASSWORD_LENGTH)` aquí, Zod
+     * rechazaría antes con un error flattened que el cliente no sabe leer y
+     * acabaríamos mostrando un toast genérico en vez del motivo real.
+     */
+    password: z.string().max(MAX_PASSWORD_LENGTH).optional(),
     /**
      * Solo necesario cuando el propio usuario cambia su email o su password.
      * H2 del audit: sin esta verificacion, un JWT robado permitia tomar

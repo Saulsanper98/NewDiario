@@ -42,6 +42,12 @@ export type CommentEditorHandle = {
   clear: () => void;
   /** Inserta texto al inicio (p. ej. «@Juan: ») y enfoca al final. */
   prependText: (text: string) => void;
+  /** Abre el selector de archivos del editor. Útil cuando se renderiza el
+   * botón "Imagen" fuera del shell (toolbar externo). */
+  triggerFileUpload: () => void;
+  /** `true` si una imagen se está subiendo en este momento. Permite que un
+   * footer externo refleje el spinner del botón "Imagen". */
+  isUploading: () => boolean;
 };
 
 interface CommentEditorProps {
@@ -59,6 +65,15 @@ interface CommentEditorProps {
   /** Máximo de caracteres visibles (texto plano) — el HTML puede ser mayor. */
   maxLength?: number;
   disabled?: boolean;
+  /** Oculta la barra interna (botón "Imagen" + contador). Pensado para
+   * contextos donde la acción de adjuntar se monta fuera, en un footer
+   * compartido con el botón Enviar (p. ej. comentarios de bitácora). El
+   * `<input type="file">` sigue existiendo y se puede disparar mediante
+   * `triggerFileUpload` desde el handle. */
+  hideToolbar?: boolean;
+  /** Notifica al padre cuando el editor empieza o termina de subir una imagen.
+   * Útil cuando `hideToolbar = true` y el botón Imagen vive fuera. */
+  onUploadingChange?: (uploading: boolean) => void;
   ref?: Ref<CommentEditorHandle>;
 }
 
@@ -72,6 +87,8 @@ export function CommentEditor({
   onSubmit,
   maxLength,
   disabled = false,
+  hideToolbar = false,
+  onUploadingChange,
   ref,
 }: CommentEditorProps) {
   const { theme } = useTheme();
@@ -87,6 +104,9 @@ export function CommentEditor({
   useEffect(() => {
     onChangeRef.current = onChange;
   }, [onChange]);
+  useEffect(() => {
+    onUploadingChange?.(uploading);
+  }, [uploading, onUploadingChange]);
 
   const extensions = useMemo(
     () => [
@@ -244,8 +264,13 @@ export function CommentEditor({
         const end = editor.state.doc.content.size;
         editor.commands.setTextSelection(end);
       },
+      triggerFileUpload: () => {
+        if (disabled || uploading) return;
+        fileInputRef.current?.click();
+      },
+      isUploading: () => uploading,
     }),
-    [editor]
+    [editor, disabled, uploading]
   );
 
   const onFileSelected = useCallback(
@@ -317,45 +342,47 @@ export function CommentEditor({
       />
       <EditorContent editor={editor} />
 
-      <div
-        className={cn(
-          "flex items-center justify-between gap-2 px-2 py-1 border-t",
-          L ? "border-zinc-100" : "border-white/[0.06]"
-        )}
-      >
-        <label
-          htmlFor={inputId}
-          title="Adjuntar imagen"
-          aria-label="Adjuntar imagen"
+      {!hideToolbar && (
+        <div
           className={cn(
-            "inline-flex items-center gap-1 px-1.5 py-1 rounded-md text-[11px] transition-colors cursor-pointer",
-            disabled || uploading ? "opacity-40 cursor-not-allowed pointer-events-none" : "",
-            L ? "text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100" : "text-white/55 hover:text-white hover:bg-white/8"
+            "flex items-center justify-between gap-2 px-2 py-1 border-t",
+            L ? "border-zinc-100" : "border-white/[0.06]"
           )}
         >
-          {uploading ? (
-            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-          ) : (
-            <ImageIcon className="w-3.5 h-3.5" />
-          )}
-          <span className="hidden sm:inline">{uploading ? "Subiendo…" : "Imagen"}</span>
-        </label>
-
-        {typeof maxLength === "number" && charCount > 0 && (
-          <span
+          <label
+            htmlFor={inputId}
+            title="Adjuntar imagen"
+            aria-label="Adjuntar imagen"
             className={cn(
-              "text-[10px] tabular-nums",
-              charCount > maxLength * 0.9
-                ? "text-amber-500"
-                : L
-                  ? "text-zinc-500"
-                  : "text-white/30"
+              "inline-flex items-center gap-1 px-1.5 py-1 rounded-md text-[11px] transition-colors cursor-pointer",
+              disabled || uploading ? "opacity-40 cursor-not-allowed pointer-events-none" : "",
+              L ? "text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100" : "text-white/55 hover:text-white hover:bg-white/8"
             )}
           >
-            {charCount}/{maxLength}
-          </span>
-        )}
-      </div>
+            {uploading ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <ImageIcon className="w-3.5 h-3.5" />
+            )}
+            <span className="hidden sm:inline">{uploading ? "Subiendo…" : "Imagen"}</span>
+          </label>
+
+          {typeof maxLength === "number" && charCount > 0 && (
+            <span
+              className={cn(
+                "text-[10px] tabular-nums",
+                charCount > maxLength * 0.9
+                  ? "text-amber-500"
+                  : L
+                    ? "text-zinc-500"
+                    : "text-white/30"
+              )}
+            >
+              {charCount}/{maxLength}
+            </span>
+          )}
+        </div>
+      )}
     </div>
   );
 }

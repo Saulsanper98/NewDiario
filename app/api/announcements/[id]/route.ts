@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma/client";
-import { isPlatformOwnerUser } from "@/lib/auth/permissions";
+import { isSuperAdmin } from "@/lib/auth/permissions";
 import type { SessionUser } from "@/lib/auth/types";
 import { AnnouncementSeverity } from "@/app/generated/prisma/enums";
 import { safeLinkUrl } from "@/lib/safe-url";
@@ -31,7 +31,8 @@ export async function PATCH(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const user = session.user as SessionUser;
-  if (!isPlatformOwnerUser(user))
+  // Cualquier SuperAdmin (no solo el propietario) puede editar el banner global.
+  if (!isSuperAdmin(user))
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { id } = await params;
@@ -104,7 +105,7 @@ export async function DELETE(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const user = session.user as SessionUser;
-  if (!isPlatformOwnerUser(user))
+  if (!isSuperAdmin(user))
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { id } = await params;

@@ -52,11 +52,34 @@ html[data-theme="light"] {
   --lt-shadow-soft:
     inset 0 1px 0 rgba(255, 255, 255, 0.65),
     0 1px 4px rgba(15, 23, 42, 0.06);
-  /* Sombra tipo «panel flotante» para capas glass */
+  /* Sombra tipo «panel flotante» para capas glass — versión legacy (gris-azul).
+   * Mantenida para compat con reglas que aún la usen. La nueva variante
+   * premium (índigo frío) vive en `--lt-shadow-glass-premium`. */
   --lt-shadow-glass:
     inset 0 1px 0 rgba(255, 255, 255, 0.78),
     0 4px 22px rgba(15, 23, 42, 0.075),
     0 1px 3px rgba(15, 23, 42, 0.045);
+  /* ── Fase 2 ─────────────────────────────────────────────────────────────
+   * Sombra premium para `.glass-*` en tema claro: tono frío índigo
+   * (rgba(60,70,120,...)) en lugar de gris neutro, que aporta una
+   * profundidad «etérea» más coherente con los orbes pastel del fondo
+   * (lavanda/cielo/menta). Doble drop = halo amplio + pegado al borde, y
+   * un inset highlight superior reforzado que simula el canto de vidrio.
+   */
+  --lt-shadow-glass-premium:
+    inset 0 1px 0 rgba(255, 255, 255, 0.92),
+    0 8px 32px rgba(60, 70, 120, 0.10),
+    0 1px 3px rgba(60, 70, 120, 0.06);
+  /* Versión más elevada para `.glass-3` / `.glass-4` (cards densas, modales). */
+  --lt-shadow-glass-premium-lg:
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    0 14px 44px rgba(60, 70, 120, 0.14),
+    0 2px 6px rgba(60, 70, 120, 0.08);
+  /* Hover: misma paleta, drop más amplio y desplazado para sugerir lift. */
+  --lt-shadow-glass-premium-hover:
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    0 12px 40px rgba(60, 70, 120, 0.16),
+    0 2px 6px rgba(60, 70, 120, 0.08);
   /* Acento amarillo (RGB base ≈ #d4bc1a) — más saturado que #ffeb66, no pastel */
   --lt-yellow-rgb: 212, 188, 26;
   --lt-yellow-solid: #d4bc1a;
@@ -111,29 +134,48 @@ html[data-theme="light"] .app-dashboard-root {
   background: transparent;
 }
 
+/* ── Shell (sidebar + header): cristal premium ──────────────────────────
+ *
+ *  Misma capa para ambos: blanco translúcido con blur + saturate. Los orbes
+ *  pastel del body (lavanda + cielo + menta) se filtran a través, dando la
+ *  sensación de cristal sobre el paisaje. Alphas calibradas:
+ *    • 65% en el top → la barra tiene cuerpo y se distingue claramente del
+ *      lienzo, los iconos se leen sin necesidad de aumentarles peso.
+ *    • 38% en mitad → el orbe pastel del body se ve sutilmente, manteniendo
+ *      la sensación cristal.
+ *    • 22% al final → degradado natural hacia el resto del cristal.
+ *  Antes el top estaba a 52% y se percibía «lavado»; al subirlo a 65% el
+ *  sidebar deja de leerse como bloque distinto y entra en la misma familia
+ *  visual que las cards (.glass).
+ * ──────────────────────────────────────────────────────────────────────── */
 html[data-theme="light"] .app-sidebar-shell,
 html[data-theme="light"] .app-top-header {
   background:
     linear-gradient(
       165deg,
-      rgba(255, 255, 255, 0.52) 0%,
-      rgba(255, 255, 255, 0.28) 42%,
-      rgba(248, 248, 251, 0.16) 100%
+      rgba(255, 255, 255, 0.65) 0%,
+      rgba(255, 255, 255, 0.38) 42%,
+      rgba(248, 248, 251, 0.22) 100%
     );
-  backdrop-filter: blur(20px) saturate(1.1);
-  -webkit-backdrop-filter: blur(20px) saturate(1.1);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.58);
+  backdrop-filter: blur(22px) saturate(1.18);
+  -webkit-backdrop-filter: blur(22px) saturate(1.18);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
 }
 
 html[data-theme="light"] .app-top-header {
-  border-bottom: 1px solid var(--lt-border-strong);
+  /* El header siempre tiene contenido a través suyo (el dashboard), así que
+   * un borde inferior frío de baja opacidad lo separa visualmente sin
+   * meterse en el cristal. */
+  border-bottom: 1px solid rgba(60, 70, 120, 0.12);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.62),
-    0 6px 28px rgba(15, 23, 42, 0.06);
+    inset 0 1px 0 rgba(255, 255, 255, 0.78),
+    0 6px 28px rgba(60, 70, 120, 0.08);
 }
 
 html[data-theme="light"] .app-sidebar-shell {
-  border-right: 1px solid var(--lt-border-strong);
+  /* Igual que el header pero vertical. Token frío índigo para que el borde
+   * pertenezca a la misma familia que el `--lt-shadow-glass-premium`. */
+  border-right: 1px solid rgba(60, 70, 120, 0.12);
 }
 
 /* Smart expandido en claro: mismo criterio — panel legible sin «doble capa» con el main */
@@ -151,92 +193,230 @@ html[data-theme="light"] .app-sidebar-shell.sidebar-expanded-solid {
 }
 
 /* Tarjetas y paneles: cristal (blur + translucidez), no chapas opacas */
+/* ════════════════════════════════════════════════════════════════════════
+ *  FASE 2 — Cristal blanco vibrante en cards (tema Light)
+ *
+ *  Decisiones clave respecto a Fase 1:
+ *    • `saturate` subido a 1.30-1.40 → los pastel del fondo (lavanda + cielo
+ *      + menta) se ven más vivos a través del backdrop-filter.
+ *    • Blur subido a 22-28 px (antes 18-26) → más sensación de cristal
+ *      esmerilado sin perder lo que hay detrás.
+ *    • Borde `rgba(255, 255, 255, 0.78)` → canto luminoso que define la card.
+ *    • Sombra premium fría índigo (rgba(60,70,120,...)) en lugar de gris
+ *      neutro → profundidad coherente con los orbes pastel.
+ *    • Hover: sombra MÁS profunda + cambio sutil de fondo. SIN glow neón,
+ *      SIN halo de color exterior. En claro, el lift se construye con
+ *      sombra etérea, no con luz.
+ *  NO añadimos `::before` con reflejo diagonal global porque (igual que
+ *  hicieron en Cristal/Slate) tapa contenido en cards densas. Si se quiere,
+ *  se aplica a `.glass-surface` (clase opt-in) en una Fase 2b.
+ * ──────────────────────────────────────────────────────────────────────── */
 html[data-theme="light"] .glass,
 html[data-theme="light"] .glass-1 {
   background:
     linear-gradient(
-      155deg,
-      rgba(255, 255, 255, 0.7) 0%,
-      rgba(255, 255, 255, 0.4) 45%,
-      rgba(248, 248, 250, 0.28) 100%
+      150deg,
+      rgba(255, 255, 255, 0.72) 0%,
+      rgba(255, 255, 255, 0.48) 48%,
+      rgba(248, 248, 252, 0.34) 100%
     );
-  backdrop-filter: blur(var(--lt-glass-blur)) saturate(1.12);
-  -webkit-backdrop-filter: blur(var(--lt-glass-blur)) saturate(1.12);
-  border: 1px solid rgba(255, 255, 255, 0.58);
-  box-shadow: var(--lt-shadow-glass);
+  backdrop-filter: blur(22px) saturate(1.35);
+  -webkit-backdrop-filter: blur(22px) saturate(1.35);
+  border: 1px solid rgba(255, 255, 255, 0.78);
+  box-shadow: var(--lt-shadow-glass-premium);
 }
 
 html[data-theme="light"] .glass-2 {
   background:
     linear-gradient(
-      155deg,
-      rgba(255, 255, 255, 0.78) 0%,
-      rgba(255, 255, 255, 0.46) 48%,
-      rgba(246, 246, 249, 0.34) 100%
+      150deg,
+      rgba(255, 255, 255, 0.80) 0%,
+      rgba(255, 255, 255, 0.54) 48%,
+      rgba(246, 246, 249, 0.40) 100%
     );
-  backdrop-filter: blur(20px) saturate(1.12);
-  -webkit-backdrop-filter: blur(20px) saturate(1.12);
-  border: 1px solid rgba(255, 255, 255, 0.62);
-  box-shadow: var(--lt-shadow-glass);
+  backdrop-filter: blur(22px) saturate(1.32);
+  -webkit-backdrop-filter: blur(22px) saturate(1.32);
+  border: 1px solid rgba(255, 255, 255, 0.80);
+  box-shadow: var(--lt-shadow-glass-premium);
 }
 
 html[data-theme="light"] .glass-opaque-bitacora {
   background:
     linear-gradient(
-      155deg,
-      rgba(255, 255, 255, 0.88) 0%,
-      rgba(252, 252, 253, 0.62) 100%
+      150deg,
+      rgba(255, 255, 255, 0.90) 0%,
+      rgba(252, 252, 253, 0.66) 100%
     );
-  backdrop-filter: blur(var(--lt-glass-blur-lg)) saturate(1.08);
-  -webkit-backdrop-filter: blur(var(--lt-glass-blur-lg)) saturate(1.08);
-  border: 1px solid rgba(255, 255, 255, 0.55);
-  box-shadow: var(--lt-shadow-glass);
+  backdrop-filter: blur(24px) saturate(1.20);
+  -webkit-backdrop-filter: blur(24px) saturate(1.20);
+  border: 1px solid rgba(255, 255, 255, 0.75);
+  box-shadow: var(--lt-shadow-glass-premium);
 }
 
 html[data-theme="light"] .glass-3 {
   background:
     linear-gradient(
-      160deg,
-      rgba(255, 255, 255, 0.86) 0%,
-      rgba(248, 248, 250, 0.58) 100%
+      155deg,
+      rgba(255, 255, 255, 0.88) 0%,
+      rgba(248, 248, 252, 0.66) 100%
     );
-  backdrop-filter: blur(var(--lt-glass-blur-lg)) saturate(1.1);
-  -webkit-backdrop-filter: blur(var(--lt-glass-blur-lg)) saturate(1.1);
-  border: 1px solid rgba(255, 255, 255, 0.52);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.75),
-    0 10px 40px rgba(15, 23, 42, 0.1),
-    0 2px 8px rgba(15, 23, 42, 0.05);
+  backdrop-filter: blur(26px) saturate(1.25);
+  -webkit-backdrop-filter: blur(26px) saturate(1.25);
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  box-shadow: var(--lt-shadow-glass-premium-lg);
 }
 
 html[data-theme="light"] .glass-4 {
   background:
     linear-gradient(
-      162deg,
-      rgba(255, 255, 255, 0.92) 0%,
-      rgba(250, 250, 252, 0.72) 100%
+      155deg,
+      rgba(255, 255, 255, 0.93) 0%,
+      rgba(250, 250, 253, 0.78) 100%
     );
-  backdrop-filter: blur(26px) saturate(1.08);
-  -webkit-backdrop-filter: blur(26px) saturate(1.08);
-  border: 1px solid rgba(255, 255, 255, 0.55);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.82),
-    0 14px 48px rgba(15, 23, 42, 0.12);
+  backdrop-filter: blur(28px) saturate(1.18);
+  -webkit-backdrop-filter: blur(28px) saturate(1.18);
+  border: 1px solid rgba(255, 255, 255, 0.70);
+  box-shadow: var(--lt-shadow-glass-premium-lg);
 }
 
 html[data-theme="light"] .glass-hover:hover {
   background:
     linear-gradient(
-      155deg,
-      rgba(255, 255, 255, 0.84) 0%,
-      rgba(255, 255, 255, 0.52) 48%,
-      rgba(252, 252, 254, 0.38) 100%
+      150deg,
+      rgba(255, 255, 255, 0.86) 0%,
+      rgba(255, 255, 255, 0.60) 48%,
+      rgba(252, 252, 254, 0.46) 100%
     );
-  border-color: rgba(15, 23, 42, 0.1);
+  border-color: rgba(255, 255, 255, 0.92);
+  box-shadow: var(--lt-shadow-glass-premium-hover);
+  /* Lift sutil top-level. En las cards anidadas dentro de `.glass` se
+   * neutraliza más abajo con `transform: none` para no chocar con el
+   * `overflow: hidden` del padre. */
+  transform: translateY(-2px);
+}
+
+/* Hover de cards anidadas (caso Proyectos activos): el drop premium de 40 px
+ * se desbordaría del Card `.glass` padre y dispararía scroll horizontal.
+ * Mismo patrón aplicado en Cristal/Slate: usamos un drop mucho más pequeño
+ * cuando la `.glass-hover` vive dentro de otra `.glass`. Además anulamos el
+ * translateY para que el lift no luche con el `overflow: hidden` del padre. */
+html[data-theme="light"] .glass .glass-hover:hover,
+html[data-theme="light"] .glass-1 .glass-hover:hover,
+html[data-theme="light"] .glass-2 .glass-hover:hover,
+html[data-theme="light"] .glass-3 .glass-hover:hover,
+html[data-theme="light"] .glass-4 .glass-hover:hover {
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.88),
-    0 8px 32px rgba(15, 23, 42, 0.09),
-    0 1px 3px rgba(15, 23, 42, 0.05);
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    0 2px 8px rgba(60, 70, 120, 0.10);
+  transform: none;
+}
+
+/* Cinturón de seguridad: igual que en Cristal y Slate, recortamos el
+ * desbordamiento del `.glass` padre cuando contiene cards interactivas.
+ * Acotado por `:has()` para no afectar a Cards normales sin tiles dentro. */
+html[data-theme="light"] .glass:has(.glass-hover) {
+  overflow: hidden;
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+ *  FASE 3 — Microinteracciones premium (tema Light)
+ *
+ *  • Shine diagonal en `.glass-hover::after`: banda blanca translúcida
+ *    cruzando la card al pasar el ratón. Reemplaza el `::after` de noise
+ *    (definido en globals.css para `.glass/.glass-1/.glass-2`) por mayor
+ *    especificidad. La noise era prácticamente invisible en claro
+ *    (opacity 0.0045) así que no perdemos nada. Sobre claro el blanco se
+ *    nota menos que sobre oscuro, así que subimos el alpha de la banda a
+ *    0.45 — sigue siendo sutil pero ahora se ve.
+ *
+ *  • Stage-in del lienzo del dashboard: fade + lift de 10 px al primer
+ *    paint. Mismo patrón que Cristal/Slate, replicado aquí para mantener
+ *    la sensación de carga «pulida».
+ *
+ *  • Tipografía fina: títulos del dashboard a font-weight 300 con
+ *    letter-spacing negativo. Mismo selector exacto que Cristal usa.
+ *
+ *  Todo el bloque vive bajo `prefers-reduced-motion: no-preference` para
+ *  desactivarse en perfiles accesibilidad. La tipografía fina y los
+ *  estilos estáticos sí se mantienen porque no son motion.
+ * ──────────────────────────────────────────────────────────────────────── */
+
+/* Shine: el padre necesita overflow:hidden para clipear la banda.
+ * Ya lo tienen las cards anidadas via `.glass:has(.glass-hover)`, pero las
+ * `.glass-hover` top-level no, así que se lo añadimos aquí. */
+html[data-theme="light"] .glass-hover {
+  overflow: hidden;
+}
+
+html[data-theme="light"] .glass-hover::after,
+html[data-theme="light"] .glass-surface::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    115deg,
+    transparent 30%,
+    rgba(255, 255, 255, 0.45) 50%,
+    transparent 70%
+  );
+  transform: translateX(-110%);
+  transition: transform 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+  border-radius: inherit;
+  z-index: 0;
+}
+
+/* Cualquier hijo directo de la card pasa al frente para que la banda no
+ * tape texto, iconos, etc. */
+html[data-theme="light"] .glass-hover > * {
+  position: relative;
+  z-index: 1;
+}
+
+html[data-theme="light"] .glass-hover:hover::after,
+html[data-theme="light"] .glass-surface:hover::after {
+  transform: translateX(110%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-theme="light"] .glass-hover::after,
+  html[data-theme="light"] .glass-surface::after {
+    display: none;
+  }
+}
+
+/* Stage-in del dashboard al primer paint. Solo afecta a `main/section`
+ * dentro del shell; no propaga al kanban, bitácora o filtros (lección
+ * aprendida en Cristal: el «stagger por hijos» daba ruido visual). */
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes light-stage-in {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  html[data-theme="light"] .app-dashboard-root > main,
+  html[data-theme="light"] .app-dashboard-root > section {
+    animation: light-stage-in 360ms cubic-bezier(0.2, 0.6, 0.2, 1) both;
+  }
+}
+
+/* Tipografía fina premium: misma decisión que Cristal aplicada al
+ * dashboard. Mantiene el contraste con el texto secundario (que sigue
+ * con el peso por defecto). */
+html[data-theme="light"] .app-dashboard-root h1,
+html[data-theme="light"] .app-dashboard-root h2 {
+  font-weight: 300;
+  letter-spacing: -0.01em;
+}
+
+html[data-theme="light"] .dashboard-stat-value {
+  font-weight: 300 !important;
 }
 
 /* Textura noise muy suave (misma capa que Aurora; en claro casi imperceptible) */
@@ -1452,29 +1632,16 @@ html[data-theme="light"] #bitacora-feed-filters-trigger .text-white\/45 {
   color: rgb(82 82 91 / 0.75) !important;
 }
 
-/* Dashboard (tema claro): estado y alertas con contraste AA */
-html[data-theme="light"] .dashboard-followup-banner {
-  border-color: rgba(180, 83, 9, 0.35) !important;
-  background: linear-gradient(180deg, rgba(245, 158, 11, 0.16) 0%, rgba(251, 191, 36, 0.12) 100%) !important;
-  color: #78350f !important;
-  box-shadow: 0 2px 10px rgba(180, 83, 9, 0.08);
-}
-
-html[data-theme="light"] .dashboard-urgent-banner {
-  border-color: rgba(185, 28, 28, 0.4) !important;
-  background: linear-gradient(180deg, rgba(239, 68, 68, 0.16) 0%, rgba(254, 226, 226, 0.72) 100%) !important;
-  box-shadow: 0 3px 12px rgba(185, 28, 28, 0.09);
-}
-
-html[data-theme="light"] .dashboard-allgood-banner {
-  border-color: rgba(4, 120, 87, 0.36) !important;
-  background: linear-gradient(180deg, rgba(16, 185, 129, 0.2) 0%, rgba(236, 253, 245, 0.86) 100%) !important;
-  box-shadow: 0 3px 12px rgba(4, 120, 87, 0.08);
-}
-
+/* Dashboard (tema claro): icono del banner "todo en orden" */
 html[data-theme="light"] .dashboard-allgood-icon {
   background: rgba(5, 150, 105, 0.24) !important;
 }
+
+/* (Los banners `.dashboard-followup-banner`, `.dashboard-urgent-banner` y
+ * `.dashboard-allgood-banner` se definen más abajo en el bloque «Dashboard:
+ * banners premium» — antes había aquí una versión previa con gradientes que
+ * se machacaba inmediatamente por la versión sólida + border-left de acento.
+ * Se ha eliminado este duplicado.) */
 
 /* Proyectos (tema claro): separar filtros, cards y filas del lienzo */
 html[data-theme="light"] .project-list-filters {
@@ -1496,49 +1663,41 @@ html[data-theme="light"] .project-list-row:hover {
   box-shadow: 0 6px 18px rgba(15, 23, 42, 0.09);
 }
 
-/* Estados semánticos en claro: evitar tonos demasiado lavados */
-html[data-theme="light"] .text-emerald-300,
-html[data-theme="light"] .text-emerald-400,
-html[data-theme="light"] .text-green-400 {
+/* Estados semánticos en claro: solo las variantes -300 (las -400 / -500 se
+ * definen más abajo en el bloque «Badges de estado/tipo» con triada
+ * completa text + bg + border, y este sitio antes las duplicaba con un
+ * valor distinto, generando inconsistencia en hover/focus). */
+html[data-theme="light"] .text-emerald-300 {
   color: #047857 !important;
 }
 
-html[data-theme="light"] .text-red-300,
-html[data-theme="light"] .text-red-400 {
+html[data-theme="light"] .text-red-300 {
   color: #b91c1c !important;
 }
 
-html[data-theme="light"] .text-amber-300,
-html[data-theme="light"] .text-amber-400,
-html[data-theme="light"] .text-yellow-400 {
+html[data-theme="light"] .text-amber-300 {
   color: #b45309 !important;
 }
 
-html[data-theme="light"] .text-blue-400 {
-  color: #1d4ed8 !important;
-}
-
-html[data-theme="light"] .bg-emerald-400\/8,
+/* Fondos pastel para variantes -500 (las -400 se sobreescriben más abajo
+ * en el bloque de badges). */
 html[data-theme="light"] .bg-emerald-500\/6,
 html[data-theme="light"] .bg-emerald-500\/8,
 html[data-theme="light"] .bg-emerald-500\/10 {
   background-color: rgba(5, 150, 105, 0.16) !important;
 }
 
-html[data-theme="light"] .bg-red-400\/8,
 html[data-theme="light"] .bg-red-500\/6,
 html[data-theme="light"] .bg-red-500\/8,
 html[data-theme="light"] .bg-red-500\/10 {
   background-color: rgba(239, 68, 68, 0.15) !important;
 }
 
-html[data-theme="light"] .bg-amber-400\/8,
 html[data-theme="light"] .bg-amber-500\/8,
 html[data-theme="light"] .bg-amber-500\/10 {
   background-color: rgba(245, 158, 11, 0.16) !important;
 }
 
-html[data-theme="light"] .bg-blue-400\/10,
 html[data-theme="light"] .bg-blue-500\/10 {
   background-color: rgba(59, 130, 246, 0.16) !important;
 }
@@ -1577,9 +1736,14 @@ html[data-theme="light"] body {
   color: #1a1f2e !important;
 }
 
-html[data-theme="light"] .app-sidebar-shell {
-  background: linear-gradient(180deg, rgba(248, 250, 252, 0.86) 0%, rgba(241, 245, 249, 0.82) 100%) !important;
-}
+/* (eliminado) Antes había aquí un segundo `html[data-theme="light"] .app-sidebar-shell`
+ * con un background slate semiopaco (`rgba(248,250,252,0.86)`) y `!important`
+ * que machacaba el cristal premium translúcido definido arriba (línea ~137).
+ * El resultado era una franja slate plana que no combinaba ni con las cards
+ * cristal ni con el body pastel. Ahora el sidebar usa la regla única de
+ * cristal premium, igual que el header. Si necesitamos darle más cuerpo en
+ * algún breakpoint, mejor subir las alphas de esa regla única que crear
+ * overrides aquí abajo. */
 
 /* Marcos de avatar (tema claro) */
 html[data-theme="light"] .avatar-frame-inner {
@@ -1749,21 +1913,30 @@ html[data-theme="light"] .avatar-frame-picker-grid::-webkit-scrollbar-thumb:hove
   );
 }
 
-/* Sidebar: inactivos gray-400, activo ámbar suave */
+/* ── Sidebar nav links ──────────────────────────────────────────────────
+ * Inactivo: slate-500 (suficiente contraste sobre el cristal premium).
+ * Hover: slate-800 con un velo blanco que «engancha» el cursor al cristal.
+ * Activo: tokens del acento amarillo premium del tema (los mismos que usa
+ * el resto de la app: botón primario, project tab activo, etc.). Antes
+ * usaba un patrón ámbar plano (#fffbeb / #fcd34d / #92400e) distinto y
+ * más turbio que rompía la cohesión con el resto de elementos. */
 html[data-theme="light"] .sidebar-nav-link {
-  color: #94a3b8 !important;
+  color: #64748b !important;
   transition: color 150ms ease, background-color 150ms ease, border-color 150ms ease;
 }
 
 html[data-theme="light"] .sidebar-nav-link:hover {
-  color: #334155 !important;
-  background: rgba(241, 245, 249, 0.9) !important;
+  color: #1e293b !important;
+  background: rgba(255, 255, 255, 0.7) !important;
 }
 
 html[data-theme="light"] .sidebar-nav-link.sidebar-nav-link-active {
-  color: #92400e !important;
-  background: #fffbeb !important;
-  border-color: #fcd34d !important;
+  color: var(--lt-yellow-text) !important;
+  background: var(--lt-accent-bg-mid) !important;
+  border-color: var(--lt-accent-border-strong) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.7),
+    0 1px 3px rgba(var(--lt-yellow-rgb), 0.12);
 }
 
 /* Dashboard: quick actions con más presencia en claro */
@@ -2063,13 +2236,18 @@ html[data-theme="light"] .config-tabs-root .config-tab-trigger {
 
 html[data-theme="light"] .config-tabs-root .config-tab-trigger:hover {
   color: #0f172a !important;
-  background: #f8fafc !important;
+  background: rgba(255, 255, 255, 0.7) !important;
 }
 
+/* Mismo patrón que el sidebar-nav activo: token de acento amarillo premium
+ * para mantener consistencia cromática entre nav lateral y tabs internos. */
 html[data-theme="light"] .config-tabs-root .config-tab-trigger.config-tab-trigger-active {
-  color: #92400e !important;
-  background: #fffbeb !important;
-  border-color: #fcd34d !important;
+  color: var(--lt-yellow-text) !important;
+  background: var(--lt-accent-bg-mid) !important;
+  border-color: var(--lt-accent-border-strong) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.7),
+    0 1px 3px rgba(var(--lt-yellow-rgb), 0.12);
 }
 
 html[data-theme="light"] .config-users-search,
@@ -2104,17 +2282,20 @@ html[data-theme="light"] .config-activity-root tr.hover\:bg-white\/2:hover {
   background: #f8fafc !important;
 }
 
-/* Header global: controles claros y distinguibles */
-html[data-theme="light"] .app-top-header {
-  border-bottom-color: rgba(148, 163, 184, 0.45) !important;
-}
-
+/* Header global: controles distinguibles pero coherentes con el cristal.
+ * Antes los chips `bg-white/5` se pintaban a `#ffffff` opaco y se leían como
+ * pegatinas blancas sobre el cristal del header. Ahora reciben un blanco
+ * translúcido que mantiene la sensación de cristal sobre el paisaje pastel
+ * del body. El borde inferior del header se reutiliza del bloque shell
+ * (no se duplica aquí). */
 html[data-theme="light"] .app-top-header .bg-white\/5 {
-  background: #ffffff !important;
+  background: rgba(255, 255, 255, 0.55) !important;
+  backdrop-filter: blur(8px) saturate(1.05);
+  -webkit-backdrop-filter: blur(8px) saturate(1.05);
 }
 
 html[data-theme="light"] .app-top-header .border-white\/8 {
-  border-color: #cbd5e1 !important;
+  border-color: rgba(60, 70, 120, 0.14) !important;
 }
 
 /* Confirm modal en claro */

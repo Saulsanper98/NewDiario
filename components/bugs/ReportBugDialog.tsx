@@ -163,10 +163,13 @@ export function ReportBugDialog({ open, onClose }: ReportBugDialogProps) {
   return (
     <Modal open={open} onClose={onClose} size="md">
       <form onSubmit={handleSubmit} className="space-y-5">
-        {/* ── Hero del diálogo ── */}
+        {/* ── Hero del diálogo ──
+         * `pr-12 sm:pr-14` reserva espacio para el botón cerrar del Modal,
+         * que es absoluto a top-4 right-4 del diálogo. Sin este padding la
+         * X caía visualmente sobre el icono Sparkles y el título. */}
         <div
           className={cn(
-            "relative overflow-hidden rounded-2xl border p-4 sm:p-5",
+            "relative overflow-hidden rounded-2xl border p-4 pr-12 sm:p-5 sm:pr-14",
             L
               ? "border-amber-200/80 bg-gradient-to-br from-amber-50 via-amber-50/60 to-orange-50/40"
               : "border-[#ffeb66]/20 bg-gradient-to-br from-[#ffeb66]/[0.08] via-amber-500/[0.04] to-orange-500/[0.04]"

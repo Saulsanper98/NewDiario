@@ -626,7 +626,15 @@ html[data-theme="glass"] .app-modal-dialog[data-modal-surface="dark"]::before {
   border-radius: inherit;
   z-index: 0;
 }
-html[data-theme="glass"] .app-modal-dialog[data-modal-surface="dark"] > * {
+/* Contenido del modal por encima del reflejo `::before`.
+ *
+ * IMPORTANTE: excluimos `button[aria-label="Cerrar"]` para no machacar su
+ * `position: absolute` (top-4 right-4). Antes la regla genérica `> *` lo
+ * pasaba a `relative` y el botón cerrar caía debajo del título, en el
+ * flujo normal del documento — bug reportado en Cristal/Slate. El propio
+ * botón ya define su `z-index: 1` por Tailwind (`z-[1]`), así que sigue
+ * flotando por encima del reflejo. */
+html[data-theme="glass"] .app-modal-dialog[data-modal-surface="dark"] > *:not(button[aria-label="Cerrar"]) {
   position: relative;
   z-index: 1;
 }

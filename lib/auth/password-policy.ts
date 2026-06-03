@@ -3,8 +3,9 @@
  * contrasenas (POST /api/users, PATCH /api/users/[id], reset, etc.).
  *
  * Reglas:
- *   - Minimo 12 caracteres (NIST 800-63B recomienda 8 minimo; 12 es nuestro
- *     baseline para reducir el espacio de busqueda offline).
+ *   - Minimo 8 caracteres (NIST 800-63B). Anteriormente era 12; bajado a
+ *     peticion explicita del propietario. Compensamos con la regla de
+ *     complejidad y la lista negra de contrasenas comunes.
  *   - Al menos 3 de las 4 clases (mayuscula, minuscula, digito, simbolo)
  *     para forzar entropia razonable sin caer en el sin-sentido de
  *     "1Mayus+1Num+1Sim" que la gente esquiva con `Password1!`.
@@ -15,7 +16,7 @@
  * No bloqueamos por similitud con el email o el nombre por simplicidad;
  * lo hace `failedLoginAttempts + lockedUntil` desde la cara opuesta.
  */
-export const MIN_PASSWORD_LENGTH = 12;
+export const MIN_PASSWORD_LENGTH = 8;
 export const MAX_PASSWORD_LENGTH = 256;
 
 const COMMON_PASSWORDS = new Set<string>([

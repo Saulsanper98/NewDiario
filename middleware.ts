@@ -1,8 +1,117 @@
 import NextAuth from "next-auth";
 import { NextResponse } from "next/server";
 import { edgeAuthConfig } from "@/lib/auth/edge-config";
+import { checkRateLimit } from "@/lib/chat/rate-limit";
 
 const { auth } = NextAuth(edgeAuthConfig);
+
+// ─── Rate-limit global por IP ───────────────────────────────────────────────
+//
+// Mitigación frente a ataques tipo `hey` / `wrk` / `ab` que disparan miles de
+// peticiones desde una sola IP intentando saturar el proceso Node. Antes solo
+// había rate-limit en 4 rutas (login + uploads de chat/sounds); el resto del
+// servidor estaba expuesto.
+//
+// Sliding-window por bucket (clave = `mw:<rule>:<ip>`), 60 s de ventana,
+// con tres niveles segun la naturaleza de la ruta:
+//
+//   • LOGIN     →  20 req / min  (más estricto: dificulta fuerza bruta)
+//   • API       → 300 req / min  (5/s sostenido: amplio para polling y burst
+//                                 al cargar dashboard con muchos widgets)
+//   • PAGE/SSR  → 200 req / min  (navegación normal nunca se acerca)
+//
+// Las conexiones SSE persistentes (`/api/chat/stream`) quedan EXCLUIDAS:
+// son una única conexión larga, no múltiples peticiones cortas. Si las
+// contásemos, una pestaña abierta golpearía el bucket.
+//
+// El estado vive en `lib/chat/rate-limit.ts` (Map en memoria del proceso).
+// Para una instalación on-prem mono-instancia (NSSM + `next start`) es
+// suficiente. Si en el futuro hay cluster, migrar a Redis manteniendo la
+// misma firma de `checkRateLimit`.
+
+interface MiddlewareRateLimitRule {
+  /** Sub-clave para separar buckets de login/api/page (sino se mezclarían). */
+  key: "login" | "session" | "api" | "page";
+  /** Máximo de peticiones permitidas dentro de la ventana. */
+  limit: number;
+  /** Ventana en milisegundos. */
+  windowMs: number;
+}
+
+function chooseRateLimitRule(pathname: string): MiddlewareRateLimitRule | null {
+  // SSE: una conexión persistente; medirla no aporta nada (se mantiene abierta).
+  if (pathname.startsWith("/api/chat/stream")) return null;
+
+  // Login y descubrimiento de cuentas: muy estricto para frenar fuerza bruta.
+  // No incluimos `/api/auth/session` aquí porque es polling legítimo (NextAuth
+  // lo llama desde el cliente para refrescar el JWT cada cierto tiempo).
+  if (
+    pathname.startsWith("/api/auth/callback/credentials") ||
+    pathname.startsWith("/api/auth/signin") ||
+    pathname === "/api/login-users" ||
+    pathname === "/api/login-departments"
+  ) {
+    return { key: "login", limit: 20, windowMs: 60_000 };
+  }
+
+  // Polling de sesión del cliente NextAuth (`useSession`). Frecuente pero
+  // ligero. Bucket separado para no consumir cuota de la API general.
+  if (pathname === "/api/auth/session") {
+    return { key: "session", limit: 120, windowMs: 60_000 };
+  }
+
+  // API general: cubrir cualquier /api/* no clasificado arriba.
+  if (pathname.startsWith("/api/")) {
+    return { key: "api", limit: 300, windowMs: 60_000 };
+  }
+
+  // Páginas SSR (dashboard, bitácora, proyectos, chat, etc.).
+  return { key: "page", limit: 200, windowMs: 60_000 };
+}
+
+/** IP del cliente respetando proxies internos (IIS / nginx). */
+function getClientIp(req: Request): string {
+  const fwd = req.headers.get("x-forwarded-for");
+  if (fwd) {
+    // Primera de la cadena = cliente real más cercano.
+    const first = fwd.split(",")[0]?.trim();
+    if (first) return first;
+  }
+  const real = req.headers.get("x-real-ip");
+  if (real) return real.trim();
+  return "unknown";
+}
+
+/** Respuesta 429 lista para JSON (API) o texto (página). */
+function makeTooManyRequestsResponse(
+  isApi: boolean,
+  retryAfterMs: number,
+  limit: number,
+): Response {
+  const retryAfterSeconds = Math.max(1, Math.ceil(retryAfterMs / 1000));
+  const baseHeaders: HeadersInit = {
+    "Retry-After": String(retryAfterSeconds),
+    "X-RateLimit-Limit": String(limit),
+    "X-RateLimit-Remaining": "0",
+    "Cache-Control": "no-store",
+  };
+  if (isApi) {
+    return Response.json(
+      {
+        error: "Demasiadas solicitudes desde esta IP. Espera unos segundos.",
+        retryAfterSeconds,
+      },
+      { status: 429, headers: baseHeaders },
+    );
+  }
+  return new Response(
+    "Demasiadas solicitudes desde esta IP. Vuelve a intentarlo en unos segundos.",
+    {
+      status: 429,
+      headers: { ...baseHeaders, "Content-Type": "text/plain; charset=utf-8" },
+    },
+  );
+}
 
 /**
  * Cookies HUÉRFANAS de Auth.js que pudieron quedarse en el navegador del
@@ -72,6 +181,35 @@ export default auth((req) => {
   ) {
     return new Response("Gone", { status: 410 });
   }
+
+  // ── Rate-limit por IP ──────────────────────────────────────────────────
+  // Lo aplicamos AQUÍ (antes de evaluar sesión / cookies) para que un ataque
+  // que dispara peticiones a /api/* o a páginas SSR caiga rápido sin gastar
+  // ciclos verificando JWT ni renderizando React.
+  const rateLimitRule = chooseRateLimitRule(nextUrl.pathname);
+  if (rateLimitRule) {
+    const ip = getClientIp(req);
+    const rl = checkRateLimit({
+      key: `mw:${rateLimitRule.key}:${ip}`,
+      limit: rateLimitRule.limit,
+      windowMs: rateLimitRule.windowMs,
+    });
+    if (!rl.ok) {
+      // Log mínimo para detectar ataques sostenidos sin saturar el stdout.
+      // Solo se loguea cuando se bloquea (no en cada petición permitida).
+      console.warn("[middleware] rate-limit", {
+        ip,
+        bucket: rateLimitRule.key,
+        path: nextUrl.pathname,
+      });
+      return makeTooManyRequestsResponse(
+        nextUrl.pathname.startsWith("/api/"),
+        rl.retryAfterMs,
+        rateLimitRule.limit,
+      );
+    }
+  }
+
   const isLoggedIn = !!session;
   const isLoginPage = nextUrl.pathname.startsWith("/login");
   const isApiRoute = nextUrl.pathname.startsWith("/api");

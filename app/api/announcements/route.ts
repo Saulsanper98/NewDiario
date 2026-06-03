@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma/client";
-import { isPlatformOwnerUser } from "@/lib/auth/permissions";
+import { isSuperAdmin } from "@/lib/auth/permissions";
 import type { SessionUser } from "@/lib/auth/types";
 import { AnnouncementSeverity } from "@/app/generated/prisma/enums";
 import { safeLinkUrl } from "@/lib/safe-url";
@@ -37,7 +37,10 @@ export async function GET(req: NextRequest) {
   const scope = url.searchParams.get("scope");
 
   if (scope === "admin") {
-    if (!isPlatformOwnerUser(user))
+    // El banner global lo gestionan TODOS los SuperAdmin, no solo el
+    // propietario de la plataforma. La asignación/retirada del rol
+    // SuperAdmin sigue siendo prerrogativa exclusiva del propietario.
+    if (!isSuperAdmin(user))
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
     const all = await prisma.announcement.findMany({
@@ -96,7 +99,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const user = session.user as SessionUser;
-  if (!isPlatformOwnerUser(user))
+  if (!isSuperAdmin(user))
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const raw = await req.json();

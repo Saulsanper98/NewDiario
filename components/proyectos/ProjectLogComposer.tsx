@@ -12,6 +12,7 @@ import {
 } from "@/lib/project-log-palette";
 import type { ProjectLogEntryType } from "@/app/generated/prisma/enums";
 import type { ProjectLogEntryDTO } from "./project-log-types";
+import { hasSubstantiveLogEntryBody } from "@/lib/log-entry-body";
 
 interface ProjectLogComposerProps {
   projectId: string;
@@ -42,8 +43,7 @@ export function ProjectLogComposer({
   async function submit() {
     if (submitting) return;
     const trimmedTitle = title.trim();
-    const hasContent = content.replace(/<[^>]+>/g, "").trim().length > 0;
-    if (!hasContent) {
+    if (!hasSubstantiveLogEntryBody(content)) {
       toast.error("Escribe algo antes de publicar.");
       return;
     }

@@ -1267,8 +1267,14 @@ export const TaskDetailPanel = forwardRef<HTMLDivElement, TaskDetailPanelProps>(
                           {renderPlainTextWithMentions(bodyText, taskMentionHighlightNames)}
                         </div>
                       ) : (
+                        // `bodyText` (== `plainForReply` cuando no hay reply)
+                        // ya pasó por `commentPlainText`, que elimina los
+                        // `<p>`/`<br>` y demás etiquetas. Si pasáramos
+                        // `c.content` directamente, React las escaparía y se
+                        // verían como texto literal: `<p>Hola</p>`. Mismo
+                        // criterio que la rama de respuesta de arriba.
                         <p className="text-xs text-white/55 leading-relaxed whitespace-pre-wrap break-words">
-                          {renderPlainTextWithMentions(c.content, taskMentionHighlightNames)}
+                          {renderPlainTextWithMentions(bodyText, taskMentionHighlightNames)}
                         </p>
                       )}
                     </div>

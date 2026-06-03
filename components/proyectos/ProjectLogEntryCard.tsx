@@ -26,6 +26,7 @@ import { bitacoraReadingProseClass } from "@/lib/bitacora-html-prose";
 import { bitacoraProseRootProps } from "@/lib/bitacora-prose-constants";
 import { getProjectLogTypePalette } from "@/lib/project-log-palette";
 import { CommentEditor, type CommentEditorHandle } from "@/components/shared/CommentEditor";
+import { hasSubstantiveLogEntryBody } from "@/lib/log-entry-body";
 import type { SessionUser } from "@/lib/auth/types";
 import type {
   ProjectLogCommentDTO,
@@ -197,8 +198,7 @@ export function ProjectLogEntryCard({
   async function saveEdit() {
     if (savingEdit) return;
     const trimmedTitle = editTitle.trim();
-    const hasContent = editContent.replace(/<[^>]+>/g, "").trim().length > 0;
-    if (!hasContent) {
+    if (!hasSubstantiveLogEntryBody(editContent)) {
       toast.error("El contenido no puede estar vacío.");
       return;
     }
@@ -723,8 +723,7 @@ function ProjectLogComments({
 
   async function submitComment() {
     if (sending) return;
-    const hasContent = draft.replace(/<[^>]+>/g, "").trim().length > 0;
-    if (!hasContent) {
+    if (!hasSubstantiveLogEntryBody(draft)) {
       toast.error("Escribe algo antes de enviar.");
       return;
     }

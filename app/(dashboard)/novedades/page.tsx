@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { Header } from "@/components/layout/Header";
 import { NovedadesView } from "@/components/novedades/NovedadesView";
 import { prisma } from "@/lib/prisma/client";
-import { isPlatformOwnerUser } from "@/lib/auth/permissions";
+import { isPlatformOwnerUser, isSuperAdmin } from "@/lib/auth/permissions";
 import type { SessionUser } from "@/lib/auth/types";
 
 export default async function NovedadesPage() {
@@ -11,7 +11,11 @@ export default async function NovedadesPage() {
   if (!session?.user) redirect("/login");
 
   const user = session.user as SessionUser;
+  // `isOwner` (solo Saul) sigue controlando drafts de release notes y el
+  // autodraft. El banner global de avisos en cambio ya lo gestionan TODOS los
+  // SuperAdmin, no solo el propietario.
   const isOwner = isPlatformOwnerUser(user);
+  const canManageAnnouncements = isSuperAdmin(user);
 
   const notes = await prisma.releaseNote.findMany({
     where: {
@@ -49,7 +53,7 @@ export default async function NovedadesPage() {
     isRead: n.reads.length > 0,
   }));
 
-  const initialAnnouncements = isOwner
+  const initialAnnouncements = canManageAnnouncements
     ? await prisma.announcement.findMany({
         orderBy: [{ isActive: "desc" }, { createdAt: "desc" }],
         include: {
@@ -81,6 +85,7 @@ export default async function NovedadesPage() {
       <div className="flex-1 overflow-y-auto">
         <NovedadesView
           isOwner={isOwner}
+          canManageAnnouncements={canManageAnnouncements}
           initialItems={initialItems}
           initialAnnouncements={announcementsForView}
         />
