@@ -631,8 +631,18 @@ export function Sidebar({
        * so it can expand over the content without pushing it.
        *
        * Expanded / collapsed modes: sidebar is in the normal flow and pushes content.
+       *
+       * `hidden md:block`: en mobile (<768px) el sidebar real esta `hidden`,
+       * asi que este "rail spacer" tampoco debe reservar los 64px — sin
+       * esta clase aparece una franja vacia a la izquierda de toda la app
+       * mobile (visible en el DOM como `<div class="w-16 shrink-0 h-full">`).
        */}
-      {isOverlayMode && <div className="w-16 shrink-0 h-full" aria-hidden />}
+      {isOverlayMode && (
+        <div
+          className="w-16 shrink-0 h-full hidden md:block"
+          aria-hidden
+        />
+      )}
       {panel}
     </>
   );
