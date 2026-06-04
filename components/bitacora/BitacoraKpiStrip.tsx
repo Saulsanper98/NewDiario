@@ -138,17 +138,21 @@ export function BitacoraKpiStrip({
           <div
             key={kpi.key}
             className={cn(
-              "relative overflow-hidden rounded-xl border px-3 py-3 transition-colors",
+              /* px y py reducidos en mobile para dejar mas ancho al
+                 contenido. */
+              "relative overflow-hidden rounded-xl border px-2.5 sm:px-3 py-2.5 sm:py-3 transition-colors",
               tone.bg,
               tone.border,
               light ? "shadow-sm" : "shadow-[0_4px_18px_-8px_rgba(0,0,0,0.5)]"
             )}
           >
-            <div className="flex items-start justify-between gap-2">
-              <div className="min-w-0">
+            <div className="flex items-start justify-between gap-1.5 sm:gap-2">
+              <div className="min-w-0 flex-1">
                 <p
                   className={cn(
-                    "text-[10px] font-semibold uppercase tracking-wider",
+                    /* Wrap permitido y leading apretado para que el
+                       label no parta el card visualmente. */
+                    "text-[10px] font-semibold uppercase tracking-wider leading-tight",
                     light ? "text-zinc-500" : "text-white/45"
                   )}
                 >
@@ -165,9 +169,15 @@ export function BitacoraKpiStrip({
                 {kpi.hint && (
                   <p
                     className={cn(
-                      "mt-1 text-[10.5px]",
+                      /* `whitespace-nowrap`: "Sin pendientes" cabia en
+                         desktop pero rompia en mobile a "Sin\npendientes".
+                         Forzamos una sola linea; si excede el ancho del
+                         card, `truncate` corta con elipsis (mejor que
+                         partir la frase en mitad). */
+                      "mt-1 text-[10.5px] whitespace-nowrap truncate",
                       light ? "text-zinc-500" : "text-white/40"
                     )}
+                    title={kpi.hint}
                   >
                     {kpi.hint}
                   </p>
@@ -175,13 +185,15 @@ export function BitacoraKpiStrip({
               </div>
               <span
                 className={cn(
-                  "flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ring-1",
+                  /* Icono mas pequenio en mobile (24px) para canibalizar
+                     menos espacio del label. */
+                  "flex h-6 w-6 sm:h-7 sm:w-7 shrink-0 items-center justify-center rounded-lg ring-1",
                   tone.ring,
                   tone.icon,
                   light ? "bg-white" : "bg-white/[0.04]"
                 )}
               >
-                <Icon className="h-3.5 w-3.5" aria-hidden />
+                <Icon className="h-3 w-3 sm:h-3.5 sm:w-3.5" aria-hidden />
               </span>
             </div>
           </div>

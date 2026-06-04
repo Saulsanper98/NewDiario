@@ -226,10 +226,22 @@ function QuickActions({ L }: { L: boolean }) {
     },
   ];
 
+  /* En mobile reducimos gap y padding lateral para dejar respirar al
+     label. El truncate desaparece: si "Nueva entrada" o "Traspaso" no
+     cabe, queremos que rompa en 2 lineas legibles, no que aparezca
+     "Nuev..." con elipsis. */
   const baseClasses = cn(
-    "dashboard-quick-action flex items-center gap-2 px-2.5 sm:px-4 py-2.5 sm:py-3 rounded-xl border transition-all duration-200",
+    "dashboard-quick-action flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-2.5 sm:py-3 rounded-xl border transition-all duration-200",
     L ? "bg-white border-zinc-200 shadow-sm" : "glass-hover border-white/8"
   );
+
+  const labelClasses = (extra: string) =>
+    cn(
+      /* Mobile: 12.5px con line-height 1.15, sin truncate y con wrap a
+         2 lineas. Desktop: 14px (text-sm) como antes. */
+      "text-[12.5px] sm:text-sm font-medium leading-[1.15] transition-colors whitespace-normal break-words",
+      extra
+    );
 
   return (
     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -239,8 +251,7 @@ function QuickActions({ L }: { L: boolean }) {
             <div className={cn("dashboard-quick-icon p-1.5 rounded-lg shrink-0", a.iconBg)}>
               <a.icon className="w-3.5 h-3.5" />
             </div>
-            <span className={cn(
-              "text-[13px] sm:text-sm font-medium transition-colors truncate",
+            <span className={labelClasses(
               L ? "text-zinc-800 group-hover:text-zinc-900" : "text-white/70 group-hover:text-white"
             )}>
               {a.label}
@@ -259,8 +270,7 @@ function QuickActions({ L }: { L: boolean }) {
           )}>
             <Search className="w-3.5 h-3.5" />
           </div>
-          <span className={cn(
-            "text-[13px] sm:text-sm font-medium transition-colors truncate",
+          <span className={labelClasses(
             L ? "text-zinc-800 group-hover:text-zinc-900" : "text-white/70 group-hover:text-white"
           )}>
             Buscar
@@ -314,24 +324,33 @@ export function DashboardContent({
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0 flex-1">
             <h1 className={cn(
-              "text-xl sm:text-2xl font-bold leading-tight truncate",
+              "text-xl sm:text-2xl font-bold leading-tight break-words",
               L ? "text-zinc-900" : "text-white"
             )}>
               {greeting},{" "}
               <span className={L ? "text-amber-700" : "text-[#ffeb66]"}>{user.name.split(" ")[0]}</span>
             </h1>
             <p className={cn(
-              "text-xs sm:text-sm mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-0",
+              /* En mobile la fecha + turno deben caber en una sola
+                 linea: agrupamos `Turno de <Label>` con whitespace-nowrap
+                 para que no parta a "Turno de\nTarde". El icono + fecha
+                 forman el primer grupo (tambien nowrap como bloque).
+                 En sm+ recuperamos el flex-wrap original. */
+              "text-xs sm:text-sm mt-0.5 flex flex-wrap items-baseline gap-x-1.5 gap-y-0",
               L ? "text-zinc-600" : "text-white/40"
             )}>
-              <ShiftIcon className={cn("w-3.5 h-3.5 shrink-0", shiftIconColor)} />
-              <span className="capitalize">{format(now, "EEEE d 'de' MMM", { locale: es })}</span>
-              <span aria-hidden>·</span>
-              <span>Turno de </span>
-              <span className={cn(
-                "font-semibold",
-                L ? "text-amber-700" : "text-[#ffeb66]/80"
-              )}>{SHIFT_LABELS[currentShift]}</span>
+              <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
+                <ShiftIcon className={cn("w-3.5 h-3.5 shrink-0", shiftIconColor)} />
+                <span className="capitalize">{format(now, "EEEE d 'de' MMM", { locale: es })}</span>
+              </span>
+              <span aria-hidden className="hidden sm:inline">·</span>
+              <span className="whitespace-nowrap">
+                Turno de{" "}
+                <span className={cn(
+                  "font-semibold",
+                  L ? "text-amber-700" : "text-[#ffeb66]/80"
+                )}>{SHIFT_LABELS[currentShift]}</span>
+              </span>
             </p>
           </div>
           {/* Botón solo en sm+ — en móvil ya tenemos "Nueva entrada" en QuickActions y mobile-nav */}
@@ -1052,7 +1071,13 @@ function StatCard({
             t.color
           )}>{animated}</p>
           <p className={cn(
-            "dashboard-stat-label text-[10px] sm:text-[11px] mt-0.5 leading-tight truncate",
+            /* Sin `truncate`: en mobile el card es solo el 48-50% del
+               viewport y "Entradas hoy" / "Seguimientos" / "Mis tareas"
+               cabian apenas. Permitimos wrap a 2 lineas con
+               line-clamp-2 para mantener un alto consistente entre
+               cards (si no, la card del unico label corto quedaria
+               desalineada). */
+            "dashboard-stat-label text-[10px] sm:text-[11px] mt-0.5 leading-tight whitespace-normal break-words line-clamp-2",
             L ? "text-zinc-600" : "text-white/35"
           )}>{label}</p>
         </div>

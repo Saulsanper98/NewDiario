@@ -272,14 +272,33 @@ html[data-theme="glass"] .glass-shell-inner {
 }
 
 /* En móvil reducimos margen del marco — 22 px es mucho en pantallas
- * pequeñas y "come" espacio útil. */
+ * pequeñas y "come" espacio útil. A partir de feedback con capturas
+ * reales, 10 px aún dejaba al contenido visualmente flotante respecto
+ * del bottom-nav y del banner; bajamos a 4 px (apenas un hairline) en
+ * <640px y eliminamos margen lateral en <480px para aprovechar TODO
+ * el viewport. El radio se baja en proporcion para no parecer ovalado.
+ */
 @media (max-width: 640px) {
   html[data-theme="glass"] .glass-shell-frame {
-    margin: 10px;
-    border-radius: 24px;
+    margin: 4px;
+    border-radius: 18px;
   }
   html[data-theme="glass"] .glass-shell-inner {
-    border-radius: 22px;
+    border-radius: 16px;
+  }
+}
+@media (max-width: 480px) {
+  html[data-theme="glass"] .glass-shell-frame {
+    margin: 0;
+    padding: 0;
+    border-radius: 0;
+    /* Sin border-radius el "glow" del marco se ve recortado contra el
+       borde del viewport; lo reducimos al minimo para que no haya
+       artefactos visuales junto al notch/Home. */
+    box-shadow: none;
+  }
+  html[data-theme="glass"] .glass-shell-inner {
+    border-radius: 0;
   }
 }
 
@@ -308,21 +327,25 @@ html[data-theme="glass"] .glass-shell-inner {
 }
 
 /* En móvil bajamos a valores más conservadores: el espacio es oro y los
- * cards mismos ya tienen su propio padding. */
+ * cards mismos ya tienen su propio padding. Con el feedback de capturas
+ * reales, 12 px aún era demasiado: sumado al `p-6 -> 0.875rem` del
+ * `#main-content` y a los paddings de cada section, el contenido quedaba
+ * "encajonado" muy lejos del borde. Bajamos a 6 px en <768 y 0 en
+ * <480 (el borde lateral lo da `#main-content`). */
 @media (max-width: 768px) {
   html[data-theme="glass"] .glass-shell-inner {
-    padding: 12px;
+    padding: 6px;
   }
   html[data-theme="glass"] .app-dashboard-root {
-    gap: 10px;
+    gap: 8px;
   }
 }
 @media (max-width: 480px) {
   html[data-theme="glass"] .glass-shell-inner {
-    padding: 8px;
+    padding: 0;
   }
   html[data-theme="glass"] .app-dashboard-root {
-    gap: 6px;
+    gap: 0;
   }
 }
 

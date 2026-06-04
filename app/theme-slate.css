@@ -137,23 +137,35 @@ html[data-theme="slate"] .glass-shell-inner {
   padding: 20px;
 }
 
-/* Responsive — replica las breakpoints de Cristal con valores equivalentes. */
+/* Responsive — alineado con Cristal/Glass tras feedback de capturas
+   reales. En <480px el marco se vuelve "edge-to-edge" para que el
+   contenido aproveche TODO el ancho del viewport, igual que las apps
+   nativas de iOS/Android. */
 @media (max-width: 768px) {
-  html[data-theme="slate"] .glass-shell-inner { padding: 12px; }
-  html[data-theme="slate"] .app-dashboard-root { gap: 10px; }
+  html[data-theme="slate"] .glass-shell-inner { padding: 6px; }
+  html[data-theme="slate"] .app-dashboard-root { gap: 8px; }
 }
 @media (max-width: 640px) {
   html[data-theme="slate"] .glass-shell-frame {
-    margin: 10px;
-    border-radius: 22px;
+    margin: 4px;
+    border-radius: 16px;
   }
   html[data-theme="slate"] .glass-shell-inner {
-    border-radius: 20px;
+    border-radius: 14px;
   }
 }
 @media (max-width: 480px) {
-  html[data-theme="slate"] .glass-shell-inner { padding: 8px; }
-  html[data-theme="slate"] .app-dashboard-root { gap: 8px; }
+  html[data-theme="slate"] .glass-shell-frame {
+    margin: 0;
+    padding: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+  html[data-theme="slate"] .glass-shell-inner {
+    padding: 0;
+    border-radius: 0;
+  }
+  html[data-theme="slate"] .app-dashboard-root { gap: 0; }
 }
 
 /* Limpiar pseudos heredados de otro tema sobre el marco. */

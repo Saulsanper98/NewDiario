@@ -40,20 +40,40 @@ export function CalendarPanel({ department }: CalendarPanelProps) {
 
   const [view, setView] = useState<CalendarView>(() => {
     if (typeof window === "undefined") return "month";
-    const stored = window.localStorage.getItem(VIEW_STORAGE_KEY);
+    const stored = window.localStorage.getItem(VIEW_STORAGE_KEY) as
+      | CalendarView
+      | null;
+    const isMobile = window.matchMedia("(max-width: 639.98px)").matches;
+    /* En movil (<640px) la vista Mes/Semana es ILEGIBLE: 7 columnas con
+       celdas de ~50px y eventos como pills truncadas. Forzamos Agenda
+       (o Day si el usuario la prefiere) ignorando lo guardado para
+       month/week. En desktop respetamos la eleccion previa. */
+    if (isMobile) {
+      if (stored === "day" || stored === "agenda") return stored;
+      return "agenda";
+    }
     if (stored === "month" || stored === "week" || stored === "day" || stored === "agenda") {
       return stored;
     }
-    /* En movil (<640px) la vista Mes/Semana queda ilegible: 7 columnas
-       con eventos truncados a "R...", "P..." y celdas de ~50px. La
-       Agenda agrupa por dia en una sola columna y se lee bien. Si el
-       usuario nunca eligio una vista, arrancamos en Agenda en mobile y
-       Mes en desktop. El usuario puede cambiar manualmente y se guarda. */
-    if (window.matchMedia("(max-width: 639.98px)").matches) {
-      return "agenda";
-    }
     return "month";
   });
+
+  /* Listener de resize: si el usuario cruza de desktop a mobile (rotar
+     dispositivo, redimensionar ventana en un tablet/laptop con touch),
+     y la vista actual es Mes o Semana, migramos a Agenda. En el sentido
+     inverso (mobile -> desktop) NO devolvemos a Mes automaticamente:
+     mantenemos la vista actual para no sorprender. */
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mql = window.matchMedia("(max-width: 639.98px)");
+    const onChange = () => {
+      if (mql.matches && (view === "month" || view === "week")) {
+        setView("agenda");
+      }
+    };
+    mql.addEventListener("change", onChange);
+    return () => mql.removeEventListener("change", onChange);
+  }, [view]);
   const [cursor, setCursor] = useState<Date>(() => {
     const now = new Date();
     now.setHours(0, 0, 0, 0);

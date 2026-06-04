@@ -285,10 +285,31 @@ export function Header({ user, breadcrumb }: HeaderProps) {
         {crumbs ? (
           crumbs.map((item, i) => {
             const isLast = i === crumbs.length - 1;
+            /* En mobile (<sm) escondemos los crumbs intermedios y el
+               separador para evitar el "Bitac... > Vista po..." que
+               trunca con elipsis ambos. Solo se ve el ultimo crumb
+               (la pagina actual) con texto completo. En sm+ recupera
+               el comportamiento clasico. */
+            const hideOnMobile = !isLast;
             return (
-              <span key={`${item.label}-${i}`} className="flex items-center gap-1.5 min-w-0">
+              <span
+                key={`${item.label}-${i}`}
+                className={cn(
+                  "items-center gap-1.5 min-w-0",
+                  hideOnMobile ? "hidden sm:flex" : "flex"
+                )}
+              >
                 {i > 0 && (
-                  <ChevronRight className="w-3 h-3 text-white/25 shrink-0" aria-hidden />
+                  <ChevronRight
+                    className={cn(
+                      "w-3 h-3 text-white/25 shrink-0",
+                      /* El chevron tambien se oculta en mobile si el
+                         crumb anterior queda oculto (es decir, salvo
+                         cuando es el ultimo y hay anteriores). */
+                      "hidden sm:inline-block"
+                    )}
+                    aria-hidden
+                  />
                 )}
                 {item.href ? (
                   <Link
@@ -300,7 +321,15 @@ export function Header({ user, breadcrumb }: HeaderProps) {
                 ) : (
                   <span className="flex items-center gap-1.5 min-w-0">
                     <span
-                      className={`text-sm truncate ${isLast ? "font-semibold text-white" : "font-medium text-white/70"}`}
+                      className={cn(
+                        /* `truncate` se mantiene en todos los tamanos
+                           porque ahora en mobile los crumbs anteriores
+                           estan ocultos y el ultimo tiene TODO el ancho
+                           del nav (flex-1). Solo se activa el corte si
+                           el titulo es realmente larguisimo. */
+                        "text-sm truncate",
+                        isLast ? "font-semibold text-white" : "font-medium text-white/70"
+                      )}
                       aria-current={isLast ? "page" : undefined}
                     >
                       {item.label}

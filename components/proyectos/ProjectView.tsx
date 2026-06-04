@@ -355,12 +355,19 @@ export function ProjectView({ project, allUsers }: ProjectViewProps) {
       )}
       {/* Project header: .project-view-toolbar quita el borde superior (ver globals.css). */}
       <div className={cn(
-        "project-view-toolbar px-6 py-4 shrink-0 border-b",
+        /* Padding lateral reducido en mobile para dar mas aire al
+           contenido (titulo + meta solapaban con el bloque derecho de
+           progreso). */
+        "project-view-toolbar px-3 sm:px-6 py-3 sm:py-4 shrink-0 border-b",
         isLight
           ? "bg-white border-zinc-200"
           : "glass border-white/8"
       )}>
-        <div className="flex items-start justify-between gap-4">
+        {/* En mobile el header se apila en columna para que el bloque
+            derecho (barra de progreso + miembros + fecha) no canibalice
+            al titulo. En sm+ recupera el layout horizontal con
+            `flex-row justify-between`. */}
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
           <div className="flex-1 min-w-0">
             {/* Parent project link */}
             {project.parent && (
@@ -569,12 +576,16 @@ export function ProjectView({ project, allUsers }: ProjectViewProps) {
             </div>
           </div>
 
-          {/* Progress & meta */}
-          <div className="shrink-0 flex items-center gap-6">
-            <div className="text-right">
+          {/* Progress & meta. En mobile el bloque ya no es "shrink-0"
+             absoluto (su padre se apila), pero mantenemos el wrap
+             horizontal para que progreso/miembros/fecha respiren. */}
+          <div className="flex flex-wrap items-center gap-3 sm:gap-6 sm:shrink-0">
+            <div className="text-left sm:text-right">
               <div className="flex items-center gap-2 mb-1">
                 <div className={cn(
-                  "project-progress-track w-32 h-1.5 rounded-full overflow-hidden",
+                  /* Barra de progreso adaptativa: 96px en mobile,
+                     128px en sm+. */
+                  "project-progress-track w-24 sm:w-32 h-1.5 rounded-full overflow-hidden",
                   isLight ? "bg-zinc-200" : "bg-white/6"
                 )}>
                   <div
@@ -757,7 +768,14 @@ export function ProjectView({ project, allUsers }: ProjectViewProps) {
 
         {/* Tabs — en claro, banda separada del bloque superior */}
         <div className={cn(isLight && "project-tabs-shell")}>
-        <div className={cn("project-tabs flex items-center gap-1 flex-wrap", isLight ? "mt-0" : "mt-4")}>
+        {/* Tabs del proyecto: en mobile usamos scroll horizontal (igual
+           que el patron de filtros del bitacora feed y de las tabs de
+           configuracion) para evitar el apilamiento vertical que
+           ocupaba 7 lineas. En sm+ recuperamos `flex-wrap` clasico. */}
+        <div className={cn(
+          "project-tabs flex items-center gap-1 overflow-x-auto sm:overflow-visible sm:flex-wrap no-scrollbar -mx-3 px-3 sm:mx-0 sm:px-0",
+          isLight ? "mt-0" : "mt-4"
+        )}>
           {TABS.map((tab) => {
             const Icon = tab.icon;
             const label = tab.id === "subprojects"
@@ -773,7 +791,11 @@ export function ProjectView({ project, allUsers }: ProjectViewProps) {
                 type="button"
                 onClick={() => selectTab(tab.id)}
                 className={cn(
-                  "project-tab relative flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 border",
+                  /* `shrink-0` + `whitespace-nowrap`: en mobile la tab
+                     no se comprime ni parte el texto, simplemente
+                     queda fuera del viewport y se accede mediante
+                     scroll horizontal. */
+                  "project-tab relative flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 border shrink-0 whitespace-nowrap",
                   activeTab === tab.id
                     ? isLight
                       ? "project-tab-active bg-amber-100 text-amber-800 border-amber-300"
