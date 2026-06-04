@@ -678,7 +678,10 @@ export function KanbanBoard({ project, allUsers }: KanbanBoardProps) {
         "kanban-filters-bar px-4 py-2 mt-1 border-b flex flex-wrap items-center gap-x-3 gap-y-1.5 shrink-0",
         L ? "border-zinc-200 bg-white" : "border-white/6"
       )}>
-        <div className="min-w-[140px]">
+        {/* Listboxes: en mobile dejamos que se adapten al ancho disponible
+           (min-w-0) y suban a una linea propia si hace falta. En sm+ los
+           anchos fijos (140/180px) evitan que se compriman demasiado. */}
+        <div className="min-w-0 flex-1 sm:flex-none sm:min-w-[140px]">
           <Listbox
             value={priorityFilter}
             onChange={(v) => setPriorityFilter(v)}
@@ -692,7 +695,7 @@ export function KanbanBoard({ project, allUsers }: KanbanBoardProps) {
             light={L}
           />
         </div>
-        <div className="min-w-[180px]">
+        <div className="min-w-0 flex-1 sm:flex-none sm:min-w-[180px]">
           <Listbox
             value={assigneeFilter}
             onChange={(v) => setAssigneeFilter(v)}
@@ -754,7 +757,10 @@ export function KanbanBoard({ project, allUsers }: KanbanBoardProps) {
           type="button"
           onClick={() => setWhatIfOpen(true)}
           className={cn(
-            "ml-auto flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs transition-colors",
+            /* `ml-auto` solo en sm+: en mobile el flex-wrap con ml-auto
+               genera saltos de linea raros (la siguiente fila queda
+               desplazada). En mobile fluye naturalmente. */
+            "sm:ml-auto flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs transition-colors",
             L
               ? "border-zinc-200 bg-white text-zinc-600 hover:border-amber-300 hover:text-amber-700"
               : "border-white/10 bg-white/5 text-white/55 hover:border-[#ffeb66]/30 hover:text-[#ffeb66]/90"
@@ -811,7 +817,13 @@ export function KanbanBoard({ project, allUsers }: KanbanBoardProps) {
                         {...colDraggable.draggableProps}
                         className={cn(
                           "flex h-full min-h-0 flex-col shrink-0 transition-all duration-200",
-                          collapsedCols.has(col.id) ? "w-12" : "w-72"
+                          /* Mobile: columna casi a pantalla completa (85vw, max
+                             300px) para que cada tablero kanban sea legible y
+                             se haga "swipe" entre columnas. Desktop: w-72
+                             clasico. Columna colapsada siempre w-12. */
+                          collapsedCols.has(col.id)
+                            ? "w-12"
+                            : "w-[85vw] max-w-[300px] sm:w-72 sm:max-w-none"
                         )}
                       >
                         {/* Column header */}

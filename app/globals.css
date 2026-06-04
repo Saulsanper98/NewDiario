@@ -2623,6 +2623,25 @@ html[data-theme="light"] .chat-page-root .chat-page-inner::before {
   }
 }
 
+/* ── Touch / sin hover: revelar controles que dependen de :hover ─────────
+   Muchas zonas del kanban, del calendario y del detalle de tarea ocultan
+   iconos auxiliares (drag handle de columna, "+" para añadir evento, lapiz
+   de editar título, X de eliminar etiqueta/adjunto, etc.) con
+   `opacity-0 group-hover/*:opacity-100`. En dispositivos sin hover real
+   (mobile/tablet con touch), esos botones quedan invisibles y la funcion
+   correspondiente, inaccesible. Forzamos su visibilidad cuando no hay
+   hover ni puntero fino, sin afectar a desktop con raton/trackpad. */
+@media (hover: none), (pointer: coarse) {
+  .group-hover\/col\:opacity-100,
+  .group-hover\/title\:opacity-100,
+  .group-hover\/att\:opacity-100,
+  .group-hover\/tag\:opacity-100,
+  .group-hover\/comment\:opacity-100,
+  .group-hover\:opacity-100 {
+    opacity: 1 !important;
+  }
+}
+
 /* ── Traspaso print styles ─────────────────────────────────────────────────── */
 @media print {
   .traspaso-print-header {
