@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Sora } from "next/font/google";
 import { Toaster } from "react-hot-toast";
 import { BackgroundOrbs } from "@/components/layout/BackgroundOrbs";
@@ -22,6 +22,27 @@ export const metadata: Metadata = {
   title: defaultMetadata.title,
   description: defaultMetadata.description,
   icons: { icon: "/logo.svg", shortcut: "/logo.svg" },
+};
+
+/**
+ * Viewport meta para que los navegadores móviles (Safari iOS sobre todo)
+ * no rendericen la app como "desktop scaled" a 980px lógicos. Sin esto,
+ * todos los breakpoints de Tailwind (sm/md/lg) quedan anulados en
+ * dispositivos reales y la app se ve en versión escritorio reducida.
+ *
+ * `viewportFit: "cover"` extiende el área de render hasta los bordes
+ * físicos del dispositivo (notch, isla dinámica, gestos del Home) para
+ * que `env(safe-area-inset-*)` que ya usamos en MobileNav, FABs y
+ * footer del chat tenga efecto real.
+ *
+ * `maximumScale: 5` permite que el usuario haga zoom (accesibilidad);
+ * `userScalable: false` se evita a propósito por la misma razón.
+ */
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({
