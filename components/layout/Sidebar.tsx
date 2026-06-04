@@ -250,10 +250,13 @@ export function Sidebar({
     MODES.find((m) => m.value === mode)?.icon ?? Sparkles;
 
   // Pre-hydration: ancho neutro (rail); tras useLayoutEffect se ajusta al modo guardado.
+  // `hidden md:block`: en mobile (<768px) jamas reservamos espacio para el
+  // sidebar — la navegacion vive en MobileNav (bottom-bar fixed). Antes esta
+  // placeholder ocupaba 64px en mobile, dejando un hueco vacio a la izquierda.
   if (!hydrated) {
     return (
       <div
-        className="app-sidebar-shell w-16 shrink-0 h-full print:hidden min-h-0"
+        className="app-sidebar-shell w-16 shrink-0 h-full print:hidden min-h-0 hidden md:block"
         aria-hidden
       />
     );
@@ -274,7 +277,10 @@ export function Sidebar({
         setProfileMenuOpen(false);
       }}
       className={cn(
-        "app-sidebar-shell flex flex-col h-full z-20 print:hidden",
+        /* `hidden md:flex`: en mobile (<768px) el sidebar no se monta
+           visualmente. Esto evita el "sidebar fantasma" de 64px a la
+           izquierda y deja a MobileNav (bottom-bar) toda la navegacion. */
+        "app-sidebar-shell hidden md:flex flex-col h-full z-20 print:hidden",
         // !absolute overrides the `position: relative` set by .app-sidebar-shell in globals.css
         isOverlayMode ? "!absolute inset-y-0 left-0" : "shrink-0",
         "transition-[width] duration-200 ease-out",

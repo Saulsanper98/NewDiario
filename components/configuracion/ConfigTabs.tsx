@@ -441,7 +441,13 @@ export function ConfigTabs({
                 }}
                 title={tabMeta.description}
                 className={cn(
-                  "config-tab-trigger group inline-flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-[12.5px] font-semibold transition-all",
+                  /* `whitespace-nowrap`: evita que "Departamentos" se
+                     parta dentro del tab haciendo que el span ocupe dos
+                     lineas (el usuario veia "Depar..." truncado).
+                     Combinado con `shrink-0` del padre y
+                     `overflow-x-auto`, los tabs hacen scroll horizontal
+                     limpio en mobile. */
+                  "config-tab-trigger group inline-flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-[12.5px] font-semibold whitespace-nowrap transition-all",
                   isActive
                     ? cn(
                         "ring-1 shadow-sm",

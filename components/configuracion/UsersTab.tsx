@@ -1127,7 +1127,9 @@ export function UsersTab({
       </div>
 
       {/* ── Filtros rápidos por rol y estado ───────────────────── */}
-      <div className="flex flex-wrap items-center gap-3 -mt-1">
+      {/* `gap-3 sm:gap-3 gap-y-2`: separacion vertical mas estrecha
+          cuando los dos grupos pasan a dos filas en mobile. */}
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2 -mt-1">
         <FilterChipGroup
           L={L}
           label="Rol"
@@ -1934,10 +1936,13 @@ function FilterChipGroup({
   onChange: (v: string) => void;
 }) {
   return (
-    <div className="flex items-center gap-1.5">
+    /* `min-w-0` + `max-w-full`: en mobile el grupo se contiene al
+        ancho del padre flex-wrap (sin esto, un grupo de 5 chips
+        empujaba el contenedor horizontalmente). */
+    <div className="flex min-w-0 max-w-full items-center gap-1.5">
       <span
         className={cn(
-          "text-[10px] font-bold uppercase tracking-[0.14em] mr-0.5",
+          "shrink-0 text-[10px] font-bold uppercase tracking-[0.14em] mr-0.5",
           L ? "text-zinc-500" : "text-white/40"
         )}
       >
@@ -1947,7 +1952,10 @@ function FilterChipGroup({
         role="tablist"
         aria-label={label}
         className={cn(
-          "inline-flex items-center gap-0.5 rounded-lg border p-0.5",
+          /* `overflow-x-auto no-scrollbar`: si los chips no caben en
+              el ancho del grupo, scroll horizontal sin scrollbar
+              visible (touch). En sm+ caben todos sin scroll. */
+          "inline-flex min-w-0 items-center gap-0.5 rounded-lg border p-0.5 overflow-x-auto no-scrollbar",
           L
             ? "border-zinc-200 bg-white"
             : "border-white/10 bg-white/[0.04]"
@@ -1975,7 +1983,11 @@ function FilterChipGroup({
               aria-selected={isActive}
               onClick={() => onChange(chip.value)}
               className={cn(
-                "inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11.5px] font-semibold transition-all",
+                /* `shrink-0 whitespace-nowrap`: cada chip mantiene su
+                    ancho intrinseco; el scroll horizontal del padre los
+                    presenta. Antes "Propietario 1" se compactaba y se
+                    veia "Propie..." con elipsis. */
+                "inline-flex shrink-0 items-center gap-1 rounded-md px-2 py-0.5 text-[11.5px] font-semibold whitespace-nowrap transition-all",
                 isActive
                   ? cn("ring-1 shadow-sm", toneActive)
                   : L

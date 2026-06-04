@@ -90,8 +90,11 @@ export function MobileNav({
   const navItemClasses = (active: boolean) =>
     cn(
       /* `min-h-[44px]` y `min-w-[44px]` aseguran tap-target accesible
-         WCAG 2.5.5 incluso en viewports muy estrechos. */
-      "mobile-nav-link relative flex flex-col items-center justify-center gap-0.5 flex-1 h-full min-h-[44px] min-w-[44px] text-[10px] font-medium transition-colors px-1",
+         WCAG 2.5.5 incluso en viewports muy estrechos.
+         `text-[9.5px]`: rebajamos de 10px para que palabras como
+         "Bitacora", "Proyectos", "Calendario" entren completas en
+         viewports de 360-414px y no haga falta truncar. */
+      "mobile-nav-link relative flex flex-col items-center justify-center gap-0.5 flex-1 h-full min-h-[44px] min-w-[44px] text-[9.5px] font-medium transition-colors px-0.5",
       active
         ? /* Contraste reforzado en el item activo: en light pasamos de
              `text-amber-700` (~AA con bg blanco) a `text-amber-800`
@@ -256,7 +259,14 @@ export function MobileNav({
                     </span>
                   )}
                 </span>
-                <span className="truncate max-w-full px-0.5">{item.label}</span>
+                {/* En viewports muy estrechos (<360px) ocultamos el
+                    label y dejamos solo el icono — el `aria-label`
+                    del <Link> sigue exponiendo el nombre completo a
+                    screen readers. En >=360px mostramos el texto sin
+                    truncate (cabe entero a 9.5px) con whitespace-nowrap. */}
+                <span className="hidden min-[360px]:inline whitespace-nowrap px-0.5">
+                  {item.label}
+                </span>
               </Link>
             );
           })}
@@ -285,7 +295,7 @@ export function MobileNav({
                 </span>
               )}
             </span>
-            <span className="truncate max-w-full px-0.5">Más</span>
+            <span className="hidden min-[360px]:inline whitespace-nowrap px-0.5">Más</span>
           </button>
         </div>
       </nav>
