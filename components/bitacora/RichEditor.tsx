@@ -418,13 +418,22 @@ export function RichEditor({
   const canUndo   = editor.can().undo();
   const canRedo   = editor.can().redo();
 
-  /* toolbar button helper */
+  /* toolbar button helper.
+     - `hideOnMobile`: aplica `hidden sm:inline-flex` para que el boton solo
+       se vea en >=640px. Lo usamos para mover funciones avanzadas
+       (tachado, codigo inline, resaltar, blockquote, codeBlock, H4, lista
+       numerada/checks, video, URL media) fuera de la toolbar principal en
+       movil y ofrecer una toolbar mas limpia con tap-targets accesibles.
+     - Tap-target en mobile aumentado a 36px (`p-2`) y icono `w-4 h-4`,
+       sobre el minimo recomendado 44px una vez sumado el gap entre
+       botones; en >=sm volvemos a `p-1.5 / w-3.5` como antes. */
   const btn = (
     active:   boolean,
     onClick:  () => void,
     title:    string,
     children: React.ReactNode,
-    disabled = false
+    disabled = false,
+    hideOnMobile = false,
   ) => (
     <button
       type="button"
@@ -432,7 +441,8 @@ export function RichEditor({
       title={title}
       disabled={disabled}
       className={cn(
-        "p-1.5 rounded-md text-sm transition-all duration-150 disabled:opacity-30 disabled:cursor-not-allowed shrink-0",
+        "p-2 sm:p-1.5 rounded-md text-sm transition-all duration-150 disabled:opacity-30 disabled:cursor-not-allowed shrink-0 inline-flex items-center justify-center",
+        hideOnMobile && "hidden sm:inline-flex",
         active
           ? theme === "light"
             ? "bg-[rgba(212,188,26,0.22)] text-zinc-900 ring-1 ring-inset ring-[rgba(165,145,20,0.28)]"
@@ -451,13 +461,15 @@ export function RichEditor({
     inputId: string,
     title: string,
     children: React.ReactNode,
-    disabled = false
+    disabled = false,
+    hideOnMobile = false,
   ) => (
     <label
       htmlFor={inputId}
       title={title}
       className={cn(
-        "p-1.5 rounded-md text-sm transition-all duration-150 shrink-0 cursor-pointer",
+        "p-2 sm:p-1.5 rounded-md text-sm transition-all duration-150 shrink-0 cursor-pointer inline-flex items-center justify-center",
+        hideOnMobile && "hidden sm:inline-flex",
         theme === "light"
           ? "text-zinc-600 hover:text-zinc-900 hover:bg-white/55"
           : "text-white/50 hover:text-white hover:bg-white/6",
@@ -468,10 +480,12 @@ export function RichEditor({
     </label>
   );
 
-  const sep = () => (
+  /** Separador vertical. Si se marca `hideOnMobile` se oculta junto con el grupo de botones avanzados. */
+  const sep = (hideOnMobile = false) => (
     <div
       className={cn(
         "w-px h-4 mx-0.5 self-center shrink-0",
+        hideOnMobile && "hidden sm:block",
         theme === "light" ? "bg-zinc-200" : "bg-white/10"
       )}
     />
@@ -534,44 +548,48 @@ export function RichEditor({
 
           {sep()}
 
-          {/* Headings */}
+          {/* Headings — H2/H3 visibles en mobile; H4/cita/codeblock al "Más". */}
           {btn(editor.isActive("heading", { level: 2 }), () => editor.chain().focus().toggleHeading({ level: 2 }).run(), "Título 2", <Heading2 className="w-3.5 h-3.5" />)}
           {btn(editor.isActive("heading", { level: 3 }), () => editor.chain().focus().toggleHeading({ level: 3 }).run(), "Título 3", <Heading3 className="w-3.5 h-3.5" />)}
-          {btn(editor.isActive("heading", { level: 4 }), () => editor.chain().focus().toggleHeading({ level: 4 }).run(), "Título 4", <Heading4 className="w-3.5 h-3.5" />)}
-          {btn(editor.isActive("blockquote"),  () => editor.chain().focus().toggleBlockquote().run(),  "Cita",              <Quote   className="w-3.5 h-3.5" />)}
-          {btn(editor.isActive("codeBlock"),   () => editor.chain().focus().toggleCodeBlock().run(),   "Bloque de código",  <Code2   className="w-3.5 h-3.5" />)}
+          {btn(editor.isActive("heading", { level: 4 }), () => editor.chain().focus().toggleHeading({ level: 4 }).run(), "Título 4", <Heading4 className="w-3.5 h-3.5" />, false, true)}
+          {btn(editor.isActive("blockquote"),  () => editor.chain().focus().toggleBlockquote().run(),  "Cita",              <Quote   className="w-3.5 h-3.5" />, false, true)}
+          {btn(editor.isActive("codeBlock"),   () => editor.chain().focus().toggleCodeBlock().run(),   "Bloque de código",  <Code2   className="w-3.5 h-3.5" />, false, true)}
 
           {sep()}
 
-          {/* Inline */}
+          {/* Inline — bold/italic/link siempre; el resto al "Más" en mobile. */}
           {btn(editor.isActive("bold"),      () => editor.chain().focus().toggleBold().run(),      "Negrita (Ctrl+B)",  <Bold          className="w-3.5 h-3.5" />)}
           {btn(editor.isActive("italic"),    () => editor.chain().focus().toggleItalic().run(),    "Cursiva (Ctrl+I)",  <Italic        className="w-3.5 h-3.5" />)}
-          {btn(editor.isActive("strike"),    () => editor.chain().focus().toggleStrike().run(),    "Tachado",           <Strikethrough className="w-3.5 h-3.5" />)}
-          {btn(editor.isActive("code"),      () => editor.chain().focus().toggleCode().run(),      "Código inline",     <Code          className="w-3.5 h-3.5" />)}
-          {btn(editor.isActive("highlight"), () => editor.chain().focus().toggleHighlight().run(), "Resaltar",          <Highlighter   className="w-3.5 h-3.5" />)}
+          {btn(editor.isActive("strike"),    () => editor.chain().focus().toggleStrike().run(),    "Tachado",           <Strikethrough className="w-3.5 h-3.5" />, false, true)}
+          {btn(editor.isActive("code"),      () => editor.chain().focus().toggleCode().run(),      "Código inline",     <Code          className="w-3.5 h-3.5" />, false, true)}
+          {btn(editor.isActive("highlight"), () => editor.chain().focus().toggleHighlight().run(), "Resaltar",          <Highlighter   className="w-3.5 h-3.5" />, false, true)}
           {btn(editor.isActive("link"),      openLinkDialog,                                        "Insertar enlace",   <LinkIcon      className="w-3.5 h-3.5" />)}
 
           {sep()}
 
-          {/* Lists */}
+          {/* Lists — solo bullet en mobile; numerada y checklist al "Más". */}
           {btn(editor.isActive("bulletList"),  () => editor.chain().focus().toggleBulletList().run(),  "Lista de puntos",       <List       className="w-3.5 h-3.5" />)}
-          {btn(editor.isActive("orderedList"), () => editor.chain().focus().toggleOrderedList().run(), "Lista numerada",        <ListOrdered className="w-3.5 h-3.5" />)}
-          {btn(editor.isActive("taskList"),    () => editor.chain().focus().toggleTaskList().run(),    "Lista de verificación", <ListChecks  className="w-3.5 h-3.5" />)}
+          {btn(editor.isActive("orderedList"), () => editor.chain().focus().toggleOrderedList().run(), "Lista numerada",        <ListOrdered className="w-3.5 h-3.5" />, false, true)}
+          {btn(editor.isActive("taskList"),    () => editor.chain().focus().toggleTaskList().run(),    "Lista de verificación", <ListChecks  className="w-3.5 h-3.5" />, false, true)}
 
           {sep()}
 
+          {/* Media — imagen visible siempre; vídeo y URL al "Más" en mobile. */}
           {fileInsertLabel(imageFileInputId, "Insertar imagen / GIF desde el equipo", <ImageIcon className="w-3.5 h-3.5" />, uploadingMedia)}
-          {fileInsertLabel(videoFileInputId, "Insertar vídeo desde el equipo", <Film className="w-3.5 h-3.5" />, uploadingMedia)}
-          {btn(false, openMediaUrlDialog, "Insertar imagen/vídeo por URL", <Link2 className="w-3.5 h-3.5" />)}
+          {fileInsertLabel(videoFileInputId, "Insertar vídeo desde el equipo", <Film className="w-3.5 h-3.5" />, uploadingMedia, true)}
+          {btn(false, openMediaUrlDialog, "Insertar imagen/vídeo por URL", <Link2 className="w-3.5 h-3.5" />, false, true)}
 
-          {/* B50 — extended tools toggle */}
+          {/* B50 — extended tools toggle. En mobile contiene los botones
+             avanzados (titulo 4, cita, tachado, codigo, resaltar, listas
+             numerada/check, video, URL media). */}
           <div className="ml-auto flex items-center gap-0.5">
             <button
               type="button"
               onClick={() => setShowExtended((v) => !v)}
               title="Más herramientas"
+              aria-label="Más herramientas de formato"
               className={cn(
-                "p-1.5 rounded-md text-sm transition-all duration-150 flex items-center gap-0.5",
+                "p-2 sm:p-1.5 rounded-md text-sm transition-all duration-150 flex items-center gap-0.5",
                 showExtended
                   ? theme === "light"
                     ? "bg-[rgba(212,188,26,0.18)] text-zinc-900 ring-1 ring-inset ring-[rgba(165,145,20,0.22)]"
@@ -584,13 +602,16 @@ export function RichEditor({
               <MoreHorizontal className="w-3.5 h-3.5" />
             </button>
 
-            {/* B46 — focus mode toggle */}
+            {/* B46 — focus mode toggle. Oculto en mobile (el viewport ya
+               aprovecha el ancho completo y la app esta en pantalla
+               completa por defecto). */}
             <button
               type="button"
               onClick={() => setFocusMode(true)}
               title="Modo escritura (sin distracciones)"
+              aria-label="Modo escritura"
               className={cn(
-                "p-1.5 rounded-md text-sm transition-all duration-150",
+                "hidden sm:inline-flex p-2 sm:p-1.5 rounded-md text-sm transition-all duration-150",
                 theme === "light"
                   ? "text-zinc-600 hover:text-zinc-900 hover:bg-white/55"
                   : "text-white/40 hover:text-white hover:bg-white/6"
@@ -602,7 +623,11 @@ export function RichEditor({
         </div>
       )}
 
-      {/* B50 — extended toolbar (alignment + insert) */}
+      {/* B50 — extended toolbar (alignment + insert).
+         En mobile añade ademas los botones que ocultamos de la toolbar
+         principal (H4, cita, codeBlock, tachado, codigo inline, resaltar,
+         lista numerada, checklist, video, URL media) — el bloque
+         `sm:hidden` se muestra solo en pantallas <640px. */}
       {!focusMode && showExtended && (
         <div
           className={cn(
@@ -612,6 +637,28 @@ export function RichEditor({
               : "border-white/6 bg-white/1"
           )}
         >
+          {/* ── Bloque mobile-only: botones que se ocultan de la toolbar
+                principal en <640px y entran aquí cuando el usuario abre
+                "Más herramientas". En sm+ no se renderizan porque ya
+                viven en la toolbar principal. ────────────────────────── */}
+          <div className="contents sm:hidden">
+            {btn(editor.isActive("heading", { level: 4 }), () => editor.chain().focus().toggleHeading({ level: 4 }).run(), "Título 4", <Heading4 className="w-3.5 h-3.5" />)}
+            {btn(editor.isActive("blockquote"),  () => editor.chain().focus().toggleBlockquote().run(),  "Cita",              <Quote   className="w-3.5 h-3.5" />)}
+            {btn(editor.isActive("codeBlock"),   () => editor.chain().focus().toggleCodeBlock().run(),   "Bloque de código",  <Code2   className="w-3.5 h-3.5" />)}
+            {sep()}
+            {btn(editor.isActive("strike"),    () => editor.chain().focus().toggleStrike().run(),    "Tachado",       <Strikethrough className="w-3.5 h-3.5" />)}
+            {btn(editor.isActive("code"),      () => editor.chain().focus().toggleCode().run(),      "Código inline", <Code          className="w-3.5 h-3.5" />)}
+            {btn(editor.isActive("highlight"), () => editor.chain().focus().toggleHighlight().run(), "Resaltar",      <Highlighter   className="w-3.5 h-3.5" />)}
+            {sep()}
+            {btn(editor.isActive("orderedList"), () => editor.chain().focus().toggleOrderedList().run(), "Lista numerada",        <ListOrdered className="w-3.5 h-3.5" />)}
+            {btn(editor.isActive("taskList"),    () => editor.chain().focus().toggleTaskList().run(),    "Lista de verificación", <ListChecks  className="w-3.5 h-3.5" />)}
+            {sep()}
+            {fileInsertLabel(videoFileInputId, "Insertar vídeo desde el equipo", <Film className="w-3.5 h-3.5" />, uploadingMedia)}
+            {btn(false, openMediaUrlDialog, "Insertar imagen/vídeo por URL", <Link2 className="w-3.5 h-3.5" />)}
+            {sep()}
+          </div>
+
+          {/* ── Bloque comun a todos los tamanos ─────────────────────── */}
           {btn(editor.isActive({ textAlign: "left" }),   () => editor.chain().focus().setTextAlign("left").run(),   "Alinear izquierda", <AlignLeft   className="w-3.5 h-3.5" />)}
           {btn(editor.isActive({ textAlign: "center" }), () => editor.chain().focus().setTextAlign("center").run(), "Centrar",           <AlignCenter className="w-3.5 h-3.5" />)}
           {btn(editor.isActive({ textAlign: "right" }),  () => editor.chain().focus().setTextAlign("right").run(),  "Alinear derecha",   <AlignRight  className="w-3.5 h-3.5" />)}
