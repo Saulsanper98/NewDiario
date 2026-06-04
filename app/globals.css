@@ -438,12 +438,17 @@ html[data-cc-sidebar-overlay="expanded"] #main-content {
    `data-cc-sidebar-overlay="expanded"` que pudiera quedar en el `<html>`
    de una sesion desktop previa con localStorage persistido — sin esto,
    al rotar de desktop a mobile el contenido aparece desplazado 176px
-   a la derecha y se sale del viewport. */
+   a la derecha y se sale del viewport.
+   Tambien reservamos `padding-bottom` igual a la altura de la
+   bottom-nav (58px) + safe-area, para que el ultimo elemento del
+   scroll (composer de chat, ultimo log de bitacora, boton flotante)
+   nunca quede oculto detras de la barra. */
 @media (max-width: 767.98px) {
   .app-dashboard-root:has(> .app-sidebar-shell.sidebar-expanded-solid) > #main-content,
   html[data-cc-sidebar-overlay="expanded"] #main-content,
   #main-content {
     padding-left: 0 !important;
+    padding-bottom: calc(58px + env(safe-area-inset-bottom, 0px)) !important;
   }
 }
 

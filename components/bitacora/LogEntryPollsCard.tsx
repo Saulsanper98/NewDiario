@@ -224,7 +224,11 @@ export function LogEntryPollsCard({
         L ? "border-zinc-200/90" : "border-white/[0.08]"
       )}
     >
-      <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
+      {/* Mobile: header en columna (titulo y descripcion arriba, boton
+          a ancho completo abajo). Antes en `flex-wrap items-center`
+          el `<Button>` "Nueva encuesta" se truncaba a "+ Nu..."
+          porque competia por el ancho con el bloque del titulo. */}
+      <div className="flex flex-col items-stretch gap-3 mb-5 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
         <div className="flex items-center gap-2.5 min-w-0">
           <span
             className={cn(
@@ -258,7 +262,11 @@ export function LogEntryPollsCard({
             type="button"
             variant="secondary"
             size="sm"
+            /* Mobile: boton a ancho completo (`w-full`) para que
+                "Nueva encuesta" no se trunque y sea un tap-target
+                comodo. En sm+ recupera su ancho intrinseco. */
             className={cn(
+              "w-full justify-center sm:w-auto",
               L &&
                 "border-zinc-200 bg-white text-zinc-800 hover:bg-zinc-50 hover:border-zinc-300 shadow-sm"
             )}

@@ -100,17 +100,22 @@ function KpiCard({
   return (
     <div
       className={cn(
-        "relative overflow-hidden rounded-xl border px-3 py-3 transition-colors",
+        /* `px-2.5 py-2.5 sm:px-3 sm:py-3`: padding reducido en mobile
+           para que las 3 cards (Total/Activos/En pausa) entren mas
+           comodas en 360px. */
+        "relative overflow-hidden rounded-xl border px-2.5 py-2.5 sm:px-3 sm:py-3 transition-colors",
         t.bg,
         t.border,
         light ? "shadow-sm" : "shadow-[0_4px_18px_-8px_rgba(0,0,0,0.5)]"
       )}
     >
-      <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0">
+      <div className="flex items-start justify-between gap-1.5 sm:gap-2">
+        <div className="min-w-0 flex-1">
           <p
             className={cn(
-              "text-[10px] font-semibold uppercase tracking-wider",
+              /* Label: en mobile permitimos 2 lineas ("Completados"
+                 no cabe en una a 10px en una card de ~100px). */
+              "text-[10px] font-semibold uppercase tracking-wider leading-tight break-words",
               light ? "text-zinc-500" : "text-white/45"
             )}
           >
@@ -118,7 +123,9 @@ function KpiCard({
           </p>
           <p
             className={cn(
-              "mt-1 text-2xl font-semibold tabular-nums leading-none",
+              /* Numero un poco mas pequeno en mobile para no robar
+                 espacio al label. */
+              "mt-1 text-xl sm:text-2xl font-semibold tabular-nums leading-none",
               t.value
             )}
           >
@@ -127,7 +134,7 @@ function KpiCard({
           {hint && (
             <p
               className={cn(
-                "mt-1 text-[10.5px]",
+                "mt-1 text-[10.5px] break-words",
                 light ? "text-zinc-500" : "text-white/40"
               )}
             >
@@ -137,13 +144,14 @@ function KpiCard({
         </div>
         <span
           className={cn(
-            "flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ring-1",
+            /* Icono mas compacto en mobile (24px en lugar de 28). */
+            "flex h-6 w-6 sm:h-7 sm:w-7 shrink-0 items-center justify-center rounded-lg ring-1",
             t.ring,
             t.icon,
             light ? "bg-white" : "bg-white/[0.04]"
           )}
         >
-          <Icon className="h-3.5 w-3.5" aria-hidden />
+          <Icon className="h-3 w-3 sm:h-3.5 sm:w-3.5" aria-hidden />
         </span>
       </div>
     </div>
@@ -274,7 +282,9 @@ export function ProjectList({
       {/* Hero */}
       <section
         className={cn(
-          "relative overflow-hidden rounded-2xl border px-5 py-5 sm:px-7 sm:py-6",
+          /* Padding mobile reducido a 16/14 (de 20/20) para que el
+             contenedor del hero no robe ancho util al titulo. */
+          "relative overflow-hidden rounded-2xl border px-4 py-4 sm:px-7 sm:py-6",
           L
             ? "border-black/[0.08] bg-gradient-to-br from-white/85 via-white/70 to-amber-50/55 shadow-[var(--lt-shadow-glass)]"
             : "border-white/10 bg-gradient-to-br from-white/[0.045] via-white/[0.025] to-[#ffeb66]/[0.06] shadow-[0_8px_36px_-12px_rgba(0,0,0,0.55)]"
@@ -316,7 +326,13 @@ export function ProjectList({
             </p>
             <h1
               className={cn(
-                "text-xl sm:text-2xl font-semibold leading-tight tracking-tight",
+                /* clamp(1.125rem, 4.8vw, 1.5rem): 18px en mobile,
+                   escalado hasta 24px en sm+. Antes `text-xl sm:text-2xl`
+                   saltaba bruscamente entre 20 y 24px sin fase
+                   intermedia y "Proyectos del departamento" usaba el
+                   100% del ancho. */
+                "font-semibold leading-tight tracking-tight break-words",
+                "[font-size:clamp(1.125rem,4.8vw,1.5rem)]",
                 L ? "text-zinc-900" : "text-white"
               )}
             >
@@ -324,7 +340,8 @@ export function ProjectList({
             </h1>
             <p
               className={cn(
-                "mt-1.5 text-xs sm:text-sm",
+                "mt-1.5 break-words",
+                "[font-size:clamp(0.75rem,2.8vw,0.875rem)]",
                 L ? "text-zinc-600" : "text-white/55"
               )}
             >

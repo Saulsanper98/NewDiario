@@ -111,9 +111,13 @@ export function MobileNav({
     cn(
       /* `min-h-[44px]` tap-target accesible (WCAG 2.5.5). `text-[9px]`
          y `gap-0`: con la barra a 60-64px por slot, queda 0-2px de
-         margen interno; cualquier gap > 0 entre icono+label hacia
-         que "Proyectos" rozase los bordes. */
-      "mobile-nav-link relative flex flex-col items-center justify-center gap-0 flex-1 h-full min-h-[44px] text-[9px] font-medium leading-none transition-colors px-0",
+         margen interno.
+         `px-0.5 overflow-hidden`: el `px-0.5` da 4px totales (2 por
+         lado) que separan visualmente "Bitacora" del slot vecino
+         "Proyectos" sin que se vea fusionado. `overflow-hidden` mas
+         el `truncate` del span son la red de seguridad por si en
+         viewports <340px una palabra excede el slot. */
+      "mobile-nav-link relative flex flex-col items-center justify-center gap-0 flex-1 h-full min-h-[44px] text-[9px] font-medium leading-none transition-colors px-0.5 overflow-hidden",
       active
         ? L ? "text-amber-800 font-semibold" : "text-[#ffeb66] font-semibold"
         : L
@@ -337,7 +341,9 @@ export function MobileNav({
                     </span>
                   )}
                 </span>
-                <span className="whitespace-nowrap">{item.label}</span>
+                <span className="block w-full truncate text-center">
+                  {item.label}
+                </span>
               </Link>
             );
           })}
@@ -366,7 +372,7 @@ export function MobileNav({
                 </span>
               )}
             </span>
-            <span className="whitespace-nowrap">Más</span>
+            <span className="block w-full truncate text-center">Más</span>
           </button>
         </div>
       </nav>
