@@ -291,11 +291,14 @@ export function MobileNav({
           paddingBottom: "env(safe-area-inset-bottom, 0px)",
         }}
       >
-        {/* `h-[58px]` da 4px mas que la altura clasica de iOS (54) para
-            que el icono (20px) + gap natural + label (9px con leading
-            ajustado) respire bien y la separacion superior con el
-            borde sea visible al estar activo el indicador. */}
-        <div className="relative flex items-stretch h-[58px]">
+        {/* `w-full flex-1`: CRITICO. En `globals.css` la regla
+            `.mobile-bottom-nav` se declara `display: flex` en mobile
+            (era para scroll horizontal en una version previa). Como
+            este `<div>` es el unico hijo del `<nav>` flex, sin
+            `w-full` toma su ancho intrinseco (la suma del contenido)
+            y los 6 items aparecen aglomerados a la izquierda con
+            espacio vacio a la derecha. */}
+        <div className="relative flex items-stretch w-full flex-1 h-[58px]">
           {primaryNav.map((item) => {
             const Icon = item.icon;
             const active = isActive(item.href, item.exact === true);
