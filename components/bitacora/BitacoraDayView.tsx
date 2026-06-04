@@ -483,16 +483,27 @@ export function BitacoraDayView({ logs, selectedDate, departmentName }: Bitacora
           title="Panel del día"
           subtitle={
             <>
-              {dayLabel(parsedDate)},{" "}
-              <span className="capitalize">
-                {format(parsedDate, "d 'de' MMMM yyyy", { locale: es })}
+              {/* Mobile: formato corto "Hoy · 4 jun 2026" en una linea
+                  sin `capitalize` (antes "De Junio" salia en
+                  mayusculas y rompia la lectura).
+                  Desktop: formato largo "Hoy, 4 de junio 2026". */}
+              <span className="sm:hidden whitespace-nowrap">
+                {dayLabel(parsedDate)} ·{" "}
+                {format(parsedDate, "d MMM yyyy", { locale: es })}
+                {total > 0 ? ` · ${total} entr.` : ""}
               </span>
-              {total > 0 ? (
-                <>
-                  {" · "}
-                  {total} entrada{total !== 1 ? "s" : ""}
-                </>
-              ) : null}
+              <span className="hidden sm:inline">
+                {dayLabel(parsedDate)},{" "}
+                <span className="lowercase">
+                  {format(parsedDate, "d 'de' MMMM yyyy", { locale: es })}
+                </span>
+                {total > 0 ? (
+                  <>
+                    {" · "}
+                    {total} entrada{total !== 1 ? "s" : ""}
+                  </>
+                ) : null}
+              </span>
             </>
           }
           rightSlot={<BitacoraViewTabs active="day" light={isLight} />}

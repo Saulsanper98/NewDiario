@@ -34,13 +34,16 @@ type MobileNavItem = {
   exact?: boolean;
 };
 
-/* 5 items principales en la barra inferior: caben sin scroll horizontal
-   en 360px (5 × 64px = 320px + padding). El resto va al sheet "Más".
-   "Agenda" en lugar de "Calendario" porque la palabra completa
-   (`text-[9px]`) seguia rozando los limites del slot en 360px. */
+/* 5 items principales + "Mas" = 6 slots. En 375px (iPhone SE) son
+   ~62.5px por slot. Etiquetas pensadas para caber a `text-[9px]`
+   y a `text-[8.5px]` en viewports <380px:
+     Inicio (6) / Diario (6) / Proyectos (9) / Agenda (6) / Chat (4) / Mas (3)
+   "Diario" en lugar de "Bitacora" porque a 9px "Bitacora" rozaba el
+   slot vecino visualmente (8 chars × ~5.5px = 44px sin tilde) y la
+   tilde extra la pasaba de los 50px que respiran. */
 const primaryNav: MobileNavItem[] = [
   { label: "Inicio",     href: "/dashboard",    icon: LayoutDashboard, exact: true },
-  { label: "Bitácora",   href: "/bitacora/dia", icon: BookOpen },
+  { label: "Diario",     href: "/bitacora/dia", icon: BookOpen },
   { label: "Proyectos",  href: "/proyectos",    icon: FolderKanban },
   { label: "Agenda",     href: "/calendario",   icon: CalendarDays },
   { label: "Chat",       href: "/chat",         icon: MessageCircle,   exact: true },
@@ -110,14 +113,15 @@ export function MobileNav({
   const navItemClasses = (active: boolean) =>
     cn(
       /* `min-h-[44px]` tap-target accesible (WCAG 2.5.5). `text-[9px]`
-         y `gap-0`: con la barra a 60-64px por slot, queda 0-2px de
-         margen interno.
-         `px-0.5 overflow-hidden`: el `px-0.5` da 4px totales (2 por
-         lado) que separan visualmente "Bitacora" del slot vecino
-         "Proyectos" sin que se vea fusionado. `overflow-hidden` mas
-         el `truncate` del span son la red de seguridad por si en
-         viewports <340px una palabra excede el slot. */
-      "mobile-nav-link relative flex flex-col items-center justify-center gap-0 flex-1 h-full min-h-[44px] text-[9px] font-medium leading-none transition-colors px-0.5 overflow-hidden",
+         normal y `text-[8.5px]` en viewports <380px (iPhone SE estricto)
+         para que "Proyectos" no compita con el slot vecino.
+         `gap-0.5`: 2px entre icono y label (no 0 — daba sensacion de
+         icono pegado al texto y se "fusionaba" visualmente con el
+         label del slot vecino).
+         `px-1`: 8px totales por slot (4 a cada lado) — separacion
+         clara entre "Diario" y "Proyectos", entre "Proyectos" y
+         "Agenda", etc. */
+      "mobile-nav-link relative flex flex-col items-center justify-center gap-0.5 flex-1 h-full min-h-[44px] text-[9px] [@media(max-width:380px)]:text-[8.5px] font-medium leading-none transition-colors px-1 overflow-hidden",
       active
         ? L ? "text-amber-800 font-semibold" : "text-[#ffeb66] font-semibold"
         : L

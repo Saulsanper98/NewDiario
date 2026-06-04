@@ -304,8 +304,15 @@ export function ProjectList({
             L ? "bg-sky-200/55" : "bg-sky-500/10"
           )}
         />
-        <div className="relative flex flex-wrap items-start gap-4">
-          <div className="shrink-0">
+        {/* En mobile el hero pasa a `flex-col` (icono+texto arriba en
+            su propia fila, boton "Nuevo proyecto" debajo a ancho
+            completo). Antes con `flex-wrap items-start`, los tres
+            children (icono 48 + texto flex-1 + boton ~165) competian
+            por el ancho y dejaban ~98px al bloque del titulo, por lo
+            que "departamento" no cabia y `overflow-wrap: break-word`
+            la rompia letra a letra. */}
+        <div className="relative flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-start sm:gap-4">
+          <div className="shrink-0 hidden sm:block">
             <div className={cn(
               "flex items-center justify-center w-12 h-12 rounded-2xl",
               L
@@ -327,12 +334,16 @@ export function ProjectList({
             <h1
               className={cn(
                 /* clamp(1.125rem, 4.8vw, 1.5rem): 18px en mobile,
-                   escalado hasta 24px en sm+. Antes `text-xl sm:text-2xl`
-                   saltaba bruscamente entre 20 y 24px sin fase
-                   intermedia y "Proyectos del departamento" usaba el
-                   100% del ancho. */
-                "font-semibold leading-tight tracking-tight break-words",
+                   escalado hasta 24px en sm+. Con el boton ya en
+                   fila propia (`flex-col` en mobile), el bloque
+                   texto tiene 100% del ancho y "departamento" cabe
+                   sin necesidad de partirse.
+                   `[overflow-wrap:normal]`: anulamos cualquier
+                   `break-word` global o heredado — solo queremos
+                   romper en espacios naturales. */
+                "font-semibold leading-tight tracking-tight",
                 "[font-size:clamp(1.125rem,4.8vw,1.5rem)]",
+                "[overflow-wrap:normal] [word-break:normal] [hyphens:none]",
                 L ? "text-zinc-900" : "text-white"
               )}
             >
@@ -348,14 +359,17 @@ export function ProjectList({
               Organiza el trabajo del equipo en proyectos: tareas, kanban, timeline, comentarios y bitácora.
             </p>
           </div>
-          <div className="shrink-0">
+          {/* `w-full sm:w-auto`: en mobile el CTA queda en una fila
+              propia a ancho completo (al ser el ultimo hijo del
+              flex-col); en sm+ recupera su ancho intrinseco. */}
+          <div className="w-full sm:w-auto sm:shrink-0">
             <Link
               href="/proyectos/nuevo"
               className={cn(
                 "inline-flex items-center justify-center gap-2 font-medium rounded-lg transition-all duration-200",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ffeb66] focus-visible:ring-offset-2",
                 L ? "focus-visible:ring-offset-white" : "focus-visible:ring-offset-[#0a0f1e]",
-                "text-sm px-4 py-2 h-9 bg-[#ffeb66] text-[#0a0f1e] hover:bg-[#ffe033] active:bg-[#ffd700] shadow-md hover:shadow-[#ffeb66]/20"
+                "w-full sm:w-auto text-sm px-4 py-2 h-9 bg-[#ffeb66] text-[#0a0f1e] hover:bg-[#ffe033] active:bg-[#ffd700] shadow-md hover:shadow-[#ffeb66]/20"
               )}
             >
               <Plus className="w-3.5 h-3.5" />
