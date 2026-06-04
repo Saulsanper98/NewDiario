@@ -176,7 +176,10 @@ export function MonthView({
                 }
               }}
               className={cn(
-                "group relative flex h-[110px] cursor-pointer flex-col gap-1 border-b border-r p-1.5 transition sm:h-[128px] sm:p-2",
+                /* Altura adaptativa: en mobile usamos `aspect-square` para
+                   que cada celda sea cuadrada y el numero del dia sea
+                   protagonico; en sm+ recuperamos la altura fija anterior. */
+                "group relative flex cursor-pointer flex-col gap-1 border-b border-r p-1 transition aspect-square sm:aspect-auto sm:h-[128px] sm:p-2",
                 L ? "border-zinc-100 hover:bg-sky-50/50" : "border-white/[0.04] hover:bg-white/[0.03]",
                 !inMonth && (L ? "bg-zinc-50/40" : "bg-white/[0.01]"),
                 isWeekend && inMonth && (L ? "bg-zinc-50/30" : "bg-white/[0.01]")
@@ -185,7 +188,11 @@ export function MonthView({
               <div className="flex items-center justify-between">
                 <span
                   className={cn(
-                    "inline-flex h-6 min-w-6 items-center justify-center rounded-full px-1.5 text-xs font-medium tabular-nums",
+                    /* Numero del dia: en mobile 14px (text-sm) para
+                       cumplir el minimo legible que pediste; en sm+
+                       recupera 12px (text-xs). Tambien aumentamos el
+                       tamano del badge ovalado proporcionalmente. */
+                    "inline-flex h-7 min-w-7 sm:h-6 sm:min-w-6 items-center justify-center rounded-full px-1.5 text-sm sm:text-xs font-medium tabular-nums",
                     isToday
                       ? L
                         ? "bg-sky-600 text-white"
@@ -213,8 +220,45 @@ export function MonthView({
                 )}
               </div>
 
-              {/* Eventos + overlays del día */}
-              <div className="flex flex-col gap-0.5 overflow-hidden">
+              {/* ── Mobile: lista de puntos de colores apilados ─────
+                  En 7 columnas x ~50px no caben pills con texto sin
+                  truncar a "R...". En mobile renderizamos solo dots
+                  agrupados horizontalmente con gap; cada uno con
+                  `aria-label` para a11y. Tap en el dia abre la vista
+                  Dia con el listado completo. */}
+              <div className="flex flex-wrap items-center justify-center gap-0.5 sm:hidden">
+                {dayEvents.slice(0, 4).map((ev) => {
+                  const tokens = getCalendarColorTokens(ev.color, L ? "light" : "dark");
+                  return (
+                    <span
+                      key={`dot-${ev.id}-${ev.originalDate}`}
+                      aria-label={ev.title}
+                      title={ev.title}
+                      className="h-1.5 w-1.5 rounded-full"
+                      style={{ background: tokens.solid }}
+                    />
+                  );
+                })}
+                {dayOverlays.slice(0, Math.max(0, 4 - dayEvents.length)).map((o) => (
+                  <span
+                    key={`dot-overlay-${o.kind}-${o.id}`}
+                    aria-label={o.title}
+                    title={o.title}
+                    className={cn(
+                      "h-1.5 w-1.5 rounded-full",
+                      L ? "bg-amber-500" : "bg-amber-400"
+                    )}
+                  />
+                ))}
+                {totalItems > 4 && (
+                  <span className={cn("text-[9px] tabular-nums leading-none", L ? "text-zinc-500" : "text-white/50")}>
+                    +{totalItems - 4}
+                  </span>
+                )}
+              </div>
+
+              {/* ── Desktop (sm+): pills con texto. Eventos + overlays del día ──── */}
+              <div className="hidden sm:flex flex-col gap-0.5 overflow-hidden">
                 {eventsToShow.map((ev) => {
                   const tokens = getCalendarColorTokens(ev.color, L ? "light" : "dark");
                   const isAbsence = ev.type === "ABSENCE";

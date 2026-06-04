@@ -41,7 +41,8 @@ export function BitacoraHero({
   return (
     <section
       className={cn(
-        "relative overflow-hidden rounded-2xl border px-5 py-5 sm:px-7 sm:py-6",
+        /* Padding mobile reducido: 16/14px en lugar de 20/20. */
+        "relative overflow-hidden rounded-2xl border px-4 py-4 sm:px-7 sm:py-6",
         light
           ? "border-black/[0.08] bg-gradient-to-br from-white/85 via-white/70 to-amber-50/55 shadow-[var(--lt-shadow-glass)]"
           : "border-white/10 bg-gradient-to-br from-white/[0.045] via-white/[0.025] to-[#ffeb66]/[0.06] shadow-[0_8px_36px_-12px_rgba(0,0,0,0.55)]",
@@ -78,7 +79,13 @@ export function BitacoraHero({
           )}
           <h1
             className={cn(
-              "text-xl sm:text-2xl font-semibold leading-tight tracking-tight",
+              /* `clamp(1.125rem, 4.5vw, 1.5rem)`: 18px en mobile (<400px),
+                 24px en sm+ (>=534px). Tailwind con `text-xl sm:text-2xl`
+                 saltaba bruscamente entre 20 y 24px sin fase intermedia
+                 y "Panel del dia" + "Vista por dia + filtros" desbordaba
+                 en algunos viewports estrechos. */
+              "font-semibold leading-tight tracking-tight break-words",
+              "[font-size:clamp(1.125rem,4.5vw,1.5rem)]",
               light ? "text-zinc-900" : "text-white"
             )}
           >
@@ -87,7 +94,9 @@ export function BitacoraHero({
           {subtitle && (
             <p
               className={cn(
-                "mt-1.5 text-xs sm:text-sm",
+                /* Subtitle con clamp: 12px en mobile, 14px en sm+. */
+                "mt-1.5 break-words",
+                "[font-size:clamp(0.75rem,2.8vw,0.875rem)]",
                 light ? "text-zinc-600" : "text-white/55"
               )}
             >

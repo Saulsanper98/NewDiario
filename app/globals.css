@@ -232,6 +232,11 @@ html[data-theme="light"] .bg-orb {
 html {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  /* Cinturon y tirantes: evitamos cualquier scroll horizontal accidental
+     que pueda venir de un elemento mal medido (un `min-w-[X]px` viejo,
+     un absoluto desbordado, etc.). El layout interno usa containers
+     con `overflow-hidden` propios; esto es la red de seguridad final. */
+  overflow-x: hidden;
 }
 
 /* Lienzo de la app (theme-driven).
@@ -246,6 +251,23 @@ body {
   color: #f0f4ff;
   font-family: "Sora", system-ui, sans-serif;
   min-height: 100vh;
+  /* Igual que html: cualquier overflow horizontal de un hijo queda
+     contenido sin generar scrollbar a nivel pagina. */
+  overflow-x: hidden;
+}
+
+/* Reset multimedia: imagenes/videos/canvas no deben desbordar nunca
+   su contenedor. Tailwind preflight ya aplica `max-width: 100%` a
+   `img`/`video`, pero los `<img>` inyectados desde TipTap o
+   menciones de chat a veces traen `width=` HTML inline; reforzamos
+   con `!important` para neutralizarlos.
+   NOTA: NO aplicamos a `svg` porque los iconos (lucide-react) usan
+   tamano explicito `w-4 h-4` y `height:auto` los deformaria. */
+img,
+video,
+canvas {
+  max-width: 100% !important;
+  height: auto;
 }
 
 /* ── Glassmorphism — capas de elevación (1 = base … 4 = modales) ───────────

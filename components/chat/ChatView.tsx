@@ -4656,7 +4656,12 @@ export function ChatView() {
                             )}
                           </div>
                         )}
-                        <div className="flex max-w-[min(100%,26rem)] min-w-0 flex-col">
+                        {/* Burbuja: max-width 80% del contenedor del
+                            thread en mobile, hasta 26rem en desktop. Antes
+                            era `min(100%, 26rem)` que en mobile permitia
+                            burbujas a ancho completo (no se distinguia el
+                            destinatario y se solapaba con el avatar). */}
+                        <div className="flex max-w-[min(80%,26rem)] min-w-0 flex-col">
                           {(() => {
                             // Agrupacion visual estilo Telegram: las esquinas
                             // del lado de la "cola" (right si es mio, left

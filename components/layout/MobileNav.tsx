@@ -89,12 +89,18 @@ export function MobileNav({
 
   const navItemClasses = (active: boolean) =>
     cn(
-      "mobile-nav-link relative flex flex-col items-center justify-center gap-0.5 flex-1 h-full text-[10px] font-medium transition-colors px-1",
+      /* `min-h-[44px]` y `min-w-[44px]` aseguran tap-target accesible
+         WCAG 2.5.5 incluso en viewports muy estrechos. */
+      "mobile-nav-link relative flex flex-col items-center justify-center gap-0.5 flex-1 h-full min-h-[44px] min-w-[44px] text-[10px] font-medium transition-colors px-1",
       active
-        ? L ? "text-amber-700" : "text-[#ffeb66]"
+        ? /* Contraste reforzado en el item activo: en light pasamos de
+             `text-amber-700` (~AA con bg blanco) a `text-amber-800`
+             (~AAA). En dark mantenemos `text-[#ffeb66]` que ya cumple
+             AAA sobre `bg-[#0a0f1e]/95`. */
+          L ? "text-amber-800 font-semibold" : "text-[#ffeb66] font-semibold"
         : L
-          ? "text-zinc-500 hover:text-zinc-800"
-          : "text-white/45 hover:text-white/80",
+          ? "text-zinc-600 hover:text-zinc-900"
+          : "text-white/55 hover:text-white/85",
     );
 
   return (

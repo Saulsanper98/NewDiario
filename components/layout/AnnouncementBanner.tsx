@@ -123,27 +123,38 @@ export function AnnouncementBanner() {
           <div
             key={it.id}
             className={cn(
-              "relative px-4 sm:px-6 py-2.5 shadow-lg backdrop-blur-md",
+              /* Mobile (<sm): padding vertical reducido a 1.5 (de 2.5) y
+                 horizontal a 3 (de 4) — gana ~12px verticales y mete
+                 al banner mas integrado con el header. */
+              "relative px-3 sm:px-6 py-1.5 sm:py-2.5 shadow-lg backdrop-blur-md",
               "transition-all duration-200",
               meta.bannerClass,
               dismissing && "opacity-0 -translate-y-2"
             )}
           >
-            <div className="mx-auto max-w-7xl flex items-center gap-3">
-              <div className="shrink-0 flex items-center justify-center w-7 h-7 rounded-full bg-white/15 ring-1 ring-white/20">
-                <Icon className={cn("w-4 h-4", meta.iconClass)} />
+            <div className="mx-auto max-w-7xl flex items-center gap-2 sm:gap-3">
+              {/* Icono mas pequenio en mobile (24px en lugar de 28px). */}
+              <div className="shrink-0 flex items-center justify-center w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-white/15 ring-1 ring-white/20">
+                <Icon className={cn("w-3.5 h-3.5 sm:w-4 sm:h-4", meta.iconClass)} />
               </div>
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <p className="text-sm font-semibold leading-tight">
+                <div className="flex items-center gap-2">
+                  {/* Mobile: titulo a una sola linea con truncate. El
+                     usuario ve el resto al pulsar el CTA o expandir. */}
+                  <p className="text-xs sm:text-sm font-semibold leading-tight truncate sm:whitespace-normal" title={it.title}>
                     {it.title}
                   </p>
                   <Sparkles
-                    className="w-3 h-3 opacity-70 shrink-0"
+                    className="hidden sm:inline-block w-3 h-3 opacity-70 shrink-0"
                     aria-hidden
                   />
                 </div>
-                <p className="text-xs leading-snug mt-0.5 opacity-95">
+                {/* Mobile: mensaje a una linea con truncate. Desktop
+                   mantiene el wrap clasico. */}
+                <p
+                  className="text-[11px] sm:text-xs leading-snug mt-0.5 opacity-95 truncate sm:whitespace-normal"
+                  title={it.message}
+                >
                   {it.message}
                 </p>
               </div>
@@ -152,7 +163,9 @@ export function AnnouncementBanner() {
                   type="button"
                   onClick={() => handleCta(it)}
                   className={cn(
-                    "shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all whitespace-nowrap",
+                    /* CTA mas compacta en mobile: px-2 py-1 para que no
+                       canibalice el ancho del mensaje truncado. */
+                    "shrink-0 inline-flex items-center gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-md text-[11px] sm:text-xs font-semibold transition-all whitespace-nowrap",
                     meta.buttonClass
                   )}
                 >
@@ -164,7 +177,7 @@ export function AnnouncementBanner() {
                   type="button"
                   onClick={() => void dismiss(it.id)}
                   aria-label="Descartar aviso"
-                  className="shrink-0 p-1.5 rounded-md hover:bg-white/15 transition-colors"
+                  className="shrink-0 p-1 sm:p-1.5 rounded-md hover:bg-white/15 transition-colors"
                 >
                   <X className="w-4 h-4" />
                 </button>
