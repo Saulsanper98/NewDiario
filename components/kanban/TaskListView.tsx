@@ -115,11 +115,149 @@ export function TaskListView({ columns }: TaskListViewProps) {
     );
   }
 
+  /* Selector simple para ordenar en mobile (sin cabeceras de tabla). */
+  const sortOptions: { key: SortKey; label: string }[] = [
+    { key: "priority", label: "Prioridad" },
+    { key: "title", label: "Título" },
+    { key: "dueDate", label: "Fecha límite" },
+    { key: "assignee", label: "Asignado" },
+    { key: "status", label: "Estado" },
+  ];
+
   return (
     <div className="flex-1 min-h-0 relative">
       <div className="absolute inset-0 overflow-auto p-4">
+      {/* ── Vista cards en mobile (<sm). La tabla queda demasiado
+            apretada con 5 columnas en 360px; aquí cada tarea es un
+            card apilado con la misma informacion. ─────────────────── */}
+      <div className="sm:hidden space-y-3">
+        <div className="flex items-center gap-2">
+          <label
+            htmlFor="task-list-sort-mobile"
+            className={cn("text-xs font-medium uppercase tracking-wide", L ? "text-zinc-500" : "text-white/40")}
+          >
+            Ordenar por
+          </label>
+          <select
+            id="task-list-sort-mobile"
+            value={sortKey}
+            onChange={(e) => setSortKey(e.target.value as SortKey)}
+            className={cn(
+              "flex-1 text-sm rounded-md px-2 py-1.5 border min-h-[36px]",
+              L
+                ? "border-zinc-200 bg-white text-zinc-800"
+                : "border-white/10 bg-white/[0.04] text-white/85",
+            )}
+          >
+            {sortOptions.map((o) => (
+              <option key={o.key} value={o.key}>{o.label}</option>
+            ))}
+          </select>
+          <button
+            type="button"
+            onClick={() => setSortDir(sortDir === "asc" ? "desc" : "asc")}
+            aria-label={sortDir === "asc" ? "Orden ascendente" : "Orden descendente"}
+            className={cn(
+              "min-w-[36px] min-h-[36px] inline-flex items-center justify-center rounded-md border",
+              L
+                ? "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50"
+                : "border-white/10 bg-white/[0.04] text-white/70 hover:bg-white/[0.08]",
+            )}
+          >
+            {sortDir === "asc"
+              ? <ChevronUp className="w-4 h-4" />
+              : <ChevronDown className="w-4 h-4" />}
+          </button>
+        </div>
+        {sorted.map((task) => {
+          const isOverdue = task.dueDate && isPast(new Date(task.dueDate));
+          const pri = priorities[task.id] ?? (task.priority as Priority);
+          return (
+            <article
+              key={task.id}
+              className={cn(
+                "rounded-xl border p-3 space-y-2",
+                L
+                  ? "border-zinc-200 bg-white shadow-sm"
+                  : "glass border-white/8",
+              )}
+            >
+              <header className="flex items-start gap-2">
+                <div
+                  className={`mt-1 w-1.5 h-1.5 rounded-full shrink-0 ${
+                    pri === "HIGH"
+                      ? L ? "bg-red-500" : "bg-red-400"
+                      : pri === "MEDIUM"
+                        ? L ? "bg-amber-500" : "bg-yellow-400"
+                        : L ? "bg-emerald-500" : "bg-green-400"
+                  }`}
+                />
+                <h3 className={cn("text-sm font-medium flex-1 min-w-0 break-words", L ? "text-zinc-900" : "text-white/85")}>
+                  {task.title}
+                </h3>
+                {task.isShiftTask && <Badge variant="warning" size="sm">Turno</Badge>}
+              </header>
+              <div className="flex flex-wrap items-center gap-2 text-xs">
+                <button
+                  type="button"
+                  onClick={(e) => void cycleTaskPriority(task.id, e)}
+                  className={cn(
+                    "rounded-md outline-none transition-opacity focus-visible:ring-2 focus-visible:ring-offset-2",
+                    L
+                      ? "focus-visible:ring-amber-400 focus-visible:ring-offset-white"
+                      : "focus-visible:ring-[#ffeb66] focus-visible:ring-offset-[#0a0f1e]",
+                  )}
+                >
+                  <Badge className={getPriorityColor(pri)} size="sm">{PRIORITY_LABELS[pri]}</Badge>
+                </button>
+                <span className={cn(
+                  "px-2 py-0.5 rounded-md border",
+                  L
+                    ? "text-zinc-700 bg-zinc-50 border-zinc-200"
+                    : "text-white/55 bg-white/5 border-white/8",
+                )}>
+                  {task.columnName}
+                </span>
+                {task.dueDate && (
+                  <span className={cn(
+                    "inline-flex items-center gap-1",
+                    isOverdue
+                      ? L ? "text-red-600" : "text-red-400"
+                      : L ? "text-zinc-600" : "text-white/55",
+                  )}>
+                    <Calendar className="w-3 h-3" />
+                    {format(new Date(task.dueDate), "d MMM yyyy", { locale: es })}
+                  </span>
+                )}
+              </div>
+              {task.assignee && (
+                <div className="flex items-center gap-2 pt-1">
+                  <Avatar
+                    name={task.assignee.name}
+                    image={task.assignee.image}
+                    size="xs"
+                  />
+                  <UserProfilePopover
+                    userId={task.assignee.id}
+                    name={task.assignee.name}
+                    image={task.assignee.image}
+                    nameClassName={cn("text-xs", L ? "text-zinc-700" : "text-white/55")}
+                  />
+                </div>
+              )}
+            </article>
+          );
+        })}
+        {sorted.length === 0 && (
+          <div className={cn("py-12 text-center text-sm rounded-xl border", L ? "border-zinc-200 text-zinc-500" : "border-white/8 text-white/30")}>
+            Sin tareas
+          </div>
+        )}
+      </div>
+
+      {/* ── Tabla original en sm+ (>=640px). ────────────────────────── */}
       <div className={cn(
-        "rounded-xl overflow-hidden",
+        "hidden sm:block rounded-xl overflow-hidden",
         L
           ? "border border-zinc-200 bg-white shadow-sm"
           : "glass"

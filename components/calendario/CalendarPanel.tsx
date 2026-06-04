@@ -44,6 +44,14 @@ export function CalendarPanel({ department }: CalendarPanelProps) {
     if (stored === "month" || stored === "week" || stored === "day" || stored === "agenda") {
       return stored;
     }
+    /* En movil (<640px) la vista Mes/Semana queda ilegible: 7 columnas
+       con eventos truncados a "R...", "P..." y celdas de ~50px. La
+       Agenda agrupa por dia en una sola columna y se lee bien. Si el
+       usuario nunca eligio una vista, arrancamos en Agenda en mobile y
+       Mes en desktop. El usuario puede cambiar manualmente y se guarda. */
+    if (window.matchMedia("(max-width: 639.98px)").matches) {
+      return "agenda";
+    }
     return "month";
   });
   const [cursor, setCursor] = useState<Date>(() => {
