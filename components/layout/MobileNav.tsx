@@ -16,9 +16,16 @@ import {
   MoreHorizontal,
   Bug,
   X,
+  Sun,
+  Moon,
+  Sparkles,
+  Droplets,
+  Layers,
+  Check,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/components/layout/ThemeProvider";
+import type { ThemeMode } from "@/lib/theme";
 
 type MobileNavItem = {
   label: string;
@@ -28,13 +35,26 @@ type MobileNavItem = {
 };
 
 /* 5 items principales en la barra inferior: caben sin scroll horizontal
-   en 360px (5 × 64px = 320px + padding). El resto va al sheet "Más". */
+   en 360px (5 × 64px = 320px + padding). El resto va al sheet "Más".
+   "Agenda" en lugar de "Calendario" porque la palabra completa
+   (`text-[9px]`) seguia rozando los limites del slot en 360px. */
 const primaryNav: MobileNavItem[] = [
   { label: "Inicio",     href: "/dashboard",    icon: LayoutDashboard, exact: true },
   { label: "Bitácora",   href: "/bitacora/dia", icon: BookOpen },
   { label: "Proyectos",  href: "/proyectos",    icon: FolderKanban },
-  { label: "Calendario", href: "/calendario",   icon: CalendarDays },
+  { label: "Agenda",     href: "/calendario",   icon: CalendarDays },
   { label: "Chat",       href: "/chat",         icon: MessageCircle,   exact: true },
+];
+
+/* Opciones de tema disponibles dentro del sheet "Mas" (en desktop el
+   selector vive en el Header, en mobile lo agregamos aqui para que el
+   usuario pueda cambiar tema sin abandonar la app). */
+const THEME_OPTIONS: { id: ThemeMode; label: string; Icon: typeof Sun }[] = [
+  { id: "aurora", label: "Aurora",  Icon: Sparkles },
+  { id: "light",  label: "Claro",   Icon: Sun },
+  { id: "dark",   label: "Oscuro",  Icon: Moon },
+  { id: "slate",  label: "Slate",   Icon: Layers },
+  { id: "glass",  label: "Cristal", Icon: Droplets },
 ];
 
 const secondaryNav: MobileNavItem[] = [
@@ -55,7 +75,7 @@ export function MobileNav({
   pendingFollowups = 0,
   unreadReleaseNotes = 0,
 }: MobileNavProps) {
-  const { theme } = useTheme();
+  const { theme, setTheme } = useTheme();
   const L = theme === "light";
   const pathname = usePathname();
   const [moreOpen, setMoreOpen] = useState(false);
@@ -89,18 +109,13 @@ export function MobileNav({
 
   const navItemClasses = (active: boolean) =>
     cn(
-      /* `min-h-[44px]` y `min-w-[44px]` aseguran tap-target accesible
-         WCAG 2.5.5 incluso en viewports muy estrechos.
-         `text-[9.5px]`: rebajamos de 10px para que palabras como
-         "Bitacora", "Proyectos", "Calendario" entren completas en
-         viewports de 360-414px y no haga falta truncar. */
-      "mobile-nav-link relative flex flex-col items-center justify-center gap-0.5 flex-1 h-full min-h-[44px] min-w-[44px] text-[9.5px] font-medium transition-colors px-0.5",
+      /* `min-h-[44px]` tap-target accesible (WCAG 2.5.5). `text-[9px]`
+         y `gap-0`: con la barra a 60-64px por slot, queda 0-2px de
+         margen interno; cualquier gap > 0 entre icono+label hacia
+         que "Proyectos" rozase los bordes. */
+      "mobile-nav-link relative flex flex-col items-center justify-center gap-0 flex-1 h-full min-h-[44px] text-[9px] font-medium leading-none transition-colors px-0",
       active
-        ? /* Contraste reforzado en el item activo: en light pasamos de
-             `text-amber-700` (~AA con bg blanco) a `text-amber-800`
-             (~AAA). En dark mantenemos `text-[#ffeb66]` que ya cumple
-             AAA sobre `bg-[#0a0f1e]/95`. */
-          L ? "text-amber-800 font-semibold" : "text-[#ffeb66] font-semibold"
+        ? L ? "text-amber-800 font-semibold" : "text-[#ffeb66] font-semibold"
         : L
           ? "text-zinc-600 hover:text-zinc-900"
           : "text-white/55 hover:text-white/85",
@@ -196,6 +211,62 @@ export function MobileNav({
                 );
               })}
             </ul>
+
+            {/* Tema visual: en desktop el selector vive en el Header
+                (`hidden sm:flex`), asi que en mobile lo metemos aqui
+                como sub-seccion del sheet "Mas". Sin portal, sin
+                dropdown — render directo de 5 botones tipo chip. */}
+            <div className="px-4 pb-2">
+              <p
+                className={cn(
+                  "text-[10px] font-bold uppercase tracking-[0.18em] mb-2",
+                  L ? "text-zinc-500" : "text-white/40"
+                )}
+              >
+                Apariencia
+              </p>
+              <div
+                role="radiogroup"
+                aria-label="Tema visual"
+                className="grid grid-cols-3 gap-1.5"
+              >
+                {THEME_OPTIONS.map((opt) => {
+                  const Icon = opt.Icon;
+                  const sel = theme === opt.id;
+                  return (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      role="radio"
+                      aria-checked={sel}
+                      onClick={() => setTheme(opt.id)}
+                      className={cn(
+                        "relative flex flex-col items-center justify-center gap-1 rounded-lg border px-2 py-2.5 text-[11px] font-medium transition-all min-h-[44px]",
+                        sel
+                          ? L
+                            ? "border-amber-400 bg-amber-50 text-amber-900 shadow-sm"
+                            : "border-[#ffeb66]/50 bg-[#ffeb66]/10 text-[#ffeb66]"
+                          : L
+                            ? "border-zinc-200 bg-white text-zinc-700 hover:border-zinc-300"
+                            : "border-white/10 bg-white/[0.04] text-white/70 hover:border-white/20"
+                      )}
+                    >
+                      <Icon className="w-4 h-4 shrink-0" aria-hidden />
+                      <span>{opt.label}</span>
+                      {sel && (
+                        <Check
+                          className={cn(
+                            "absolute top-1 right-1 w-3 h-3",
+                            L ? "text-amber-700" : "text-[#ffeb66]"
+                          )}
+                          aria-hidden
+                        />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -212,7 +283,11 @@ export function MobileNav({
           paddingBottom: "env(safe-area-inset-bottom, 0px)",
         }}
       >
-        <div className="relative flex items-stretch h-14">
+        {/* `h-[58px]` da 4px mas que la altura clasica de iOS (54) para
+            que el icono (20px) + gap natural + label (9px con leading
+            ajustado) respire bien y la separacion superior con el
+            borde sea visible al estar activo el indicador. */}
+        <div className="relative flex items-stretch h-[58px]">
           {primaryNav.map((item) => {
             const Icon = item.icon;
             const active = isActive(item.href, item.exact === true);
@@ -239,10 +314,13 @@ export function MobileNav({
                     style={{ left: "calc(var(--mobile-nav-active-x, 50%))" }}
                   />
                 )}
-                <span className="relative shrink-0">
+                <span className="relative shrink-0 mb-0.5">
                   <Icon
                     className={cn(
-                      "w-5 h-5 shrink-0 transition-transform duration-200",
+                      /* Icono ligeramente mas pequeno (18px) que el
+                         estandar (20) para dejar mas aire al label
+                         debajo en slots de 60-64px. */
+                      "w-[18px] h-[18px] shrink-0 transition-transform duration-200",
                       active ? "scale-110" : ""
                     )}
                   />
@@ -259,14 +337,7 @@ export function MobileNav({
                     </span>
                   )}
                 </span>
-                {/* En viewports muy estrechos (<360px) ocultamos el
-                    label y dejamos solo el icono — el `aria-label`
-                    del <Link> sigue exponiendo el nombre completo a
-                    screen readers. En >=360px mostramos el texto sin
-                    truncate (cabe entero a 9.5px) con whitespace-nowrap. */}
-                <span className="hidden min-[360px]:inline whitespace-nowrap px-0.5">
-                  {item.label}
-                </span>
+                <span className="whitespace-nowrap">{item.label}</span>
               </Link>
             );
           })}
@@ -280,8 +351,8 @@ export function MobileNav({
             onClick={() => setMoreOpen((v) => !v)}
             className={navItemClasses(moreActive || moreOpen)}
           >
-            <span className="relative shrink-0">
-              <MoreHorizontal className="w-5 h-5 shrink-0" />
+            <span className="relative shrink-0 mb-0.5">
+              <MoreHorizontal className="w-[18px] h-[18px] shrink-0" />
               {moreBadge > 0 && (
                 <span
                   className={cn(
@@ -295,7 +366,7 @@ export function MobileNav({
                 </span>
               )}
             </span>
-            <span className="hidden min-[360px]:inline whitespace-nowrap px-0.5">Más</span>
+            <span className="whitespace-nowrap">Más</span>
           </button>
         </div>
       </nav>
