@@ -272,7 +272,12 @@ export function Header({ user, breadcrumb }: HeaderProps) {
     <header
       className={cn(
         /* relative z-30: dropdowns (notif., dept.) deben pintar sobre el contenido siguiente (mismo padre flex). */
-        "h-16 app-top-header relative z-30 flex items-center gap-4 px-6 shrink-0 print:hidden",
+        /* Mobile: padding y gap reducidos (de 24px/16px a 12px/8px) para
+           que el breadcrumb + dept-selector + notif + avatar quepan en
+           360px sin truncar de más. Los controles secundarios (búsqueda,
+           tema, reportar bug) se ocultan con `hidden sm:flex` y se
+           acceden desde MobileNav + Configuración. */
+        "h-16 app-top-header relative z-30 flex items-center gap-2 px-3 sm:gap-4 sm:px-6 shrink-0 print:hidden",
         isOffline ? "mt-7" : ""
       )}
     >
@@ -326,7 +331,10 @@ export function Header({ user, breadcrumb }: HeaderProps) {
         </span>
       </nav>
 
-      <CommandPalette activeDepartmentId={user.activeDepartmentId} />
+      {/* CommandPalette: oculto en mobile (atajo Ctrl/Cmd+K disponible). */}
+      <div className="hidden sm:flex">
+        <CommandPalette activeDepartmentId={user.activeDepartmentId} />
+      </div>
 
       {/* Department selector */}
       {user.departments.length > 1 && (
@@ -344,7 +352,7 @@ export function Header({ user, breadcrumb }: HeaderProps) {
               style={{ backgroundColor: accent(activeDept?.accentColor) }}
             />
             <span
-              className="text-white/70 max-w-[120px] sm:max-w-[200px] truncate"
+              className="text-white/70 max-w-[88px] sm:max-w-[200px] truncate"
               title={activeDept?.name ?? undefined}
             >
               {activeDept?.name ?? "Seleccionar"}
@@ -410,9 +418,15 @@ export function Header({ user, breadcrumb }: HeaderProps) {
         </div>
       )}
 
-      <ReportBugHeaderButton />
-
-      <ThemeSelector />
+      {/* Bug report y tema: ocultos en mobile.
+         - Reportar bug: accesible desde la pestaña "Bugs" de MobileNav.
+         - Tema: accesible desde Configuración → Apariencia. */}
+      <div className="hidden sm:flex">
+        <ReportBugHeaderButton />
+      </div>
+      <div className="hidden sm:flex">
+        <ThemeSelector />
+      </div>
 
       <div className="flex items-center gap-2.5 shrink-0">
       {/* Notifications */}
