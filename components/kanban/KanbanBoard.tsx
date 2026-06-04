@@ -743,7 +743,9 @@ export function KanbanBoard({ project, allUsers }: KanbanBoardProps) {
           onClick={() => void clearCompletedColumn()}
           disabled={clearingCompleted || completedTasksInBoard === 0}
           className={cn(
-            "flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs transition-colors disabled:opacity-50",
+            /* `whitespace-nowrap`: evita que `Limpiar completadas (N)`
+                se parta en dos lineas dentro del boton en mobile. */
+            "flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs whitespace-nowrap transition-colors disabled:opacity-50",
             L
               ? "border-zinc-200 bg-white text-zinc-600 hover:border-red-300 hover:text-red-700"
               : "border-white/10 bg-white/5 text-white/55 hover:border-red-400/30 hover:text-red-300/90"
@@ -751,7 +753,20 @@ export function KanbanBoard({ project, allUsers }: KanbanBoardProps) {
           title="Vaciar columna de completadas y mover tareas al archivo"
         >
           <Trash2 className="w-3.5 h-3.5" />
-          {clearingCompleted ? "Limpiando…" : `Limpiar completadas (${completedTasksInBoard})`}
+          {clearingCompleted ? (
+            "Limpiando…"
+          ) : (
+            <>
+              {/* Texto largo en sm+ ("Limpiar completadas (N)"),
+                  abreviado en mobile ("Limpiar (N)"). */}
+              <span className="hidden sm:inline">
+                Limpiar completadas ({completedTasksInBoard})
+              </span>
+              <span className="sm:hidden">
+                Limpiar ({completedTasksInBoard})
+              </span>
+            </>
+          )}
         </button>
         <button
           type="button"

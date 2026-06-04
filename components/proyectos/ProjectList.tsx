@@ -83,43 +83,53 @@ const TONE_LIGHT: Record<Tone, { bg: string; border: string; icon: string; value
 
 function KpiCard({
   label,
+  labelShort,
   value,
   icon: Icon,
   tone,
   hint,
   light,
+  className,
 }: {
   label: string;
+  /** Etiqueta acortada para mobile (<sm), evita partir palabras
+      largas como "Completados" en una card de ~100px. */
+  labelShort?: string;
   value: number;
   icon: React.ElementType;
   tone: Tone;
   hint?: string;
   light: boolean;
+  /** Tailwind extra (ej. `col-span-2` para la card de "Vencidos"
+      ocupando 2 columnas en la ultima fila del grid 2x3 en mobile). */
+  className?: string;
 }) {
   const t = light ? TONE_LIGHT[tone] : TONE_DARK[tone];
   return (
     <div
       className={cn(
         /* `px-2.5 py-2.5 sm:px-3 sm:py-3`: padding reducido en mobile
-           para que las 3 cards (Total/Activos/En pausa) entren mas
-           comodas en 360px. */
+           para que las cards entren comodas en 360px. */
         "relative overflow-hidden rounded-xl border px-2.5 py-2.5 sm:px-3 sm:py-3 transition-colors",
         t.bg,
         t.border,
-        light ? "shadow-sm" : "shadow-[0_4px_18px_-8px_rgba(0,0,0,0.5)]"
+        light ? "shadow-sm" : "shadow-[0_4px_18px_-8px_rgba(0,0,0,0.5)]",
+        className
       )}
     >
       <div className="flex items-start justify-between gap-1.5 sm:gap-2">
         <div className="min-w-0 flex-1">
+          {/* Mobile: label corto ("Pausa", "Hechos"). Desktop: label
+              largo ("En pausa", "Completados"). Ambos `whitespace-nowrap`
+              porque ya garantizamos que caben en su anchura. */}
           <p
             className={cn(
-              /* Label: en mobile permitimos 2 lineas ("Completados"
-                 no cabe en una a 10px en una card de ~100px). */
-              "text-[10px] font-semibold uppercase tracking-wider leading-tight break-words",
+              "text-[10px] font-semibold uppercase tracking-wider leading-tight whitespace-nowrap",
               light ? "text-zinc-500" : "text-white/45"
             )}
           >
-            {label}
+            <span className="sm:hidden">{labelShort ?? label}</span>
+            <span className="hidden sm:inline">{label}</span>
           </p>
           <p
             className={cn(
@@ -379,13 +389,19 @@ export function ProjectList({
         </div>
       </section>
 
-      {/* KPI strip */}
-      <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 sm:gap-3">
-        <KpiCard label="Total" value={kpis.total} icon={FolderOpen} tone="neutral" light={L} />
-        <KpiCard label="Activos" value={kpis.active} icon={Play} tone="emerald" light={L} />
-        <KpiCard label="En pausa" value={kpis.paused} icon={PauseCircle} tone="amber" light={L} />
-        <KpiCard label="Completados" value={kpis.completed} icon={CheckCircle2} tone="sky" light={L} />
-        <KpiCard label="Vencidos" value={kpis.overdue} icon={AlertTriangle} tone={kpis.overdue > 0 ? "red" : "neutral"} light={L} hint={kpis.overdue > 0 ? "Revísalos" : "Sin retrasos"} />
+      {/* KPI strip: en mobile usamos grid 2x3 (mejor lectura que 3x2,
+          la fila huerfana con 2 cards no quedaba bien) con la card de
+          "Vencidos" ocupando 2 columnas en la ultima fila para
+          equilibrar el bloque. En sm+ recupera 5 columnas en linea.
+          Labels acortados en mobile ("En pausa"→"Pausa",
+          "Completados"→"Hechos") para que entren a una sola linea en
+          slots de ~100px sin que "Completados" se parta. */}
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 sm:gap-3">
+        <KpiCard label="Total" labelShort="Total" value={kpis.total} icon={FolderOpen} tone="neutral" light={L} />
+        <KpiCard label="Activos" labelShort="Activos" value={kpis.active} icon={Play} tone="emerald" light={L} />
+        <KpiCard label="En pausa" labelShort="Pausa" value={kpis.paused} icon={PauseCircle} tone="amber" light={L} />
+        <KpiCard label="Completados" labelShort="Hechos" value={kpis.completed} icon={CheckCircle2} tone="sky" light={L} />
+        <KpiCard label="Vencidos" labelShort="Vencidos" value={kpis.overdue} icon={AlertTriangle} tone={kpis.overdue > 0 ? "red" : "neutral"} light={L} hint={kpis.overdue > 0 ? "Revísalos" : "Sin retrasos"} className="col-span-2 sm:col-span-1" />
       </div>
 
       {/* Filters */}

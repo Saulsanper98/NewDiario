@@ -64,47 +64,57 @@ export function BitacoraHero({
         )}
       />
 
-      <div className="relative flex flex-wrap items-start gap-4">
-        {leadingBadge && <div className="shrink-0">{leadingBadge}</div>}
-        <div className="min-w-0 flex-1">
-          {eyebrow && (
-            <p
-              className={cn(
-                "mb-1 text-[10.5px] font-semibold uppercase tracking-[0.18em]",
-                light ? "text-zinc-500" : "text-white/40"
-              )}
-            >
-              {eyebrow}
-            </p>
-          )}
-          <h1
-            className={cn(
-              /* `clamp(1.125rem, 4.5vw, 1.5rem)`: 18px en mobile (<400px),
-                 24px en sm+ (>=534px). Tailwind con `text-xl sm:text-2xl`
-                 saltaba bruscamente entre 20 y 24px sin fase intermedia
-                 y "Panel del dia" + "Vista por dia + filtros" desbordaba
-                 en algunos viewports estrechos. */
-              "font-semibold leading-tight tracking-tight break-words",
-              "[font-size:clamp(1.125rem,4.5vw,1.5rem)]",
-              light ? "text-zinc-900" : "text-white"
+      {/* Mobile: layout en columna (badge+texto arriba, rightSlot en
+          fila propia abajo a ancho completo). Desktop: tres slots en
+          una fila. Antes con `flex-wrap` los tres children (badge ~40
+          + texto flex-1 + tabs ~180) competian por el ancho y dejaban
+          tan poco al titulo que palabras como "departamento" se
+          partian forzosamente. */}
+      <div className="relative flex flex-col gap-3 sm:flex-row sm:items-start sm:gap-4">
+        <div className="flex items-start gap-3 sm:flex-1 sm:min-w-0">
+          {leadingBadge && <div className="shrink-0">{leadingBadge}</div>}
+          <div className="min-w-0 flex-1">
+            {eyebrow && (
+              <p
+                className={cn(
+                  "mb-1 text-[10.5px] font-semibold uppercase tracking-[0.18em]",
+                  light ? "text-zinc-500" : "text-white/40"
+                )}
+              >
+                {eyebrow}
+              </p>
             )}
-          >
-            {title}
-          </h1>
-          {subtitle && (
-            <p
+            <h1
               className={cn(
-                /* Subtitle con clamp: 12px en mobile, 14px en sm+. */
-                "mt-1.5 break-words",
-                "[font-size:clamp(0.75rem,2.8vw,0.875rem)]",
-                light ? "text-zinc-600" : "text-white/55"
+                /* `clamp(1.125rem, 4.5vw, 1.5rem)`: 18px en mobile,
+                   24px en sm+. `[overflow-wrap:normal]` anula
+                   cualquier `break-word` heredado — solo rompe en
+                   espacios naturales. */
+                "font-semibold leading-tight tracking-tight",
+                "[font-size:clamp(1.125rem,4.5vw,1.5rem)]",
+                "[overflow-wrap:normal] [word-break:normal] [hyphens:none]",
+                light ? "text-zinc-900" : "text-white"
               )}
             >
-              {subtitle}
-            </p>
-          )}
+              {title}
+            </h1>
+            {subtitle && (
+              <p
+                className={cn(
+                  "mt-1.5",
+                  "[font-size:clamp(0.75rem,2.8vw,0.875rem)]",
+                  "[overflow-wrap:break-word]",
+                  light ? "text-zinc-600" : "text-white/55"
+                )}
+              >
+                {subtitle}
+              </p>
+            )}
+          </div>
         </div>
-        {rightSlot && <div className="shrink-0">{rightSlot}</div>}
+        {rightSlot && (
+          <div className="w-full sm:w-auto sm:shrink-0">{rightSlot}</div>
+        )}
       </div>
     </section>
   );
