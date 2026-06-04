@@ -5375,7 +5375,7 @@ export function ChatView() {
                       aria-label="Finalizar y adjuntar audio"
                       disabled={recState !== "recording"}
                       className={cn(
-                        "mb-0 relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-all",
+                        "mb-0 relative flex h-11 w-11 sm:h-9 sm:w-9 shrink-0 items-center justify-center rounded-xl transition-all",
                         "bg-gradient-to-br from-[#ffeb66] to-[#d4a700] text-[#0a0f1e]",
                         "shadow-[0_4px_14px_rgba(255,235,102,0.35)] hover:brightness-110",
                         "disabled:cursor-not-allowed disabled:opacity-50"
@@ -5396,7 +5396,8 @@ export function ChatView() {
                       disabled={uploading || sending}
                       aria-label="Adjuntar archivo"
                       className={cn(
-                        "mb-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-colors",
+                        /* Tap-target: 44px (h-11) en mobile, 36px (h-9) en sm+. */
+                        "mb-0.5 flex h-11 w-11 sm:h-9 sm:w-9 shrink-0 items-center justify-center rounded-xl transition-colors",
                         L
                           ? "text-zinc-500 hover:bg-zinc-200/70 hover:text-zinc-700"
                           : "text-white/55 hover:bg-white/10 hover:text-white",
@@ -5416,7 +5417,7 @@ export function ChatView() {
                       onClick={() => setShareMenuOpen((v) => !v)}
                       aria-label="Compartir tarea, proyecto o nota"
                       className={cn(
-                        "mb-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-colors",
+                        "mb-0.5 flex h-11 w-11 sm:h-9 sm:w-9 shrink-0 items-center justify-center rounded-xl transition-colors",
                         shareMenuOpen
                           ? L
                             ? "bg-[#ffeb66]/22 text-zinc-900"
@@ -5437,7 +5438,7 @@ export function ChatView() {
                       aria-label="Grabar audio"
                       title="Grabar audio"
                       className={cn(
-                        "mb-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-colors",
+                        "mb-0.5 flex h-11 w-11 sm:h-9 sm:w-9 shrink-0 items-center justify-center rounded-xl transition-colors",
                         L
                           ? "text-zinc-500 hover:bg-zinc-200/70 hover:text-zinc-700"
                           : "text-white/55 hover:bg-white/10 hover:text-white",
@@ -5484,7 +5485,7 @@ export function ChatView() {
                       }
                       aria-label="Enviar"
                       className={cn(
-                        "mb-0.5 relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-all duration-200",
+                        "mb-0.5 relative flex h-11 w-11 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-xl transition-all duration-200",
                         "bg-gradient-to-br from-[#ffeb66] to-[#d4a700] text-[#0a0f1e]",
                         "shadow-[0_4px_14px_rgba(255,235,102,0.35)]",
                         "hover:brightness-110 hover:shadow-[0_6px_18px_rgba(255,235,102,0.5)] hover:-translate-y-0.5",

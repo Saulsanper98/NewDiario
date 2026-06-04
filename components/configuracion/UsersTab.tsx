@@ -1030,7 +1030,10 @@ export function UsersTab({
         </p>
       )}
       <div className="flex flex-wrap items-center gap-2">
-        <div className="relative min-w-[12rem] flex-1">
+        {/* Search: en mobile el `min-w-[12rem]` impedia que la barra
+           cupiese junto con el toggle de vista en 360px y forzaba un
+           wrap horrible. Con `min-w-0` se adapta al ancho disponible. */}
+        <div className="relative min-w-0 w-full sm:min-w-[12rem] sm:w-auto flex-1">
           <Search
             className={cn(
               "absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2",

@@ -654,7 +654,7 @@ export function LogEntryDetail({
             {entry.department.name}
           </span>
           <ChevronRight className="w-3 h-3 shrink-0" />
-          <span className="truncate max-w-[160px]">
+          <span className="truncate max-w-[140px] sm:max-w-none">
             {TYPE_LABELS[entry.type as keyof typeof TYPE_LABELS]}
           </span>
         </nav>
