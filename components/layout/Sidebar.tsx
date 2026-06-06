@@ -16,7 +16,6 @@ import {
   FolderKanban,
   ArrowLeftRight,
   CalendarDays,
-  MessageCircle,
   Settings,
   Bug,
   PanelLeft,
@@ -65,7 +64,13 @@ const navSections: NavSection[] = [
     title: "Colaboración",
     items: [
       { label: "Proyectos", href: "/proyectos", icon: FolderKanban },
-      { label: "Mensajes", href: "/chat", icon: MessageCircle, exact: true },
+      /* "Mensajes" / Chat retirado por decisión de producto.
+       * El código del chat sigue intacto en el repo. Para reactivarlo:
+       *   { label: "Mensajes", href: "/chat", icon: MessageCircle, exact: true },
+       * y recuperar también:
+       *   - la prop `unreadChatMessages` en este componente,
+       *   - el cálculo `countUnreadChatMessages` en `app/(dashboard)/layout.tsx`,
+       *   - el montaje de `<ChatNotifier />` en el mismo layout. */
     ],
   },
 ];
@@ -104,7 +109,6 @@ interface SidebarProps {
   pendingFollowups?: number;
   isBugReportsAdmin?: boolean;
   openBugReports?: number;
-  unreadChatMessages?: number;
   unreadReleaseNotes?: number;
 }
 
@@ -114,7 +118,6 @@ export function Sidebar({
   pendingFollowups = 0,
   isBugReportsAdmin = false,
   openBugReports = 0,
-  unreadChatMessages = 0,
   unreadReleaseNotes = 0,
 }: SidebarProps) {
   const { theme } = useTheme();
@@ -382,13 +385,11 @@ export function Sidebar({
                   const badge =
                     item.href === "/bitacora/dia" && pendingFollowups > 0
                       ? pendingFollowups
-                      : item.href === "/chat" && unreadChatMessages > 0
-                        ? unreadChatMessages
-                        : item.href === "/bugs" && openBugReports > 0
-                          ? openBugReports
-                          : item.href === "/novedades" && unreadReleaseNotes > 0
-                            ? unreadReleaseNotes
-                            : 0;
+                      : item.href === "/bugs" && openBugReports > 0
+                        ? openBugReports
+                        : item.href === "/novedades" && unreadReleaseNotes > 0
+                          ? unreadReleaseNotes
+                          : 0;
                   const badgeIsBug = item.href === "/bugs";
                   const badgeIsNovedades = item.href === "/novedades";
                   const bitacoraHint =

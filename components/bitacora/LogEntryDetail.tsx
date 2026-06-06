@@ -620,7 +620,13 @@ export function LogEntryDetail({
               "fixed inset-0 z-[150] flex flex-col overflow-y-auto detail-fullscreen-bg print:static print:inset-auto print:z-auto print:overflow-visible",
               L ? "bg-[#f7f7fb]" : "bg-[#060a14]"
             )
-          : "flex min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden px-6 pt-5 pb-8 sm:pb-9 md:px-8 md:pb-10 max-w-4xl mx-auto print:max-w-none"
+          : /* Mobile: padding lateral reducido a `px-3` (12px) en lugar
+               de `px-6` (24). Antes el wrapper + la card interna
+               apilaban 48+48=96px de padding y dejaban solo ~280px
+               utiles en un iPhone SE — el texto del cuerpo y las
+               cards de subseccion (Causa→Efecto, Encuestas...) se
+               salian por la derecha. Recuperamos px-6 en sm+. */
+            "flex min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden px-3 sm:px-6 md:px-8 pt-5 pb-8 sm:pb-9 md:pb-10 max-w-4xl mx-auto print:max-w-none"
       }
     >
       {fullscreen && <BackgroundOrbs mode="layer" />}
@@ -665,7 +671,14 @@ export function LogEntryDetail({
         {/* ── Main header card ─────────────────────────────────────────────── */}
         <div
           className={cn(
-            "rounded-2xl p-6 sm:p-8 print:break-inside-avoid",
+            /* Padding mobile reducido: `p-4` (16px) en lugar de `p-6`
+               (24). En mobile el wrapper outer ya da `px-3`, asi que
+               24+24=48px era exagerado. Recuperamos p-6/p-8 en sm+/md+.
+               `min-w-0 max-w-full`: cap a 100% del padre en flex-col
+               (sin overflow-x-hidden — eso activa overflow-y:auto
+               implicito en muchos navegadores y rompe el render del
+               cuerpo creando scroll interno en la card). */
+            "rounded-2xl p-4 sm:p-6 md:p-8 print:break-inside-avoid min-w-0 max-w-full",
             L
               ? "border border-black/[0.07] bg-white/82 backdrop-blur-md shadow-[var(--lt-shadow-glass)]"
               : "glass shadow-[0_10px_36px_-14px_rgba(0,0,0,0.55)]"
@@ -1139,13 +1152,21 @@ export function LogEntryDetail({
             </div>
           )}
 
-          {/* Content */}
+          {/* Content. `min-w-0 max-w-full`: cap a 100% del padre en flex
+              contexts. No usamos `overflow-x-hidden` aqui porque crea
+              `overflow-y: auto` implicito en algunos navegadores y eso
+              hace scroll interno dentro de la card. El wrap real del
+              texto se delega a las reglas globales de
+              `[data-bitacora-prose]` en globals.css. */}
           {hasRichBody && (
             <div
               ref={contentRef}
               {...bitacoraProseRootProps}
               data-bitacora-html-body
-              className={bitacoraReadingProseClass(theme)}
+              className={cn(
+                bitacoraReadingProseClass(theme),
+                "min-w-0 max-w-full",
+              )}
               dangerouslySetInnerHTML={{ __html: tocHtml }}
             />
           )}
@@ -1767,7 +1788,8 @@ export function LogEntryDetail({
 
         {/* ── Attachments ──────────────────────────────────────────────────── */}
         {entry.attachments.length > 0 && (
-          <Card light={L} className="p-5 sm:p-6">
+          /* `p-3.5` mobile (14px) en lugar de `p-5` (20). */
+          <Card light={L} className="p-3.5 sm:p-5 md:p-6 min-w-0 max-w-full">
             <div className="flex items-center gap-2 mb-4">
               <Paperclip
                 className={cn("w-4 h-4", L ? "text-zinc-500" : "text-white/40")}
@@ -1817,7 +1839,7 @@ export function LogEntryDetail({
 
         {/* ── Edit history (collapsible) ───────────────────────────────────── */}
         {entry.editHistory.length > 0 && (
-          <Card light={L} className="p-5 sm:p-6 print:hidden">
+          <Card light={L} className="p-3.5 sm:p-5 md:p-6 print:hidden min-w-0 max-w-full">
             <button
               type="button"
               onClick={() => setHistoryOpen((o) => !o)}
@@ -1990,7 +2012,7 @@ export function LogEntryDetail({
 
         {/* ── Related entries ──────────────────────────────────────────────── */}
         {relatedEntries && relatedEntries.length > 0 && (
-          <Card light={L} className="p-5 sm:p-6 print:hidden">
+          <Card light={L} className="p-3.5 sm:p-5 md:p-6 print:hidden min-w-0 max-w-full">
             <div className="flex flex-col gap-4">
               <div className="flex items-center gap-2.5">
                 <span

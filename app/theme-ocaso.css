@@ -1,0 +1,1138 @@
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║          TEMA  "OCASO"  ·  Atardecer cinematográfico cálido               ║
+ * ║                                                                          ║
+ * ║   Inspiración: wallpaper Mac OS Big Sur al atardecer, fotografías de    ║
+ * ║   golden hour mediterráneas, Pixar "skyline soft".                       ║
+ * ║                                                                          ║
+ * ║   Estrategia "twilight": fondo cinematográfico cálido + cards            ║
+ * ║   cristal translúcidas con tinte cálido (no full claro, no full          ║
+ * ║   oscuro). Mantiene el patrón maduro de los temas oscuros.               ║
+ * ║                                                                          ║
+ * ║   Identidad visual:                                                      ║
+ * ║     · Fondo: banda horizontal violeta noche → naranja coral → rosa     ║
+ * ║       palo → crema dorada. Un "sol" radial pulsa muy lento.              ║
+ * ║     · Silueta de montañas SVG en el horizonte (estática).                ║
+ * ║     · Cards: cristal cálido (tintado naranja/dorado) flotando sobre    ║
+ * ║       el atardecer. Sombras con tinte coral.                             ║
+ * ║     · Acentos: naranja coral, dorado, rosa palo, amarillo CCMGC.         ║
+ * ║                                                                          ║
+ * ║   AISLAMIENTO TOTAL bajo `html[data-theme="ocaso"]`.                     ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                         1.  PALETA Y TOKENS                              ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="ocaso"] {
+  --bg-deep: #1a0d18;                              /* púrpura noche para zonas oscuras */
+  --accent: #FFEB66;                               /* amarillo CCMGC */
+
+  --text: #fff6e8;                                 /* crema cálido */
+  --text-dim: #ffd9b8;                             /* crema-naranja */
+  --text-faint: #c89a82;                           /* terracota apagado */
+
+  /* Paleta del atardecer */
+  --ocaso-violet: #3a2a52;                         /* púrpura noche */
+  --ocaso-coral: #ff8f6e;                          /* coral cálido */
+  --ocaso-orange: #ff9d5e;                         /* naranja golden */
+  --ocaso-rose: #ffb9a8;                           /* rosa palo */
+  --ocaso-gold: #ffcf75;                           /* dorado luz baja */
+  --ocaso-cream: #ffe8c8;                          /* crema dorada */
+  --ocaso-deep-blue: #2c1b40;                      /* azul-violeta tardío */
+
+  /* Cristal cálido (tinte coral) */
+  --glass-bg: rgba(255, 220, 195, 0.08);
+  --glass-bg-2: rgba(255, 220, 195, 0.14);
+  --glass-border: rgba(255, 200, 170, 0.16);
+  --glass-border-glow: rgba(255, 159, 110, 0.62);
+  --glass-blur: 22px;
+  --glass-shadow: 0 14px 50px rgba(50, 16, 8, 0.50);
+  --glass-highlight:
+    inset 0 1px 0 rgba(255, 240, 220, 0.22),
+    inset 1px 0 0 rgba(255, 240, 220, 0.08);
+
+  --glow-coral: rgba(255, 143, 110, 0.32);
+  --glow-gold: rgba(255, 207, 117, 0.24);
+
+  --stat-purple: #c69bff;
+  --stat-blue:   #9dc6ff;
+  --stat-cyan:   var(--ocaso-rose);
+  --stat-green:  #b8e4a0;
+
+  --app-canvas-color: transparent;
+  --app-canvas-image: none;
+  --card-isolation: auto;
+
+  --ocaso-radius: 18px;
+  --ocaso-radius-shell: 24px;
+
+  color-scheme: dark;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║              2.  FIX DE CAPAS OPACAS                                     ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="ocaso"] body {
+  color: var(--text);
+  font-weight: 400;
+  min-height: 100vh;
+}
+
+html[data-theme="ocaso"] .app-sidebar-shell,
+html[data-theme="ocaso"] .app-top-header {
+  isolation: auto !important;
+}
+
+/* ── Marco con gradient cálido del atardecer ────────────────────────── */
+html[data-theme="ocaso"] .glass-shell-frame {
+  margin: 18px;
+  padding: 1.5px;
+  border-radius: var(--ocaso-radius-shell);
+  background: linear-gradient(
+    135deg,
+    rgba(255, 159, 110, 0.55),
+    rgba(255, 207, 117, 0.40) 35%,
+    rgba(255, 185, 168, 0.45) 65%,
+    rgba(198, 155, 255, 0.32)
+  );
+  box-shadow:
+    0 0 60px rgba(255, 143, 110, 0.18),
+    0 0 120px rgba(255, 207, 117, 0.10);
+}
+
+html[data-theme="ocaso"] .glass-shell-inner {
+  border-radius: calc(var(--ocaso-radius-shell) - 2px);
+  background: rgba(40, 20, 32, 0.32);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  overflow: hidden;
+  padding: 20px;
+}
+
+@media (max-width: 768px) {
+  html[data-theme="ocaso"] .glass-shell-inner { padding: 6px; }
+  html[data-theme="ocaso"] .app-dashboard-root { gap: 8px; }
+}
+@media (max-width: 640px) {
+  html[data-theme="ocaso"] .glass-shell-frame {
+    margin: 4px;
+    border-radius: 16px;
+  }
+  html[data-theme="ocaso"] .glass-shell-inner {
+    border-radius: 14px;
+  }
+}
+@media (max-width: 480px) {
+  html[data-theme="ocaso"] .glass-shell-frame {
+    margin: 0;
+    padding: 0;
+    border-radius: 0;
+    box-shadow: none;
+    background: rgba(255, 159, 110, 0.30);
+  }
+  html[data-theme="ocaso"] .glass-shell-inner {
+    padding: 0;
+    border-radius: 0;
+  }
+  html[data-theme="ocaso"] .app-dashboard-root { gap: 0; }
+}
+
+html[data-theme="ocaso"] .glass-shell-frame::before,
+html[data-theme="ocaso"] .glass-shell-frame::after,
+html[data-theme="ocaso"] .glass-shell-inner::before,
+html[data-theme="ocaso"] .glass-shell-inner::after {
+  display: none !important;
+}
+
+html[data-theme="ocaso"] .app-dashboard-root {
+  background: transparent !important;
+  gap: 16px;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║              3.  FONDO  ·  <OcasoBackground />                           ║
+ * ║                                                                          ║
+ * ║   Capas:                                                                 ║
+ * ║     1. Banda horizontal del crepúsculo (violeta→coral→rosa→crema).      ║
+ * ║     2. Sol radial pulsando lento (60s, opacidad 0.85↔0.95).             ║
+ * ║     3. Silueta de montañas SVG en el horizonte (estática).               ║
+ * ║     4. Bruma cálida flotando (opcional, blur grande).                    ║
+ * ║     5. Ruido sutil para romper el banding.                               ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="ocaso"] .ocaso-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -10;
+  overflow: hidden;
+  background:
+    linear-gradient(
+      180deg,
+      #1b1133 0%,
+      #2c1b40 18%,
+      #4a2552 38%,
+      #b25a55 60%,
+      #ff9d5e 78%,
+      #ffcf85 92%,
+      #ffe2bc 100%
+    );
+  pointer-events: none;
+}
+
+/* ── Capa 2: el sol (radial pulsante) ─────────────────────────────── */
+html[data-theme="ocaso"] .ocaso-bg .ocaso-sun {
+  position: absolute;
+  top: 58%;
+  left: 65%;
+  width: 36vw;
+  height: 36vw;
+  max-width: 540px;
+  max-height: 540px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(255, 255, 235, 0.92) 0%,
+    rgba(255, 220, 150, 0.7) 20%,
+    rgba(255, 165, 100, 0.45) 40%,
+    rgba(255, 120, 80, 0.18) 60%,
+    transparent 80%
+  );
+  filter: blur(2px);
+  animation: ocaso-sun-pulse 14s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes ocaso-sun-pulse {
+  0%, 100% { opacity: 0.85; transform: scale(1); }
+  50%      { opacity: 0.96; transform: scale(1.04); }
+}
+
+/* ── Capa 3: bruma cálida flotando ────────────────────────────────── */
+html[data-theme="ocaso"] .ocaso-bg .ocaso-mist {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 35%;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    rgba(255, 200, 160, 0.18) 50%,
+    rgba(255, 220, 180, 0.28) 100%
+  );
+  filter: blur(20px);
+  animation: ocaso-mist-drift 22s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes ocaso-mist-drift {
+  0%, 100% { transform: translateX(0); opacity: 0.7; }
+  50%      { transform: translateX(30px); opacity: 0.9; }
+}
+
+/* ── Capa 4: silueta de montañas SVG (en el componente) ───────────── */
+html[data-theme="ocaso"] .ocaso-bg .ocaso-horizon {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 22%;
+  pointer-events: none;
+}
+
+html[data-theme="ocaso"] .ocaso-bg .ocaso-horizon svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+html[data-theme="ocaso"] .ocaso-bg .ocaso-horizon .h-back {
+  fill: rgba(80, 30, 50, 0.55);
+}
+html[data-theme="ocaso"] .ocaso-bg .ocaso-horizon .h-mid {
+  fill: rgba(50, 18, 38, 0.78);
+}
+html[data-theme="ocaso"] .ocaso-bg .ocaso-horizon .h-front {
+  fill: rgba(28, 10, 24, 0.92);
+}
+
+/* ── Capa 5: ruido ────────────────────────────────────────────────── */
+html[data-theme="ocaso"] .ocaso-bg .ocaso-noise {
+  position: absolute;
+  inset: 0;
+  opacity: 0.05;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  pointer-events: none;
+  mix-blend-mode: overlay;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                4.  CLASE DE CRISTAL  ·  .glass-surface                   ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="ocaso"] .glass-surface {
+  position: relative;
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur)) saturate(150%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(150%);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow), var(--glass-highlight);
+  border-radius: var(--ocaso-radius);
+  transition:
+    border-color 0.3s ease,
+    transform 0.3s ease,
+    background 0.3s ease,
+    box-shadow 0.3s ease;
+  overflow: hidden;
+}
+
+html[data-theme="ocaso"] .glass-surface::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 240, 220, 0.18) 0%,
+    rgba(255, 240, 220, 0.05) 22%,
+    transparent 46%
+  );
+  border-radius: inherit;
+}
+
+html[data-theme="ocaso"] .glass-surface > * {
+  position: relative;
+  z-index: 1;
+}
+
+html[data-theme="ocaso"] .glass-surface:hover {
+  border-color: var(--glass-border-glow);
+  transform: translateY(-2px);
+  background: var(--glass-bg-2);
+  box-shadow:
+    0 18px 58px rgba(50, 16, 8, 0.58),
+    0 0 32px var(--glow-coral),
+    0 0 56px var(--glow-gold),
+    var(--glass-highlight);
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║              5.  ALIAS  ·  Cards del sistema                             ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="ocaso"] .glass,
+html[data-theme="ocaso"] .glass-1,
+html[data-theme="ocaso"] .glass-2,
+html[data-theme="ocaso"] .glass-3,
+html[data-theme="ocaso"] .glass-4 {
+  isolation: var(--card-isolation);
+  position: relative;
+  border-radius: var(--ocaso-radius);
+  transition:
+    background 0.3s ease,
+    border-color 0.3s ease,
+    box-shadow 0.3s ease,
+    transform 0.3s ease;
+}
+
+html[data-theme="ocaso"] .glass {
+  background: rgba(255, 220, 195, 0.020);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 220, 195, 0.05);
+  box-shadow: none;
+}
+
+html[data-theme="ocaso"] .glass-1 {
+  background: rgba(255, 220, 195, 0.10);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  border: 1px solid rgba(255, 200, 170, 0.18);
+  box-shadow: var(--glass-shadow), var(--glass-highlight);
+}
+
+html[data-theme="ocaso"] .glass-2 {
+  background: rgba(255, 220, 195, 0.12);
+  backdrop-filter: blur(20px) saturate(150%);
+  -webkit-backdrop-filter: blur(20px) saturate(150%);
+  border: 1px solid rgba(255, 200, 170, 0.20);
+  box-shadow: var(--glass-shadow), var(--glass-highlight);
+}
+
+html[data-theme="ocaso"] .glass-3,
+html[data-theme="ocaso"] .glass-4 {
+  background: linear-gradient(
+    155deg,
+    rgba(60, 28, 40, 0.45) 0%,
+    rgba(255, 220, 195, 0.12) 45%,
+    rgba(255, 220, 195, 0.06) 100%
+  );
+  backdrop-filter: blur(var(--glass-blur)) saturate(155%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(155%);
+  border: 1px solid rgba(255, 200, 170, 0.24);
+  box-shadow: var(--glass-shadow), var(--glass-highlight);
+}
+
+html[data-theme="ocaso"] .glass::before,
+html[data-theme="ocaso"] .glass-1::before,
+html[data-theme="ocaso"] .glass-2::before,
+html[data-theme="ocaso"] .glass-3::before,
+html[data-theme="ocaso"] .glass-4::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 240, 220, 0.16) 0%,
+    rgba(255, 240, 220, 0.04) 22%,
+    transparent 46%
+  );
+  border-radius: inherit;
+}
+
+html[data-theme="ocaso"] .glass > *,
+html[data-theme="ocaso"] .glass-1 > *,
+html[data-theme="ocaso"] .glass-2 > *,
+html[data-theme="ocaso"] .glass-3 > *,
+html[data-theme="ocaso"] .glass-4 > * {
+  position: relative;
+  z-index: 1;
+}
+
+html[data-theme="ocaso"] .glass-1:hover,
+html[data-theme="ocaso"] .glass-2:hover,
+html[data-theme="ocaso"] .glass-3:hover,
+html[data-theme="ocaso"] .glass-4:hover {
+  border-color: var(--glass-border-glow);
+}
+
+html[data-theme="ocaso"] .glass-hover:hover {
+  background: var(--glass-bg-2);
+  border-color: var(--glass-border-glow);
+  transform: translateY(-2px);
+  box-shadow:
+    0 18px 58px rgba(50, 16, 8, 0.58),
+    0 0 32px var(--glow-coral),
+    0 0 56px var(--glow-gold),
+    var(--glass-highlight);
+}
+
+html[data-theme="ocaso"] .glass .glass-hover:hover,
+html[data-theme="ocaso"] .glass-1 .glass-hover:hover,
+html[data-theme="ocaso"] .glass-2 .glass-hover:hover,
+html[data-theme="ocaso"] .glass-3 .glass-hover:hover,
+html[data-theme="ocaso"] .glass-4 .glass-hover:hover {
+  transform: none !important;
+  box-shadow: var(--glass-highlight) !important;
+}
+
+html[data-theme="ocaso"] .glass:has(.glass-hover) {
+  overflow: hidden;
+}
+
+html[data-theme="ocaso"] .dashboard-quick-action.glass-hover:hover {
+  transform: translateY(-1px);
+  box-shadow:
+    0 1px 4px rgba(50, 16, 8, 0.32),
+    0 0 4px rgba(255, 143, 110, 0.36),
+    var(--glass-highlight);
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║          6.  BORDE ANIMADO  ·  .glow-border (cards destacadas)           ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+@property --ocaso-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+html[data-theme="ocaso"] .glow-border {
+  position: relative;
+}
+
+html[data-theme="ocaso"] .glow-border::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1.5px;
+  background: conic-gradient(
+    from var(--ocaso-angle),
+    transparent 0%,
+    transparent 65%,
+    var(--ocaso-coral) 75%,
+    var(--ocaso-gold) 82%,
+    var(--ocaso-rose) 90%,
+    transparent 98%
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+          mask-composite: exclude;
+  animation: ocaso-border-run 10s linear infinite;
+  pointer-events: none;
+  z-index: 2;
+}
+
+@keyframes ocaso-border-run {
+  to { --ocaso-angle: 360deg; }
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                  7.  APARICIÓN ESCALONADA                                ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="ocaso"] .reveal {
+  opacity: 0;
+  transform: translateY(14px);
+  animation: ocaso-reveal-up 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes ocaso-reveal-up {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                  8.  CHROME  ·  Sidebar + Header                         ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="ocaso"] .app-sidebar-shell {
+  background: transparent !important;
+  background-image: none !important;
+  border-right: 1px solid rgba(255, 200, 170, 0.10);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  box-shadow: none;
+}
+
+html[data-theme="ocaso"] .app-sidebar-shell.sidebar-expanded-solid {
+  background: linear-gradient(
+    180deg,
+    rgba(58, 28, 48, 0.78) 0%,
+    rgba(34, 16, 32, 0.86) 100%
+  ) !important;
+  backdrop-filter: blur(32px) saturate(160%) !important;
+  -webkit-backdrop-filter: blur(32px) saturate(160%) !important;
+  border-right: 1px solid var(--glass-border) !important;
+  box-shadow:
+    var(--glass-highlight),
+    8px 0 32px rgba(50, 16, 8, 0.50),
+    0 0 60px rgba(255, 143, 110, 0.10) !important;
+  border-radius: 0 !important;
+}
+
+html[data-theme="ocaso"] .sidebar-nav-link-active {
+  position: relative;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 143, 110, 0.18) 0%,
+    rgba(255, 207, 117, 0.08) 100%
+  ) !important;
+  color: var(--text) !important;
+  border-color: transparent !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 159, 110, 0.36),
+    0 0 22px rgba(255, 143, 110, 0.20) !important;
+  overflow: hidden;
+}
+
+html[data-theme="ocaso"] .sidebar-nav-link-active::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 6px;
+  bottom: 6px;
+  width: 3px;
+  border-radius: 2px;
+  background: linear-gradient(
+    180deg,
+    var(--ocaso-gold) 0%,
+    var(--ocaso-coral) 50%,
+    var(--ocaso-rose) 100%
+  );
+  box-shadow: 0 0 8px var(--ocaso-coral);
+  pointer-events: none;
+}
+
+html[data-theme="ocaso"] .sidebar-nav-link:not(.sidebar-nav-link-active):hover {
+  background: rgba(255, 159, 110, 0.08);
+  color: var(--text);
+  box-shadow: inset 0 0 0 1px rgba(255, 159, 110, 0.20);
+}
+
+html[data-theme="ocaso"] .app-top-header {
+  background: transparent !important;
+  background-image: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: none !important;
+  border-bottom: none !important;
+  box-shadow: none !important;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                  9.  TIPOGRAFÍA                                          ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="ocaso"] h1,
+html[data-theme="ocaso"] h2,
+html[data-theme="ocaso"] h3,
+html[data-theme="ocaso"] .text-2xl,
+html[data-theme="ocaso"] .text-3xl,
+html[data-theme="ocaso"] .text-4xl {
+  font-weight: 300;
+  letter-spacing: -0.01em;
+}
+
+html[data-theme="ocaso"] [data-stat-value],
+html[data-theme="ocaso"] .stat-value,
+html[data-theme="ocaso"] .text-4xl.font-bold,
+html[data-theme="ocaso"] .text-3xl.font-bold {
+  font-weight: 300 !important;
+  letter-spacing: -0.02em;
+}
+
+html[data-theme="ocaso"] button[data-variant="primary"],
+html[data-theme="ocaso"] .btn-primary,
+html[data-theme="ocaso"] [data-cta="primary"] {
+  font-weight: 600;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                10.  CTA AMARILLO                                         ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="ocaso"] button[data-variant="primary"]:not(:disabled),
+html[data-theme="ocaso"] .btn-primary:not(:disabled),
+html[data-theme="ocaso"] [data-cta="primary"]:not(:disabled) {
+  background: var(--accent) !important;
+  color: #2a1408 !important;
+  border: none !important;
+  box-shadow:
+    0 8px 24px rgba(255, 235, 102, 0.30),
+    0 0 24px rgba(255, 143, 110, 0.18);
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+html[data-theme="ocaso"] button[data-variant="primary"]:hover:not(:disabled),
+html[data-theme="ocaso"] .btn-primary:hover:not(:disabled),
+html[data-theme="ocaso"] [data-cta="primary"]:hover:not(:disabled) {
+  background: #FFE94D !important;
+  box-shadow:
+    0 10px 32px rgba(255, 235, 102, 0.40),
+    0 0 32px rgba(255, 143, 110, 0.28);
+  transform: translateY(-1px);
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║      11.  PARCHE Tailwind arbitrary hex (azul-marino → púrpura ocaso)    ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="ocaso"] .bg-\[\#060a14\],
+html[data-theme="ocaso"] .bg-\[\#060a12\],
+html[data-theme="ocaso"] .bg-\[\#060b18\],
+html[data-theme="ocaso"] .bg-\[\#020308\]\/85,
+html[data-theme="ocaso"] .bg-\[\#020408\]\/80 {
+  background-color: rgba(28, 12, 24, 0.82) !important;
+}
+
+html[data-theme="ocaso"] .bg-\[\#0a0f1e\],
+html[data-theme="ocaso"] .bg-\[\#0a0f1e\]\/95,
+html[data-theme="ocaso"] .bg-\[\#0a0f1e\]\/88,
+html[data-theme="ocaso"] .bg-\[\#0a0f1e\]\/85,
+html[data-theme="ocaso"] .bg-\[\#0a0f1e\]\/72,
+html[data-theme="ocaso"] .bg-\[\#0a0f1e\]\/40,
+html[data-theme="ocaso"] .bg-\[\#0a0f1e\]\/15,
+html[data-theme="ocaso"] .bg-\[\#0a1020\] {
+  background-color: rgba(46, 22, 38, 0.85) !important;
+}
+
+html[data-theme="ocaso"] .bg-\[\#0c1224\]\/95,
+html[data-theme="ocaso"] .bg-\[\#0c1325\],
+html[data-theme="ocaso"] .bg-\[\#0d1324\]\/96,
+html[data-theme="ocaso"] .bg-\[\#0d1324\]\/92,
+html[data-theme="ocaso"] .bg-\[\#0d1325\],
+html[data-theme="ocaso"] .bg-\[\#0d1427\]\/95,
+html[data-theme="ocaso"] .bg-\[\#0d1428\],
+html[data-theme="ocaso"] .bg-\[\#0d1428\]\/95,
+html[data-theme="ocaso"] .bg-\[\#0f1424\],
+html[data-theme="ocaso"] .bg-\[\#0f1524\] {
+  background-color: rgba(46, 22, 38, 0.88) !important;
+  backdrop-filter: blur(18px) saturate(150%);
+  -webkit-backdrop-filter: blur(18px) saturate(150%);
+}
+
+html[data-theme="ocaso"] .bg-\[\#121a2e\],
+html[data-theme="ocaso"] .bg-\[\#161f36\],
+html[data-theme="ocaso"] .bg-\[\#1a2238\] {
+  background-color: rgba(255, 220, 195, 0.10) !important;
+  border-color: rgba(255, 200, 170, 0.14) !important;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║               12.  DROPDOWNS                                             ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="ocaso"] .app-dropdown-panel {
+  background: linear-gradient(
+    155deg,
+    rgba(72, 36, 56, 0.82) 0%,
+    rgba(32, 14, 28, 0.92) 100%
+  ) !important;
+  backdrop-filter: blur(22px) saturate(155%) !important;
+  -webkit-backdrop-filter: blur(22px) saturate(155%) !important;
+  border-color: var(--glass-border) !important;
+  box-shadow:
+    var(--glass-highlight),
+    0 22px 52px rgba(50, 16, 8, 0.55),
+    0 0 36px rgba(255, 143, 110, 0.14) !important;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║         13.  KANBAN                                                      ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="ocaso"] .kanban-column-well {
+  background: transparent !important;
+}
+html[data-theme="ocaso"] .kanban-column-well::after,
+html[data-theme="ocaso"] .kanban-column-well::before {
+  background: transparent !important;
+  display: none !important;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║         14.  EDITOR  ·  ProseMirror                                      ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="ocaso"] .ProseMirror pre {
+  background: rgba(28, 12, 24, 0.78) !important;
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║         15.  DETAIL FULL-SCREEN                                          ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="ocaso"]
+  .detail-fullscreen-bg.detail-fullscreen-bg.detail-fullscreen-bg {
+  background: transparent !important;
+  background-image: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+html[data-theme="ocaso"] .detail-fullscreen-bg::before {
+  content: none;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                16.  INPUTS                                               ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="ocaso"] input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]),
+html[data-theme="ocaso"] textarea,
+html[data-theme="ocaso"] select {
+  background: rgba(255, 220, 195, 0.05);
+  border: 1px solid var(--glass-border);
+  color: var(--text);
+}
+
+html[data-theme="ocaso"] input:focus,
+html[data-theme="ocaso"] textarea:focus,
+html[data-theme="ocaso"] select:focus {
+  outline: none;
+  border-color: var(--glass-border-glow);
+  box-shadow: 0 0 0 3px rgba(255, 159, 110, 0.28);
+}
+
+html[data-theme="ocaso"] #cmd-palette-trigger {
+  background: rgba(255, 159, 110, 0.08) !important;
+  border-color: rgba(255, 159, 110, 0.30) !important;
+  color: var(--text-dim) !important;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+html[data-theme="ocaso"] #cmd-palette-trigger:hover {
+  background: rgba(255, 159, 110, 0.16) !important;
+  border-color: var(--glass-border-glow) !important;
+  color: var(--text) !important;
+  box-shadow: 0 0 24px rgba(255, 143, 110, 0.26);
+}
+html[data-theme="ocaso"] #cmd-palette-trigger kbd {
+  background: rgba(255, 159, 110, 0.18) !important;
+  border-color: rgba(255, 159, 110, 0.34) !important;
+  color: var(--text);
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                  17.  SCROLLBARS                                         ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="ocaso"] ::-webkit-scrollbar-thumb {
+  background: rgba(255, 220, 195, 0.12);
+  border-radius: 6px;
+}
+html[data-theme="ocaso"] ::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 159, 110, 0.46);
+}
+html[data-theme="ocaso"] .overflow-y-auto:hover::-webkit-scrollbar-thumb,
+html[data-theme="ocaso"] .overflow-x-auto:hover::-webkit-scrollbar-thumb,
+html[data-theme="ocaso"] .overflow-auto:hover::-webkit-scrollbar-thumb,
+html[data-theme="ocaso"] *:hover::-webkit-scrollbar-thumb {
+  background: rgba(255, 159, 110, 0.38);
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║              18.  STATS / DASHBOARD                                      ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="ocaso"] [data-stat-color="purple"] { color: var(--stat-purple); }
+html[data-theme="ocaso"] [data-stat-color="blue"]   { color: var(--stat-blue); }
+html[data-theme="ocaso"] [data-stat-color="cyan"]   { color: var(--stat-cyan); }
+html[data-theme="ocaso"] [data-stat-color="green"]  { color: var(--stat-green); }
+
+html[data-theme="ocaso"] .dashboard-shift-track {
+  background: rgba(255, 220, 195, 0.08) !important;
+  border: 1px solid var(--glass-border);
+  overflow: hidden;
+}
+html[data-theme="ocaso"] .dashboard-shift-fill {
+  background: linear-gradient(90deg, var(--ocaso-coral) 0%, var(--ocaso-gold) 100%) !important;
+  box-shadow: 0 0 14px rgba(255, 143, 110, 0.55);
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║      19-32. RESTO DE OVERRIDES (presencia, modal, mobile-nav, tooltips,  ║
+ * ║                 toaster, skeleton, banner OK, badges, overlays, avatar)  ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="ocaso"] .presence-online,
+html[data-theme="ocaso"] [data-online="true"] .presence-dot {
+  box-shadow:
+    0 0 0 2px var(--bg-deep),
+    0 0 14px rgba(184, 228, 160, 0.65);
+}
+
+html[data-theme="ocaso"] .user-avatar-ring {
+  box-shadow:
+    0 0 0 2px var(--bg-deep),
+    0 0 0 3px var(--glass-border-glow);
+}
+
+html[data-theme="ocaso"] .glass-opaque-bitacora {
+  isolation: auto;
+  background: rgba(255, 220, 195, 0.10);
+  backdrop-filter: blur(22px) saturate(155%);
+  -webkit-backdrop-filter: blur(22px) saturate(155%);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-highlight), 0 6px 26px rgba(50, 16, 8, 0.35);
+}
+
+html[data-theme="ocaso"] .app-modal-dialog[data-modal-surface="dark"] {
+  position: relative;
+  background: linear-gradient(
+    155deg,
+    rgba(72, 36, 56, 0.62) 0%,
+    rgba(32, 14, 28, 0.78) 100%
+  ) !important;
+  backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+  border-color: var(--glass-border) !important;
+  box-shadow:
+    0 24px 68px rgba(50, 16, 8, 0.55),
+    0 0 52px rgba(255, 143, 110, 0.18),
+    0 0 80px rgba(255, 207, 117, 0.12),
+    var(--glass-highlight) !important;
+  overflow: hidden;
+}
+
+html[data-theme="ocaso"] .app-modal-dialog[data-modal-surface="dark"]::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 240, 220, 0.12) 0%,
+    rgba(255, 240, 220, 0.04) 18%,
+    transparent 32%
+  );
+  border-radius: inherit;
+  z-index: 0;
+}
+html[data-theme="ocaso"] .app-modal-dialog[data-modal-surface="dark"] > *:not(button[aria-label="Cerrar"]) {
+  position: relative;
+  z-index: 1;
+}
+
+html[data-theme="ocaso"] .modal-backdrop {
+  background: rgba(20, 8, 16, 0.50);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+html[data-theme="ocaso"] .mobile-bottom-nav {
+  background: linear-gradient(
+    180deg,
+    rgba(46, 22, 38, 0.62) 0%,
+    rgba(28, 12, 24, 0.82) 100%
+  ) !important;
+  border-top-color: var(--glass-border) !important;
+  backdrop-filter: blur(22px) saturate(155%);
+  -webkit-backdrop-filter: blur(22px) saturate(155%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 240, 220, 0.10),
+    0 -8px 30px rgba(50, 16, 8, 0.50);
+}
+
+html[data-theme="ocaso"] [data-tooltip-content],
+html[data-theme="ocaso"] [role="tooltip"] {
+  background: linear-gradient(
+    155deg,
+    rgba(72, 36, 56, 0.82) 0%,
+    rgba(32, 14, 28, 0.90) 100%
+  ) !important;
+  border: 1px solid var(--glass-border) !important;
+  color: var(--text) !important;
+  backdrop-filter: blur(14px) saturate(155%);
+  -webkit-backdrop-filter: blur(14px) saturate(155%);
+  box-shadow: var(--glass-shadow), var(--glass-highlight);
+}
+
+html[data-theme="ocaso"] .toast-glass {
+  background: linear-gradient(
+    155deg,
+    rgba(72, 36, 56, 0.82) 0%,
+    rgba(32, 14, 28, 0.92) 100%
+  ) !important;
+  border: 1px solid var(--glass-border) !important;
+  color: var(--text) !important;
+  backdrop-filter: blur(22px) saturate(160%);
+  -webkit-backdrop-filter: blur(22px) saturate(160%);
+  box-shadow:
+    var(--glass-highlight),
+    0 18px 44px rgba(50, 16, 8, 0.55),
+    0 0 32px rgba(255, 143, 110, 0.16);
+}
+
+html[data-theme="ocaso"] .loading-card {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+html[data-theme="ocaso"] .dashboard-allgood-banner {
+  background: linear-gradient(
+    135deg,
+    rgba(184, 228, 160, 0.12) 0%,
+    rgba(255, 207, 117, 0.08) 100%
+  ) !important;
+  border-color: rgba(255, 240, 220, 0.14) !important;
+  backdrop-filter: blur(14px) saturate(145%);
+  -webkit-backdrop-filter: blur(14px) saturate(145%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 240, 220, 0.10),
+    0 0 28px rgba(184, 228, 160, 0.12);
+}
+
+html[data-theme="ocaso"] .dashboard-allgood-icon {
+  background: rgba(184, 228, 160, 0.22) !important;
+  box-shadow: inset 0 0 0 1px rgba(184, 228, 160, 0.40);
+}
+
+html[data-theme="ocaso"] .bg-sky-400\/10,
+html[data-theme="ocaso"] .bg-emerald-400\/10,
+html[data-theme="ocaso"] .bg-orange-400\/10,
+html[data-theme="ocaso"] .bg-red-400\/10,
+html[data-theme="ocaso"] .bg-red-500\/10,
+html[data-theme="ocaso"] .bg-violet-400\/10,
+html[data-theme="ocaso"] .bg-yellow-400\/10,
+html[data-theme="ocaso"] .bg-green-400\/10,
+html[data-theme="ocaso"] .bg-blue-400\/10,
+html[data-theme="ocaso"] .bg-amber-400\/10,
+html[data-theme="ocaso"] .bg-indigo-400\/10,
+html[data-theme="ocaso"] .bg-emerald-500\/6,
+html[data-theme="ocaso"] .bg-emerald-500\/8,
+html[data-theme="ocaso"] .bg-emerald-400\/8,
+html[data-theme="ocaso"] .bg-emerald-400\/\[0\.06\],
+html[data-theme="ocaso"] .bg-emerald-400\/5,
+html[data-theme="ocaso"] .bg-amber-400\/8,
+html[data-theme="ocaso"] .bg-emerald-500\/12,
+html[data-theme="ocaso"] .bg-emerald-500\/15,
+html[data-theme="ocaso"] .bg-rose-400\/10,
+html[data-theme="ocaso"] .bg-rose-500\/10,
+html[data-theme="ocaso"] .hover\:bg-rose-500\/10:hover,
+html[data-theme="ocaso"] .hover\:bg-rose-50:hover {
+  background-image: linear-gradient(
+    rgba(255, 159, 110, 0.05),
+    rgba(255, 207, 117, 0.04)
+  );
+}
+
+html[data-theme="ocaso"] .bg-slate-900\/45,
+html[data-theme="ocaso"] .bg-black\/75,
+html[data-theme="ocaso"] .bg-black\/65,
+html[data-theme="ocaso"] .bg-black\/60,
+html[data-theme="ocaso"] .bg-black\/55,
+html[data-theme="ocaso"] .bg-black\/45,
+html[data-theme="ocaso"] .bg-black\/40,
+html[data-theme="ocaso"] .bg-black\/35 {
+  background-color: rgba(28, 12, 24, 0.52) !important;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+html[data-theme="ocaso"] .bg-black\/30,
+html[data-theme="ocaso"] .bg-black\/25,
+html[data-theme="ocaso"] .bg-black\/20,
+html[data-theme="ocaso"] .bg-black\/15,
+html[data-theme="ocaso"] .bg-black\/10 {
+  background-color: rgba(46, 22, 38, 0.30) !important;
+}
+
+html[data-theme="ocaso"] .bg-black\/\[0\.05\],
+html[data-theme="ocaso"] .bg-black\/\[0\.04\],
+html[data-theme="ocaso"] .bg-black\/\[0\.06\] {
+  background-color: rgba(255, 220, 195, 0.05) !important;
+}
+
+html[data-theme="ocaso"] .bg-zinc-900,
+html[data-theme="ocaso"] .bg-zinc-800,
+html[data-theme="ocaso"] .hover\:bg-zinc-800:hover {
+  background-color: rgba(46, 22, 38, 0.92) !important;
+  border-color: rgba(255, 200, 170, 0.22) !important;
+}
+
+html[data-theme="ocaso"] .text-\[\#0a0f1e\] {
+  color: rgba(28, 12, 24, 1) !important;
+}
+
+html[data-theme="ocaso"] img.rounded-full.object-cover {
+  box-shadow: inset 0 0 0 1px rgba(255, 159, 110, 0.32);
+}
+
+html[data-theme="ocaso"] .border-\[\#0a0f1e\] {
+  border-color: rgba(28, 12, 24, 0.92) !important;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║      33.  AUTO-STAGE-IN + SHINE                                          ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes ocaso-stage-in {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  html[data-theme="ocaso"] .app-dashboard-root > main,
+  html[data-theme="ocaso"] .app-dashboard-root > section {
+    animation: ocaso-stage-in 380ms cubic-bezier(0.2, 0.6, 0.2, 1) both;
+  }
+}
+
+html[data-theme="ocaso"] .glass-hover {
+  overflow: hidden;
+}
+
+html[data-theme="ocaso"] .glass-hover::after,
+html[data-theme="ocaso"] .glass-surface::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    115deg,
+    transparent 30%,
+    rgba(255, 207, 117, 0.18) 50%,
+    transparent 70%
+  );
+  transform: translateX(-110%);
+  transition: transform 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+  border-radius: inherit;
+  z-index: 0;
+}
+
+html[data-theme="ocaso"] .glass-hover > * {
+  position: relative;
+  z-index: 1;
+}
+
+html[data-theme="ocaso"] .glass-hover:hover::after,
+html[data-theme="ocaso"] .glass-surface:hover::after {
+  transform: translateX(110%);
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║      34.  ACCESIBILIDAD  ·  prefers-reduced-motion                       ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-theme="ocaso"] .ocaso-bg .ocaso-sun,
+  html[data-theme="ocaso"] .ocaso-bg .ocaso-mist {
+    animation: none !important;
+  }
+  html[data-theme="ocaso"] .glow-border::after {
+    animation: none !important;
+  }
+  html[data-theme="ocaso"] .reveal {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+  html[data-theme="ocaso"] .app-dashboard-root > main,
+  html[data-theme="ocaso"] .app-dashboard-root > section {
+    animation: none !important;
+  }
+  html[data-theme="ocaso"] .glass-hover::after,
+  html[data-theme="ocaso"] .glass-surface::after {
+    display: none !important;
+  }
+  html[data-theme="ocaso"] .glass-surface,
+  html[data-theme="ocaso"] .glass,
+  html[data-theme="ocaso"] .glass-1,
+  html[data-theme="ocaso"] .glass-2,
+  html[data-theme="ocaso"] .glass-3,
+  html[data-theme="ocaso"] .glass-4 {
+    transition: none !important;
+  }
+}

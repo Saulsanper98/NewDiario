@@ -1,0 +1,1164 @@
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║       TEMA  "BOREALIS"  ·  Aurora boreal real serpenteando + estrellas    ║
+ * ║                                                                          ║
+ * ║   Borealis recrea la aurora boreal: una cinta de luz fría que             ║
+ * ║   serpentea lentamente por la parte superior del cielo, sobre una         ║
+ * ║   noche \u00e1rtica salpicada de constelaciones est\u00e1ticas. Inspiraci\u00f3n:        ║
+ * ║   Spotify Sessions, Discord Wumpus night, fotograf\u00edas de Tromso.         ║
+ * ║                                                                          ║
+ * ║   Identidad visual:                                                      ║
+ * ║     · Fondo noche \u00e1rtica `#081a22` con halos azul-hielo sutiles.          ║
+ * ║     · `<BorealisBackground />` pinta: cielo + ~80 estrellas + cinta SVG  ║
+ * ║       de aurora animada (gradiente verde menta → cyan → violeta → rosa).║
+ * ║     · Reflejo apagado de la aurora en el "horizonte" inferior.           ║
+ * ║     · Cards: cristal frio, borde superior con gradient iridiscente que  ║
+ * ║       simula la luz de la aurora cayendo sobre la tarjeta.               ║
+ * ║     · Acentos: verde menta (success), azul hielo (info), violeta luna.   ║
+ * ║                                                                          ║
+ * ║   AISLAMIENTO TOTAL bajo `html[data-theme="borealis"]`.                  ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                         1.  PALETA Y TOKENS                              ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="borealis"] {
+  --bg-deep: #081a22;                              /* noche ártica */
+  --accent: #FFEB66;                               /* amarillo CCMGC */
+
+  --text: #eef6f8;
+  --text-dim: #a8c0c8;
+  --text-faint: #5e7680;
+
+  /* Acentos boreales (la propia paleta de la aurora) */
+  --borealis-mint: #5dffc0;
+  --borealis-ice: #7dc8ff;
+  --borealis-violet: #b78aff;
+  --borealis-rose: #ff9bb5;
+
+  /* Cristal frio */
+  --glass-bg: rgba(255, 255, 255, 0.04);
+  --glass-bg-2: rgba(255, 255, 255, 0.08);
+  --glass-border: rgba(255, 255, 255, 0.11);
+  --glass-border-glow: rgba(125, 200, 255, 0.55);  /* hielo */
+  --glass-blur: 22px;
+  --glass-shadow: 0 14px 50px rgba(0, 10, 16, 0.55);
+  --glass-highlight:
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    inset 1px 0 0 rgba(255, 255, 255, 0.07);
+
+  --glow-ice: rgba(125, 200, 255, 0.22);
+  --glow-mint: rgba(93, 255, 192, 0.18);
+
+  --stat-purple: var(--borealis-violet);
+  --stat-blue:   var(--borealis-ice);
+  --stat-cyan:   #7df3ff;
+  --stat-green:  var(--borealis-mint);
+
+  --app-canvas-color: transparent;
+  --app-canvas-image: none;
+  --card-isolation: auto;
+
+  --borealis-radius: 18px;
+  --borealis-radius-shell: 24px;
+
+  color-scheme: dark;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║              2.  FIX DE CAPAS OPACAS                                     ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="borealis"] body {
+  color: var(--text);
+  font-weight: 400;
+  min-height: 100vh;
+}
+
+html[data-theme="borealis"] .app-sidebar-shell,
+html[data-theme="borealis"] .app-top-header {
+  isolation: auto !important;
+}
+
+/* ── Marco con gradient iridiscente boreal (estático, suave) ─────────── */
+html[data-theme="borealis"] .glass-shell-frame {
+  margin: 18px;
+  padding: 1.5px;
+  border-radius: var(--borealis-radius-shell);
+  background: linear-gradient(
+    135deg,
+    rgba(93, 255, 192, 0.45),
+    rgba(125, 200, 255, 0.38) 35%,
+    rgba(183, 138, 255, 0.42) 65%,
+    rgba(255, 155, 181, 0.35)
+  );
+  box-shadow:
+    0 0 60px rgba(125, 200, 255, 0.18),
+    0 0 120px rgba(93, 255, 192, 0.08);
+}
+
+html[data-theme="borealis"] .glass-shell-inner {
+  border-radius: calc(var(--borealis-radius-shell) - 2px);
+  background: rgba(8, 26, 34, 0.32);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  overflow: hidden;
+  padding: 20px;
+}
+
+@media (max-width: 768px) {
+  html[data-theme="borealis"] .glass-shell-inner { padding: 6px; }
+  html[data-theme="borealis"] .app-dashboard-root { gap: 8px; }
+}
+@media (max-width: 640px) {
+  html[data-theme="borealis"] .glass-shell-frame {
+    margin: 4px;
+    border-radius: 16px;
+  }
+  html[data-theme="borealis"] .glass-shell-inner {
+    border-radius: 14px;
+  }
+}
+@media (max-width: 480px) {
+  html[data-theme="borealis"] .glass-shell-frame {
+    margin: 0;
+    padding: 0;
+    border-radius: 0;
+    box-shadow: none;
+    background: rgba(125, 200, 255, 0.30);
+  }
+  html[data-theme="borealis"] .glass-shell-inner {
+    padding: 0;
+    border-radius: 0;
+  }
+  html[data-theme="borealis"] .app-dashboard-root { gap: 0; }
+}
+
+html[data-theme="borealis"] .glass-shell-frame::before,
+html[data-theme="borealis"] .glass-shell-frame::after,
+html[data-theme="borealis"] .glass-shell-inner::before,
+html[data-theme="borealis"] .glass-shell-inner::after {
+  display: none !important;
+}
+
+html[data-theme="borealis"] .app-dashboard-root {
+  background: transparent !important;
+  gap: 16px;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║              3.  FONDO  ·  <BorealisBackground />                        ║
+ * ║                                                                          ║
+ * ║   Capas:                                                                 ║
+ * ║     1. Color noche \u00e1rtica + 2 halos azul-hielo sutiles.                  ║
+ * ║     2. ~80 estrellas (constelaciones) puntos blancos est\u00e1ticos.          ║
+ * ║     3. Cinta SVG de aurora arriba (gradient + onda animada).             ║
+ * ║     4. Reflejo de aurora en horizonte inferior (opacidad 35%).           ║
+ * ║     5. Ruido sutil para romper el banding.                               ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="borealis"] .borealis-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -10;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse 70% 50% at 50% 0%, rgba(125, 200, 255, 0.08), transparent 60%),
+    radial-gradient(ellipse 80% 60% at 50% 100%, rgba(93, 255, 192, 0.05), transparent 65%),
+    linear-gradient(180deg, #0a1f29 0%, #06141a 60%, #04101a 100%);
+  pointer-events: none;
+}
+
+/* ── Capa 2: estrellas ─────────────────────────────────────────────── */
+html[data-theme="borealis"] .borealis-bg .borealis-stars {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+html[data-theme="borealis"] .borealis-bg .borealis-stars span {
+  position: absolute;
+  background: #ffffff;
+  border-radius: 50%;
+  opacity: var(--s-opacity, 0.5);
+  animation: borealis-twinkle var(--s-duration, 4s) ease-in-out infinite;
+  animation-delay: var(--s-delay, 0s);
+}
+
+/* Algunas estrellas tienen tinte (azul-hielo / verde-menta) */
+html[data-theme="borealis"] .borealis-bg .borealis-stars span:nth-child(5n) {
+  background: var(--borealis-ice);
+  box-shadow: 0 0 4px var(--borealis-ice);
+}
+html[data-theme="borealis"] .borealis-bg .borealis-stars span:nth-child(7n) {
+  background: var(--borealis-mint);
+  box-shadow: 0 0 4px var(--borealis-mint);
+}
+
+@keyframes borealis-twinkle {
+  0%, 100% { opacity: var(--s-opacity, 0.5); }
+  50%      { opacity: calc(var(--s-opacity, 0.5) * 0.35); }
+}
+
+/* ── Capa 3: cinta de aurora SVG arriba ───────────────────────────── */
+html[data-theme="borealis"] .borealis-bg .borealis-aurora {
+  position: absolute;
+  top: 0;
+  left: -10%;
+  width: 120%;
+  height: 50%;
+  pointer-events: none;
+  filter: blur(2px);
+  opacity: 0.85;
+}
+
+html[data-theme="borealis"] .borealis-bg .borealis-aurora path {
+  fill: url(#borealis-aurora-gradient);
+  animation: borealis-wave 24s ease-in-out infinite;
+  transform-origin: center;
+}
+
+html[data-theme="borealis"] .borealis-bg .borealis-aurora .aurora-2 {
+  animation-duration: 30s;
+  animation-delay: -8s;
+  opacity: 0.55;
+}
+
+@keyframes borealis-wave {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33%      { transform: translate(40px, 8px) scale(1.04); }
+  66%      { transform: translate(-32px, -6px) scale(0.97); }
+}
+
+/* ── Capa 4: reflejo del horizonte inferior ───────────────────────── */
+html[data-theme="borealis"] .borealis-bg .borealis-reflection {
+  position: absolute;
+  bottom: 0;
+  left: -5%;
+  width: 110%;
+  height: 25%;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    rgba(125, 200, 255, 0.05) 40%,
+    rgba(93, 255, 192, 0.08) 65%,
+    rgba(183, 138, 255, 0.06) 100%
+  );
+  filter: blur(40px);
+  opacity: 0.7;
+  pointer-events: none;
+  animation: borealis-reflection-shift 18s ease-in-out infinite;
+}
+
+@keyframes borealis-reflection-shift {
+  0%, 100% { transform: translateX(0); }
+  50%      { transform: translateX(40px); }
+}
+
+/* ── Capa 5: ruido ────────────────────────────────────────────────── */
+html[data-theme="borealis"] .borealis-bg .borealis-noise {
+  position: absolute;
+  inset: 0;
+  opacity: 0.045;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  pointer-events: none;
+  mix-blend-mode: overlay;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                4.  CLASE DE CRISTAL  ·  .glass-surface                   ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="borealis"] .glass-surface {
+  position: relative;
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur)) saturate(150%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(150%);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow), var(--glass-highlight);
+  border-radius: var(--borealis-radius);
+  transition:
+    border-color 0.3s ease,
+    transform 0.3s ease,
+    background 0.3s ease,
+    box-shadow 0.3s ease;
+  overflow: hidden;
+}
+
+html[data-theme="borealis"] .glass-surface::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.15) 0%,
+    rgba(255, 255, 255, 0.04) 22%,
+    transparent 46%
+  );
+  border-radius: inherit;
+}
+
+html[data-theme="borealis"] .glass-surface > * {
+  position: relative;
+  z-index: 1;
+}
+
+html[data-theme="borealis"] .glass-surface:hover {
+  border-color: var(--glass-border-glow);
+  transform: translateY(-2px);
+  background: var(--glass-bg-2);
+  box-shadow:
+    0 18px 58px rgba(0, 10, 16, 0.62),
+    0 0 32px var(--glow-ice),
+    0 0 48px var(--glow-mint),
+    var(--glass-highlight);
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║              5.  ALIAS  ·  Cards del sistema                             ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="borealis"] .glass,
+html[data-theme="borealis"] .glass-1,
+html[data-theme="borealis"] .glass-2,
+html[data-theme="borealis"] .glass-3,
+html[data-theme="borealis"] .glass-4 {
+  isolation: var(--card-isolation);
+  position: relative;
+  border-radius: var(--borealis-radius);
+  transition:
+    background 0.3s ease,
+    border-color 0.3s ease,
+    box-shadow 0.3s ease,
+    transform 0.3s ease;
+}
+
+html[data-theme="borealis"] .glass {
+  background: rgba(255, 255, 255, 0.012);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  box-shadow: none;
+}
+
+html[data-theme="borealis"] .glass-1 {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  box-shadow: var(--glass-shadow), var(--glass-highlight);
+  position: relative;
+}
+
+/* Detalle único de Borealis: borde superior gradient como si la luz
+ * de la aurora cayera sobre la card. Aplicado solo a .glass-1 (cards
+ * de listado) para que sea perceptible pero no abrumador. */
+html[data-theme="borealis"] .glass-1::after {
+  content: "";
+  position: absolute;
+  top: 0; left: 12%; right: 12%;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--borealis-mint) 25%,
+    var(--borealis-ice) 50%,
+    var(--borealis-violet) 75%,
+    transparent
+  );
+  opacity: 0.55;
+  border-radius: 1px;
+  pointer-events: none;
+}
+
+html[data-theme="borealis"] .glass-2 {
+  background: rgba(255, 255, 255, 0.065);
+  backdrop-filter: blur(20px) saturate(150%);
+  -webkit-backdrop-filter: blur(20px) saturate(150%);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: var(--glass-shadow), var(--glass-highlight);
+}
+
+html[data-theme="borealis"] .glass-3,
+html[data-theme="borealis"] .glass-4 {
+  background: linear-gradient(
+    155deg,
+    rgba(14, 28, 36, 0.45) 0%,
+    rgba(255, 255, 255, 0.08) 45%,
+    rgba(255, 255, 255, 0.04) 100%
+  );
+  backdrop-filter: blur(var(--glass-blur)) saturate(155%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(155%);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: var(--glass-shadow), var(--glass-highlight);
+}
+
+html[data-theme="borealis"] .glass::before,
+html[data-theme="borealis"] .glass-1::before,
+html[data-theme="borealis"] .glass-2::before,
+html[data-theme="borealis"] .glass-3::before,
+html[data-theme="borealis"] .glass-4::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.12) 0%,
+    rgba(255, 255, 255, 0.04) 22%,
+    transparent 46%
+  );
+  border-radius: inherit;
+}
+
+html[data-theme="borealis"] .glass > *,
+html[data-theme="borealis"] .glass-1 > *,
+html[data-theme="borealis"] .glass-2 > *,
+html[data-theme="borealis"] .glass-3 > *,
+html[data-theme="borealis"] .glass-4 > * {
+  position: relative;
+  z-index: 1;
+}
+
+html[data-theme="borealis"] .glass-1:hover,
+html[data-theme="borealis"] .glass-2:hover,
+html[data-theme="borealis"] .glass-3:hover,
+html[data-theme="borealis"] .glass-4:hover {
+  border-color: var(--glass-border-glow);
+}
+
+html[data-theme="borealis"] .glass-hover:hover {
+  background: var(--glass-bg-2);
+  border-color: var(--glass-border-glow);
+  transform: translateY(-2px);
+  box-shadow:
+    0 18px 58px rgba(0, 10, 16, 0.62),
+    0 0 32px var(--glow-ice),
+    0 0 48px var(--glow-mint),
+    var(--glass-highlight);
+}
+
+html[data-theme="borealis"] .glass .glass-hover:hover,
+html[data-theme="borealis"] .glass-1 .glass-hover:hover,
+html[data-theme="borealis"] .glass-2 .glass-hover:hover,
+html[data-theme="borealis"] .glass-3 .glass-hover:hover,
+html[data-theme="borealis"] .glass-4 .glass-hover:hover {
+  transform: none !important;
+  box-shadow: var(--glass-highlight) !important;
+}
+
+html[data-theme="borealis"] .glass:has(.glass-hover) {
+  overflow: hidden;
+}
+
+html[data-theme="borealis"] .dashboard-quick-action.glass-hover:hover {
+  transform: translateY(-1px);
+  box-shadow:
+    0 1px 4px rgba(0, 10, 16, 0.32),
+    0 0 4px rgba(125, 200, 255, 0.28),
+    var(--glass-highlight);
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║          6.  BORDE ANIMADO  ·  .glow-border (cards destacadas)           ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+@property --borealis-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+html[data-theme="borealis"] .glow-border {
+  position: relative;
+}
+
+html[data-theme="borealis"] .glow-border::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1.5px;
+  background: conic-gradient(
+    from var(--borealis-angle),
+    transparent 0%,
+    transparent 65%,
+    var(--borealis-mint) 75%,
+    var(--borealis-ice) 82%,
+    var(--borealis-violet) 90%,
+    transparent 98%
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+          mask-composite: exclude;
+  animation: borealis-border-run 10s linear infinite;
+  pointer-events: none;
+  z-index: 2;
+}
+
+@keyframes borealis-border-run {
+  to { --borealis-angle: 360deg; }
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                  7.  APARICIÓN ESCALONADA                                ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="borealis"] .reveal {
+  opacity: 0;
+  transform: translateY(14px);
+  animation: borealis-reveal-up 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes borealis-reveal-up {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                  8.  CHROME  ·  Sidebar + Header                         ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="borealis"] .app-sidebar-shell {
+  background: transparent !important;
+  background-image: none !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.07);
+  backdrop-filter: blur(14px) saturate(135%);
+  -webkit-backdrop-filter: blur(14px) saturate(135%);
+  box-shadow: none;
+}
+
+html[data-theme="borealis"] .app-sidebar-shell.sidebar-expanded-solid {
+  background: linear-gradient(
+    180deg,
+    rgba(14, 32, 40, 0.78) 0%,
+    rgba(8, 22, 30, 0.84) 100%
+  ) !important;
+  backdrop-filter: blur(32px) saturate(155%) !important;
+  -webkit-backdrop-filter: blur(32px) saturate(155%) !important;
+  border-right: 1px solid var(--glass-border) !important;
+  box-shadow:
+    var(--glass-highlight),
+    8px 0 32px rgba(0, 10, 16, 0.50),
+    0 0 60px rgba(125, 200, 255, 0.06) !important;
+  border-radius: 0 !important;
+}
+
+html[data-theme="borealis"] .sidebar-nav-link-active {
+  position: relative;
+  background: linear-gradient(
+    90deg,
+    rgba(125, 200, 255, 0.14) 0%,
+    rgba(93, 255, 192, 0.06) 100%
+  ) !important;
+  color: var(--text) !important;
+  border-color: transparent !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(125, 200, 255, 0.28),
+    0 0 22px rgba(125, 200, 255, 0.18) !important;
+  overflow: hidden;
+}
+
+html[data-theme="borealis"] .sidebar-nav-link-active::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 6px;
+  bottom: 6px;
+  width: 3px;
+  border-radius: 2px;
+  background: linear-gradient(
+    180deg,
+    var(--borealis-mint) 0%,
+    var(--borealis-ice) 50%,
+    var(--borealis-violet) 100%
+  );
+  box-shadow: 0 0 8px var(--borealis-ice);
+  pointer-events: none;
+}
+
+html[data-theme="borealis"] .sidebar-nav-link:not(.sidebar-nav-link-active):hover {
+  background: rgba(125, 200, 255, 0.06);
+  color: var(--text);
+  box-shadow: inset 0 0 0 1px rgba(125, 200, 255, 0.15);
+}
+
+html[data-theme="borealis"] .app-top-header {
+  background: transparent !important;
+  background-image: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: none !important;
+  border-bottom: none !important;
+  box-shadow: none !important;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                  9.  TIPOGRAFÍA                                          ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="borealis"] h1,
+html[data-theme="borealis"] h2,
+html[data-theme="borealis"] h3,
+html[data-theme="borealis"] .text-2xl,
+html[data-theme="borealis"] .text-3xl,
+html[data-theme="borealis"] .text-4xl {
+  font-weight: 300;
+  letter-spacing: -0.01em;
+}
+
+html[data-theme="borealis"] [data-stat-value],
+html[data-theme="borealis"] .stat-value,
+html[data-theme="borealis"] .text-4xl.font-bold,
+html[data-theme="borealis"] .text-3xl.font-bold {
+  font-weight: 300 !important;
+  letter-spacing: -0.02em;
+}
+
+html[data-theme="borealis"] button[data-variant="primary"],
+html[data-theme="borealis"] .btn-primary,
+html[data-theme="borealis"] [data-cta="primary"] {
+  font-weight: 600;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                10.  CTA AMARILLO                                         ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="borealis"] button[data-variant="primary"]:not(:disabled),
+html[data-theme="borealis"] .btn-primary:not(:disabled),
+html[data-theme="borealis"] [data-cta="primary"]:not(:disabled) {
+  background: var(--accent) !important;
+  color: #1a1500 !important;
+  border: none !important;
+  box-shadow:
+    0 8px 24px rgba(255, 235, 102, 0.22),
+    0 0 24px rgba(125, 200, 255, 0.14);
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+html[data-theme="borealis"] button[data-variant="primary"]:hover:not(:disabled),
+html[data-theme="borealis"] .btn-primary:hover:not(:disabled),
+html[data-theme="borealis"] [data-cta="primary"]:hover:not(:disabled) {
+  background: #FFE94D !important;
+  box-shadow:
+    0 10px 32px rgba(255, 235, 102, 0.32),
+    0 0 32px rgba(125, 200, 255, 0.22);
+  transform: translateY(-1px);
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║      11.  PARCHE Tailwind arbitrary hex (azul-marino → noche ártica)     ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="borealis"] .bg-\[\#060a14\],
+html[data-theme="borealis"] .bg-\[\#060a12\],
+html[data-theme="borealis"] .bg-\[\#060b18\],
+html[data-theme="borealis"] .bg-\[\#020308\]\/85,
+html[data-theme="borealis"] .bg-\[\#020408\]\/80 {
+  background-color: rgba(6, 18, 24, 0.85) !important;
+}
+
+html[data-theme="borealis"] .bg-\[\#0a0f1e\],
+html[data-theme="borealis"] .bg-\[\#0a0f1e\]\/95,
+html[data-theme="borealis"] .bg-\[\#0a0f1e\]\/88,
+html[data-theme="borealis"] .bg-\[\#0a0f1e\]\/85,
+html[data-theme="borealis"] .bg-\[\#0a0f1e\]\/72,
+html[data-theme="borealis"] .bg-\[\#0a0f1e\]\/40,
+html[data-theme="borealis"] .bg-\[\#0a0f1e\]\/15,
+html[data-theme="borealis"] .bg-\[\#0a1020\] {
+  background-color: rgba(10, 26, 34, 0.88) !important;
+}
+
+html[data-theme="borealis"] .bg-\[\#0c1224\]\/95,
+html[data-theme="borealis"] .bg-\[\#0c1325\],
+html[data-theme="borealis"] .bg-\[\#0d1324\]\/96,
+html[data-theme="borealis"] .bg-\[\#0d1324\]\/92,
+html[data-theme="borealis"] .bg-\[\#0d1325\],
+html[data-theme="borealis"] .bg-\[\#0d1427\]\/95,
+html[data-theme="borealis"] .bg-\[\#0d1428\],
+html[data-theme="borealis"] .bg-\[\#0d1428\]\/95,
+html[data-theme="borealis"] .bg-\[\#0f1424\],
+html[data-theme="borealis"] .bg-\[\#0f1524\] {
+  background-color: rgba(10, 26, 34, 0.90) !important;
+  backdrop-filter: blur(18px) saturate(150%);
+  -webkit-backdrop-filter: blur(18px) saturate(150%);
+}
+
+html[data-theme="borealis"] .bg-\[\#121a2e\],
+html[data-theme="borealis"] .bg-\[\#161f36\],
+html[data-theme="borealis"] .bg-\[\#1a2238\] {
+  background-color: rgba(255, 255, 255, 0.06) !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║               12.  DROPDOWNS                                             ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="borealis"] .app-dropdown-panel {
+  background: linear-gradient(
+    155deg,
+    rgba(18, 38, 48, 0.82) 0%,
+    rgba(8, 22, 30, 0.92) 100%
+  ) !important;
+  backdrop-filter: blur(22px) saturate(150%) !important;
+  -webkit-backdrop-filter: blur(22px) saturate(150%) !important;
+  border-color: var(--glass-border) !important;
+  box-shadow:
+    var(--glass-highlight),
+    0 22px 52px rgba(0, 10, 16, 0.60),
+    0 0 36px rgba(125, 200, 255, 0.14) !important;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║         13.  KANBAN                                                      ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="borealis"] .kanban-column-well {
+  background: transparent !important;
+}
+html[data-theme="borealis"] .kanban-column-well::after,
+html[data-theme="borealis"] .kanban-column-well::before {
+  background: transparent !important;
+  display: none !important;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║         14.  EDITOR  ·  ProseMirror                                      ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="borealis"] .ProseMirror pre {
+  background: rgba(6, 18, 24, 0.80) !important;
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║         15.  DETAIL FULL-SCREEN                                          ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="borealis"]
+  .detail-fullscreen-bg.detail-fullscreen-bg.detail-fullscreen-bg {
+  background: transparent !important;
+  background-image: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+html[data-theme="borealis"] .detail-fullscreen-bg::before {
+  content: none;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                16.  INPUTS                                               ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="borealis"] input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]),
+html[data-theme="borealis"] textarea,
+html[data-theme="borealis"] select {
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid var(--glass-border);
+  color: var(--text);
+}
+
+html[data-theme="borealis"] input:focus,
+html[data-theme="borealis"] textarea:focus,
+html[data-theme="borealis"] select:focus {
+  outline: none;
+  border-color: var(--glass-border-glow);
+  box-shadow: 0 0 0 3px rgba(125, 200, 255, 0.22);
+}
+
+html[data-theme="borealis"] #cmd-palette-trigger {
+  background: rgba(125, 200, 255, 0.06) !important;
+  border-color: rgba(125, 200, 255, 0.28) !important;
+  color: var(--text-dim) !important;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+html[data-theme="borealis"] #cmd-palette-trigger:hover {
+  background: rgba(125, 200, 255, 0.12) !important;
+  border-color: var(--glass-border-glow) !important;
+  color: var(--text) !important;
+  box-shadow: 0 0 24px rgba(125, 200, 255, 0.22);
+}
+html[data-theme="borealis"] #cmd-palette-trigger kbd {
+  background: rgba(125, 200, 255, 0.14) !important;
+  border-color: rgba(125, 200, 255, 0.30) !important;
+  color: var(--text);
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                  17.  SCROLLBARS                                         ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="borealis"] ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.10);
+  border-radius: 6px;
+}
+html[data-theme="borealis"] ::-webkit-scrollbar-thumb:hover {
+  background: rgba(125, 200, 255, 0.40);
+}
+html[data-theme="borealis"] .overflow-y-auto:hover::-webkit-scrollbar-thumb,
+html[data-theme="borealis"] .overflow-x-auto:hover::-webkit-scrollbar-thumb,
+html[data-theme="borealis"] .overflow-auto:hover::-webkit-scrollbar-thumb,
+html[data-theme="borealis"] *:hover::-webkit-scrollbar-thumb {
+  background: rgba(125, 200, 255, 0.32);
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║              18.  STATS / DASHBOARD                                      ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="borealis"] [data-stat-color="purple"] { color: var(--stat-purple); }
+html[data-theme="borealis"] [data-stat-color="blue"]   { color: var(--stat-blue); }
+html[data-theme="borealis"] [data-stat-color="cyan"]   { color: var(--stat-cyan); }
+html[data-theme="borealis"] [data-stat-color="green"]  { color: var(--stat-green); }
+
+html[data-theme="borealis"] .dashboard-shift-track {
+  background: rgba(255, 255, 255, 0.06) !important;
+  border: 1px solid var(--glass-border);
+  overflow: hidden;
+}
+html[data-theme="borealis"] .dashboard-shift-fill {
+  background: linear-gradient(90deg, var(--borealis-ice) 0%, var(--borealis-mint) 100%) !important;
+  box-shadow: 0 0 14px rgba(125, 200, 255, 0.45);
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║      19-30. RESTO DE OVERRIDES (presencia, modal, mobile-nav, tooltips,  ║
+ * ║                 toaster, skeleton, banner OK, badges, overlays, avatar)  ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="borealis"] .presence-online,
+html[data-theme="borealis"] [data-online="true"] .presence-dot {
+  box-shadow:
+    0 0 0 2px var(--bg-deep),
+    0 0 14px rgba(93, 255, 192, 0.65);
+}
+
+html[data-theme="borealis"] .user-avatar-ring {
+  box-shadow:
+    0 0 0 2px var(--bg-deep),
+    0 0 0 3px var(--glass-border-glow);
+}
+
+html[data-theme="borealis"] .glass-opaque-bitacora {
+  isolation: auto;
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(22px) saturate(150%);
+  -webkit-backdrop-filter: blur(22px) saturate(150%);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-highlight), 0 6px 26px rgba(0, 10, 16, 0.35);
+}
+
+html[data-theme="borealis"] .app-modal-dialog[data-modal-surface="dark"] {
+  position: relative;
+  background: linear-gradient(
+    155deg,
+    rgba(18, 38, 48, 0.58) 0%,
+    rgba(8, 22, 30, 0.74) 100%
+  ) !important;
+  backdrop-filter: blur(var(--glass-blur)) saturate(155%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(155%);
+  border-color: var(--glass-border) !important;
+  box-shadow:
+    0 24px 68px rgba(0, 10, 16, 0.55),
+    0 0 52px rgba(125, 200, 255, 0.16),
+    0 0 80px rgba(93, 255, 192, 0.10),
+    var(--glass-highlight) !important;
+  overflow: hidden;
+}
+
+html[data-theme="borealis"] .app-modal-dialog[data-modal-surface="dark"]::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.10) 0%,
+    rgba(255, 255, 255, 0.03) 18%,
+    transparent 32%
+  );
+  border-radius: inherit;
+  z-index: 0;
+}
+html[data-theme="borealis"] .app-modal-dialog[data-modal-surface="dark"] > *:not(button[aria-label="Cerrar"]) {
+  position: relative;
+  z-index: 1;
+}
+
+html[data-theme="borealis"] .modal-backdrop {
+  background: rgba(4, 14, 20, 0.55);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+html[data-theme="borealis"] .mobile-bottom-nav {
+  background: linear-gradient(
+    180deg,
+    rgba(10, 26, 34, 0.62) 0%,
+    rgba(6, 18, 24, 0.82) 100%
+  ) !important;
+  border-top-color: var(--glass-border) !important;
+  backdrop-filter: blur(22px) saturate(155%);
+  -webkit-backdrop-filter: blur(22px) saturate(155%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 -8px 30px rgba(0, 10, 16, 0.50);
+}
+
+html[data-theme="borealis"] [data-tooltip-content],
+html[data-theme="borealis"] [role="tooltip"] {
+  background: linear-gradient(
+    155deg,
+    rgba(18, 38, 48, 0.82) 0%,
+    rgba(8, 22, 30, 0.90) 100%
+  ) !important;
+  border: 1px solid var(--glass-border) !important;
+  color: var(--text) !important;
+  backdrop-filter: blur(14px) saturate(150%);
+  -webkit-backdrop-filter: blur(14px) saturate(150%);
+  box-shadow: var(--glass-shadow), var(--glass-highlight);
+}
+
+html[data-theme="borealis"] .toast-glass {
+  background: linear-gradient(
+    155deg,
+    rgba(18, 38, 48, 0.82) 0%,
+    rgba(8, 22, 30, 0.92) 100%
+  ) !important;
+  border: 1px solid var(--glass-border) !important;
+  color: var(--text) !important;
+  backdrop-filter: blur(22px) saturate(155%);
+  -webkit-backdrop-filter: blur(22px) saturate(155%);
+  box-shadow:
+    var(--glass-highlight),
+    0 18px 44px rgba(0, 10, 16, 0.55),
+    0 0 32px rgba(125, 200, 255, 0.12);
+}
+
+html[data-theme="borealis"] .loading-card {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+html[data-theme="borealis"] .dashboard-allgood-banner {
+  background: linear-gradient(
+    135deg,
+    rgba(93, 255, 192, 0.10) 0%,
+    rgba(125, 200, 255, 0.06) 100%
+  ) !important;
+  border-color: rgba(255, 255, 255, 0.10) !important;
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 0 28px rgba(93, 255, 192, 0.10);
+}
+
+html[data-theme="borealis"] .dashboard-allgood-icon {
+  background: rgba(93, 255, 192, 0.22) !important;
+  box-shadow: inset 0 0 0 1px rgba(93, 255, 192, 0.36);
+}
+
+html[data-theme="borealis"] .bg-sky-400\/10,
+html[data-theme="borealis"] .bg-emerald-400\/10,
+html[data-theme="borealis"] .bg-orange-400\/10,
+html[data-theme="borealis"] .bg-red-400\/10,
+html[data-theme="borealis"] .bg-red-500\/10,
+html[data-theme="borealis"] .bg-violet-400\/10,
+html[data-theme="borealis"] .bg-yellow-400\/10,
+html[data-theme="borealis"] .bg-green-400\/10,
+html[data-theme="borealis"] .bg-blue-400\/10,
+html[data-theme="borealis"] .bg-amber-400\/10,
+html[data-theme="borealis"] .bg-indigo-400\/10,
+html[data-theme="borealis"] .bg-emerald-500\/6,
+html[data-theme="borealis"] .bg-emerald-500\/8,
+html[data-theme="borealis"] .bg-emerald-400\/8,
+html[data-theme="borealis"] .bg-emerald-400\/\[0\.06\],
+html[data-theme="borealis"] .bg-emerald-400\/5,
+html[data-theme="borealis"] .bg-amber-400\/8,
+html[data-theme="borealis"] .bg-emerald-500\/12,
+html[data-theme="borealis"] .bg-emerald-500\/15,
+html[data-theme="borealis"] .bg-rose-400\/10,
+html[data-theme="borealis"] .bg-rose-500\/10,
+html[data-theme="borealis"] .hover\:bg-rose-500\/10:hover,
+html[data-theme="borealis"] .hover\:bg-rose-50:hover {
+  background-image: linear-gradient(
+    rgba(125, 200, 255, 0.05),
+    rgba(93, 255, 192, 0.04)
+  );
+}
+
+html[data-theme="borealis"] .bg-slate-900\/45,
+html[data-theme="borealis"] .bg-black\/75,
+html[data-theme="borealis"] .bg-black\/65,
+html[data-theme="borealis"] .bg-black\/60,
+html[data-theme="borealis"] .bg-black\/55,
+html[data-theme="borealis"] .bg-black\/45,
+html[data-theme="borealis"] .bg-black\/40,
+html[data-theme="borealis"] .bg-black\/35 {
+  background-color: rgba(4, 14, 20, 0.55) !important;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+html[data-theme="borealis"] .bg-black\/30,
+html[data-theme="borealis"] .bg-black\/25,
+html[data-theme="borealis"] .bg-black\/20,
+html[data-theme="borealis"] .bg-black\/15,
+html[data-theme="borealis"] .bg-black\/10 {
+  background-color: rgba(10, 26, 34, 0.28) !important;
+}
+
+html[data-theme="borealis"] .bg-black\/\[0\.05\],
+html[data-theme="borealis"] .bg-black\/\[0\.04\],
+html[data-theme="borealis"] .bg-black\/\[0\.06\] {
+  background-color: rgba(255, 255, 255, 0.04) !important;
+}
+
+html[data-theme="borealis"] .bg-zinc-900,
+html[data-theme="borealis"] .bg-zinc-800,
+html[data-theme="borealis"] .hover\:bg-zinc-800:hover {
+  background-color: rgba(10, 26, 34, 0.92) !important;
+  border-color: rgba(255, 255, 255, 0.18) !important;
+}
+
+html[data-theme="borealis"] .text-\[\#0a0f1e\] {
+  color: rgba(8, 22, 30, 1) !important;
+}
+
+html[data-theme="borealis"] img.rounded-full.object-cover {
+  box-shadow: inset 0 0 0 1px rgba(125, 200, 255, 0.30);
+}
+
+html[data-theme="borealis"] .border-\[\#0a0f1e\] {
+  border-color: rgba(8, 22, 30, 0.95) !important;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║      31.  AUTO-STAGE-IN                                                  ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes borealis-stage-in {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  html[data-theme="borealis"] .app-dashboard-root > main,
+  html[data-theme="borealis"] .app-dashboard-root > section {
+    animation: borealis-stage-in 380ms cubic-bezier(0.2, 0.6, 0.2, 1) both;
+  }
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║      32.  SHINE DIAGONAL EN HOVER                                        ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="borealis"] .glass-hover {
+  overflow: hidden;
+}
+
+html[data-theme="borealis"] .glass-hover::after,
+html[data-theme="borealis"] .glass-surface::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    115deg,
+    transparent 30%,
+    rgba(125, 200, 255, 0.14) 50%,
+    transparent 70%
+  );
+  transform: translateX(-110%);
+  transition: transform 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+  border-radius: inherit;
+  z-index: 0;
+}
+
+html[data-theme="borealis"] .glass-hover > * {
+  position: relative;
+  z-index: 1;
+}
+
+html[data-theme="borealis"] .glass-hover:hover::after,
+html[data-theme="borealis"] .glass-surface:hover::after {
+  transform: translateX(110%);
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║      33.  ACCESIBILIDAD  ·  prefers-reduced-motion                       ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-theme="borealis"] .borealis-bg .borealis-aurora path,
+  html[data-theme="borealis"] .borealis-bg .borealis-stars span,
+  html[data-theme="borealis"] .borealis-bg .borealis-reflection {
+    animation: none !important;
+  }
+  html[data-theme="borealis"] .glow-border::after {
+    animation: none !important;
+  }
+  html[data-theme="borealis"] .reveal {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+  html[data-theme="borealis"] .app-dashboard-root > main,
+  html[data-theme="borealis"] .app-dashboard-root > section {
+    animation: none !important;
+  }
+  html[data-theme="borealis"] .glass-hover::after,
+  html[data-theme="borealis"] .glass-surface::after {
+    display: none !important;
+  }
+  html[data-theme="borealis"] .glass-surface,
+  html[data-theme="borealis"] .glass,
+  html[data-theme="borealis"] .glass-1,
+  html[data-theme="borealis"] .glass-2,
+  html[data-theme="borealis"] .glass-3,
+  html[data-theme="borealis"] .glass-4 {
+    transition: none !important;
+  }
+}

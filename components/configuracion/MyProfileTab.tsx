@@ -4,6 +4,7 @@ import { useMemo, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
 import {
   Camera,
+  Check,
   ChevronDown,
   Crosshair,
   KeyRound,
@@ -11,6 +12,7 @@ import {
   Mail,
   Shield,
   Sparkles,
+  X,
   Image as ImageIcon,
   User as UserIcon,
 } from "lucide-react";
@@ -31,7 +33,17 @@ import {
   IMAGE_UPLOAD_ACCEPT,
   validateProfileImageFile,
 } from "@/lib/upload-file";
-import { SoundLibraryCard } from "@/components/configuracion/SoundLibraryCard";
+/* SoundLibraryCard retirado por decisión de producto: ahora solo se ofrecen
+ * los sonidos "de serie" (presets). El componente sigue en el repo y la API
+ * `GET /api/me/sounds` continúa funcionando para los sonidos personalizados
+ * que algún usuario ya tuviera asignados antes de la retirada. Los endpoints
+ * de SUBIR nuevos sonidos (`POST /api/me/sounds/upload` y
+ * `POST /api/me/sounds/from-url`) devuelven ahora 410 Gone. */
+// import { SoundLibraryCard } from "@/components/configuracion/SoundLibraryCard";
+import {
+  MAX_PASSWORD_LENGTH,
+  MIN_PASSWORD_LENGTH,
+} from "@/lib/auth/password-policy";
 
 interface MyProfileTabProps {
   currentUser: SessionUser;
@@ -172,13 +184,34 @@ export function MyProfileTab({ currentUser }: MyProfileTabProps) {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
 
-    if (password && password.length < 8) {
-      toast.error("La contraseña debe tener al menos 8 caracteres");
-      return;
-    }
-    if (password && password !== password2) {
-      toast.error("Las contraseñas no coinciden");
-      return;
+    if (password) {
+      if (password.length < MIN_PASSWORD_LENGTH) {
+        toast.error(
+          `La contraseña debe tener al menos ${MIN_PASSWORD_LENGTH} caracteres`
+        );
+        return;
+      }
+      if (password.length > MAX_PASSWORD_LENGTH) {
+        toast.error(
+          `La contraseña no puede superar ${MAX_PASSWORD_LENGTH} caracteres`
+        );
+        return;
+      }
+      const classes =
+        (/[a-z]/.test(password) ? 1 : 0) +
+        (/[A-Z]/.test(password) ? 1 : 0) +
+        (/\d/.test(password) ? 1 : 0) +
+        (/[^A-Za-z0-9]/.test(password) ? 1 : 0);
+      if (classes < 3) {
+        toast.error(
+          "La contraseña debe combinar al menos 3 de: mayúsculas, minúsculas, números y símbolos"
+        );
+        return;
+      }
+      if (password !== password2) {
+        toast.error("Las contraseñas no coinciden");
+        return;
+      }
     }
 
     if (!hasChanges) {
@@ -648,6 +681,12 @@ export function MyProfileTab({ currentUser }: MyProfileTabProps) {
               autoComplete="new-password"
             />
           </div>
+
+          <PasswordRequirements
+            L={L}
+            password={password}
+            password2={password2}
+          />
         </div>
 
         {/* Acciones */}
@@ -704,9 +743,6 @@ export function MyProfileTab({ currentUser }: MyProfileTabProps) {
         />
       )}
 
-      <div className="mt-6">
-        <SoundLibraryCard />
-      </div>
     </div>
   );
 }
@@ -772,6 +808,136 @@ function SectionHeader({
           </p>
         )}
       </div>
+    </div>
+  );
+}
+
+/* ──────────────────────────────────────────────────────────────
+ *  Lista de requisitos de la contraseña.
+ *  Se evalúa en tiempo real conforme el usuario teclea: cuando el
+ *  campo está vacío todos aparecen en estado neutro (informativo);
+ *  cuando empieza a escribir, los que cumple pasan a verde y los
+ *  que no, a rojo. Replica la política de `lib/auth/password-policy`
+ *  (longitud, complejidad ≥3 clases, no demasiado común, máximo)
+ *  más la coincidencia de confirmación.
+ * ────────────────────────────────────────────────────────────── */
+function PasswordRequirements({
+  L,
+  password,
+  password2,
+}: {
+  L: boolean;
+  password: string;
+  password2: string;
+}) {
+  const touched = password.length > 0;
+
+  const classes =
+    (/[a-z]/.test(password) ? 1 : 0) +
+    (/[A-Z]/.test(password) ? 1 : 0) +
+    (/\d/.test(password) ? 1 : 0) +
+    (/[^A-Za-z0-9]/.test(password) ? 1 : 0);
+
+  const checks: { label: React.ReactNode; ok: boolean; show: boolean }[] = [
+    {
+      label: (
+        <>
+          Mínimo <strong>{MIN_PASSWORD_LENGTH} caracteres</strong>
+        </>
+      ),
+      ok: password.length >= MIN_PASSWORD_LENGTH,
+      show: true,
+    },
+    {
+      label: (
+        <>
+          Combina al menos <strong>3 de 4 clases</strong>: mayúsculas,
+          minúsculas, números y símbolos
+        </>
+      ),
+      ok: classes >= 3,
+      show: true,
+    },
+    {
+      label: <>No usar contraseñas comunes (ej. <code>Password1234</code>)</>,
+      ok: true,
+      show: true,
+    },
+    {
+      label: (
+        <>
+          Máximo <strong>{MAX_PASSWORD_LENGTH} caracteres</strong>
+        </>
+      ),
+      ok: password.length <= MAX_PASSWORD_LENGTH,
+      show: password.length > 200,
+    },
+    {
+      label: <>Las dos contraseñas coinciden</>,
+      ok: password.length > 0 && password === password2,
+      show: password2.length > 0,
+    },
+  ];
+
+  return (
+    <div
+      className={cn(
+        "rounded-xl border px-3.5 py-3 text-[12px] leading-snug",
+        L
+          ? "border-zinc-200/80 bg-zinc-50/60 text-zinc-700"
+          : "border-white/8 bg-white/[0.025] text-white/70"
+      )}
+    >
+      <p
+        className={cn(
+          "mb-1.5 text-[11px] font-semibold uppercase tracking-wider",
+          L ? "text-zinc-500" : "text-white/45"
+        )}
+      >
+        Requisitos
+      </p>
+      <ul className="space-y-1">
+        {checks
+          .filter((c) => c.show)
+          .map((c, i) => {
+            const okState = touched ? c.ok : null;
+            return (
+              <li key={i} className="flex items-start gap-2">
+                <span
+                  className={cn(
+                    "mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full ring-1",
+                    okState === true
+                      ? L
+                        ? "bg-emerald-50 text-emerald-600 ring-emerald-200"
+                        : "bg-emerald-500/15 text-emerald-300 ring-emerald-400/30"
+                      : okState === false
+                        ? L
+                          ? "bg-rose-50 text-rose-600 ring-rose-200"
+                          : "bg-rose-500/15 text-rose-300 ring-rose-400/30"
+                        : L
+                          ? "bg-white text-zinc-400 ring-zinc-200"
+                          : "bg-white/5 text-white/35 ring-white/10"
+                  )}
+                >
+                  {okState === false ? (
+                    <X className="h-2.5 w-2.5" strokeWidth={3} />
+                  ) : (
+                    <Check className="h-2.5 w-2.5" strokeWidth={3} />
+                  )}
+                </span>
+                <span
+                  className={cn(
+                    "min-w-0",
+                    okState === true && (L ? "text-zinc-700" : "text-white/80"),
+                    okState === false && (L ? "text-rose-600" : "text-rose-300")
+                  )}
+                >
+                  {c.label}
+                </span>
+              </li>
+            );
+          })}
+      </ul>
     </div>
   );
 }

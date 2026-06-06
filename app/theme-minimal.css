@@ -1,0 +1,960 @@
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║       TEMA  "MINIMAL FUTURE"  ·  Ultra-limpio · Apple/Tesla vibe         ║
+ * ║                                                                          ║
+ * ║   Lo opuesto a Prisma: sin orbes en movimiento, sin grids, sin líneas   ║
+ * ║   ni partículas. Lo "futurista" lo da la proporción, el espacio en      ║
+ * ║   blanco y los hairlines perfectos. Inspiración: Apple Vision Pro web,  ║
+ * ║   Tesla dashboards, Linear settings.                                     ║
+ * ║                                                                          ║
+ * ║   Identidad visual:                                                      ║
+ * ║     · Fondo casi negro puro (#050507) con UN halo radial frío           ║
+ * ║       arriba-izquierda, inmóvil, gestionado por <MinimalFutureBackground>║
+ * ║     · Superficies #0d0e12 mate (sin transparencia llamativa), hairline  ║
+ * ║       1px blanco al 6%, sin sombras externas grandes.                    ║
+ * ║     · Tipografía Sora con font-weight 400 body / 600 titulares, mucho   ║
+ * ║       letter-spacing reducido y line-height generoso.                   ║
+ * ║     · Acentos quirúrgicos: amarillo CCMGC (#FFEB66) en CTAs y cyan      ║
+ * ║       ártico (#00d1ff) en focus/links.                                  ║
+ * ║     · Detalle "wow": borde iridiscente estático (cyan→magenta→amarillo) ║
+ * ║       en SOLO los elementos activos/focus (tabs, sidebar item, focus    ║
+ * ║       de input). En estado normal: hairline blanco neutro.              ║
+ * ║                                                                          ║
+ * ║   AISLAMIENTO TOTAL bajo `html[data-theme="minimal"]`.                   ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                         1.  PALETA Y TOKENS                              ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="minimal"] {
+  /* ─ Lienzo casi negro puro ─ */
+  --bg-deep: #050507;
+  --accent: #FFEB66;                                /* amarillo CCMGC */
+
+  --text: #fafafa;
+  --text-dim: #b4b6bd;
+  --text-faint: #6a6c75;
+
+  /* ─ Acento frío de soporte ─ */
+  --minimal-cyan: #00d1ff;                          /* cyan ártico — focus/links */
+  --minimal-magenta: #d96ab8;                       /* magenta apagado — alertas decorativas */
+
+  /* ─ Cristal MATE (sin transparencia que veas, sin halo) ─ */
+  --glass-bg: rgba(255, 255, 255, 0.025);
+  --glass-bg-2: rgba(255, 255, 255, 0.045);
+  --glass-border: rgba(255, 255, 255, 0.06);
+  --glass-border-glow: rgba(0, 209, 255, 0.45);     /* cyan al focus/hover */
+  --glass-blur: 0px;                                /* sin blur — superficies mate */
+  --glass-shadow: 0 1px 0 rgba(255, 255, 255, 0.025) inset;
+  --glass-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+
+  --glow-cyan: rgba(0, 209, 255, 0.18);
+
+  /* Stats: paleta apagada (acentos solo en hover, body en gris claro) */
+  --stat-purple: #c4a7ff;
+  --stat-blue:   #a7c8ff;
+  --stat-cyan:   #7ce0f5;
+  --stat-green:  #8fe0b6;
+
+  /* Capa theme-driven */
+  --app-canvas-color: transparent;
+  --app-canvas-image: none;
+  --card-isolation: auto;
+
+  /* Geometría: 14px en cards, 18px en shell. Más pequeños = más serio. */
+  --minimal-radius: 14px;
+  --minimal-radius-shell: 18px;
+
+  color-scheme: dark;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║              2.  FIX DE CAPAS OPACAS                                     ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="minimal"] body {
+  color: var(--text);
+  font-weight: 400;
+  min-height: 100vh;
+}
+
+html[data-theme="minimal"] .app-sidebar-shell,
+html[data-theme="minimal"] .app-top-header {
+  isolation: auto !important;
+}
+
+/* ── Marco hairline finísimo (sin glow, sin gradient animado) ─────────
+ *  En Minimal Future no hay halo del shell ni borde grueso: solo un
+ *  hairline blanco al 6% para delimitar visualmente el contenido del
+ *  fondo. */
+html[data-theme="minimal"] .glass-shell-frame {
+  margin: 18px;
+  padding: 1px;
+  border-radius: var(--minimal-radius-shell);
+  background: rgba(255, 255, 255, 0.06);
+  box-shadow: none;
+}
+
+html[data-theme="minimal"] .glass-shell-inner {
+  border-radius: calc(var(--minimal-radius-shell) - 1px);
+  background: rgba(8, 8, 12, 0.50);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  overflow: hidden;
+  padding: 20px;
+}
+
+@media (max-width: 768px) {
+  html[data-theme="minimal"] .glass-shell-inner { padding: 6px; }
+  html[data-theme="minimal"] .app-dashboard-root { gap: 8px; }
+}
+@media (max-width: 640px) {
+  html[data-theme="minimal"] .glass-shell-frame {
+    margin: 4px;
+    border-radius: 12px;
+  }
+  html[data-theme="minimal"] .glass-shell-inner {
+    border-radius: 11px;
+  }
+}
+@media (max-width: 480px) {
+  html[data-theme="minimal"] .glass-shell-frame {
+    margin: 0;
+    padding: 0;
+    border-radius: 0;
+    background: none;
+  }
+  html[data-theme="minimal"] .glass-shell-inner {
+    padding: 0;
+    border-radius: 0;
+  }
+  html[data-theme="minimal"] .app-dashboard-root { gap: 0; }
+}
+
+html[data-theme="minimal"] .glass-shell-frame::before,
+html[data-theme="minimal"] .glass-shell-frame::after,
+html[data-theme="minimal"] .glass-shell-inner::before,
+html[data-theme="minimal"] .glass-shell-inner::after {
+  display: none !important;
+}
+
+html[data-theme="minimal"] .app-dashboard-root {
+  background: transparent !important;
+  gap: 16px;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║              3.  FONDO  ·  <MinimalFutureBackground />                   ║
+ * ║                                                                          ║
+ * ║   Único elemento: un halo radial cyan ártico arriba-izquierda inmóvil.  ║
+ * ║   El resto es color sólido casi negro.                                  ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="minimal"] .minimal-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -10;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse 50% 40% at 10% 5%, rgba(0, 209, 255, 0.10), transparent 60%),
+    radial-gradient(ellipse 30% 25% at 95% 95%, rgba(255, 255, 255, 0.025), transparent 65%),
+    linear-gradient(180deg, #050507 0%, #030305 100%);
+  pointer-events: none;
+}
+
+/* Ruido finísimo opcional — ayuda a romper el banding del gradient */
+html[data-theme="minimal"] .minimal-bg .minimal-noise {
+  position: absolute;
+  inset: 0;
+  opacity: 0.025;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  pointer-events: none;
+  mix-blend-mode: overlay;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                4.  CLASE DE CRISTAL  ·  .glass-surface                   ║
+ * ║                                                                          ║
+ * ║   En Minimal Future las "glass-surface" no son cristal real: son        ║
+ * ║   SUPERFICIES MATE con un hairline 1px y sin sombra exterior. La idea  ║
+ * ║   es exactamente la opuesta a Prisma.                                   ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="minimal"] .glass-surface {
+  position: relative;
+  background: rgba(13, 14, 18, 0.85);              /* mate, sin transparencia llamativa */
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-highlight);
+  border-radius: var(--minimal-radius);
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease;
+  overflow: hidden;
+}
+
+/* Sin reflejo diagonal — Minimal no tiene shine */
+html[data-theme="minimal"] .glass-surface::before {
+  display: none;
+}
+
+html[data-theme="minimal"] .glass-surface > * {
+  position: relative;
+  z-index: 1;
+}
+
+html[data-theme="minimal"] .glass-surface:hover {
+  border-color: rgba(255, 255, 255, 0.12);
+  background: rgba(15, 16, 20, 0.92);
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║              5.  ALIAS  ·  Cards del sistema → mate flat                 ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="minimal"] .glass,
+html[data-theme="minimal"] .glass-1,
+html[data-theme="minimal"] .glass-2,
+html[data-theme="minimal"] .glass-3,
+html[data-theme="minimal"] .glass-4 {
+  isolation: var(--card-isolation);
+  position: relative;
+  border-radius: var(--minimal-radius);
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease;
+}
+
+html[data-theme="minimal"] .glass {
+  background: rgba(255, 255, 255, 0.008);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  box-shadow: none;
+}
+
+html[data-theme="minimal"] .glass-1 {
+  background: rgba(13, 14, 18, 0.80);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-highlight);
+}
+
+html[data-theme="minimal"] .glass-2 {
+  background: rgba(15, 16, 20, 0.88);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  box-shadow: var(--glass-highlight);
+}
+
+html[data-theme="minimal"] .glass-3,
+html[data-theme="minimal"] .glass-4 {
+  background: rgba(18, 19, 24, 0.93);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  box-shadow:
+    0 8px 24px rgba(0, 0, 0, 0.45),
+    var(--glass-highlight);
+}
+
+/* Sin reflejo diagonal en NINGÚN nivel — esencia minimal */
+html[data-theme="minimal"] .glass::before,
+html[data-theme="minimal"] .glass-1::before,
+html[data-theme="minimal"] .glass-2::before,
+html[data-theme="minimal"] .glass-3::before,
+html[data-theme="minimal"] .glass-4::before {
+  display: none !important;
+}
+
+html[data-theme="minimal"] .glass > *,
+html[data-theme="minimal"] .glass-1 > *,
+html[data-theme="minimal"] .glass-2 > *,
+html[data-theme="minimal"] .glass-3 > *,
+html[data-theme="minimal"] .glass-4 > * {
+  position: relative;
+  z-index: 1;
+}
+
+html[data-theme="minimal"] .glass-1:hover,
+html[data-theme="minimal"] .glass-2:hover,
+html[data-theme="minimal"] .glass-3:hover,
+html[data-theme="minimal"] .glass-4:hover {
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+html[data-theme="minimal"] .glass-hover:hover {
+  background: rgba(18, 19, 24, 0.95);
+  border-color: rgba(255, 255, 255, 0.14);
+  /* Sin lift — minimal es estático, sin "saltos" */
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.04) inset,
+    0 0 0 1px rgba(0, 209, 255, 0.08);
+}
+
+html[data-theme="minimal"] .glass .glass-hover:hover,
+html[data-theme="minimal"] .glass-1 .glass-hover:hover,
+html[data-theme="minimal"] .glass-2 .glass-hover:hover,
+html[data-theme="minimal"] .glass-3 .glass-hover:hover,
+html[data-theme="minimal"] .glass-4 .glass-hover:hover {
+  box-shadow: var(--glass-highlight) !important;
+}
+
+html[data-theme="minimal"] .glass:has(.glass-hover) {
+  overflow: hidden;
+}
+
+html[data-theme="minimal"] .dashboard-quick-action.glass-hover:hover {
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.12),
+    var(--glass-highlight);
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║      6.  BORDE IRIDISCENTE ESTÁTICO  ·  .glow-border (solo en activos)  ║
+ * ║                                                                          ║
+ * ║   El detalle "wow" de Minimal: borde gradient cyan→magenta→amarillo    ║
+ * ║   ESTÁTICO (sin animación) que aparece SOLO en elementos activos/focus.║
+ * ║   El resto del UI permanece con hairlines blancos neutros.              ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="minimal"] .glow-border {
+  position: relative;
+}
+
+html[data-theme="minimal"] .glow-border::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(
+    135deg,
+    rgba(0, 209, 255, 0.85) 0%,
+    rgba(217, 106, 184, 0.65) 50%,
+    rgba(255, 235, 102, 0.55) 100%
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+          mask-composite: exclude;
+  pointer-events: none;
+  z-index: 2;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                  7.  APARICIÓN ESCALONADA  ·  .reveal                    ║
+ * ║                                                                          ║
+ * ║   Más sutil que en Prisma: fade sin desplazamiento vertical.            ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="minimal"] .reveal {
+  opacity: 0;
+  animation: minimal-reveal 0.4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes minimal-reveal {
+  to { opacity: 1; }
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                  8.  CHROME  ·  Sidebar + Header + Main                  ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="minimal"] .app-sidebar-shell {
+  background: transparent !important;
+  background-image: none !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.05);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: none;
+}
+
+html[data-theme="minimal"] .app-sidebar-shell.sidebar-expanded-solid {
+  background: rgba(8, 8, 12, 0.92) !important;
+  backdrop-filter: blur(18px) !important;
+  -webkit-backdrop-filter: blur(18px) !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+}
+
+/* Sidebar item activo: hairline iridiscente estático en lugar de fondo */
+html[data-theme="minimal"] .sidebar-nav-link-active {
+  position: relative;
+  background: rgba(255, 255, 255, 0.04) !important;
+  color: var(--text) !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  overflow: hidden;
+}
+
+html[data-theme="minimal"] .sidebar-nav-link-active::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 8px;
+  bottom: 8px;
+  width: 2px;
+  border-radius: 2px;
+  background: linear-gradient(
+    180deg,
+    var(--minimal-cyan) 0%,
+    var(--minimal-magenta) 70%,
+    var(--accent) 100%
+  );
+  pointer-events: none;
+}
+
+html[data-theme="minimal"] .sidebar-nav-link:not(.sidebar-nav-link-active):hover {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text);
+}
+
+html[data-theme="minimal"] .app-top-header {
+  background: transparent !important;
+  background-image: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: none !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04) !important;
+  box-shadow: none !important;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                  9.  TIPOGRAFÍA  ·  Aireada                              ║
+ * ║                                                                          ║
+ * ║   Body 400, titulares 600 (no 300 como Glass/Slate/Prisma). En Minimal ║
+ * ║   los titulares mandan: deben tener PRESENCIA, no solo elegancia.       ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="minimal"] h1,
+html[data-theme="minimal"] h2,
+html[data-theme="minimal"] h3 {
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+html[data-theme="minimal"] .text-2xl,
+html[data-theme="minimal"] .text-3xl,
+html[data-theme="minimal"] .text-4xl {
+  letter-spacing: -0.02em;
+}
+
+html[data-theme="minimal"] [data-stat-value],
+html[data-theme="minimal"] .stat-value,
+html[data-theme="minimal"] .text-4xl.font-bold,
+html[data-theme="minimal"] .text-3xl.font-bold {
+  font-weight: 600 !important;
+  letter-spacing: -0.03em;
+}
+
+html[data-theme="minimal"] button[data-variant="primary"],
+html[data-theme="minimal"] .btn-primary,
+html[data-theme="minimal"] [data-cta="primary"] {
+  font-weight: 600;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                10.  CTA AMARILLO  ·  Plano, sin shimmer ni glow grande   ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="minimal"] button[data-variant="primary"]:not(:disabled),
+html[data-theme="minimal"] .btn-primary:not(:disabled),
+html[data-theme="minimal"] [data-cta="primary"]:not(:disabled) {
+  background: var(--accent) !important;
+  color: #1a1500 !important;
+  border: none !important;
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.15) inset;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+html[data-theme="minimal"] button[data-variant="primary"]:hover:not(:disabled),
+html[data-theme="minimal"] .btn-primary:hover:not(:disabled),
+html[data-theme="minimal"] [data-cta="primary"]:hover:not(:disabled) {
+  background: #FFE94D !important;
+  box-shadow:
+    0 1px 0 rgba(0, 0, 0, 0.15) inset,
+    0 0 0 3px rgba(255, 235, 102, 0.18);
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║      11.  PARCHE Tailwind arbitrary hex (azul-marino → grafito puro)     ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="minimal"] .bg-\[\#060a14\],
+html[data-theme="minimal"] .bg-\[\#060a12\],
+html[data-theme="minimal"] .bg-\[\#060b18\],
+html[data-theme="minimal"] .bg-\[\#020308\]\/85,
+html[data-theme="minimal"] .bg-\[\#020408\]\/80 {
+  background-color: rgba(8, 8, 12, 0.90) !important;
+}
+
+html[data-theme="minimal"] .bg-\[\#0a0f1e\],
+html[data-theme="minimal"] .bg-\[\#0a0f1e\]\/95,
+html[data-theme="minimal"] .bg-\[\#0a0f1e\]\/88,
+html[data-theme="minimal"] .bg-\[\#0a0f1e\]\/85,
+html[data-theme="minimal"] .bg-\[\#0a0f1e\]\/72,
+html[data-theme="minimal"] .bg-\[\#0a0f1e\]\/40,
+html[data-theme="minimal"] .bg-\[\#0a0f1e\]\/15,
+html[data-theme="minimal"] .bg-\[\#0a1020\] {
+  background-color: rgba(13, 14, 18, 0.90) !important;
+}
+
+html[data-theme="minimal"] .bg-\[\#0c1224\]\/95,
+html[data-theme="minimal"] .bg-\[\#0c1325\],
+html[data-theme="minimal"] .bg-\[\#0d1324\]\/96,
+html[data-theme="minimal"] .bg-\[\#0d1324\]\/92,
+html[data-theme="minimal"] .bg-\[\#0d1325\],
+html[data-theme="minimal"] .bg-\[\#0d1427\]\/95,
+html[data-theme="minimal"] .bg-\[\#0d1428\],
+html[data-theme="minimal"] .bg-\[\#0d1428\]\/95,
+html[data-theme="minimal"] .bg-\[\#0f1424\],
+html[data-theme="minimal"] .bg-\[\#0f1524\] {
+  background-color: rgba(15, 16, 20, 0.92) !important;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+html[data-theme="minimal"] .bg-\[\#121a2e\],
+html[data-theme="minimal"] .bg-\[\#161f36\],
+html[data-theme="minimal"] .bg-\[\#1a2238\] {
+  background-color: rgba(255, 255, 255, 0.04) !important;
+  border-color: rgba(255, 255, 255, 0.07) !important;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║               12.  DROPDOWNS                                             ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="minimal"] .app-dropdown-panel {
+  background: rgba(15, 16, 20, 0.96) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  border-color: rgba(255, 255, 255, 0.10) !important;
+  box-shadow:
+    0 16px 40px rgba(0, 0, 0, 0.55),
+    var(--glass-highlight) !important;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║         13.  KANBAN                                                      ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="minimal"] .kanban-column-well {
+  background: transparent !important;
+}
+html[data-theme="minimal"] .kanban-column-well::after,
+html[data-theme="minimal"] .kanban-column-well::before {
+  background: transparent !important;
+  display: none !important;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║         14.  EDITOR  ·  ProseMirror / Tiptap                             ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="minimal"] .ProseMirror pre {
+  background: rgba(13, 14, 18, 0.85) !important;
+  border: 1px solid var(--glass-border);
+  border-radius: 10px;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║         15.  DETAIL FULL-SCREEN                                          ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="minimal"]
+  .detail-fullscreen-bg.detail-fullscreen-bg.detail-fullscreen-bg {
+  background: transparent !important;
+  background-image: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+html[data-theme="minimal"] .detail-fullscreen-bg::before {
+  content: none;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                16.  INPUTS  ·  Focus con borde iridiscente quirúrgico    ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="minimal"] input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]),
+html[data-theme="minimal"] textarea,
+html[data-theme="minimal"] select {
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid var(--glass-border);
+  color: var(--text);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+/* Focus: ribete iridiscente quirúrgico (cyan→magenta→amarillo).
+ * Aplicado como ring (no como gradient mask, demasiado costoso por
+ * input) — gradient pintado en box-shadow trickery. */
+html[data-theme="minimal"] input:focus,
+html[data-theme="minimal"] textarea:focus,
+html[data-theme="minimal"] select:focus {
+  outline: none;
+  border-color: rgba(0, 209, 255, 0.55);
+  box-shadow:
+    0 0 0 3px rgba(0, 209, 255, 0.14),
+    inset 0 0 0 1px rgba(217, 106, 184, 0.12);
+}
+
+html[data-theme="minimal"] #cmd-palette-trigger {
+  background: rgba(255, 255, 255, 0.03) !important;
+  border-color: rgba(255, 255, 255, 0.10) !important;
+  color: var(--text-dim) !important;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+html[data-theme="minimal"] #cmd-palette-trigger:hover {
+  background: rgba(255, 255, 255, 0.06) !important;
+  border-color: rgba(0, 209, 255, 0.30) !important;
+  color: var(--text) !important;
+  box-shadow: 0 0 0 3px rgba(0, 209, 255, 0.10);
+}
+html[data-theme="minimal"] #cmd-palette-trigger kbd {
+  background: rgba(255, 255, 255, 0.06) !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  color: var(--text);
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                  17.  SCROLLBARS                                         ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="minimal"] ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 4px;
+}
+html[data-theme="minimal"] ::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 209, 255, 0.32);
+}
+html[data-theme="minimal"] .overflow-y-auto:hover::-webkit-scrollbar-thumb,
+html[data-theme="minimal"] .overflow-x-auto:hover::-webkit-scrollbar-thumb,
+html[data-theme="minimal"] .overflow-auto:hover::-webkit-scrollbar-thumb,
+html[data-theme="minimal"] *:hover::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║              18.  STATS / DASHBOARD                                      ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="minimal"] [data-stat-color="purple"] { color: var(--stat-purple); }
+html[data-theme="minimal"] [data-stat-color="blue"]   { color: var(--stat-blue); }
+html[data-theme="minimal"] [data-stat-color="cyan"]   { color: var(--stat-cyan); }
+html[data-theme="minimal"] [data-stat-color="green"]  { color: var(--stat-green); }
+
+html[data-theme="minimal"] .dashboard-shift-track {
+  background: rgba(255, 255, 255, 0.04) !important;
+  border: 1px solid var(--glass-border);
+  overflow: hidden;
+}
+html[data-theme="minimal"] .dashboard-shift-fill {
+  background: linear-gradient(90deg, var(--accent) 0%, var(--minimal-cyan) 100%) !important;
+  box-shadow: none;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                  19.  PRESENCIA / AVATAR RING                            ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="minimal"] .presence-online,
+html[data-theme="minimal"] [data-online="true"] .presence-dot {
+  box-shadow:
+    0 0 0 2px var(--bg-deep),
+    0 0 0 3px rgba(143, 224, 182, 0.55);
+}
+
+html[data-theme="minimal"] .user-avatar-ring {
+  box-shadow:
+    0 0 0 2px var(--bg-deep),
+    0 0 0 3px rgba(255, 255, 255, 0.10);
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║      20.  BARRA STICKY DE LA BITÁCORA                                    ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="minimal"] .glass-opaque-bitacora {
+  isolation: auto;
+  background: rgba(13, 14, 18, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-highlight);
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║      21.  MODAL                                                          ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="minimal"] .app-modal-dialog[data-modal-surface="dark"] {
+  position: relative;
+  background: rgba(15, 16, 20, 0.96) !important;
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border-color: rgba(255, 255, 255, 0.10) !important;
+  box-shadow:
+    0 24px 60px rgba(0, 0, 0, 0.60),
+    var(--glass-highlight) !important;
+  overflow: hidden;
+}
+
+/* Sin reflejo diagonal en modales */
+html[data-theme="minimal"] .app-modal-dialog[data-modal-surface="dark"]::before {
+  display: none;
+}
+html[data-theme="minimal"] .app-modal-dialog[data-modal-surface="dark"] > *:not(button[aria-label="Cerrar"]) {
+  position: relative;
+  z-index: 1;
+}
+
+html[data-theme="minimal"] .modal-backdrop {
+  background: rgba(3, 3, 5, 0.78);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║      22.  MOBILE BOTTOM NAV                                              ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="minimal"] .mobile-bottom-nav {
+  background: rgba(8, 8, 12, 0.92) !important;
+  border-top-color: rgba(255, 255, 255, 0.06) !important;
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  box-shadow: none;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║      23.  TOOLTIPS                                                       ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="minimal"] [data-tooltip-content],
+html[data-theme="minimal"] [role="tooltip"] {
+  background: rgba(18, 19, 24, 0.96) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  color: var(--text) !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow:
+    0 8px 24px rgba(0, 0, 0, 0.55),
+    var(--glass-highlight);
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║      24.  TOASTER                                                        ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="minimal"] .toast-glass {
+  background: rgba(18, 19, 24, 0.96) !important;
+  border: 1px solid rgba(255, 255, 255, 0.10) !important;
+  color: var(--text) !important;
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  box-shadow:
+    var(--glass-highlight),
+    0 14px 32px rgba(0, 0, 0, 0.55);
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║      25.  LOADING / SKELETON                                             ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="minimal"] .loading-card {
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║      26.  BANNER "SIN INCIDENCIAS ACTIVAS"                               ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="minimal"] .dashboard-allgood-banner {
+  background: rgba(143, 224, 182, 0.04) !important;
+  border-color: rgba(143, 224, 182, 0.14) !important;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: var(--glass-highlight);
+}
+
+html[data-theme="minimal"] .dashboard-allgood-icon {
+  background: rgba(143, 224, 182, 0.16) !important;
+  box-shadow: inset 0 0 0 1px rgba(143, 224, 182, 0.28);
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║      27.  BADGES SEMÁNTICOS  ·  velo neutro casi imperceptible           ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="minimal"] .bg-sky-400\/10,
+html[data-theme="minimal"] .bg-emerald-400\/10,
+html[data-theme="minimal"] .bg-orange-400\/10,
+html[data-theme="minimal"] .bg-red-400\/10,
+html[data-theme="minimal"] .bg-red-500\/10,
+html[data-theme="minimal"] .bg-violet-400\/10,
+html[data-theme="minimal"] .bg-yellow-400\/10,
+html[data-theme="minimal"] .bg-green-400\/10,
+html[data-theme="minimal"] .bg-blue-400\/10,
+html[data-theme="minimal"] .bg-amber-400\/10,
+html[data-theme="minimal"] .bg-indigo-400\/10,
+html[data-theme="minimal"] .bg-emerald-500\/6,
+html[data-theme="minimal"] .bg-emerald-500\/8,
+html[data-theme="minimal"] .bg-emerald-400\/8,
+html[data-theme="minimal"] .bg-emerald-400\/\[0\.06\],
+html[data-theme="minimal"] .bg-emerald-400\/5,
+html[data-theme="minimal"] .bg-amber-400\/8,
+html[data-theme="minimal"] .bg-emerald-500\/12,
+html[data-theme="minimal"] .bg-emerald-500\/15,
+html[data-theme="minimal"] .bg-rose-400\/10,
+html[data-theme="minimal"] .bg-rose-500\/10,
+html[data-theme="minimal"] .hover\:bg-rose-500\/10:hover,
+html[data-theme="minimal"] .hover\:bg-rose-50:hover {
+  background-image: linear-gradient(
+    rgba(255, 255, 255, 0.025),
+    rgba(255, 255, 255, 0.015)
+  );
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║      28.  OVERLAYS OSCUROS                                               ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="minimal"] .bg-slate-900\/45,
+html[data-theme="minimal"] .bg-black\/75,
+html[data-theme="minimal"] .bg-black\/65,
+html[data-theme="minimal"] .bg-black\/60,
+html[data-theme="minimal"] .bg-black\/55,
+html[data-theme="minimal"] .bg-black\/45,
+html[data-theme="minimal"] .bg-black\/40,
+html[data-theme="minimal"] .bg-black\/35 {
+  background-color: rgba(3, 3, 5, 0.62) !important;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+html[data-theme="minimal"] .bg-black\/30,
+html[data-theme="minimal"] .bg-black\/25,
+html[data-theme="minimal"] .bg-black\/20,
+html[data-theme="minimal"] .bg-black\/15,
+html[data-theme="minimal"] .bg-black\/10 {
+  background-color: rgba(13, 14, 18, 0.30) !important;
+}
+
+html[data-theme="minimal"] .bg-black\/\[0\.05\],
+html[data-theme="minimal"] .bg-black\/\[0\.04\],
+html[data-theme="minimal"] .bg-black\/\[0\.06\] {
+  background-color: rgba(255, 255, 255, 0.03) !important;
+}
+
+html[data-theme="minimal"] .bg-zinc-900,
+html[data-theme="minimal"] .bg-zinc-800,
+html[data-theme="minimal"] .hover\:bg-zinc-800:hover {
+  background-color: rgba(13, 14, 18, 0.95) !important;
+  border-color: rgba(255, 255, 255, 0.14) !important;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║      29.  TEXTO INVERSO                                                  ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="minimal"] .text-\[\#0a0f1e\] {
+  color: rgba(8, 8, 12, 1) !important;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║      30.  AVATAR                                                         ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="minimal"] img.rounded-full.object-cover {
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.10);
+}
+
+html[data-theme="minimal"] .border-\[\#0a0f1e\] {
+  border-color: rgba(8, 8, 12, 0.95) !important;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║      31.  AUTO-STAGE-IN  ·  fade plano (sin translate)                   ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes minimal-stage-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  html[data-theme="minimal"] .app-dashboard-root > main,
+  html[data-theme="minimal"] .app-dashboard-root > section {
+    animation: minimal-stage-in 280ms ease-out both;
+  }
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║      32.  ACCESIBILIDAD  ·  prefers-reduced-motion                       ║
+ * ║                                                                          ║
+ * ║   Aquí casi no hay animaciones que apagar — Minimal Future ya es        ║
+ * ║   estático por diseño. Solo desactivamos el fade de entrada y el        ║
+ * ║   .reveal opcional.                                                     ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-theme="minimal"] .reveal {
+    animation: none !important;
+    opacity: 1 !important;
+  }
+  html[data-theme="minimal"] .app-dashboard-root > main,
+  html[data-theme="minimal"] .app-dashboard-root > section {
+    animation: none !important;
+  }
+  html[data-theme="minimal"] .glass-surface,
+  html[data-theme="minimal"] .glass,
+  html[data-theme="minimal"] .glass-1,
+  html[data-theme="minimal"] .glass-2,
+  html[data-theme="minimal"] .glass-3,
+  html[data-theme="minimal"] .glass-4 {
+    transition: none !important;
+  }
+}

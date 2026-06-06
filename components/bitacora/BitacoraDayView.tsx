@@ -616,69 +616,103 @@ export function BitacoraDayView({ logs, selectedDate, departmentName }: Bitacora
           </button>
         </div>
 
-        {/* Date nav row */}
+        {/* Date nav row.
+            Mobile: stack en 2 filas — fila 1 [<] texto compacto [>],
+                                      fila 2 popover ancho completo.
+            sm+: una sola fila con todo como antes. */}
         <div
           className={cn(
-            "flex items-center gap-3 flex-wrap border-t pt-3",
+            "flex flex-col gap-2 border-t pt-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3",
             isLight ? "border-black/[0.06]" : "border-white/6"
           )}
         >
-          <button
-            type="button"
-            onClick={() => goTo(subDays(parsedDate, 1))}
-            className={cn(
-              "p-1.5 rounded-lg transition-all duration-150",
-              isLight
-                ? "text-zinc-600 hover:text-zinc-950 hover:bg-zinc-200/6"
-                : "text-white/50 hover:text-white hover:bg-white/6"
-            )}
-            aria-label="Día anterior"
-          >
-            <ChevronLeft className="w-4 h-4" />
-          </button>
-
-          <div className="flex items-center gap-2.5 flex-1 min-w-0">
-            <Calendar
+          <div className="flex items-center gap-2 min-w-0 w-full sm:w-auto sm:flex-1">
+            <button
+              type="button"
+              onClick={() => goTo(subDays(parsedDate, 1))}
               className={cn(
-                "w-4 h-4 shrink-0",
-                isLight ? "text-[color:var(--lt-yellow-solid)]" : "text-[#ffeb66]/70"
+                "p-1.5 rounded-lg transition-all duration-150 shrink-0",
+                isLight
+                  ? "text-zinc-600 hover:text-zinc-950 hover:bg-zinc-200/6"
+                  : "text-white/50 hover:text-white hover:bg-white/6"
               )}
-            />
-            <span
-              className={cn(
-                "text-sm font-semibold capitalize",
-                isLight ? "text-zinc-900" : "text-white"
-              )}
+              aria-label="Día anterior"
             >
-              {dayLabel(parsedDate)},{" "}
-              {format(parsedDate, "d 'de' MMMM yyyy", { locale: es })}
-            </span>
-            {isAtToday && (
-              <Badge
-                className={
-                  isLight
-                    ? "text-[color:var(--lt-yellow-text)] bg-[color:var(--lt-accent-bg)] border-[color:var(--lt-accent-border)]"
-                    : "text-[#ffeb66] bg-[#ffeb66]/10 border-[#ffeb66]/20"
-                }
-                size="sm"
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+
+            <div className="flex items-center gap-2 flex-1 min-w-0">
+              <Calendar
+                className={cn(
+                  "w-4 h-4 shrink-0",
+                  isLight ? "text-[color:var(--lt-yellow-solid)]" : "text-[#ffeb66]/70"
+                )}
+              />
+              <span
+                className={cn(
+                  "text-sm font-semibold truncate min-w-0",
+                  isLight ? "text-zinc-900" : "text-white"
+                )}
               >
-                Hoy
-              </Badge>
-            )}
+                {/* Mobile: formato corto en una linea — "Hoy · 4 jun".
+                    sm+: formato largo "Hoy, 4 de junio 2026". */}
+                <span className="sm:hidden whitespace-nowrap">
+                  {dayLabel(parsedDate)} ·{" "}
+                  {format(parsedDate, "d MMM", { locale: es })}
+                </span>
+                <span className="hidden sm:inline capitalize">
+                  {dayLabel(parsedDate)},{" "}
+                  {format(parsedDate, "d 'de' MMMM yyyy", { locale: es })}
+                </span>
+              </span>
+              {isAtToday && (
+                <Badge
+                  className={cn(
+                    "hidden sm:inline-flex shrink-0",
+                    isLight
+                      ? "text-[color:var(--lt-yellow-text)] bg-[color:var(--lt-accent-bg)] border-[color:var(--lt-accent-border)]"
+                      : "text-[#ffeb66] bg-[#ffeb66]/10 border-[#ffeb66]/20"
+                  )}
+                  size="sm"
+                >
+                  Hoy
+                </Badge>
+              )}
+            </div>
+
+            {/* Boton "Dia siguiente": en mobile en la misma fila que prev. */}
+            <button
+              type="button"
+              onClick={() => goTo(addDays(parsedDate, 1))}
+              disabled={isAtToday}
+              className={cn(
+                "p-1.5 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed transition-all duration-150 shrink-0 sm:hidden",
+                isLight
+                  ? "text-zinc-600 hover:text-zinc-950 hover:bg-zinc-200/6"
+                  : "text-white/50 hover:text-white hover:bg-white/6"
+              )}
+              aria-label="Día siguiente"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
           </div>
 
-          <BitacoraDatePopover
-            selectedIso={selectedDate}
-            maxIso={format(today, "yyyy-MM-dd")}
-            onSelect={(iso) => navigate(iso)}
-          />
+          {/* Popover: fila aparte en mobile, full-width. */}
+          <div className="w-full sm:w-auto">
+            <BitacoraDatePopover
+              selectedIso={selectedDate}
+              maxIso={format(today, "yyyy-MM-dd")}
+              onSelect={(iso) => navigate(iso)}
+            />
+          </div>
 
+          {/* "Dia siguiente" sm+ — en mobile ya esta en la fila de arriba. */}
           <button
             type="button"
             onClick={() => goTo(addDays(parsedDate, 1))}
             disabled={isAtToday}
             className={cn(
-              "p-1.5 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed transition-all duration-150",
+              "p-1.5 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed transition-all duration-150 hidden sm:inline-flex",
               isLight
                 ? "text-zinc-600 hover:text-zinc-950 hover:bg-zinc-200/6"
                 : "text-white/50 hover:text-white hover:bg-white/6"
@@ -688,28 +722,31 @@ export function BitacoraDayView({ logs, selectedDate, departmentName }: Bitacora
             <ChevronRight className="w-4 h-4" />
           </button>
 
-          <button
-            type="button"
-            onClick={() => goTo(today)}
-            disabled={isAtToday}
-            className={cn(
-              "px-3 py-1.5 rounded-lg text-xs font-medium disabled:opacity-30 disabled:cursor-not-allowed transition-all duration-150",
-              isLight
-                ? "text-zinc-600 hover:text-zinc-950 hover:bg-zinc-200/6"
-                : "text-white/50 hover:text-white hover:bg-white/6"
-            )}
-          >
-            Hoy
-          </button>
+          {/* Mobile: agrupar boton "Hoy" + contador en una sola fila */}
+          <div className="flex items-center justify-between gap-3 w-full sm:w-auto sm:contents">
+            <button
+              type="button"
+              onClick={() => goTo(today)}
+              disabled={isAtToday}
+              className={cn(
+                "px-3 py-1.5 rounded-lg text-xs font-medium disabled:opacity-30 disabled:cursor-not-allowed transition-all duration-150",
+                isLight
+                  ? "text-zinc-600 hover:text-zinc-950 hover:bg-zinc-200/6"
+                  : "text-white/50 hover:text-white hover:bg-white/6"
+              )}
+            >
+              Hoy
+            </button>
 
-          <span
-            className={cn(
-              "text-xs tabular-nums",
-              isLight ? "text-zinc-500" : "text-white/25"
-            )}
-          >
-            {total} entrada{total !== 1 ? "s" : ""}
-          </span>
+            <span
+              className={cn(
+                "text-xs tabular-nums",
+                isLight ? "text-zinc-500" : "text-white/25"
+              )}
+            >
+              {total} entrada{total !== 1 ? "s" : ""}
+            </span>
+          </div>
         </div>
       </div>
       </div>

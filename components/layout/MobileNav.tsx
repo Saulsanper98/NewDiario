@@ -10,7 +10,6 @@ import {
   FolderKanban,
   ArrowLeftRight,
   CalendarDays,
-  MessageCircle,
   Settings,
   Megaphone,
   MoreHorizontal,
@@ -37,16 +36,17 @@ type MobileNavItem = {
 /* 5 items principales + "Mas" = 6 slots. En 375px (iPhone SE) son
    ~62.5px por slot. Etiquetas pensadas para caber a `text-[9px]`
    y a `text-[8.5px]` en viewports <380px:
-     Inicio (6) / Diario (6) / Proyectos (9) / Agenda (6) / Chat (4) / Mas (3)
-   "Diario" en lugar de "Bitacora" porque a 9px "Bitacora" rozaba el
-   slot vecino visualmente (8 chars × ~5.5px = 44px sin tilde) y la
-   tilde extra la pasaba de los 50px que respiran. */
+     Inicio (6) / Diario (6) / Proyectos (9) / Agenda (6) / Traspaso (8) / Mas (3)
+   "Diario" en lugar de "Bitacora" por hueco a 9px (la tilde extra
+   pasaba de los 50px que respiran).
+   "Traspaso" entra desde el sheet "Mas" para mantener 5 slots después
+   de retirar "Chat" (chat desactivado por decisión de producto). */
 const primaryNav: MobileNavItem[] = [
   { label: "Inicio",     href: "/dashboard",    icon: LayoutDashboard, exact: true },
   { label: "Diario",     href: "/bitacora/dia", icon: BookOpen },
   { label: "Proyectos",  href: "/proyectos",    icon: FolderKanban },
   { label: "Agenda",     href: "/calendario",   icon: CalendarDays },
-  { label: "Chat",       href: "/chat",         icon: MessageCircle,   exact: true },
+  { label: "Traspaso",   href: "/traspaso",     icon: ArrowLeftRight,  exact: true },
 ];
 
 /* Opciones de tema disponibles dentro del sheet "Mas" (en desktop el
@@ -61,10 +61,9 @@ const THEME_OPTIONS: { id: ThemeMode; label: string; Icon: typeof Sun }[] = [
 ];
 
 const secondaryNav: MobileNavItem[] = [
-  { label: "Traspaso",  href: "/traspaso",      icon: ArrowLeftRight, exact: true },
-  { label: "Novedades", href: "/novedades",     icon: Megaphone,      exact: true },
-  { label: "Bugs",      href: "/bugs",          icon: Bug,            exact: true },
-  { label: "Ajustes",   href: "/configuracion", icon: Settings,       exact: true },
+  { label: "Novedades", href: "/novedades",     icon: Megaphone, exact: true },
+  { label: "Bugs",      href: "/bugs",          icon: Bug,       exact: true },
+  { label: "Ajustes",   href: "/configuracion", icon: Settings,  exact: true },
 ];
 
 interface MobileNavProps {

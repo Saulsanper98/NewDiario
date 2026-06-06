@@ -176,8 +176,11 @@ export function LogEntryLinksCard({
 
   const totalLinks = outgoing.length + incoming.length;
 
+  // Padding mobile reducido (`p-3.5` = 14px en lugar de `p-5` = 20px).
+  // En mobile el wrapper de la nota ya da `px-3`, y esta Card va anidada
+  // — el padding doble era excesivo y dejaba el contenido sin ancho util.
   return (
-    <Card light={L} className="p-5 sm:p-6 print:hidden">
+    <Card light={L} className="p-3.5 sm:p-5 md:p-6 print:hidden min-w-0 max-w-full">
       <div className="flex items-center gap-2.5 mb-4">
         <span
           className={cn(

@@ -6,21 +6,29 @@ import { KeyboardShortcuts } from "@/components/layout/KeyboardShortcuts";
 import { SkipToMain } from "@/components/layout/SkipToMain";
 import { MobileNav } from "@/components/layout/MobileNav";
 import { PageTransition } from "@/components/layout/PageTransition";
-import { ChatNotifier } from "@/components/layout/ChatNotifier";
 import { AnnouncementBanner } from "@/components/layout/AnnouncementBanner";
 import { WelcomeOverlay } from "@/components/layout/WelcomeOverlay";
 import { isAdminOrAbove, getActiveDepartmentId } from "@/lib/auth/permissions";
 import { isBugReportsAdmin } from "@/lib/bug-reports";
 import type { SessionUser } from "@/lib/auth/types";
 import { BugReportStatus } from "@/app/generated/prisma/enums";
-import { countUnreadChatMessages } from "@/lib/chat/access";
-import { ensureChatCleanupRunning } from "@/lib/chat/cleanup";
 import { countUnreadReleaseNotes } from "@/lib/release-notes-server";
 
-// Arranca el cron de limpieza del chat (72 h de retención) la primera vez
-// que el proceso renderiza el layout. Idempotente, así que aunque se ejecute
-// en cada render del Server Component solo crea el timer una vez por proceso.
-ensureChatCleanupRunning();
+/* ──────────────────────────────────────────────────────────────────────────
+ *  Chat DESACTIVADO por decisión de producto.
+ *
+ *  Mantenemos código + APIs + modelos Prisma + datos en BD intactos por si
+ *  hay que reactivarlo. La desactivación es SOLO de cara al usuario:
+ *    - sin entradas en sidebar / mobile nav
+ *    - sin ChatNotifier (no SSE → no sonido de chat → no fetch a /api/chat/*)
+ *    - sin contador de no leídos
+ *    - sin cron de retención (72 h) corriendo en background
+ *    - `/chat` redirige a `/dashboard`
+ *
+ *  Para reactivar: revertir este commit y el que toca Sidebar/MobileNav/chat
+ *  page. Los archivos del cron (`lib/chat/cleanup.ts`) y del notificador
+ *  (`components/layout/ChatNotifier.tsx`) siguen existiendo.
+ * ────────────────────────────────────────────────────────────────────────── */
 
 export default async function DashboardLayout({
   children,
@@ -59,13 +67,6 @@ export default async function DashboardLayout({
       })
     : 0;
 
-  const unreadChatMessages = await countUnreadChatMessages(user.id).catch(
-    (e) => {
-      console.error("[dashboard-layout] chat unread count", e);
-      return 0;
-    }
-  );
-
   const unreadReleaseNotes = await countUnreadReleaseNotes(user.id);
 
   const activeDept = user.departments.find((d) => d.id === deptId) ?? null;
@@ -102,7 +103,6 @@ export default async function DashboardLayout({
               pendingFollowups={pendingFollowups}
               isBugReportsAdmin={bugReportsAdmin}
               openBugReports={openBugReports}
-              unreadChatMessages={unreadChatMessages}
               unreadReleaseNotes={unreadReleaseNotes}
             />
             <main
@@ -119,7 +119,6 @@ export default async function DashboardLayout({
               pendingFollowups={pendingFollowups}
               unreadReleaseNotes={unreadReleaseNotes}
             />
-            <ChatNotifier initialUnread={unreadChatMessages} />
           </div>
         </div>
       </div>

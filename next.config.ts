@@ -47,8 +47,13 @@ const SECURITY_HEADERS = [
       "object-src 'none'",
       "img-src 'self' data: blob: http: https:",
       "media-src 'self' blob: http: https:",
-      "font-src 'self' data:",
-      "style-src 'self' 'unsafe-inline'",
+      "font-src 'self' data: https://fonts.gstatic.com",
+      /* Permitimos `fonts.googleapis.com` para la hoja de @font-face de
+         Sora. Sin esto, el navegador bloquea la stylesheet y cae al
+         fallback (Inter / system-ui), lo que cambia el ancho de `ch`
+         en CSS y desencadena calculos como `70ch` erroneos en mobile. */
+      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+      "style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com",
       // Next inyecta scripts inline en hidratacion; 'unsafe-inline' se queda
       // mientras no migremos a nonces. 'unsafe-eval' fuera.
       "script-src 'self' 'unsafe-inline'",

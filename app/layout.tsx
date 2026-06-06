@@ -4,6 +4,12 @@ import { Toaster } from "react-hot-toast";
 import { BackgroundOrbs } from "@/components/layout/BackgroundOrbs";
 import { GlassBackground } from "@/components/layout/GlassBackground";
 import { SlateBackground } from "@/components/layout/SlateBackground";
+import { PrismaBackground } from "@/components/layout/PrismaBackground";
+import { MinimalFutureBackground } from "@/components/layout/MinimalFutureBackground";
+import { BorealisBackground } from "@/components/layout/BorealisBackground";
+import { OcasoBackground } from "@/components/layout/OcasoBackground";
+import { TerminalBackground } from "@/components/layout/TerminalBackground";
+import { NeonBackground } from "@/components/layout/NeonBackground";
 import { SessionProvider } from "@/components/layout/SessionProvider";
 import { ThemeProvider } from "@/components/layout/ThemeProvider";
 import { defaultMetadata } from "@/lib/app-brand";
@@ -11,6 +17,12 @@ import "./globals.css";
 import "./theme-light.css";
 import "./theme-glass.css";
 import "./theme-slate.css";
+import "./theme-prisma.css";
+import "./theme-minimal.css";
+import "./theme-borealis.css";
+import "./theme-ocaso.css";
+import "./theme-terminal.css";
+import "./theme-neon.css";
 
 const sora = Sora({
   subsets: ["latin"],
@@ -55,7 +67,7 @@ export default function RootLayout({
       <head>
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var k='cc-ops-theme',r=document.documentElement,t=localStorage.getItem(k);r.removeAttribute('data-theme');r.removeAttribute('data-aurora');if(t==='light')r.setAttribute('data-theme','light');else if(t==='glass')r.setAttribute('data-theme','glass');else if(t==='slate')r.setAttribute('data-theme','slate');else if(t==='dark'){}else r.setAttribute('data-aurora','true');}catch(e){}})();`,
+            __html: `(function(){try{var k='cc-ops-theme',r=document.documentElement,t=localStorage.getItem(k);r.removeAttribute('data-theme');r.removeAttribute('data-aurora');if(t==='light')r.setAttribute('data-theme','light');else if(t==='glass')r.setAttribute('data-theme','glass');else if(t==='slate')r.setAttribute('data-theme','slate');else if(t==='prisma')r.setAttribute('data-theme','prisma');else if(t==='minimal')r.setAttribute('data-theme','minimal');else if(t==='borealis')r.setAttribute('data-theme','borealis');else if(t==='ocaso')r.setAttribute('data-theme','ocaso');else if(t==='terminal')r.setAttribute('data-theme','terminal');else if(t==='neon')r.setAttribute('data-theme','neon');else if(t==='dark'){}else r.setAttribute('data-aurora','true');}catch(e){}})();`,
           }}
         />
       </head>
@@ -64,6 +76,12 @@ export default function RootLayout({
           <BackgroundOrbs />
           <GlassBackground />
           <SlateBackground />
+          <PrismaBackground />
+          <MinimalFutureBackground />
+          <BorealisBackground />
+          <OcasoBackground />
+          <TerminalBackground />
+          <NeonBackground />
           <SessionProvider>{children}</SessionProvider>
         </ThemeProvider>
         <Toaster

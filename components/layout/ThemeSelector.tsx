@@ -2,7 +2,21 @@
 
 import { useState, useEffect, useRef, useLayoutEffect } from "react";
 import { createPortal } from "react-dom";
-import { Sun, Moon, Sparkles, Check, ChevronDown, Droplets, Layers } from "lucide-react";
+import {
+  Sun,
+  Moon,
+  Sparkles,
+  Check,
+  ChevronDown,
+  Droplets,
+  Layers,
+  Gem,
+  Hexagon,
+  Snowflake,
+  Sunset,
+  Terminal as TerminalIcon,
+  Zap,
+} from "lucide-react";
 import { useTheme } from "@/components/layout/ThemeProvider";
 import type { ThemeMode } from "@/lib/theme";
 import { cn } from "@/lib/utils";
@@ -18,6 +32,12 @@ const OPTIONS: {
   { id: "dark", label: "Tema oscuro", hint: "Interfaz oscura, sin orbes", Icon: Moon },
   { id: "slate", label: "Tema Slate", hint: "Cristal real con orbes en deriva y borde animado", Icon: Layers },
   { id: "glass", label: "Tema Cristal", hint: "Glassmorphism violeta con fondo en parallax", Icon: Droplets },
+  { id: "prisma", label: "Tema Prisma", hint: "Joya cinética: grid, plasma, polvo estelar y borde iridiscente", Icon: Gem },
+  { id: "minimal", label: "Tema Minimal Future", hint: "Negro puro + hairlines + acento cyan ártico (Apple/Tesla)", Icon: Hexagon },
+  { id: "borealis", label: "Tema Aurora Borealis", hint: "Cinta de aurora real serpenteando sobre noche ártica + constelaciones", Icon: Snowflake },
+  { id: "ocaso", label: "Tema Ocaso", hint: "Atardecer cinematográfico cálido: sol radial, banda de crepúsculo y horizonte", Icon: Sunset },
+  { id: "terminal", label: "Tema Terminal", hint: "Centro de operaciones mil-spec: verde fósforo, mono, scanlines", Icon: TerminalIcon },
+  { id: "neon", label: "Tema Neon City", hint: "Cyberpunk Blade Runner: skyline urbano + neones rosa y cyan", Icon: Zap },
 ];
 
 type PanelCoords = { top: number; right: number; width: number };

@@ -205,7 +205,6 @@ export function BitacoraFeed({
   const loadingRef         = useRef(false);
   const loadAbortRef       = useRef<AbortController | null>(null);
   const sentinelRef        = useRef<HTMLDivElement>(null);
-  const scrollAreaRef      = useRef<HTMLDivElement>(null);
   const hydratedFiltersRef = useRef(false);
   /* mejora 22 — unread dot: timestamp of previous visit */
   const [lastVisitTime, setLastVisitTime] = useState(0);
@@ -220,28 +219,27 @@ export function BitacoraFeed({
     } catch { /* ignore */ }
   }, []);
 
+  /* La pagina entera scrollea (el contenedor padre `.overflow-y-auto`
+   * del page route es quien hace scroll), no este componente. Usamos
+   * window como fuente de scrollY tanto para el boton "volver arriba"
+   * como para la persistencia entre navegaciones. */
   useEffect(() => {
-    const root = scrollAreaRef.current;
-    if (!root) return;
     function onScroll() {
-      const el = scrollAreaRef.current;
-      if (!el) return;
-      setShowBackToTop(el.scrollTop > 480);
-      try { sessionStorage.setItem("bitacora:scrollPos", String(el.scrollTop)); } catch { /* ignore */ }
+      const y = window.scrollY;
+      setShowBackToTop(y > 480);
+      try { sessionStorage.setItem("bitacora:scrollPos", String(y)); } catch { /* ignore */ }
     }
     onScroll();
-    root.addEventListener("scroll", onScroll, { passive: true });
-    return () => root.removeEventListener("scroll", onScroll);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
   useEffect(() => {
-    const el = scrollAreaRef.current;
-    if (!el) return;
     try {
       const saved = sessionStorage.getItem("bitacora:scrollPos");
       if (saved) {
         const pos = parseInt(saved, 10);
-        if (pos > 0) requestAnimationFrame(() => { el.scrollTop = pos; });
+        if (pos > 0) requestAnimationFrame(() => { window.scrollTo({ top: pos }); });
       }
     } catch { /* ignore */ }
   }, []);
@@ -321,14 +319,15 @@ export function BitacoraFeed({
   }, [more, nextPage, pageSize, departmentId, typeFilter, shiftFilter, followupFilter, authorOnly, currentUserId, search]);
 
   useEffect(() => {
-    const root = scrollAreaRef.current;
     const el = sentinelRef.current;
-    if (!el || !more || !root) return;
+    if (!el || !more) return;
+    /* root: null => observa contra el viewport, que es el contenedor
+     * con overflow-y-auto del page route. */
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting) void loadMore();
       },
-      { root, rootMargin: "200px" }
+      { rootMargin: "200px" }
     );
     observer.observe(el);
     return () => observer.disconnect();
@@ -474,7 +473,7 @@ export function BitacoraFeed({
   );
 
   return (
-    <div className="flex flex-col flex-1 min-h-0 max-w-4xl mx-auto w-full">
+    <div className="flex flex-col max-w-4xl mx-auto w-full">
       <a href="#bitacora-feed-filters" className="skip-to-main">
         Saltar a filtros de bitácora
       </a>
@@ -895,9 +894,8 @@ export function BitacoraFeed({
       </div>
 
       <div
-        ref={scrollAreaRef}
         className={cn(
-          "flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-4 sm:px-6 pb-10 min-w-0",
+          "px-4 sm:px-6 pb-10 min-w-0",
           isPending && "min-h-[50vh]"
         )}
       >
@@ -1091,7 +1089,7 @@ export function BitacoraFeed({
           <button
             type="button"
             onClick={() =>
-              scrollAreaRef.current?.scrollTo({ top: 0, behavior: "smooth" })
+              window.scrollTo({ top: 0, behavior: "smooth" })
             }
             className={cn(
               "bitacora-back-to-top-fab fixed z-[85] p-3 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full border shadow-lg lt-elev-fab animate-in fade-in zoom-in-90 duration-200 print:hidden",

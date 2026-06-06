@@ -84,27 +84,25 @@ export default async function BitacoraFeedPage({
         user={user}
         breadcrumb={[{ label: "Bitácora", href: "/bitacora/dia" }, { label: "Feed" }]}
       />
-      <div className="flex flex-1 flex-col min-h-0 overflow-hidden">
-        <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-          <BitacoraFeed
-            key={[
-              params.type ?? "",
-              params.shift ?? "",
-              params.followup ?? "",
-              params.authorId ?? "",
-              deptId,
-            ].join("|")}
-            logs={logs}
-            departmentId={deptId}
-            departmentName={dept?.name ?? undefined}
-            currentUserId={user.id}
-            initialFilters={params}
-            hasMore={hasMore}
-            pageSize={PAGE_SIZE}
-            activeHandoff={activeHandoff}
-            pendienteSeguimientoCount={pendienteSeguimientoCount}
-          />
-        </div>
+      <div className="flex-1 overflow-y-auto print:bg-white">
+        <BitacoraFeed
+          key={[
+            params.type ?? "",
+            params.shift ?? "",
+            params.followup ?? "",
+            params.authorId ?? "",
+            deptId,
+          ].join("|")}
+          logs={logs}
+          departmentId={deptId}
+          departmentName={dept?.name ?? undefined}
+          currentUserId={user.id}
+          initialFilters={params}
+          hasMore={hasMore}
+          pageSize={PAGE_SIZE}
+          activeHandoff={activeHandoff}
+          pendienteSeguimientoCount={pendienteSeguimientoCount}
+        />
       </div>
       <Link
         href="/bitacora/nueva"

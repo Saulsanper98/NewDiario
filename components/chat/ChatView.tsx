@@ -5402,7 +5402,7 @@ export function ChatView() {
                       aria-label="Adjuntar archivo"
                       className={cn(
                         /* Tap-target: 44px (h-11) en mobile, 36px (h-9) en sm+. */
-                        "mb-0.5 flex h-11 w-11 sm:h-9 sm:w-9 shrink-0 items-center justify-center rounded-xl transition-colors",
+                        "flex h-11 w-11 sm:h-9 sm:w-9 shrink-0 items-center justify-center rounded-xl transition-colors",
                         L
                           ? "text-zinc-500 hover:bg-zinc-200/70 hover:text-zinc-700"
                           : "text-white/55 hover:bg-white/10 hover:text-white",
@@ -5422,7 +5422,7 @@ export function ChatView() {
                       onClick={() => setShareMenuOpen((v) => !v)}
                       aria-label="Compartir tarea, proyecto o nota"
                       className={cn(
-                        "mb-0.5 flex h-11 w-11 sm:h-9 sm:w-9 shrink-0 items-center justify-center rounded-xl transition-colors",
+                        "flex h-11 w-11 sm:h-9 sm:w-9 shrink-0 items-center justify-center rounded-xl transition-colors",
                         shareMenuOpen
                           ? L
                             ? "bg-[#ffeb66]/22 text-zinc-900"
@@ -5443,7 +5443,7 @@ export function ChatView() {
                       aria-label="Grabar audio"
                       title="Grabar audio"
                       className={cn(
-                        "mb-0.5 flex h-11 w-11 sm:h-9 sm:w-9 shrink-0 items-center justify-center rounded-xl transition-colors",
+                        "flex h-11 w-11 sm:h-9 sm:w-9 shrink-0 items-center justify-center rounded-xl transition-colors",
                         L
                           ? "text-zinc-500 hover:bg-zinc-200/70 hover:text-zinc-700"
                           : "text-white/55 hover:bg-white/10 hover:text-white",
@@ -5470,13 +5470,28 @@ export function ChatView() {
                         }
                       }}
                       rows={1}
-                      placeholder={
+                      /* Placeholder generico "Mensaje..." — el nombre
+                         del peer/grupo ya aparece en el header del chat
+                         justo encima, asi que no se pierde contexto.
+                         Antes "Mensaje para Esau..." se partia en 2
+                         lineas dentro del textarea cuando el viewport
+                         era estrecho, o "Esau" desbordaba el contenedor. */
+                      placeholder="Mensaje…"
+                      aria-label={
                         activeConv.isGroup
-                          ? `Mensaje a "${conversationDisplayName(activeConv)}"…`
-                          : `Mensaje para ${activeConv.peer?.name ?? ""}…`
+                          ? `Mensaje a "${conversationDisplayName(activeConv)}"`
+                          : `Mensaje para ${activeConv.peer?.name ?? ""}`
                       }
                       className={cn(
-                        "max-h-40 min-h-[2.75rem] flex-1 resize-none border-0 bg-transparent px-1.5 py-2 text-sm leading-relaxed outline-none focus:ring-0",
+                        /* `min-w-0`: critico para que el textarea con
+                           `flex-1` no fuerce overflow del padre flex.
+                           min-h / padding-y / leading se ajustan en sm+
+                           para que en una sola linea la altura efectiva
+                           coincida con la de los botones (h-9 = 36px)
+                           y el placeholder quede alineado verticalmente
+                           con los iconos. En mobile mantenemos 44px
+                           para cumplir tap-target WCAG 2.5.5. */
+                        "max-h-40 min-h-[2.75rem] sm:min-h-[2.25rem] flex-1 min-w-0 resize-none border-0 bg-transparent px-1.5 py-2 sm:py-1 text-sm leading-relaxed sm:leading-snug outline-none focus:ring-0",
                         L
                           ? "text-zinc-900 placeholder:text-zinc-400"
                           : "text-white placeholder:text-white/35"
@@ -5490,7 +5505,7 @@ export function ChatView() {
                       }
                       aria-label="Enviar"
                       className={cn(
-                        "mb-0.5 relative flex h-11 w-11 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-xl transition-all duration-200",
+                        "relative flex h-11 w-11 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-xl transition-all duration-200",
                         "bg-gradient-to-br from-[#ffeb66] to-[#d4a700] text-[#0a0f1e]",
                         "shadow-[0_4px_14px_rgba(255,235,102,0.35)]",
                         "hover:brightness-110 hover:shadow-[0_6px_18px_rgba(255,235,102,0.5)] hover:-translate-y-0.5",

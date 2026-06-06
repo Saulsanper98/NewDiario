@@ -1,0 +1,1407 @@
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║          TEMA  "PRISMA"  ·  Iridiscencia espacial · espectacular         ║
+ * ║                                                                          ║
+ * ║   Prisma es el tema "joya cinética". Inspiración: visores espaciales,    ║
+ * ║   prismas de cristal partidos por luz, los efectos hologr\u00e1ficos del      ║
+ * ║   Apple Vision Pro y los paneles de control de SpaceX.                   ║
+ * ║                                                                          ║
+ * ║   Identidad visual:                                                      ║
+ * ║     · Fondo violeta-negro profundo (#06040c) con halos radiales c\u00e1lidos.║
+ * ║     · Grid sutil en perspectiva al horizonte (no compite con el resto). ║
+ * ║     · 2 l\u00edneas de plasma SVG que serpentean lentamente atravesando la   ║
+ * ║       pantalla (cyan\u2192magenta, magenta\u2192amarillo).                          ║
+ * ║     · Polvo estelar: part\u00edculas peque\u00f1as flotando con drift lento.       ║
+ * ║     · Aura "respiratoria" radial cyan/magenta en esquinas (pulsa cada    ║
+ * ║       ~6s, sutil).                                                       ║
+ * ║     · Cards: cristal oscuro con BORDE IRIDISCENTE animado 1px            ║
+ * ║       (gradient c\u00f3nico cyan \u2192 magenta \u2192 amarillo CCMGC \u2192 cyan, ciclo 8s).  ║
+ * ║     · Glow externo cyan/magenta en hover. Lift sutil.                    ║
+ * ║     · Shimmer en botones primarios (brillo deslizante diagonal).         ║
+ * ║     · Scanline cyan en focus de inputs.                                  ║
+ * ║     · Sidebar items activos: ribete-izquierdo iridiscente vertical.      ║
+ * ║                                                                          ║
+ * ║   AISLAMIENTO TOTAL                                                      ║
+ * ║   --------------------                                                   ║
+ * ║   Cada selector empieza con `html[data-theme="prisma"]`. Sin esa marca, ║
+ * ║   ninguna regla aplica. No toca otros temas (glass / slate / globals).  ║
+ * ║                                                                          ║
+ * ║   CLAVE DEL ARREGLO (¡leer si vas a tocar algo!)                        ║
+ * ║   ---------------------------------------------                          ║
+ * ║   Mismo principio que Glass/Slate: el body debe ser TRANSPARENTE para   ║
+ * ║   que se vean el fondo, el grid, las l\u00edneas de plasma y las part\u00edculas.║
+ * ║   Y los ancestros directos de cards no deben crear stacking context     ║
+ * ║   nuevo (sin isolation/transform/filter/will-change) o el                 ║
+ * ║   backdrop-filter dejar\u00e1 de ver el fondo global.                          ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                         1.  PALETA Y TOKENS                              ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="prisma"] {
+  /* ─ Lienzo violeta espacial profundo ─ */
+  --bg-deep: #06040c;
+  --accent: #FFEB66;                                /* amarillo CCMGC (CTA) */
+
+  --text: #f0fbff;                                  /* blanco con tint cyan */
+  --text-dim: #b8c4d6;
+  --text-faint: #6e788c;
+
+  /* ─ Acentos iridiscentes ─ */
+  --prisma-cyan: #7df3ff;                           /* cyan eléctrico (info, links) */
+  --prisma-magenta: #ff5fb1;                        /* magenta (alertas decorativas) */
+  --prisma-aqua: #5dffc0;                           /* aqua (success) */
+  --prisma-violet: #b78aff;                         /* violeta (secundario) */
+
+  /* ─ Cristal (oscuro pero translúcido, deja ver el fondo cinético) ─ */
+  --glass-bg: rgba(255, 255, 255, 0.038);
+  --glass-bg-2: rgba(255, 255, 255, 0.075);
+  --glass-border: rgba(255, 255, 255, 0.10);
+  --glass-border-glow: rgba(125, 243, 255, 0.55);   /* cyan en hover/focus */
+  --glass-blur: 22px;
+  --glass-shadow: 0 14px 52px rgba(0, 0, 0, 0.55);
+  --glass-highlight:
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    inset 1px 0 0 rgba(255, 255, 255, 0.07);
+
+  /* ─ Glow iridiscente para hover ─ */
+  --glow-cyan: rgba(125, 243, 255, 0.22);
+  --glow-magenta: rgba(255, 95, 177, 0.20);
+
+  /* ─ Stats: paleta vibrante coherente con la iridiscencia ─ */
+  --stat-purple: #b78aff;
+  --stat-blue:   #7dc6ff;
+  --stat-cyan:   #7df3ff;
+  --stat-green:  #5dffc0;
+
+  /* ─ Capa theme-driven (paralela a Glass/Slate) ─ */
+  --app-canvas-color: transparent;
+  --app-canvas-image: none;
+  --card-isolation: auto;
+
+  /* ─ Geometría (marco con glow iridiscente) ─ */
+  --prisma-radius: 18px;
+  --prisma-radius-shell: 24px;
+
+  color-scheme: dark;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║              2.  FIX DE CAPAS OPACAS                                     ║
+ * ║                                                                          ║
+ * ║   Sin esto, ni el grid, ni las líneas de plasma, ni las partículas se   ║
+ * ║   ven detrás del cristal.                                                ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="prisma"] body {
+  color: var(--text);
+  font-weight: 400;
+  min-height: 100vh;
+}
+
+/* Neutralizar stacking-contexts de la base */
+html[data-theme="prisma"] .app-sidebar-shell,
+html[data-theme="prisma"] .app-top-header {
+  isolation: auto !important;
+}
+
+/* ── Marco con borde iridiscente animado ─────────────────────────────────
+ *  Igual técnica que Slate/Cristal pero el gradient del marco rota
+ *  lentamente mostrando los 3 colores prisma (cyan / magenta / amarillo)
+ *  + glow exterior cyan-magenta. */
+@property --prisma-shell-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+html[data-theme="prisma"] .glass-shell-frame {
+  margin: 18px;
+  padding: 1.5px;
+  border-radius: var(--prisma-radius-shell);
+  background: conic-gradient(
+    from var(--prisma-shell-angle),
+    rgba(125, 243, 255, 0.55) 0%,
+    rgba(183, 138, 255, 0.45) 25%,
+    rgba(255, 95, 177, 0.50) 50%,
+    rgba(255, 235, 102, 0.42) 75%,
+    rgba(125, 243, 255, 0.55) 100%
+  );
+  box-shadow:
+    0 0 60px rgba(125, 243, 255, 0.18),
+    0 0 120px rgba(255, 95, 177, 0.10);
+  animation: prisma-shell-rotate 16s linear infinite;
+}
+
+@keyframes prisma-shell-rotate {
+  to { --prisma-shell-angle: 360deg; }
+}
+
+html[data-theme="prisma"] .glass-shell-inner {
+  border-radius: calc(var(--prisma-radius-shell) - 2px);
+  background: rgba(8, 6, 16, 0.30);                  /* violeta translúcido */
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  overflow: hidden;
+  padding: 20px;
+}
+
+@media (max-width: 768px) {
+  html[data-theme="prisma"] .glass-shell-inner { padding: 6px; }
+  html[data-theme="prisma"] .app-dashboard-root { gap: 8px; }
+}
+@media (max-width: 640px) {
+  html[data-theme="prisma"] .glass-shell-frame {
+    margin: 4px;
+    border-radius: 16px;
+  }
+  html[data-theme="prisma"] .glass-shell-inner {
+    border-radius: 14px;
+  }
+}
+@media (max-width: 480px) {
+  html[data-theme="prisma"] .glass-shell-frame {
+    margin: 0;
+    padding: 0;
+    border-radius: 0;
+    box-shadow: none;
+    animation: none;
+    background: rgba(255, 255, 255, 0.05);
+  }
+  html[data-theme="prisma"] .glass-shell-inner {
+    padding: 0;
+    border-radius: 0;
+  }
+  html[data-theme="prisma"] .app-dashboard-root { gap: 0; }
+}
+
+/* Limpiar pseudos heredados */
+html[data-theme="prisma"] .glass-shell-frame::before,
+html[data-theme="prisma"] .glass-shell-frame::after,
+html[data-theme="prisma"] .glass-shell-inner::before,
+html[data-theme="prisma"] .glass-shell-inner::after {
+  display: none !important;
+}
+
+html[data-theme="prisma"] .app-dashboard-root {
+  background: transparent !important;
+  gap: 16px;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║              3.  FONDO  ·  <PrismaBackground />                          ║
+ * ║                                                                          ║
+ * ║   Capas (todas dentro de .prisma-bg, position:fixed; z-index:-10):       ║
+ * ║     1. Base violeta-negro profundo + 3 halos radiales.                   ║
+ * ║     2. Grid en perspectiva (.prisma-grid).                               ║
+ * ║     3. 2 líneas SVG de plasma (.prisma-plasma).                          ║
+ * ║     4. ~22 partículas (.prisma-particles span).                          ║
+ * ║     5. 2 auras radiales que "respiran" (.prisma-aura-1/2).               ║
+ * ║     6. Capa de grano sutil (.prisma-noise).                              ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="prisma"] .prisma-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -10;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse 65% 55% at 18% 8%, rgba(125, 60, 200, 0.22), transparent 60%),
+    radial-gradient(ellipse 60% 50% at 82% 90%, rgba(50, 80, 220, 0.18), transparent 60%),
+    radial-gradient(ellipse 50% 40% at 50% 100%, rgba(255, 95, 177, 0.14), transparent 55%),
+    linear-gradient(180deg, #06040c 0%, #04030a 100%);
+  pointer-events: none;
+}
+
+/* ── Capa 2: Grid en perspectiva al horizonte ────────────────────────── */
+html[data-theme="prisma"] .prisma-bg .prisma-grid {
+  position: absolute;
+  inset: 30% 0 0 0;                                 /* solo mitad inferior */
+  background-image:
+    linear-gradient(rgba(125, 200, 255, 0.10) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(125, 200, 255, 0.08) 1px, transparent 1px);
+  background-size: 64px 64px;
+  transform: perspective(680px) rotateX(60deg);
+  transform-origin: center bottom;
+  mask-image: linear-gradient(180deg, transparent 0%, black 35%, black 75%, transparent 100%);
+  -webkit-mask-image: linear-gradient(180deg, transparent 0%, black 35%, black 75%, transparent 100%);
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+/* ── Capa 3: Líneas de plasma SVG ──────────────────────────────────────
+ *  Las 2 curvas SVG están definidas en el componente. Aquí solo el
+ *  contenedor y el blur del plasma. */
+html[data-theme="prisma"] .prisma-bg .prisma-plasma {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  opacity: 0.55;
+  filter: blur(0.6px);
+}
+
+html[data-theme="prisma"] .prisma-bg .prisma-plasma path {
+  fill: none;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 6px currentColor);
+}
+
+html[data-theme="prisma"] .prisma-bg .prisma-plasma .plasma-1 {
+  color: var(--prisma-cyan);
+  stroke: var(--prisma-cyan);
+  animation: prisma-plasma-shift-1 18s ease-in-out infinite;
+  transform-origin: center;
+}
+
+html[data-theme="prisma"] .prisma-bg .prisma-plasma .plasma-2 {
+  color: var(--prisma-magenta);
+  stroke: var(--prisma-magenta);
+  animation: prisma-plasma-shift-2 22s ease-in-out infinite;
+  transform-origin: center;
+}
+
+@keyframes prisma-plasma-shift-1 {
+  0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.55; }
+  33%      { transform: translate(40px, -20px) scale(1.04); opacity: 0.75; }
+  66%      { transform: translate(-30px, 25px) scale(0.96); opacity: 0.45; }
+}
+
+@keyframes prisma-plasma-shift-2 {
+  0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.45; }
+  50%      { transform: translate(-50px, 30px) scale(1.05); opacity: 0.65; }
+}
+
+/* ── Capa 4: Polvo estelar (partículas) ─────────────────────────────── */
+html[data-theme="prisma"] .prisma-bg .prisma-particles {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+html[data-theme="prisma"] .prisma-bg .prisma-particles span {
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  border-radius: 50%;
+  background: var(--prisma-cyan);
+  box-shadow: 0 0 6px var(--prisma-cyan);
+  opacity: 0.5;
+  animation: prisma-particle-drift var(--p-duration, 18s) ease-in-out infinite;
+  animation-delay: var(--p-delay, 0s);
+}
+
+/* Algunas partículas magenta para variedad cromática */
+html[data-theme="prisma"] .prisma-bg .prisma-particles span:nth-child(3n) {
+  background: var(--prisma-magenta);
+  box-shadow: 0 0 6px var(--prisma-magenta);
+}
+html[data-theme="prisma"] .prisma-bg .prisma-particles span:nth-child(5n) {
+  background: var(--prisma-violet);
+  box-shadow: 0 0 6px var(--prisma-violet);
+  width: 3px;
+  height: 3px;
+}
+html[data-theme="prisma"] .prisma-bg .prisma-particles span:nth-child(7n) {
+  background: #ffffff;
+  box-shadow: 0 0 4px rgba(255, 255, 255, 0.8);
+  width: 1px;
+  height: 1px;
+  opacity: 0.7;
+}
+
+@keyframes prisma-particle-drift {
+  0%, 100% {
+    transform: translate(0, 0);
+    opacity: var(--p-opacity-base, 0.5);
+  }
+  50% {
+    transform: translate(var(--p-dx, 30px), var(--p-dy, -40px));
+    opacity: 0.85;
+  }
+}
+
+/* ── Capa 5: Auras "respiratorias" ──────────────────────────────────── */
+html[data-theme="prisma"] .prisma-bg .prisma-aura {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  filter: blur(80px);
+  will-change: transform, opacity;
+}
+
+html[data-theme="prisma"] .prisma-bg .prisma-aura-1 {
+  width: 560px;
+  height: 560px;
+  background: radial-gradient(circle, rgba(125, 243, 255, 0.22), transparent 65%);
+  top: -8%;
+  left: -6%;
+  animation: prisma-aura-breath-1 8s ease-in-out infinite;
+}
+
+html[data-theme="prisma"] .prisma-bg .prisma-aura-2 {
+  width: 620px;
+  height: 620px;
+  background: radial-gradient(circle, rgba(255, 95, 177, 0.20), transparent 68%);
+  bottom: -10%;
+  right: -8%;
+  animation: prisma-aura-breath-2 9s ease-in-out infinite;
+  animation-delay: 1.5s;
+}
+
+@keyframes prisma-aura-breath-1 {
+  0%, 100% { transform: scale(1); opacity: 0.85; }
+  50%      { transform: scale(1.10); opacity: 1; }
+}
+
+@keyframes prisma-aura-breath-2 {
+  0%, 100% { transform: scale(1); opacity: 0.75; }
+  50%      { transform: scale(1.08); opacity: 1; }
+}
+
+/* ── Capa 6: Ruido fino ─────────────────────────────────────────────── */
+html[data-theme="prisma"] .prisma-bg .prisma-noise {
+  position: absolute;
+  inset: 0;
+  opacity: 0.05;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  pointer-events: none;
+  mix-blend-mode: overlay;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                4.  CLASE DE CRISTAL  ·  .glass-surface                   ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="prisma"] .glass-surface {
+  position: relative;
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur)) saturate(150%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(150%);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow), var(--glass-highlight);
+  border-radius: var(--prisma-radius);
+  transition:
+    border-color 0.3s ease,
+    transform 0.3s ease,
+    background 0.3s ease,
+    box-shadow 0.3s ease;
+  overflow: hidden;
+}
+
+/* Reflejo diagonal sutil */
+html[data-theme="prisma"] .glass-surface::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.15) 0%,
+    rgba(255, 255, 255, 0.04) 22%,
+    transparent 46%
+  );
+  border-radius: inherit;
+}
+
+html[data-theme="prisma"] .glass-surface > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Hover: borde cyan + glow magenta/cyan + lift */
+html[data-theme="prisma"] .glass-surface:hover {
+  border-color: var(--glass-border-glow);
+  transform: translateY(-2px);
+  background: var(--glass-bg-2);
+  box-shadow:
+    0 18px 58px rgba(0, 0, 0, 0.55),
+    0 0 32px var(--glow-cyan),
+    0 0 48px var(--glow-magenta),
+    var(--glass-highlight);
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║              5.  ALIAS  ·  Cards del sistema → .glass-surface            ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="prisma"] .glass,
+html[data-theme="prisma"] .glass-1,
+html[data-theme="prisma"] .glass-2,
+html[data-theme="prisma"] .glass-3,
+html[data-theme="prisma"] .glass-4 {
+  isolation: var(--card-isolation);
+  position: relative;
+  border-radius: var(--prisma-radius);
+  transition:
+    background 0.3s ease,
+    border-color 0.3s ease,
+    box-shadow 0.3s ease,
+    transform 0.3s ease;
+}
+
+html[data-theme="prisma"] .glass {
+  background: rgba(255, 255, 255, 0.012);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  box-shadow: none;
+}
+
+html[data-theme="prisma"] .glass-1 {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  box-shadow: var(--glass-shadow), var(--glass-highlight);
+}
+
+html[data-theme="prisma"] .glass-2 {
+  background: rgba(255, 255, 255, 0.065);
+  backdrop-filter: blur(20px) saturate(150%);
+  -webkit-backdrop-filter: blur(20px) saturate(150%);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: var(--glass-shadow), var(--glass-highlight);
+}
+
+html[data-theme="prisma"] .glass-3,
+html[data-theme="prisma"] .glass-4 {
+  background: linear-gradient(
+    155deg,
+    rgba(20, 14, 36, 0.45) 0%,
+    rgba(255, 255, 255, 0.08) 45%,
+    rgba(255, 255, 255, 0.04) 100%
+  );
+  backdrop-filter: blur(var(--glass-blur)) saturate(155%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(155%);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: var(--glass-shadow), var(--glass-highlight);
+}
+
+/* Reflejo diagonal */
+html[data-theme="prisma"] .glass::before,
+html[data-theme="prisma"] .glass-1::before,
+html[data-theme="prisma"] .glass-2::before,
+html[data-theme="prisma"] .glass-3::before,
+html[data-theme="prisma"] .glass-4::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.12) 0%,
+    rgba(255, 255, 255, 0.04) 22%,
+    transparent 46%
+  );
+  border-radius: inherit;
+}
+
+html[data-theme="prisma"] .glass > *,
+html[data-theme="prisma"] .glass-1 > *,
+html[data-theme="prisma"] .glass-2 > *,
+html[data-theme="prisma"] .glass-3 > *,
+html[data-theme="prisma"] .glass-4 > * {
+  position: relative;
+  z-index: 1;
+}
+
+html[data-theme="prisma"] .glass-1:hover,
+html[data-theme="prisma"] .glass-2:hover,
+html[data-theme="prisma"] .glass-3:hover,
+html[data-theme="prisma"] .glass-4:hover {
+  border-color: var(--glass-border-glow);
+}
+
+html[data-theme="prisma"] .glass-hover:hover {
+  background: var(--glass-bg-2);
+  border-color: var(--glass-border-glow);
+  transform: translateY(-2px);
+  box-shadow:
+    0 18px 58px rgba(0, 0, 0, 0.55),
+    0 0 32px var(--glow-cyan),
+    0 0 48px var(--glow-magenta),
+    var(--glass-highlight);
+}
+
+html[data-theme="prisma"] .glass .glass-hover:hover,
+html[data-theme="prisma"] .glass-1 .glass-hover:hover,
+html[data-theme="prisma"] .glass-2 .glass-hover:hover,
+html[data-theme="prisma"] .glass-3 .glass-hover:hover,
+html[data-theme="prisma"] .glass-4 .glass-hover:hover {
+  transform: none !important;
+  box-shadow: var(--glass-highlight) !important;
+}
+
+html[data-theme="prisma"] .glass:has(.glass-hover) {
+  overflow: hidden;
+}
+
+html[data-theme="prisma"] .dashboard-quick-action.glass-hover:hover {
+  transform: translateY(-1px);
+  box-shadow:
+    0 1px 4px rgba(0, 0, 0, 0.32),
+    0 0 4px rgba(125, 243, 255, 0.28),
+    var(--glass-highlight);
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║          6.  BORDE IRIDISCENTE  ·  .glow-border  (cards destacadas)      ║
+ * ║                                                                          ║
+ * ║   La SEÑA DE IDENTIDAD de Prisma. Borde 1.5px con un conic-gradient     ║
+ * ║   completo (cyan → violeta → magenta → amarillo → cyan) que rota muy   ║
+ * ║   despacio. Aplícalo solo en cards destacadas (hero, banners, badges)  ║
+ * ║   para no saturar.                                                       ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+@property --prisma-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+html[data-theme="prisma"] .glow-border {
+  position: relative;
+}
+
+html[data-theme="prisma"] .glow-border::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1.5px;
+  background: conic-gradient(
+    from var(--prisma-angle),
+    rgba(125, 243, 255, 0.95),
+    rgba(183, 138, 255, 0.85) 25%,
+    rgba(255, 95, 177, 0.95) 50%,
+    rgba(255, 235, 102, 0.85) 75%,
+    rgba(125, 243, 255, 0.95) 100%
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+          mask-composite: exclude;
+  animation: prisma-border-run 8s linear infinite;
+  pointer-events: none;
+  z-index: 2;
+}
+
+@keyframes prisma-border-run {
+  to { --prisma-angle: 360deg; }
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                  7.  APARICIÓN ESCALONADA  ·  .reveal                    ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="prisma"] .reveal {
+  opacity: 0;
+  transform: translateY(14px);
+  animation: prisma-reveal-up 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes prisma-reveal-up {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                  8.  CHROME  ·  Sidebar + Header + Main                  ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="prisma"] .app-sidebar-shell {
+  background: transparent !important;
+  background-image: none !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(14px) saturate(135%);
+  -webkit-backdrop-filter: blur(14px) saturate(135%);
+  box-shadow: none;
+}
+
+html[data-theme="prisma"] .app-sidebar-shell.sidebar-expanded-solid {
+  background: linear-gradient(
+    180deg,
+    rgba(24, 16, 44, 0.78) 0%,
+    rgba(14, 10, 28, 0.84) 100%
+  ) !important;
+  backdrop-filter: blur(32px) saturate(155%) !important;
+  -webkit-backdrop-filter: blur(32px) saturate(155%) !important;
+  border-right: 1px solid var(--glass-border) !important;
+  box-shadow:
+    var(--glass-highlight),
+    8px 0 32px rgba(0, 0, 0, 0.45),
+    0 0 60px rgba(125, 243, 255, 0.06) !important;
+  border-radius: 0 !important;
+}
+
+/* Sidebar item activo: ribete vertical iridiscente a la izquierda.
+ *  Le quitamos el fondo amarillo de Tailwind y le ponemos un fondo
+ *  cyan/magenta translúcido + un pseudo elemento ::before vertical
+ *  con gradient iridiscente. */
+html[data-theme="prisma"] .sidebar-nav-link-active {
+  position: relative;
+  background: linear-gradient(
+    90deg,
+    rgba(125, 243, 255, 0.12) 0%,
+    rgba(183, 138, 255, 0.06) 100%
+  ) !important;
+  color: var(--text) !important;
+  border-color: transparent !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(125, 243, 255, 0.25),
+    0 0 22px rgba(125, 243, 255, 0.15) !important;
+  overflow: hidden;
+}
+
+html[data-theme="prisma"] .sidebar-nav-link-active::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 6px;
+  bottom: 6px;
+  width: 3px;
+  border-radius: 2px;
+  background: linear-gradient(
+    180deg,
+    var(--prisma-cyan) 0%,
+    var(--prisma-violet) 50%,
+    var(--prisma-magenta) 100%
+  );
+  box-shadow: 0 0 8px var(--prisma-cyan);
+  pointer-events: none;
+}
+
+html[data-theme="prisma"] .sidebar-nav-link:not(.sidebar-nav-link-active):hover {
+  background: rgba(125, 243, 255, 0.06);
+  color: var(--text);
+  box-shadow: inset 0 0 0 1px rgba(125, 243, 255, 0.15);
+}
+
+html[data-theme="prisma"] .app-top-header {
+  background: transparent !important;
+  background-image: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: none !important;
+  border-bottom: none !important;
+  box-shadow: none !important;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                  9.  TIPOGRAFÍA                                          ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="prisma"] h1,
+html[data-theme="prisma"] h2,
+html[data-theme="prisma"] h3,
+html[data-theme="prisma"] .text-2xl,
+html[data-theme="prisma"] .text-3xl,
+html[data-theme="prisma"] .text-4xl {
+  font-weight: 300;
+  letter-spacing: -0.01em;
+}
+
+html[data-theme="prisma"] [data-stat-value],
+html[data-theme="prisma"] .stat-value,
+html[data-theme="prisma"] .text-4xl.font-bold,
+html[data-theme="prisma"] .text-3xl.font-bold {
+  font-weight: 300 !important;
+  letter-spacing: -0.02em;
+}
+
+html[data-theme="prisma"] button[data-variant="primary"],
+html[data-theme="prisma"] .btn-primary,
+html[data-theme="prisma"] [data-cta="primary"] {
+  font-weight: 600;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                10.  CTA AMARILLO  ·  con SHIMMER deslizante              ║
+ * ║                                                                          ║
+ * ║   El CTA primario amarillo CCMGC se mantiene OPACO (identidad de marca)║
+ * ║   pero recibe un brillo "shimmer" diagonal al hover, marca de Prisma.   ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="prisma"] button[data-variant="primary"]:not(:disabled),
+html[data-theme="prisma"] .btn-primary:not(:disabled),
+html[data-theme="prisma"] [data-cta="primary"]:not(:disabled) {
+  position: relative;
+  background: var(--accent) !important;
+  color: #1a1500 !important;
+  border: none !important;
+  box-shadow:
+    0 8px 24px rgba(255, 235, 102, 0.22),
+    0 0 24px rgba(255, 235, 102, 0.10);
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  overflow: hidden;
+}
+
+/* Banda diagonal shimmer en hover (cruza de izquierda a derecha) */
+html[data-theme="prisma"] button[data-variant="primary"]:not(:disabled)::after,
+html[data-theme="prisma"] .btn-primary:not(:disabled)::after,
+html[data-theme="prisma"] [data-cta="primary"]:not(:disabled)::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    115deg,
+    transparent 30%,
+    rgba(255, 255, 255, 0.55) 50%,
+    transparent 70%
+  );
+  transform: translateX(-110%);
+  transition: transform 0.85s cubic-bezier(0.22, 1, 0.36, 1);
+  pointer-events: none;
+}
+
+html[data-theme="prisma"] button[data-variant="primary"]:hover:not(:disabled),
+html[data-theme="prisma"] .btn-primary:hover:not(:disabled),
+html[data-theme="prisma"] [data-cta="primary"]:hover:not(:disabled) {
+  background: #FFE94D !important;
+  box-shadow:
+    0 10px 32px rgba(255, 235, 102, 0.34),
+    0 0 36px rgba(255, 235, 102, 0.18);
+  transform: translateY(-1px);
+}
+
+html[data-theme="prisma"] button[data-variant="primary"]:hover:not(:disabled)::after,
+html[data-theme="prisma"] .btn-primary:hover:not(:disabled)::after,
+html[data-theme="prisma"] [data-cta="primary"]:hover:not(:disabled)::after {
+  transform: translateX(110%);
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║      11.  PARCHE Tailwind arbitrary hex (azul-marino → violeta)          ║
+ * ║                                                                          ║
+ * ║   Mismo enfoque que Slate. El JSX usa `bg-[#0a0f1e]`, `bg-[#0d1324]/95` ║
+ * ║   etc. como "no light". En Prisma los traducimos a su equivalente       ║
+ * ║   violeta translúcido para que no rompan la paleta.                     ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="prisma"] .bg-\[\#060a14\],
+html[data-theme="prisma"] .bg-\[\#060a12\],
+html[data-theme="prisma"] .bg-\[\#060b18\],
+html[data-theme="prisma"] .bg-\[\#020308\]\/85,
+html[data-theme="prisma"] .bg-\[\#020408\]\/80 {
+  background-color: rgba(12, 8, 22, 0.85) !important;
+}
+
+html[data-theme="prisma"] .bg-\[\#0a0f1e\],
+html[data-theme="prisma"] .bg-\[\#0a0f1e\]\/95,
+html[data-theme="prisma"] .bg-\[\#0a0f1e\]\/88,
+html[data-theme="prisma"] .bg-\[\#0a0f1e\]\/85,
+html[data-theme="prisma"] .bg-\[\#0a0f1e\]\/72,
+html[data-theme="prisma"] .bg-\[\#0a0f1e\]\/40,
+html[data-theme="prisma"] .bg-\[\#0a0f1e\]\/15,
+html[data-theme="prisma"] .bg-\[\#0a1020\] {
+  background-color: rgba(18, 12, 32, 0.88) !important;
+}
+
+html[data-theme="prisma"] .bg-\[\#0c1224\]\/95,
+html[data-theme="prisma"] .bg-\[\#0c1325\],
+html[data-theme="prisma"] .bg-\[\#0d1324\]\/96,
+html[data-theme="prisma"] .bg-\[\#0d1324\]\/92,
+html[data-theme="prisma"] .bg-\[\#0d1325\],
+html[data-theme="prisma"] .bg-\[\#0d1427\]\/95,
+html[data-theme="prisma"] .bg-\[\#0d1428\],
+html[data-theme="prisma"] .bg-\[\#0d1428\]\/95,
+html[data-theme="prisma"] .bg-\[\#0f1424\],
+html[data-theme="prisma"] .bg-\[\#0f1524\] {
+  background-color: rgba(18, 12, 32, 0.90) !important;
+  backdrop-filter: blur(18px) saturate(150%);
+  -webkit-backdrop-filter: blur(18px) saturate(150%);
+}
+
+html[data-theme="prisma"] .bg-\[\#121a2e\],
+html[data-theme="prisma"] .bg-\[\#161f36\],
+html[data-theme="prisma"] .bg-\[\#1a2238\] {
+  background-color: rgba(255, 255, 255, 0.06) !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║               12.  DROPDOWNS  ·  Panel de menú cristal                   ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="prisma"] .app-dropdown-panel {
+  background: linear-gradient(
+    155deg,
+    rgba(32, 22, 56, 0.82) 0%,
+    rgba(14, 10, 28, 0.92) 100%
+  ) !important;
+  backdrop-filter: blur(22px) saturate(150%) !important;
+  -webkit-backdrop-filter: blur(22px) saturate(150%) !important;
+  border-color: var(--glass-border) !important;
+  box-shadow:
+    var(--glass-highlight),
+    0 22px 52px rgba(0, 0, 0, 0.60),
+    0 0 36px rgba(125, 243, 255, 0.12) !important;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║         13.  KANBAN  ·  Columnas / pseudo elementos opacos              ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="prisma"] .kanban-column-well {
+  background: transparent !important;
+}
+html[data-theme="prisma"] .kanban-column-well::after,
+html[data-theme="prisma"] .kanban-column-well::before {
+  background: transparent !important;
+  display: none !important;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║         14.  EDITOR  ·  ProseMirror / Tiptap (bloques de código)         ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="prisma"] .ProseMirror pre {
+  background: rgba(12, 8, 22, 0.80) !important;
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║         15.  DETAIL FULL-SCREEN  ·  Nota expandida                       ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="prisma"]
+  .detail-fullscreen-bg.detail-fullscreen-bg.detail-fullscreen-bg {
+  background: transparent !important;
+  background-image: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+html[data-theme="prisma"] .detail-fullscreen-bg::before {
+  content: none;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                16.  INPUTS  ·  Fields, search, command-palette           ║
+ * ║                                                                          ║
+ * ║   Focus: borde cyan + box-shadow cyan al 22%. Sin scanline animado en   ║
+ * ║   todos los inputs (sería ruido). Si se quiere scanline, opt-in con     ║
+ * ║   clase `.scanline-input`.                                               ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="prisma"] input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]),
+html[data-theme="prisma"] textarea,
+html[data-theme="prisma"] select {
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid var(--glass-border);
+  color: var(--text);
+}
+
+html[data-theme="prisma"] input:focus,
+html[data-theme="prisma"] textarea:focus,
+html[data-theme="prisma"] select:focus {
+  outline: none;
+  border-color: var(--glass-border-glow);
+  box-shadow: 0 0 0 3px rgba(125, 243, 255, 0.22);
+}
+
+/* Opt-in: scanline cyan al focus (línea que cruza brevemente) */
+html[data-theme="prisma"] .scanline-input {
+  position: relative;
+  overflow: hidden;
+}
+html[data-theme="prisma"] .scanline-input::after {
+  content: "";
+  position: absolute;
+  left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--prisma-cyan), transparent);
+  box-shadow: 0 0 12px var(--prisma-cyan);
+  top: 50%;
+  opacity: 0;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+html[data-theme="prisma"] .scanline-input:focus-within::after {
+  animation: prisma-scanline 0.85s ease-out;
+}
+@keyframes prisma-scanline {
+  0% { opacity: 0; top: 0%; }
+  40% { opacity: 1; }
+  100% { opacity: 0; top: 100%; }
+}
+
+html[data-theme="prisma"] #cmd-palette-trigger {
+  background: rgba(125, 243, 255, 0.06) !important;
+  border-color: rgba(125, 243, 255, 0.28) !important;
+  color: var(--text-dim) !important;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+html[data-theme="prisma"] #cmd-palette-trigger:hover {
+  background: rgba(125, 243, 255, 0.12) !important;
+  border-color: var(--glass-border-glow) !important;
+  color: var(--text) !important;
+  box-shadow: 0 0 24px rgba(125, 243, 255, 0.22);
+}
+html[data-theme="prisma"] #cmd-palette-trigger kbd {
+  background: rgba(125, 243, 255, 0.14) !important;
+  border-color: rgba(125, 243, 255, 0.30) !important;
+  color: var(--text);
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                  17.  SCROLLBARS                                         ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="prisma"] ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.10);
+  border-radius: 6px;
+}
+html[data-theme="prisma"] ::-webkit-scrollbar-thumb:hover {
+  background: rgba(125, 243, 255, 0.40);
+}
+html[data-theme="prisma"] .overflow-y-auto:hover::-webkit-scrollbar-thumb,
+html[data-theme="prisma"] .overflow-x-auto:hover::-webkit-scrollbar-thumb,
+html[data-theme="prisma"] .overflow-auto:hover::-webkit-scrollbar-thumb,
+html[data-theme="prisma"] *:hover::-webkit-scrollbar-thumb {
+  background: rgba(125, 243, 255, 0.32);
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║              18.  STATS / DASHBOARD                                      ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="prisma"] [data-stat-color="purple"] { color: var(--stat-purple); }
+html[data-theme="prisma"] [data-stat-color="blue"]   { color: var(--stat-blue); }
+html[data-theme="prisma"] [data-stat-color="cyan"]   { color: var(--stat-cyan); }
+html[data-theme="prisma"] [data-stat-color="green"]  { color: var(--stat-green); }
+
+html[data-theme="prisma"] .dashboard-shift-track {
+  background: rgba(255, 255, 255, 0.06) !important;
+  border: 1px solid var(--glass-border);
+  overflow: hidden;
+}
+html[data-theme="prisma"] .dashboard-shift-fill {
+  background: linear-gradient(90deg, var(--prisma-cyan) 0%, var(--prisma-magenta) 100%) !important;
+  box-shadow: 0 0 14px rgba(125, 243, 255, 0.45);
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                  19.  PRESENCIA / AVATAR RING                            ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="prisma"] .presence-online,
+html[data-theme="prisma"] [data-online="true"] .presence-dot {
+  box-shadow:
+    0 0 0 2px var(--bg-deep),
+    0 0 14px rgba(93, 255, 192, 0.65);
+}
+
+html[data-theme="prisma"] .user-avatar-ring {
+  box-shadow:
+    0 0 0 2px var(--bg-deep),
+    0 0 0 3px var(--glass-border-glow);
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║      20.  BARRA STICKY DE LA BITÁCORA  ·  .glass-opaque-bitacora         ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="prisma"] .glass-opaque-bitacora {
+  isolation: auto;
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(22px) saturate(150%);
+  -webkit-backdrop-filter: blur(22px) saturate(150%);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-highlight), 0 6px 26px rgba(0, 0, 0, 0.35);
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║      21.  MODAL  ·  dialog + backdrop + reflejo diagonal                 ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="prisma"] .app-modal-dialog[data-modal-surface="dark"] {
+  position: relative;
+  background: linear-gradient(
+    155deg,
+    rgba(32, 22, 56, 0.58) 0%,
+    rgba(14, 10, 28, 0.74) 100%
+  ) !important;
+  backdrop-filter: blur(var(--glass-blur)) saturate(155%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(155%);
+  border-color: var(--glass-border) !important;
+  box-shadow:
+    0 24px 68px rgba(0, 0, 0, 0.55),
+    0 0 52px rgba(125, 243, 255, 0.16),
+    0 0 80px rgba(255, 95, 177, 0.10),
+    var(--glass-highlight) !important;
+  overflow: hidden;
+}
+
+html[data-theme="prisma"] .app-modal-dialog[data-modal-surface="dark"]::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.10) 0%,
+    rgba(255, 255, 255, 0.03) 18%,
+    transparent 32%
+  );
+  border-radius: inherit;
+  z-index: 0;
+}
+html[data-theme="prisma"] .app-modal-dialog[data-modal-surface="dark"] > *:not(button[aria-label="Cerrar"]) {
+  position: relative;
+  z-index: 1;
+}
+
+html[data-theme="prisma"] .modal-backdrop {
+  background: rgba(8, 6, 16, 0.58);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║      22.  MOBILE BOTTOM NAV                                              ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="prisma"] .mobile-bottom-nav {
+  background: linear-gradient(
+    180deg,
+    rgba(18, 12, 32, 0.62) 0%,
+    rgba(8, 6, 16, 0.82) 100%
+  ) !important;
+  border-top-color: var(--glass-border) !important;
+  backdrop-filter: blur(22px) saturate(155%);
+  -webkit-backdrop-filter: blur(22px) saturate(155%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 -8px 30px rgba(0, 0, 0, 0.50);
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║      23.  TOOLTIPS                                                       ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="prisma"] [data-tooltip-content],
+html[data-theme="prisma"] [role="tooltip"] {
+  background: linear-gradient(
+    155deg,
+    rgba(32, 22, 56, 0.82) 0%,
+    rgba(14, 10, 28, 0.90) 100%
+  ) !important;
+  border: 1px solid var(--glass-border) !important;
+  color: var(--text) !important;
+  backdrop-filter: blur(14px) saturate(150%);
+  -webkit-backdrop-filter: blur(14px) saturate(150%);
+  box-shadow: var(--glass-shadow), var(--glass-highlight);
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║      24.  TOASTER                                                        ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="prisma"] .toast-glass {
+  background: linear-gradient(
+    155deg,
+    rgba(32, 22, 56, 0.82) 0%,
+    rgba(14, 10, 28, 0.92) 100%
+  ) !important;
+  border: 1px solid var(--glass-border) !important;
+  color: var(--text) !important;
+  backdrop-filter: blur(22px) saturate(155%);
+  -webkit-backdrop-filter: blur(22px) saturate(155%);
+  box-shadow:
+    var(--glass-highlight),
+    0 18px 44px rgba(0, 0, 0, 0.55),
+    0 0 32px rgba(125, 243, 255, 0.12);
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║      25.  LOADING / SKELETON                                             ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="prisma"] .loading-card {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║      26.  BANNER "SIN INCIDENCIAS ACTIVAS"                               ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="prisma"] .dashboard-allgood-banner {
+  background: linear-gradient(
+    135deg,
+    rgba(93, 255, 192, 0.08) 0%,
+    rgba(125, 243, 255, 0.05) 100%
+  ) !important;
+  border-color: rgba(255, 255, 255, 0.10) !important;
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 0 28px rgba(93, 255, 192, 0.10);
+}
+
+html[data-theme="prisma"] .dashboard-allgood-icon {
+  background: rgba(93, 255, 192, 0.22) !important;
+  box-shadow: inset 0 0 0 1px rgba(93, 255, 192, 0.36);
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║      27.  BADGES SEMÁNTICOS  ·  islas de color con velo iridiscente      ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="prisma"] .bg-sky-400\/10,
+html[data-theme="prisma"] .bg-emerald-400\/10,
+html[data-theme="prisma"] .bg-orange-400\/10,
+html[data-theme="prisma"] .bg-red-400\/10,
+html[data-theme="prisma"] .bg-red-500\/10,
+html[data-theme="prisma"] .bg-violet-400\/10,
+html[data-theme="prisma"] .bg-yellow-400\/10,
+html[data-theme="prisma"] .bg-green-400\/10,
+html[data-theme="prisma"] .bg-blue-400\/10,
+html[data-theme="prisma"] .bg-amber-400\/10,
+html[data-theme="prisma"] .bg-indigo-400\/10,
+html[data-theme="prisma"] .bg-emerald-500\/6,
+html[data-theme="prisma"] .bg-emerald-500\/8,
+html[data-theme="prisma"] .bg-emerald-400\/8,
+html[data-theme="prisma"] .bg-emerald-400\/\[0\.06\],
+html[data-theme="prisma"] .bg-emerald-400\/5,
+html[data-theme="prisma"] .bg-amber-400\/8,
+html[data-theme="prisma"] .bg-emerald-500\/12,
+html[data-theme="prisma"] .bg-emerald-500\/15,
+html[data-theme="prisma"] .bg-rose-400\/10,
+html[data-theme="prisma"] .bg-rose-500\/10,
+html[data-theme="prisma"] .hover\:bg-rose-500\/10:hover,
+html[data-theme="prisma"] .hover\:bg-rose-50:hover {
+  background-image: linear-gradient(
+    rgba(125, 243, 255, 0.05),
+    rgba(183, 138, 255, 0.04)
+  );
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║      28.  OVERLAYS OSCUROS  ·  bg-black/N, bg-slate-900/N, bg-zinc-*    ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="prisma"] .bg-slate-900\/45,
+html[data-theme="prisma"] .bg-black\/75,
+html[data-theme="prisma"] .bg-black\/65,
+html[data-theme="prisma"] .bg-black\/60,
+html[data-theme="prisma"] .bg-black\/55,
+html[data-theme="prisma"] .bg-black\/45,
+html[data-theme="prisma"] .bg-black\/40,
+html[data-theme="prisma"] .bg-black\/35 {
+  background-color: rgba(8, 6, 16, 0.58) !important;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+html[data-theme="prisma"] .bg-black\/30,
+html[data-theme="prisma"] .bg-black\/25,
+html[data-theme="prisma"] .bg-black\/20,
+html[data-theme="prisma"] .bg-black\/15,
+html[data-theme="prisma"] .bg-black\/10 {
+  background-color: rgba(18, 12, 32, 0.30) !important;
+}
+
+html[data-theme="prisma"] .bg-black\/\[0\.05\],
+html[data-theme="prisma"] .bg-black\/\[0\.04\],
+html[data-theme="prisma"] .bg-black\/\[0\.06\] {
+  background-color: rgba(255, 255, 255, 0.04) !important;
+}
+
+html[data-theme="prisma"] .bg-zinc-900,
+html[data-theme="prisma"] .bg-zinc-800,
+html[data-theme="prisma"] .hover\:bg-zinc-800:hover {
+  background-color: rgba(18, 12, 32, 0.92) !important;
+  border-color: rgba(255, 255, 255, 0.18) !important;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║      29.  TEXTO INVERSO  ·  text-[#0a0f1e] sobre chips amarillos         ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="prisma"] .text-\[\#0a0f1e\] {
+  color: rgba(15, 10, 26, 1) !important;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║      30.  AVATAR  ·  ring iridiscente sutil + dot de presencia           ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="prisma"] img.rounded-full.object-cover {
+  box-shadow: inset 0 0 0 1px rgba(125, 243, 255, 0.30);
+}
+
+html[data-theme="prisma"] .border-\[\#0a0f1e\] {
+  border-color: rgba(15, 10, 26, 0.95) !important;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║      31.  AUTO-STAGE-IN                                                  ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes prisma-stage-in {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  html[data-theme="prisma"] .app-dashboard-root > main,
+  html[data-theme="prisma"] .app-dashboard-root > section {
+    animation: prisma-stage-in 380ms cubic-bezier(0.2, 0.6, 0.2, 1) both;
+  }
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║      32.  SHINE DIAGONAL EN HOVER  ·  cards principales                  ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="prisma"] .glass-hover {
+  overflow: hidden;
+}
+
+html[data-theme="prisma"] .glass-hover::after,
+html[data-theme="prisma"] .glass-surface::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    115deg,
+    transparent 30%,
+    rgba(125, 243, 255, 0.14) 50%,
+    transparent 70%
+  );
+  transform: translateX(-110%);
+  transition: transform 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+  border-radius: inherit;
+  z-index: 0;
+}
+
+html[data-theme="prisma"] .glass-hover > * {
+  position: relative;
+  z-index: 1;
+}
+
+html[data-theme="prisma"] .glass-hover:hover::after,
+html[data-theme="prisma"] .glass-surface:hover::after {
+  transform: translateX(110%);
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║      33.  PRISMA EXTRAS  ·  Detalles especiales del tema                 ║
+ * ║                                                                          ║
+ * ║   - Iconos con leve glow cyan al hover sobre cards/botones cristal      ║
+ * ║   - Botón "Publicar" / submit con ripple iridiscente al click           ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+/* Iconos lucide dentro de botones ghost: glow cyan tenue al hover */
+html[data-theme="prisma"] button:hover svg.lucide,
+html[data-theme="prisma"] a:hover svg.lucide {
+  filter: drop-shadow(0 0 4px rgba(125, 243, 255, 0.35));
+  transition: filter 0.2s ease;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║      34.  ACCESIBILIDAD  ·  prefers-reduced-motion                       ║
+ * ║                                                                          ║
+ * ║   Desactiva animaciones potencialmente molestas (orbes/auras, plasma,   ║
+ * ║   partículas, borde iridiscente, reveal, stage-in, shine, shimmer,      ║
+ * ║   scanline, marco iridiscente). Mantiene cambios de color en hover/     ║
+ * ║   focus para que la UI siga siendo usable.                              ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-theme="prisma"] .prisma-bg .prisma-aura,
+  html[data-theme="prisma"] .prisma-bg .prisma-plasma .plasma-1,
+  html[data-theme="prisma"] .prisma-bg .prisma-plasma .plasma-2,
+  html[data-theme="prisma"] .prisma-bg .prisma-particles span {
+    animation: none !important;
+  }
+  html[data-theme="prisma"] .glow-border::after {
+    animation: none !important;
+  }
+  html[data-theme="prisma"] .glass-shell-frame {
+    animation: none !important;
+    background: rgba(125, 243, 255, 0.40);
+  }
+  html[data-theme="prisma"] .reveal {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+  html[data-theme="prisma"] .app-dashboard-root > main,
+  html[data-theme="prisma"] .app-dashboard-root > section {
+    animation: none !important;
+  }
+  html[data-theme="prisma"] .glass-hover::after,
+  html[data-theme="prisma"] .glass-surface::after,
+  html[data-theme="prisma"] button[data-variant="primary"]:not(:disabled)::after,
+  html[data-theme="prisma"] .btn-primary:not(:disabled)::after,
+  html[data-theme="prisma"] [data-cta="primary"]:not(:disabled)::after {
+    display: none !important;
+  }
+  html[data-theme="prisma"] .scanline-input::after {
+    display: none !important;
+  }
+  html[data-theme="prisma"] .glass-surface,
+  html[data-theme="prisma"] .glass,
+  html[data-theme="prisma"] .glass-1,
+  html[data-theme="prisma"] .glass-2,
+  html[data-theme="prisma"] .glass-3,
+  html[data-theme="prisma"] .glass-4 {
+    transition: none !important;
+  }
+}

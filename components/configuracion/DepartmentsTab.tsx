@@ -124,52 +124,59 @@ export function DepartmentsTab({
             L ? "bg-indigo-200/55" : "bg-indigo-500/14",
           )}
         />
-        <div className="relative flex flex-wrap items-start gap-3 sm:gap-4">
-          <div
-            className={cn(
-              "shrink-0 flex items-center justify-center w-11 h-11 sm:w-12 sm:h-12 rounded-2xl",
-              L
-                ? "bg-indigo-100 text-indigo-700 border border-indigo-200"
-                : "bg-indigo-500/15 text-indigo-300 border border-indigo-400/30",
-            )}
-          >
-            <Building2 className="w-5 h-5 sm:w-6 sm:h-6" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <p
+        {/* Mobile: stack vertical — icono+texto arriba, boton de accion
+            abajo a ancho completo. Antes el boton "Nuevo departamento"
+            ocupaba ~50% del ancho y forzaba al texto a una columna ultra
+            estrecha donde cada palabra caia en su propia linea. */}
+        <div className="relative flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-start sm:gap-4">
+          <div className="flex items-start gap-3 sm:gap-4 sm:flex-1 sm:min-w-0">
+            <div
               className={cn(
-                "mb-1 text-[10.5px] font-semibold uppercase tracking-[0.18em]",
-                L ? "text-zinc-500" : "text-white/40",
+                "shrink-0 flex items-center justify-center w-11 h-11 sm:w-12 sm:h-12 rounded-2xl",
+                L
+                  ? "bg-indigo-100 text-indigo-700 border border-indigo-200"
+                  : "bg-indigo-500/15 text-indigo-300 border border-indigo-400/30",
               )}
             >
-              Configuración · Departamentos
-            </p>
-            <h2
-              className={cn(
-                "text-lg sm:text-xl font-semibold leading-tight tracking-tight",
-                L ? "text-zinc-900" : "text-white",
-              )}
-            >
-              Departamentos
-            </h2>
-            <p
-              className={cn(
-                "mt-1.5 text-xs sm:text-sm leading-relaxed",
-                L ? "text-zinc-600" : "text-white/55",
-              )}
-            >
-              Crea y organiza los departamentos a los que pertenecen tus
-              compañeros. El color de acento se aplica en bitácora, proyectos
-              y el resto de la app.
-            </p>
+              <Building2 className="w-5 h-5 sm:w-6 sm:h-6" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p
+                className={cn(
+                  "mb-1 text-[10.5px] font-semibold uppercase tracking-[0.18em]",
+                  L ? "text-zinc-500" : "text-white/40",
+                )}
+              >
+                Configuración · Departamentos
+              </p>
+              <h2
+                className={cn(
+                  "text-lg sm:text-xl font-semibold leading-tight tracking-tight",
+                  L ? "text-zinc-900" : "text-white",
+                )}
+              >
+                Departamentos
+              </h2>
+              <p
+                className={cn(
+                  "mt-1.5 text-xs sm:text-sm leading-relaxed [overflow-wrap:break-word]",
+                  L ? "text-zinc-600" : "text-white/55",
+                )}
+              >
+                Crea y organiza los departamentos a los que pertenecen tus
+                compañeros. El color de acento se aplica en bitácora, proyectos
+                y el resto de la app.
+              </p>
+            </div>
           </div>
           {isPlatformOwner && (
-            <div className="shrink-0">
+            <div className="w-full sm:w-auto sm:shrink-0">
               <Button
                 variant="primary"
                 size="md"
                 type="button"
                 onClick={openModal}
+                className="w-full justify-center sm:w-auto"
               >
                 <Plus className="w-3.5 h-3.5" />
                 Nuevo departamento

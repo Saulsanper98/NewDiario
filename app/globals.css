@@ -256,19 +256,14 @@ body {
   overflow-x: hidden;
 }
 
-/* Reset multimedia: imagenes/videos/canvas no deben desbordar nunca
-   su contenedor. Tailwind preflight ya aplica `max-width: 100%` a
-   `img`/`video`, pero los `<img>` inyectados desde TipTap o
-   menciones de chat a veces traen `width=` HTML inline; reforzamos
-   con `!important` para neutralizarlos.
-   NOTA: NO aplicamos a `svg` porque los iconos (lucide-react) usan
-   tamano explicito `w-4 h-4` y `height:auto` los deformaria. */
-img,
-video,
-canvas {
-  max-width: 100% !important;
-  height: auto;
-}
+/* Reset multimedia: NO aplicamos `max-width: 100% !important` globalmente
+   porque rompe componentes con tamano fijo via `h-N` / `w-N` Tailwind:
+   el Logo (`h-7 max-w-[120px]`), avatares, thumbnails... pierden su
+   altura porque `height: auto` recalcula del ancho. Tailwind preflight
+   ya da `max-width: 100%` y `height: auto` a `img,video,canvas` por
+   defecto (sin !important), y eso basta para 99% de los casos.
+   El control especifico para imagenes dentro del cuerpo de notas vive
+   en `[data-bitacora-prose] img,video` mas abajo en este archivo. */
 
 /* ── Glassmorphism — capas de elevación (1 = base … 4 = modales) ───────────
    Todas las variantes usan position: relative (stacking + ::after textura).
@@ -2121,9 +2116,21 @@ html[data-theme="light"] .chat-page-root .chat-page-inner::before {
   --border-strong: rgba(255, 255, 255, 0.14);
 }
 
-/* Ancho óptimo de lectura para HTML de notas (no afecta dashboards) */
-.prose-read-width {
-  max-width: 70ch;
+/* Ancho óptimo de lectura para HTML de notas (no afecta dashboards).
+   Usamos `min(70ch, 100%)` en lugar de `70ch` directo: en desktop el
+   ancho efectivo sigue siendo 70ch (≈437px a 14px) para una lectura
+   confortable; en mobile (viewport <437px) gana `100%` del padre y el
+   contenedor no desborda el card. Sin esto, el ancho `70ch` en mobile
+   hacía que el `<p>` midiera ~437px en un viewport de 390px, y el
+   texto se cortaba por la derecha del card.
+   `!important`: blindaje contra cualquier otra regla de la hoja con
+   misma especificidad pero declarada despues (en particular
+   `[data-bitacora-prose] { max-width: 100% }` mas abajo, que sin esto
+   ganaria por orden de fuente). */
+.prose-read-width,
+[data-bitacora-prose].prose-read-width,
+[data-bitacora-html-body].prose-read-width {
+  max-width: min(70ch, 100%) !important;
 }
 
 /* Enlaces y targets grandes: foco visible coherente */
@@ -3024,15 +3031,43 @@ textarea::placeholder {
  */
 [data-bitacora-prose] {
   --bitacora-p-gap: 0;
+  /* Mobile: forzar wrapping de cualquier palabra/URL larga para que el
+     cuerpo de la nota no desborde el card hacia la derecha (problema
+     observado con menciones inline + texto largo sin espacios). */
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  min-width: 0;
+  max-width: 100%;
   /* reservado por si en el futuro se calibra altura mínima de línea en blanco explícita */
-  --bitacora-blank-line-min-height: 1em;
-  /* Mobile: las menciones (@Nombre Apellido) y URLs muy largas
-     desbordaban horizontalmente porque no llevaban espacio para
-     hacer wrap. Forzamos `overflow-wrap: anywhere` solo aqui (no a
-     nivel global para no romper code blocks en desktop). */
+}
+
+/* Forzar que CUALQUIER descendiente del cuerpo de la nota respete el
+   ancho del contenedor — incluye <p>, <li>, <span> (menciones), <a>
+   (URLs), <pre>/<code> (bloques de codigo, que por defecto pueden
+   desbordar horizontalmente), <table>... Sin esto, una URL larga,
+   un nombre+apellido mencionado o un parrafo con texto continuo
+   podia empujar el ancho del .prose mas alla del card en mobile.
+   IMPORTANTE: el atributo `data-bitacora-prose` lo lleva tambien el
+   wrapper outer del editor TipTap (RichEditor.tsx), no solo el cuerpo
+   de lectura. Por eso usamos selectores ESPECIFICOS al area de
+   contenido (lectura `[data-bitacora-html-body]` y editable
+   `.ProseMirror`) en lugar de `[data-bitacora-prose] *` global, que
+   afectaria a toolbar/footer/dialogos del editor. */
+[data-bitacora-html-body] *,
+[data-bitacora-prose] .ProseMirror * {
+  max-width: 100%;
   overflow-wrap: anywhere;
   word-break: break-word;
 }
+[data-bitacora-html-body] pre,
+[data-bitacora-html-body] code,
+[data-bitacora-html-body] table,
+[data-bitacora-prose] .ProseMirror pre,
+[data-bitacora-prose] .ProseMirror code,
+[data-bitacora-prose] .ProseMirror table {
+  overflow-x: auto;
+}
+
 /* Las menciones (.bitacora-mention) son <span> en linea con padding;
    forzamos que tambien rompan para que un nombre+apellido largo no
    desborde. */

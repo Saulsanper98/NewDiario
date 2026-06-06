@@ -220,7 +220,7 @@ export function LogEntryPollsCard({
   return (
     <div
       className={cn(
-        "mt-7 pt-6 border-t print:hidden",
+        "mt-7 pt-6 border-t print:hidden min-w-0 max-w-full",
         L ? "border-zinc-200/90" : "border-white/[0.08]"
       )}
     >
