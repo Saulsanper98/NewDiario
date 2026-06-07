@@ -8,6 +8,7 @@ import { MobileNav } from "@/components/layout/MobileNav";
 import { PageTransition } from "@/components/layout/PageTransition";
 import { AnnouncementBanner } from "@/components/layout/AnnouncementBanner";
 import { WelcomeOverlay } from "@/components/layout/WelcomeOverlay";
+import { DatawallAutoRefresh } from "@/components/layout/DatawallAutoRefresh";
 import { isAdminOrAbove, getActiveDepartmentId } from "@/lib/auth/permissions";
 import { isBugReportsAdmin } from "@/lib/bug-reports";
 import type { SessionUser } from "@/lib/auth/types";
@@ -119,6 +120,11 @@ export default async function DashboardLayout({
               pendingFollowups={pendingFollowups}
               unreadReleaseNotes={unreadReleaseNotes}
             />
+            {/* Auto-refresh para cuentas en modo Datawall — re-renderiza
+                el server tree cada 8 s para mostrar cambios hechos desde
+                otros PCs. Pausa cuando hay foco en inputs o pestaña oculta.
+                Para cuentas normales, `enabled={false}` ⇒ no monta nada. */}
+            <DatawallAutoRefresh enabled={user.kioskMode === true} />
           </div>
         </div>
       </div>

@@ -142,6 +142,9 @@ export const edgeAuthConfig: NextAuthConfig = {
         token.role = u.role;
         token.departments = u.departments;
         token.activeDepartmentId = u.activeDepartmentId;
+        token.kioskMode = u.kioskMode ?? false;
+        token.kioskSection = u.kioskSection ?? null;
+        token.linkedAccountEmail = u.linkedAccountEmail ?? null;
       }
       if (trigger === "update" && session && typeof session === "object") {
         const s = session as Record<string, unknown>;
@@ -178,6 +181,9 @@ export const edgeAuthConfig: NextAuthConfig = {
         if (Array.isArray(s.departments)) {
           token.departments = s.departments;
         }
+        if (typeof s.kioskSection === "string" || s.kioskSection === null) {
+          token.kioskSection = s.kioskSection as string | null;
+        }
       }
       return token;
     },
@@ -212,6 +218,17 @@ export const edgeAuthConfig: NextAuthConfig = {
       if (token.departments) session.user.departments = token.departments;
       if (token.activeDepartmentId !== undefined) {
         session.user.activeDepartmentId = token.activeDepartmentId;
+      }
+      if (token.kioskMode !== undefined) {
+        session.user.kioskMode = token.kioskMode;
+      }
+      if (token.kioskSection !== undefined) {
+        session.user.kioskSection = token.kioskSection as string | null;
+      }
+      if (token.linkedAccountEmail !== undefined) {
+        session.user.linkedAccountEmail = token.linkedAccountEmail as
+          | string
+          | null;
       }
       return session;
     },

@@ -13,6 +13,7 @@ import { Avatar } from "@/components/ui/Avatar";
 import { AvatarImagePreview } from "@/components/ui/AvatarImagePreview";
 import { AvatarFrameGrid } from "@/components/ui/AvatarFramePicker";
 import { ProfileBannerFields } from "@/components/profile/ProfileBannerFields";
+import { AccountSwitchButton } from "@/components/layout/AccountSwitchButton";
 import type { SessionUser } from "@/lib/auth/types";
 import type { AvatarFrameEffect } from "@/lib/avatar-frame";
 import { avatarFrameLabel } from "@/lib/avatar-frame";
@@ -130,12 +131,21 @@ export function SidebarProfileMenu({
         <div
           role="dialog"
           aria-label="Perfil"
+          /*
+           * Fondos, bordes y sombras se leen de CSS vars `--profile-menu-*`,
+           * definidas en `app/globals.css` y sobreescritas por cada tema en
+           * `app/theme-*.css`. Así el desplegable combina con la paleta del
+           * tema activo (Ocaso, Terminal, Neon, Prisma...) sin
+           * tener que ramificar JSX por tema.
+           */
+          style={{
+            backgroundColor: "var(--profile-menu-bg)",
+            borderColor: "var(--profile-menu-border)",
+            boxShadow: "var(--profile-menu-shadow)",
+          }}
           className={cn(
-            "absolute bottom-full z-[60] mb-2 overflow-hidden rounded-xl border shadow-2xl backdrop-blur-md",
-            isExpanded ? "left-0 right-0 w-full min-w-[15.5rem]" : "left-0 w-[17.5rem]",
-            isLight
-              ? "border-zinc-200/90 bg-[#f4f4f5] shadow-[0_12px_40px_rgba(15,23,42,0.15)]"
-              : "border-white/10 bg-[#0d1427]/98 shadow-[0_16px_48px_rgba(0,0,0,0.55)]"
+            "absolute bottom-full z-[60] mb-2 overflow-hidden rounded-xl border backdrop-blur-md",
+            isExpanded ? "left-0 right-0 w-full min-w-[15.5rem]" : "left-0 w-[17.5rem]"
           )}
         >
           <ProfileMenuBanner
@@ -143,7 +153,9 @@ export function SidebarProfileMenu({
             focusX={user.bannerFocusX}
             focusY={user.bannerFocusY}
             accentColor={bannerColor}
-            blendToColor={isLight ? "#f4f4f5" : "#0d1427"}
+            // `blendToColor` necesita un color HEX/SOLID para fundir el degradado
+            // del banner placeholder; usamos la versión sólida de la var.
+            blendToColor="var(--profile-menu-solid)"
           />
           <div className="relative px-3 pb-1">
             <div className="-mt-7 mb-2 flex items-end justify-between gap-2">
@@ -152,9 +164,13 @@ export function SidebarProfileMenu({
                 onClick={() => user.image && setPreviewOpen(true)}
                 disabled={!user.image}
                 title={user.image ? "Ver foto" : undefined}
+                style={{
+                  // El ring debe matchear el fondo sólido del panel para que el
+                  // avatar parezca "recortado" del banner.
+                  ["--tw-ring-color" as string]: "var(--profile-menu-solid)",
+                }}
                 className={cn(
                   "rounded-full ring-4 focus:outline-none focus-visible:ring-[#ffeb66]/50",
-                  isLight ? "ring-[#f4f4f5]" : "ring-[#0d1427]",
                   user.image ? "cursor-zoom-in" : "cursor-default"
                 )}
               >
@@ -213,10 +229,11 @@ export function SidebarProfileMenu({
           </div>
 
           <div
-            className={cn(
-              "mx-2 mb-2 space-y-0.5 rounded-lg p-1",
-              isLight ? "bg-white/80" : "bg-black/20"
-            )}
+            // El "card" interior con los items: lo tematizamos vía CSS var en
+            // vez de bifurcar por isLight/no-isLight. Cada tema define su
+            // `--profile-menu-section` en `app/theme-*.css`.
+            style={{ backgroundColor: "var(--profile-menu-section)" }}
+            className="mx-2 mb-2 space-y-0.5 rounded-lg p-1"
           >
             <Link
               href={profileHref}
@@ -265,19 +282,13 @@ export function SidebarProfileMenu({
               </div>
             )}
 
-            {user.image && (
-              <button
-                type="button"
-                onClick={() => {
-                  setPreviewOpen(true);
-                  onOpenChange(false);
-                }}
-                className={menuItemClass}
-              >
-                <ImageIcon className="h-4 w-4 shrink-0 opacity-70" />
-                <span className="flex-1">Ver foto de perfil</span>
-              </button>
-            )}
+            {/*
+             * Botón "Ver foto de perfil" retirado por decisión de UX (la
+             * acción duplicaba la del avatar grande del header del menú, que
+             * ya es clickable con `cursor-zoom-in` y abre el mismo
+             * `<AvatarImagePreview />`). Conservamos el preview y su trigger
+             * principal: pulsar la foto del avatar grande.
+             */}
 
             <button
               type="button"
@@ -316,6 +327,15 @@ export function SidebarProfileMenu({
                   }}
                 />
               </div>
+            )}
+
+            {user.linkedAccountEmail && (
+              <AccountSwitchButton
+                linkedEmail={user.linkedAccountEmail}
+                variant="menu-item"
+                isLight={isLight}
+                onBeforeOpen={() => onOpenChange(false)}
+              />
             )}
 
             <button

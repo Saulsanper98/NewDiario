@@ -262,9 +262,20 @@ export function ConfigTabs({
   const { theme } = useTheme();
   const L = theme === "light";
 
-  const [activeTab, setActiveTab] = useState<Tab>(isAdmin ? "users" : "profile");
+  /* En modo Datawall (kiosko) forzamos "profile" como tab activa por defecto:
+     el resto del menú está oculto en el sidebar y aquí debe ser coherente. */
+  const isKiosk = currentUser.kioskMode === true;
+
+  const [activeTab, setActiveTab] = useState<Tab>(
+    isKiosk ? "profile" : isAdmin ? "users" : "profile"
+  );
 
   const visibleTabs = useMemo<Tab[]>(() => {
+    /* Modo Datawall: solo "Mi cuenta" — aunque la cuenta sea ADMIN, en
+       kiosko no exponemos Usuarios/Departamentos/Logs/Microsoft/Informes
+       para reducir la superficie de ataque en pantalla siempre visible. */
+    if (isKiosk) return ["profile"];
+
     if (!isAdmin) {
       /* Usuarios normales solo ven su perfil y la lista de usuarios. */
       return ["profile", "users"];
@@ -272,7 +283,7 @@ export function ConfigTabs({
     return TAB_ORDER.filter(
       (id) => !TAB_META[id].superAdminOnly || isPlatformOwner
     );
-  }, [isAdmin, isPlatformOwner]);
+  }, [isAdmin, isPlatformOwner, isKiosk]);
 
   const visibleTabIds = useMemo(() => new Set(visibleTabs), [visibleTabs]);
 

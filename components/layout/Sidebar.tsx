@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { SidebarProfileMenu } from "@/components/layout/SidebarProfileMenu";
+import { AccountSwitchButton } from "@/components/layout/AccountSwitchButton";
 import { usePathname } from "next/navigation";
 import {
   useState,
@@ -326,24 +327,49 @@ export function Sidebar({
             expandido mostramos un titulo pequeno por seccion. Cuando esta
             contraido usamos solo un separador visual. */}
         {(() => {
-          // Construimos secciones dinamicas anadiendo "Sistema" condicionalmente.
-          const sections: NavSection[] = [
-            ...navSections,
-            {
-              title: "Sistema",
-              items: [
-                { label: "Novedades", href: "/novedades", icon: Megaphone, exact: true },
-                ...(isBugReportsAdmin
-                  ? [{ label: "Incidencias", href: "/bugs", icon: Bug } as NavItem]
-                  : []),
-                {
-                  label: isAdmin ? "Configuración" : "Mi cuenta",
-                  href: "/configuracion",
-                  icon: Settings,
-                },
-              ],
-            },
-          ];
+          // Modo Datawall (kiosko): la cuenta queda restringida a UNA sola
+          // sección operativa (Proyectos o Bitácora) + "Mi cuenta". Resto
+          // del sidebar oculto. La sección la decide `user.kioskSection`.
+          const kioskMode = user.kioskMode === true;
+          const kioskSection = (user.kioskSection ?? "proyectos") as
+            | "proyectos"
+            | "bitacora";
+
+          let sections: NavSection[];
+
+          if (kioskMode) {
+            const operativeItem: NavItem =
+              kioskSection === "bitacora"
+                ? { label: "Bitácora", href: "/bitacora/dia", icon: BookOpen }
+                : { label: "Proyectos", href: "/proyectos", icon: FolderKanban };
+            sections = [
+              { title: "Datawall", items: [operativeItem] },
+              {
+                title: "Sistema",
+                items: [
+                  { label: "Mi cuenta", href: "/configuracion", icon: Settings },
+                ],
+              },
+            ];
+          } else {
+            sections = [
+              ...navSections,
+              {
+                title: "Sistema",
+                items: [
+                  { label: "Novedades", href: "/novedades", icon: Megaphone, exact: true },
+                  ...(isBugReportsAdmin
+                    ? [{ label: "Incidencias", href: "/bugs", icon: Bug } as NavItem]
+                    : []),
+                  {
+                    label: isAdmin ? "Configuración" : "Mi cuenta",
+                    href: "/configuracion",
+                    icon: Settings,
+                  },
+                ],
+              },
+            ];
+          }
 
           let runningIndex = 0;
           return sections.map((section, sIdx) => (
@@ -491,6 +517,18 @@ export function Sidebar({
 
       {/* Bottom section: perfil + modo del menú */}
       <div className="p-3 border-t border-white/8 shrink-0 space-y-1">
+        {/* Botón de switch a cuenta vinculada (visible solo si la sesión
+            actual tiene `linkedAccountEmail`). Pensado para alternar entre
+            la cuenta del datawall y la cuenta personal del operador sin
+            tener que reintroducir contraseña. */}
+        {user.linkedAccountEmail && (
+          <AccountSwitchButton
+            linkedEmail={user.linkedAccountEmail}
+            variant="sidebar-tile"
+            isExpanded={isExpanded}
+            isLight={isLight}
+          />
+        )}
         <SidebarProfileMenu
           user={user}
           isAdmin={isAdmin}

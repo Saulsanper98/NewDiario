@@ -19,6 +19,7 @@ import {
 import toast from "react-hot-toast";
 import { Avatar } from "@/components/ui/Avatar";
 import { AvatarImagePreview } from "@/components/ui/AvatarImagePreview";
+import { KioskSettingsCard } from "@/components/configuracion/KioskSettingsCard";
 import { ProfileBannerFields } from "@/components/profile/ProfileBannerFields";
 import { FocusPicker } from "@/components/profile/FocusPicker";
 import { ProfileMenuBanner } from "@/components/ui/ProfileMenuBanner";
@@ -712,6 +713,20 @@ export function MyProfileTab({ currentUser }: MyProfileTabProps) {
           </Button>
         </div>
       </form>
+
+      {/* Tarjeta "Modo Datawall": solo visible para cuentas con `kioskMode`
+          activo (p. ej. tareas@). Permite cambiar qué sección (Proyectos /
+          Bitácora) se muestra en el datawall sin tocar BD ni código. */}
+      {currentUser.kioskMode === true && (
+        <KioskSettingsCard
+          initialSection={
+            (currentUser.kioskSection ?? "proyectos") === "bitacora"
+              ? "bitacora"
+              : "proyectos"
+          }
+          isLight={L}
+        />
+      )}
 
       <AvatarImagePreview
         open={previewOpen}

@@ -192,6 +192,9 @@ const credentialProvider = Credentials({
         isDefault: d.isDefault,
       })),
       activeDepartmentId: defaultDept?.departmentId ?? null,
+      kioskMode: user.kioskMode ?? false,
+      kioskSection: user.kioskSection ?? null,
+      linkedAccountEmail: user.linkedAccountEmail ?? null,
     };
   },
 });
@@ -283,6 +286,9 @@ export const authConfig = {
               isDefault: d.isDefault,
             }));
             token.activeDepartmentId = defaultDept?.departmentId ?? null;
+            token.kioskMode = dbUser.kioskMode ?? false;
+            token.kioskSection = dbUser.kioskSection ?? null;
+            token.linkedAccountEmail = dbUser.linkedAccountEmail ?? null;
           }
         }
         return token;
@@ -303,6 +309,9 @@ export const authConfig = {
         token.passwordChangedAt = u.passwordChangedAt ?? null;
         token.departments = u.departments;
         token.activeDepartmentId = u.activeDepartmentId;
+        token.kioskMode = u.kioskMode ?? false;
+        token.kioskSection = u.kioskSection ?? null;
+        token.linkedAccountEmail = u.linkedAccountEmail ?? null;
       }
       if (trigger === "update" && session && typeof session === "object") {
         const s = session as Record<string, unknown>;
@@ -338,6 +347,9 @@ export const authConfig = {
         }
         if (Array.isArray(s.departments)) {
           token.departments = s.departments as UserDepartment[];
+        }
+        if (typeof s.kioskSection === "string" || s.kioskSection === null) {
+          token.kioskSection = s.kioskSection as string | null;
         }
       }
 

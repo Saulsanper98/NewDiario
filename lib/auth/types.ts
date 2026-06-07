@@ -33,6 +33,16 @@ export interface SessionUser {
   passwordChangedAt?: number | null;
   departments: UserDepartment[];
   activeDepartmentId: string | null;
+  /**
+   * Modo Datawall (kiosko). Si es true, la cuenta queda restringida a
+   * `kioskSection` + Configuración en el sidebar/middleware, y activa
+   * auto-refresh en tiempo real en la sección operativa.
+   */
+  kioskMode?: boolean;
+  /** Sección operativa visible en modo Datawall: "proyectos" | "bitacora". */
+  kioskSection?: string | null;
+  /** Email de cuenta hermana para switch rápido (vinculación recíproca). */
+  linkedAccountEmail?: string | null;
 }
 
 declare module "next-auth" {
@@ -56,6 +66,9 @@ declare module "next-auth/jwt" {
     passwordChangedAt?: number | null;
     departments?: UserDepartment[];
     activeDepartmentId?: string | null;
+    kioskMode?: boolean;
+    kioskSection?: string | null;
+    linkedAccountEmail?: string | null;
   }
 }
 

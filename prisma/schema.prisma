@@ -284,6 +284,31 @@ model User {
    */
   soundPreferences      Json?
 
+  /**
+   * Modo Datawall (kiosko). Cuando es true, la cuenta queda restringida a
+   * una sola sección operativa + Configuración (resto del sidebar oculto,
+   * rutas fuera de scope redirigidas en el middleware) y Proyectos/Bitácora
+   * activan auto-refresh en tiempo real para servir como datawall.
+   *
+   * Pensado para cuentas tipo "tareas@" que viven en pantallas siempre
+   * encendidas y son operadas por una persona humana con su propia cuenta.
+   */
+  kioskMode             Boolean   @default(false)
+  /**
+   * Sección operativa visible cuando kioskMode = true. Valores soportados:
+   *   - "proyectos"  (default)
+   *   - "bitacora"
+   * Si kioskMode = false, este campo se ignora.
+   */
+  kioskSection          String?
+  /**
+   * Email de otra cuenta vinculada para el switch rápido SIN reintroducir
+   * password (modo "cuentas hermanas"). Se asume confianza física en la
+   * pantalla. La vinculación debe ser recíproca y se valida en el endpoint
+   * /api/account-switch: el destino tiene que apuntar de vuelta al origen.
+   */
+  linkedAccountEmail    String?
+
   @@index([email])
   @@index([role])
   @@index([isActive])

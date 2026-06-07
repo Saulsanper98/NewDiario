@@ -34,6 +34,9 @@ export async function refreshTokenUserFromDb(
       isActive: true,
       deletedAt: true,
       passwordChangedAt: true,
+      kioskMode: true,
+      kioskSection: true,
+      linkedAccountEmail: true,
       departments: {
         include: { department: true },
         where: { department: { isArchived: false } },
@@ -95,4 +98,7 @@ export async function refreshTokenUserFromDb(
     })
   );
   token.activeDepartmentId = defaultDept?.departmentId ?? null;
+  token.kioskMode = dbUser.kioskMode ?? false;
+  token.kioskSection = dbUser.kioskSection ?? null;
+  token.linkedAccountEmail = dbUser.linkedAccountEmail ?? null;
 }

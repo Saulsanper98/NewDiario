@@ -247,6 +247,35 @@ export default auth((req) => {
     return Response.redirect(new URL("/dashboard", nextUrl));
   }
 
+  // ── Modo Datawall (kiosko) ─────────────────────────────────────────────
+  // Cuando la cuenta tiene kioskMode=true, restringimos su navegación a
+  // UNA sección operativa (/proyectos o /bitacora) + /configuracion. El
+  // resto del dashboard (Dashboard, Traspaso, Calendario, Novedades, …)
+  // redirige a la sección kiosko. Las /api/* se dejan pasar — su
+  // autorización ya está implementada endpoint por endpoint.
+  if (
+    isLoggedIn &&
+    !isApiRoute &&
+    (session?.user as { kioskMode?: boolean } | undefined)?.kioskMode === true
+  ) {
+    const kioskSection =
+      ((session?.user as { kioskSection?: string | null } | undefined)
+        ?.kioskSection ?? "proyectos") as "proyectos" | "bitacora";
+    const kioskHome =
+      kioskSection === "bitacora" ? "/bitacora/dia" : "/proyectos";
+    const path = nextUrl.pathname;
+    const sectionPrefix =
+      kioskSection === "bitacora" ? "/bitacora" : "/proyectos";
+
+    const isInAllowedSection =
+      path.startsWith(sectionPrefix) || path.startsWith("/configuracion");
+
+    if (!isInAllowedSection) {
+      // /, /dashboard, /traspaso, /calendario, /novedades, /bugs, /chat, /bitacora/* (si la sección kiosko es proyectos), etc.
+      return NextResponse.redirect(new URL(kioskHome, nextUrl));
+    }
+  }
+
   return passResponse;
 });
 
