@@ -85,7 +85,11 @@
       "Bash(Stop-Process -Force)",
       "Bash(npm run *)",
       "Bash(curl -s http://localhost:3000/api/login-departments)",
-      "Bash(curl -sv http://localhost:3000/api/login-departments)"
+      "Bash(curl -sv http://localhost:3000/api/login-departments)",
+      "Bash(powershell -Command \"Select-String -Path 'app/theme-prisma.css' -Pattern 'prisma-shell-rotate|glass-shell-frame::before' | Select-Object -First 8\")",
+      "Bash(powershell -Command \"Select-String -Path 'app/theme-ccmgc.css' -Pattern 'ccmgc-radar|ccmgc-scanline' | Select-Object -First 8\")",
+      "Bash(powershell -Command \"Select-String -Path 'app/theme-cosmos.css' -Pattern 'cosmos-comet|cosmos-milky2' | Select-Object -First 8\")",
+      "Bash(powershell -Command \"Select-String -Path 'app/theme-minimal.css' -Pattern 'data-node|minimal-orbit-2|minimal-scanline|circuit-flow.circuit-[3456]' | Select-Object -First 15\")"
     ]
   }
 }

@@ -20,6 +20,20 @@ import type { NextConfig } from "next";
  */
 const IS_HTTPS = (process.env.NEXTAUTH_URL ?? "").toLowerCase().startsWith("https:");
 
+/**
+ * `next dev` (tanto en modo webpack como turbopack) genera chunks que usan
+ * `eval(...)` internamente para los sourcemaps del HMR. Sin `'unsafe-eval'`
+ * en el `script-src`, el navegador bloquea cada chunk → React nunca hidrata
+ * → la app entera se queda con el HTML del SSR (spinners de "loading" y
+ * formularios congelados). En `next start` (producción) los chunks NO
+ * contienen `eval` y mantenemos la CSP estricta original.
+ *
+ * Detección: `NODE_ENV === "development"` lo setea Next automáticamente
+ * (`dev` → development, `start` → production). No depende de variables
+ * propias, así que no hay que tocar `.env`.
+ */
+const IS_DEV = process.env.NODE_ENV === "development";
+
 const SECURITY_HEADERS = [
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "X-Frame-Options", value: "SAMEORIGIN" },
@@ -55,8 +69,11 @@ const SECURITY_HEADERS = [
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com",
       // Next inyecta scripts inline en hidratacion; 'unsafe-inline' se queda
-      // mientras no migremos a nonces. 'unsafe-eval' fuera.
-      "script-src 'self' 'unsafe-inline'",
+      // mientras no migremos a nonces. En `next dev` añadimos `'unsafe-eval'`
+      // porque webpack genera chunks con `eval(...)` para sourcemaps del HMR.
+      // En `next start` (producción) NO se incluye — los chunks de prod no
+      // usan eval y mantenemos la CSP estricta original del security audit.
+      `script-src 'self' 'unsafe-inline'${IS_DEV ? " 'unsafe-eval'" : ""}`,
       "connect-src 'self' http: https: wss: ws:",
       "worker-src 'self' blob:",
       // upgrade-insecure-requests deliberadamente FUERA: el servicio acepta

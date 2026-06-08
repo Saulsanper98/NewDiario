@@ -9,6 +9,7 @@ import { PageTransition } from "@/components/layout/PageTransition";
 import { AnnouncementBanner } from "@/components/layout/AnnouncementBanner";
 import { WelcomeOverlay } from "@/components/layout/WelcomeOverlay";
 import { DatawallAutoRefresh } from "@/components/layout/DatawallAutoRefresh";
+import { NavMirrorMount } from "@/components/presence/NavMirrorMount";
 import { isAdminOrAbove, getActiveDepartmentId } from "@/lib/auth/permissions";
 import { isBugReportsAdmin } from "@/lib/bug-reports";
 import type { SessionUser } from "@/lib/auth/types";
@@ -125,6 +126,15 @@ export default async function DashboardLayout({
                 otros PCs. Pausa cuando hay foco en inputs o pestaña oculta.
                 Para cuentas normales, `enabled={false}` ⇒ no monta nada. */}
             <DatawallAutoRefresh enabled={user.kioskMode === true} />
+            {/* Espejado de navegación entre las dos sesiones del par
+                tareas@↔abian@. Internamente decide publisher/follower
+                según el flag local del navegador y muestra un indicador
+                discreto cuando hay actividad. Para el resto de usuarios
+                no monta absolutamente nada. */}
+            <NavMirrorMount
+              userEmail={user.email ?? null}
+              linkedAccountEmail={user.linkedAccountEmail ?? null}
+            />
           </div>
         </div>
       </div>

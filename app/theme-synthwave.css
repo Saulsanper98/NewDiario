@@ -1,0 +1,678 @@
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║   TEMA "SYNTHWAVE" · TRIBUTO · Outrun retro 80s                          ║
+ * ║   Sol partido magenta-naranja + grid violeta en perspectiva. Aislado.   ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="synthwave"] {
+  --bg-0: #0c0420;
+  --bg-1: #16082e;
+  --bg-2: #1f0c3e;
+
+  --card: linear-gradient(180deg, #1d0a3e 0%, #16082e 60%, #100624 100%);
+  --surface:   rgba(38, 18, 70, 0.92);
+  --surface-2: rgba(255, 42, 142, 0.04);
+  --border:        rgba(255, 42, 142, 0.22);
+  --border-strong: rgba(255, 42, 142, 0.50);
+
+  --accent:        #ff2a8e;       /* magenta hot pink */
+  --accent-bright: #ff5fa8;
+  --accent-glow:   rgba(255, 42, 142, 0.40);
+  --accent-2:      #ff8a3a;       /* naranja sol */
+  --accent-3:      #6e2bff;       /* violeta synth */
+
+  --text:      #ffe6f4;
+  --text-soft: #f0b8d8;
+  --muted:     #946a8a;
+
+  --ok:         #4dffaa;
+  --gold-relic: #ffd84a;
+
+  --font-display: "Orbitron", ui-monospace, "Cascadia Code", "JetBrains Mono", Consolas, monospace;
+  --font-ui:      "Sora", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+
+  --app-canvas-color: transparent;
+  --app-canvas-image: none;
+  --card-isolation: auto;
+
+  color-scheme: dark;
+}
+
+html[data-theme="synthwave"] body { min-height: 100vh; }
+html[data-theme="synthwave"] .app-sidebar-shell,
+html[data-theme="synthwave"] .app-top-header { isolation: auto !important; }
+
+
+/* ── 1. FONDO ─────────────────────────────────────────────────────────── */
+html[data-theme="synthwave"] .synth-bg {
+  position: fixed; inset: 0; z-index: -10; overflow: hidden; pointer-events: none;
+  background:
+    /* cielo: violeta noche → magenta horizonte → naranja sol */
+    linear-gradient(180deg,
+      #0c0420 0%,
+      #1a0840 24%,
+      #3a0e60 42%,
+      #6e1a78 55%,
+      #c41a78 65%,
+      #ff2a8e 70%,
+      transparent 75%),
+    linear-gradient(180deg, #0c0420 0%, #16082e 60%, #100624 100%);
+}
+
+/* ── 1.1 Sol partido (segmentos horizontales) ─────────────────────────── */
+html[data-theme="synthwave"] .synth-bg .synth-sun {
+  position: absolute; left: 50%; top: 28%;
+  width: 360px; height: 360px; margin-left: -180px;
+  border-radius: 50%;
+  background: linear-gradient(180deg,
+    #ffd070 0%, #ffa040 35%, #ff6a3a 60%, #ff2a8e 100%);
+  /* franjas oscuras horizontales que cortan el sol creando el efecto retro */
+  -webkit-mask-image: repeating-linear-gradient(
+    0deg,
+    #000 0 8px, transparent 8px 10px,
+    #000 10px 16px, transparent 16px 19px,
+    #000 19px 23px, transparent 23px 27px,
+    #000 27px 30px, transparent 30px 35px,
+    #000 35px 100%);
+  mask-image: repeating-linear-gradient(
+    0deg,
+    #000 0 8px, transparent 8px 10px,
+    #000 10px 16px, transparent 16px 19px,
+    #000 19px 23px, transparent 23px 27px,
+    #000 27px 30px, transparent 30px 35px,
+    #000 35px 100%);
+  filter: drop-shadow(0 0 22px rgba(255, 100, 180, 0.65))
+          drop-shadow(0 0 60px rgba(255, 60, 130, 0.35));
+  pointer-events: none;
+  animation: synth-sun-pulse 8s ease-in-out infinite;
+  will-change: filter;
+}
+@keyframes synth-sun-pulse {
+  0%, 100% { filter: drop-shadow(0 0 22px rgba(255, 100, 180, 0.65)) drop-shadow(0 0 60px rgba(255, 60, 130, 0.35)); }
+  50%      { filter: drop-shadow(0 0 32px rgba(255, 130, 200, 0.85)) drop-shadow(0 0 90px rgba(255, 80, 160, 0.55)); }
+}
+
+/* ── 1.2 Grid en perspectiva (suelo violeta scrolleando) ──────────────── */
+html[data-theme="synthwave"] .synth-bg .synth-grid {
+  position: absolute; left: -10%; right: -10%; bottom: -8%;
+  height: 60%;
+  background:
+    linear-gradient(90deg,
+      transparent 0%, transparent calc(8.33% - 1px),
+      rgba(255, 42, 142, 0.55) 8.33%, transparent calc(8.33% + 1px),
+      transparent 100%) 0 0 / 8.33% 100%,
+    linear-gradient(0deg,
+      transparent 0%, transparent calc(12.5% - 1px),
+      rgba(110, 43, 255, 0.65) 12.5%, transparent calc(12.5% + 1px),
+      transparent 100%) 0 0 / 100% 12.5%;
+  transform: perspective(380px) rotateX(64deg);
+  transform-origin: 50% 100%;
+  filter: drop-shadow(0 0 6px rgba(255, 42, 142, 0.45));
+  animation: synth-grid-scroll 4s linear infinite;
+}
+@keyframes synth-grid-scroll {
+  0%   { background-position: 0 0,  0 0; }
+  100% { background-position: 0 0,  0 100%; }
+}
+
+/* ── 1.3 Mountains wireframe (silueta SVG inline) ─────────────────────── */
+html[data-theme="synthwave"] .synth-bg .synth-mountains {
+  position: absolute; left: 0; right: 0;
+  pointer-events: none;
+}
+html[data-theme="synthwave"] .synth-bg .synth-mountains-back {
+  top: 38%; height: 22%;
+  filter: drop-shadow(0 0 10px rgba(110, 43, 255, 0.7));
+  opacity: 0.95;
+}
+html[data-theme="synthwave"] .synth-bg .synth-mountains-front {
+  top: 50%; height: 16%;
+  filter: drop-shadow(0 0 8px rgba(255, 42, 142, 0.65));
+  opacity: 0.95;
+}
+
+/* ── 1.3.b SOL — BANDAS HORIZONTALES adicionales (efecto vintage extra) */
+html[data-theme="synthwave"] .synth-bg .synth-sun-bands {
+  position: absolute; left: 50%; top: 28%;
+  width: 360px; height: 360px; margin-left: -180px;
+  border-radius: 50%;
+  pointer-events: none;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 0;
+  isolation: isolate;
+  mix-blend-mode: multiply;
+  opacity: 0.55;
+}
+html[data-theme="synthwave"] .synth-bg .synth-sun-bands span {
+  display: block;
+  background: rgba(12, 4, 32, 1);
+}
+html[data-theme="synthwave"] .synth-bg .synth-sun-bands span:nth-child(1) { height: 4px;  margin-top: 50px; }
+html[data-theme="synthwave"] .synth-bg .synth-sun-bands span:nth-child(2) { height: 6px;  margin-top: 28px; }
+html[data-theme="synthwave"] .synth-bg .synth-sun-bands span:nth-child(3) { height: 9px;  margin-top: 20px; }
+html[data-theme="synthwave"] .synth-bg .synth-sun-bands span:nth-child(4) { height: 12px; margin-top: 16px; }
+html[data-theme="synthwave"] .synth-bg .synth-sun-bands span:nth-child(5) { height: 16px; margin-top: 14px; }
+html[data-theme="synthwave"] .synth-bg .synth-sun-bands span:nth-child(6) { height: 22px; margin-top: 12px; }
+
+/* ── 1.3.c PALMERAS — silueta a izquierda y derecha del horizonte */
+html[data-theme="synthwave"] .synth-bg .synth-palm {
+  position: absolute;
+  bottom: 18%;
+  width: clamp(80px, 12vmin, 150px);
+  height: auto;
+  pointer-events: none;
+  filter: drop-shadow(0 0 12px rgba(255, 42, 142, 0.55));
+  opacity: 0.95;
+  z-index: 1;
+}
+html[data-theme="synthwave"] .synth-bg .synth-palm-left  { left: 4%;  transform: rotate(-3deg); }
+html[data-theme="synthwave"] .synth-bg .synth-palm-right { right: 4%; transform: rotate(3deg); }
+
+/* ── 1.3.d Reflejo del sol sobre el grid (estela vertical naranja) */
+html[data-theme="synthwave"] .synth-bg .synth-sun-reflection {
+  position: absolute;
+  left: 50%; top: 55%;
+  width: 220px; height: 32%; margin-left: -110px;
+  background: linear-gradient(180deg,
+    rgba(255, 130, 90, 0.65) 0%,
+    rgba(255, 80, 130, 0.30) 40%,
+    rgba(255, 42, 142, 0.12) 75%,
+    transparent 100%);
+  filter: blur(8px);
+  pointer-events: none;
+  mix-blend-mode: screen;
+  opacity: 0.85;
+  animation: synth-reflection-shimmer 5s ease-in-out infinite alternate;
+}
+@keyframes synth-reflection-shimmer {
+  0%   { opacity: 0.75; transform: scaleX(1.00); }
+  100% { opacity: 0.95; transform: scaleX(1.05); }
+}
+
+/* ── 1.3.e Scanlines VHS muy sutiles */
+html[data-theme="synthwave"] .synth-bg .synth-scanlines {
+  position: absolute; inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent 0px,
+    transparent 2px,
+    rgba(255, 255, 255, 0.025) 2px,
+    rgba(255, 255, 255, 0.025) 3px
+  );
+  pointer-events: none;
+  mix-blend-mode: overlay;
+  opacity: 0.45;
+}
+
+/* ── 1.4 Estrellas (puntos blancos en el cielo) ───────────────────────── */
+html[data-theme="synthwave"] .synth-bg .synth-stars {
+  position: absolute; left: 0; right: 0; top: 0; height: 35%;
+  background-image:
+    radial-gradient(1px 1px at 12% 28%, rgba(255,255,255,0.85), transparent),
+    radial-gradient(1px 1px at 23% 12%, rgba(255,255,255,0.65), transparent),
+    radial-gradient(1px 1px at 38% 22%, rgba(255,200,250,0.85), transparent),
+    radial-gradient(1px 1px at 55% 8%,  rgba(255,255,255,0.65), transparent),
+    radial-gradient(1px 1px at 67% 32%, rgba(255,255,255,0.45), transparent),
+    radial-gradient(1px 1px at 78% 18%, rgba(255,255,255,0.85), transparent),
+    radial-gradient(1px 1px at 88% 26%, rgba(200,200,255,0.65), transparent),
+    radial-gradient(1px 1px at 95% 6%,  rgba(255,255,255,0.55), transparent);
+  background-size: 100% 100%;
+  pointer-events: none;
+  animation: synth-stars-twinkle 6s ease-in-out infinite alternate;
+}
+@keyframes synth-stars-twinkle {
+  0%, 100% { opacity: 0.65; }
+  50%      { opacity: 1.00; }
+}
+
+/* ── 1.5 Veil + grain + vignette ──────────────────────────────────────── */
+html[data-theme="synthwave"] .synth-bg .synth-veil {
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse 75% 55% at 50% 50%,
+    rgba(12, 4, 32, 0.30) 0%, rgba(12, 4, 32, 0.12) 40%, transparent 80%);
+  pointer-events: none;
+}
+html[data-theme="synthwave"] .synth-bg .synth-grain {
+  position: absolute; inset: 0; opacity: 0.04;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.78' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  mix-blend-mode: overlay; pointer-events: none;
+}
+html[data-theme="synthwave"] .synth-bg .synth-vignette {
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse 100% 80% at 50% 50%,
+    transparent 50%, rgba(0, 0, 0, 0.30) 82%, rgba(0, 0, 0, 0.55) 100%);
+  pointer-events: none;
+}
+
+
+/* ── 2. TIPOGRAFÍA + SHELL ────────────────────────────────────────────── */
+html[data-theme="synthwave"] body {
+  color: var(--text); font-family: var(--font-ui); font-weight: 400;
+}
+html[data-theme="synthwave"] h1,
+html[data-theme="synthwave"] h2,
+html[data-theme="synthwave"] h3,
+html[data-theme="synthwave"] h4,
+html[data-theme="synthwave"] h5,
+html[data-theme="synthwave"] h6 {
+  font-family: var(--font-display);
+  font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase;
+  color: var(--accent-bright);
+  text-shadow:
+    0 0 8px rgba(255, 42, 142, 0.55),
+    0 0 18px rgba(255, 42, 142, 0.30);
+}
+html[data-theme="synthwave"] h1,
+html[data-theme="synthwave"] h2 { color: #ffffff; }
+
+html[data-theme="synthwave"] .glass-shell-frame {
+  margin: 18px; padding: 0; border-radius: 18px;
+  background: transparent; box-shadow: none; isolation: auto !important;
+}
+html[data-theme="synthwave"] .glass-shell-inner {
+  border-radius: 17px; background: transparent;
+  backdrop-filter: none; -webkit-backdrop-filter: none;
+  isolation: auto !important; overflow: visible; padding: 20px;
+}
+@media (max-width: 768px) {
+  html[data-theme="synthwave"] .glass-shell-inner { padding: 6px; }
+  html[data-theme="synthwave"] .app-dashboard-root { gap: 8px; }
+}
+@media (max-width: 640px) {
+  html[data-theme="synthwave"] .glass-shell-frame { margin: 4px; border-radius: 12px; }
+  html[data-theme="synthwave"] .glass-shell-inner { border-radius: 11px; }
+}
+@media (max-width: 480px) {
+  html[data-theme="synthwave"] .glass-shell-frame { margin: 0; padding: 0; border-radius: 0; background: none; }
+  html[data-theme="synthwave"] .glass-shell-inner { padding: 0; border-radius: 0; }
+  html[data-theme="synthwave"] .app-dashboard-root { gap: 0; }
+}
+html[data-theme="synthwave"] .glass-shell-frame::before,
+html[data-theme="synthwave"] .glass-shell-frame::after,
+html[data-theme="synthwave"] .glass-shell-inner::before,
+html[data-theme="synthwave"] .glass-shell-inner::after { display: none !important; }
+html[data-theme="synthwave"] .app-dashboard-root { background: transparent !important; gap: 16px; }
+
+
+/* ── 3. SUPERFICIES ──────────────────────────────────────────────────── */
+html[data-theme="synthwave"] .glass-surface {
+  position: relative; isolation: auto;
+  background: var(--card);
+  backdrop-filter: none; -webkit-backdrop-filter: none;
+  border: 1px solid var(--border); border-radius: 14px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 1px 0 rgba(0, 0, 0, 0.55),
+    0 18px 40px rgba(0, 0, 0, 0.50),
+    0 0 28px rgba(110, 43, 255, 0.10);
+  transition: border-color 0.2s ease, transform 0.2s ease;
+  overflow: hidden;
+}
+html[data-theme="synthwave"] .glass-surface::before { display: none; }
+html[data-theme="synthwave"] .glass-surface > * { position: relative; z-index: 1; }
+html[data-theme="synthwave"] .glass-surface:hover { border-color: var(--border-strong); }
+
+html[data-theme="synthwave"] .glass,
+html[data-theme="synthwave"] .glass-1,
+html[data-theme="synthwave"] .glass-2,
+html[data-theme="synthwave"] .glass-3,
+html[data-theme="synthwave"] .glass-4 {
+  isolation: auto !important; position: relative; border-radius: 14px;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+html[data-theme="synthwave"] .glass,
+html[data-theme="synthwave"] .glass-1 {
+  background: var(--card); border: 1px solid var(--border);
+  backdrop-filter: none; -webkit-backdrop-filter: none;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03), 0 12px 30px rgba(0, 0, 0, 0.50);
+}
+html[data-theme="synthwave"] .glass-2 {
+  background: linear-gradient(180deg, rgba(255, 42, 142, 0.025), rgba(255, 42, 142, 0)), var(--card);
+  border: 1px solid var(--border);
+  backdrop-filter: none; -webkit-backdrop-filter: none;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 16px 36px rgba(0, 0, 0, 0.55);
+}
+html[data-theme="synthwave"] .glass-3 {
+  background: linear-gradient(180deg, rgba(255, 42, 142, 0.04), rgba(255, 42, 142, 0)), var(--card);
+  border: 1px solid var(--border-strong);
+  backdrop-filter: none; -webkit-backdrop-filter: none;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 20px 44px rgba(0, 0, 0, 0.60);
+}
+html[data-theme="synthwave"] .glass-4 {
+  background: linear-gradient(180deg, rgba(255, 42, 142, 0.05), rgba(255, 42, 142, 0)), var(--card);
+  border: 1px solid var(--border-strong);
+  backdrop-filter: none; -webkit-backdrop-filter: none;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 28px 56px rgba(0, 0, 0, 0.70);
+}
+
+
+/* ── 4. SIDEBAR + HEADER ─────────────────────────────────────────────── */
+html[data-theme="synthwave"] .app-sidebar-shell {
+  background: linear-gradient(180deg,
+    rgba(28, 10, 55, 0.55) 0%, rgba(20, 8, 42, 0.62) 60%, rgba(16, 6, 36, 0.65) 100%);
+  border-right: none;
+  backdrop-filter: blur(22px) saturate(140%);
+  -webkit-backdrop-filter: blur(22px) saturate(140%);
+  box-shadow: inset -1px 0 0 rgba(255, 42, 142, 0.14), 4px 0 22px rgba(0, 0, 0, 0.45);
+}
+html[data-theme="synthwave"] .app-top-header {
+  background: linear-gradient(180deg, rgba(20, 8, 42, 0.55) 0%, rgba(20, 8, 42, 0.45) 100%);
+  border-bottom: none;
+  backdrop-filter: blur(22px) saturate(140%);
+  -webkit-backdrop-filter: blur(22px) saturate(140%);
+  box-shadow: inset 0 -1px 0 rgba(255, 42, 142, 0.14), 0 4px 22px rgba(0, 0, 0, 0.35);
+}
+
+html[data-theme="synthwave"] .sidebar-nav-link-active {
+  background: linear-gradient(180deg, rgba(255, 42, 142, 0.20) 0%, rgba(110, 43, 255, 0.12) 100%) !important;
+  color: #ffffff !important;
+  border-color: rgba(255, 42, 142, 0.40) !important;
+  box-shadow: inset 0 0 0 1px rgba(255, 42, 142, 0.22), 0 0 14px rgba(255, 42, 142, 0.30) !important;
+}
+html[data-theme="synthwave"] .sidebar-nav-link-active.ring-2 {
+  --tw-ring-color: rgba(255, 95, 168, 0.55) !important;
+}
+html[data-theme="synthwave"] .sidebar-nav-link:hover:not(.sidebar-nav-link-active) {
+  background: rgba(255, 42, 142, 0.10) !important; color: var(--text) !important;
+}
+html[data-theme="synthwave"] .sidebar-active-bar {
+  background: linear-gradient(180deg, var(--accent-bright) 0%, var(--accent) 100%) !important;
+  box-shadow: 0 0 12px rgba(255, 42, 142, 0.65) !important;
+}
+html[data-theme="synthwave"] nav .text-white\/40,
+html[data-theme="synthwave"] nav [class*="text-white"][class*="uppercase"] {
+  color: rgba(240, 184, 216, 0.65) !important; letter-spacing: 0.10em;
+}
+html[data-theme="synthwave"] .app-sidebar-shell .border-t {
+  border-top-color: rgba(255, 42, 142, 0.16) !important;
+}
+html[data-theme="synthwave"] .app-sidebar-shell .bg-white\/5 {
+  background-color: rgba(255, 42, 142, 0.05) !important;
+}
+
+
+/* ── 5. TEXTO + LINKS + MARK ────────────────────────────────────────── */
+html[data-theme="synthwave"] [data-bitacora-html-body],
+html[data-theme="synthwave"] [data-bitacora-prose].prose,
+html[data-theme="synthwave"] [data-bitacora-prose] .ProseMirror {
+  color: var(--text); font-family: var(--font-ui);
+  font-size: 16.5px; line-height: 1.85;
+}
+html[data-theme="synthwave"] [data-bitacora-html-body] > p:first-child,
+html[data-theme="synthwave"] [data-bitacora-prose].prose > p:first-child {
+  color: #ffffff; font-weight: 600;
+}
+html[data-theme="synthwave"] [data-bitacora-html-body] a,
+html[data-theme="synthwave"] [data-bitacora-prose] .ProseMirror a {
+  color: var(--accent-bright); text-decoration: none;
+  border-bottom: 1px solid rgba(255, 42, 142, 0.30);
+}
+html[data-theme="synthwave"] [data-bitacora-html-body] a:hover,
+html[data-theme="synthwave"] [data-bitacora-prose] .ProseMirror a:hover {
+  color: #ffb0d0; border-bottom-color: rgba(255, 42, 142, 0.65);
+}
+
+html[data-theme="synthwave"] mark,
+html[data-theme="synthwave"] .ProseMirror mark,
+html[data-theme="synthwave"] [data-bitacora-html-body] mark {
+  background: linear-gradient(180deg, #ff2a8e 0%, #c4185a 100%);
+  color: #ffffff; font-weight: 700;
+  border-radius: 3px; padding: 0 5px;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 200, 220, 0.40),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22);
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.35);
+}
+
+
+/* ── 6. INPUTS + BOTONES ─────────────────────────────────────────────── */
+html[data-theme="synthwave"] input,
+html[data-theme="synthwave"] textarea,
+html[data-theme="synthwave"] select {
+  background-color: rgba(255, 42, 142, 0.04);
+  color: var(--text); border-color: var(--border);
+}
+html[data-theme="synthwave"] input::placeholder,
+html[data-theme="synthwave"] textarea::placeholder { color: var(--muted); }
+html[data-theme="synthwave"] input:focus,
+html[data-theme="synthwave"] textarea:focus,
+html[data-theme="synthwave"] select:focus {
+  border-color: var(--border-strong); outline: none;
+  box-shadow: 0 0 0 2px rgba(255, 42, 142, 0.22);
+}
+html[data-theme="synthwave"] [data-bitacora-prose] input[type="text"],
+html[data-theme="synthwave"] form input[type="text"] {
+  background-color: rgba(255, 42, 142, 0.04);
+}
+
+html[data-theme="synthwave"] .btn-primary,
+html[data-theme="synthwave"] button[data-variant="primary"] {
+  background: linear-gradient(180deg, var(--accent-bright) 0%, var(--accent) 100%);
+  color: #ffffff; border: 1px solid rgba(255, 42, 142, 0.55);
+  font-weight: 700;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.20), 0 1px 0 rgba(0, 0, 0, 0.45);
+}
+html[data-theme="synthwave"] .btn-primary:hover,
+html[data-theme="synthwave"] button[data-variant="primary"]:hover {
+  background: linear-gradient(180deg, #ff8ac0 0%, var(--accent-bright) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.25),
+    0 0 0 1px rgba(255, 42, 142, 0.55),
+    0 0 18px rgba(255, 42, 142, 0.55);
+}
+
+
+/* ── 7. PORTALES (theme selector + cmd palette) ─────────────────────── */
+html[data-theme="synthwave"] #theme-selector-panel {
+  background: linear-gradient(155deg, #1d0a3e 0%, #16082e 60%, #100624 100%) !important;
+  border-color: var(--border) !important;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.78), 0 0 0 1px rgba(255, 42, 142, 0.14), 0 0 32px rgba(110, 43, 255, 0.18) !important;
+}
+html[data-theme="synthwave"] #theme-selector-panel input[type="text"] {
+  background-color: rgba(255, 42, 142, 0.06) !important; color: var(--text) !important;
+}
+html[data-theme="synthwave"] #theme-selector-panel .border-b { border-color: var(--border) !important; }
+
+html[data-theme="synthwave"] .cmd-palette-backdrop { background-color: rgba(12, 4, 32, 0.88) !important; }
+html[data-theme="synthwave"] #cmd-palette-panel [cmdk-root],
+html[data-theme="synthwave"] #cmd-palette-panel [cmdk-list] {
+  background-color: #16082e !important; border-color: var(--border) !important;
+}
+html[data-theme="synthwave"] #cmd-palette-panel [cmdk-input-wrapper],
+html[data-theme="synthwave"] #cmd-palette-panel > div > div:first-child {
+  background-color: #16082e !important; border-color: var(--border) !important;
+}
+html[data-theme="synthwave"] #cmd-palette-panel [class*="bg-\[\#060912\]"],
+html[data-theme="synthwave"] #cmd-palette-panel input[cmdk-input] {
+  background-color: rgba(255, 42, 142, 0.05) !important;
+  color: var(--text) !important; border-color: var(--border) !important;
+}
+html[data-theme="synthwave"] #cmd-palette-panel [cmdk-input-wrapper] > div:focus-within {
+  border-color: rgba(255, 95, 168, 0.65) !important;
+}
+html[data-theme="synthwave"] #cmd-palette-panel [cmdk-item][data-selected="true"] {
+  background-color: rgba(255, 42, 142, 0.16) !important; color: var(--text) !important;
+}
+
+
+/* ── 8. CONFIG TABS ─────────────────────────────────────────────────── */
+html[data-theme="synthwave"] .config-tabs-root [class*="text-violet-"],
+html[data-theme="synthwave"] .config-tabs-root [class*="text-amber-"],
+html[data-theme="synthwave"] .config-tabs-root [class*="text-sky-"],
+html[data-theme="synthwave"] .config-tabs-root [class*="text-emerald-"],
+html[data-theme="synthwave"] .config-tabs-root [class*="text-rose-"],
+html[data-theme="synthwave"] .config-tabs-root [class*="text-indigo-"],
+html[data-theme="synthwave"] .config-tabs-root [class*="text-fuchsia-"],
+html[data-theme="synthwave"] .config-tabs-root [class*="text-cyan-"],
+html[data-theme="synthwave"] .config-tabs-root [class*="text-pink-"],
+html[data-theme="synthwave"] .config-tabs-root [class*="text-teal-"],
+html[data-theme="synthwave"] .config-tabs-root [class*="text-orange-"] {
+  color: var(--accent-bright) !important;
+}
+html[data-theme="synthwave"] .config-tabs-root [class*="bg-violet-"],
+html[data-theme="synthwave"] .config-tabs-root [class*="bg-amber-"],
+html[data-theme="synthwave"] .config-tabs-root [class*="bg-sky-"],
+html[data-theme="synthwave"] .config-tabs-root [class*="bg-emerald-"],
+html[data-theme="synthwave"] .config-tabs-root [class*="bg-rose-"],
+html[data-theme="synthwave"] .config-tabs-root [class*="bg-indigo-"],
+html[data-theme="synthwave"] .config-tabs-root [class*="bg-fuchsia-"],
+html[data-theme="synthwave"] .config-tabs-root [class*="bg-cyan-"],
+html[data-theme="synthwave"] .config-tabs-root [class*="bg-pink-"],
+html[data-theme="synthwave"] .config-tabs-root [class*="bg-teal-"],
+html[data-theme="synthwave"] .config-tabs-root [class*="bg-orange-"] {
+  background-color: rgba(255, 42, 142, 0.10) !important;
+}
+html[data-theme="synthwave"] .config-tabs-root [class*="border-violet-"],
+html[data-theme="synthwave"] .config-tabs-root [class*="border-amber-"],
+html[data-theme="synthwave"] .config-tabs-root [class*="border-sky-"],
+html[data-theme="synthwave"] .config-tabs-root [class*="border-emerald-"],
+html[data-theme="synthwave"] .config-tabs-root [class*="border-rose-"],
+html[data-theme="synthwave"] .config-tabs-root [class*="border-indigo-"],
+html[data-theme="synthwave"] .config-tabs-root [class*="border-fuchsia-"],
+html[data-theme="synthwave"] .config-tabs-root [class*="border-cyan-"],
+html[data-theme="synthwave"] .config-tabs-root [class*="border-pink-"],
+html[data-theme="synthwave"] .config-tabs-root [class*="border-teal-"],
+html[data-theme="synthwave"] .config-tabs-root [class*="border-orange-"] {
+  border-color: rgba(255, 42, 142, 0.22) !important;
+}
+html[data-theme="synthwave"] .config-tabs-root [class*="ring-violet-"],
+html[data-theme="synthwave"] .config-tabs-root [class*="ring-amber-"],
+html[data-theme="synthwave"] .config-tabs-root [class*="ring-sky-"],
+html[data-theme="synthwave"] .config-tabs-root [class*="ring-emerald-"],
+html[data-theme="synthwave"] .config-tabs-root [class*="ring-rose-"],
+html[data-theme="synthwave"] .config-tabs-root [class*="ring-indigo-"],
+html[data-theme="synthwave"] .config-tabs-root [class*="ring-fuchsia-"],
+html[data-theme="synthwave"] .config-tabs-root [class*="ring-cyan-"],
+html[data-theme="synthwave"] .config-tabs-root [class*="ring-pink-"],
+html[data-theme="synthwave"] .config-tabs-root [class*="ring-teal-"],
+html[data-theme="synthwave"] .config-tabs-root [class*="ring-orange-"] {
+  --tw-ring-color: rgba(255, 42, 142, 0.32) !important;
+}
+html[data-theme="synthwave"] .config-tabs-root [class*="from-violet"],
+html[data-theme="synthwave"] .config-tabs-root [class*="from-amber"],
+html[data-theme="synthwave"] .config-tabs-root [class*="from-sky"],
+html[data-theme="synthwave"] .config-tabs-root [class*="from-emerald"],
+html[data-theme="synthwave"] .config-tabs-root [class*="from-rose"],
+html[data-theme="synthwave"] .config-tabs-root [class*="from-indigo"] {
+  --tw-gradient-from: rgba(255, 42, 142, 0.10) var(--tw-gradient-from-position) !important;
+  --tw-gradient-to: rgba(255, 42, 142, 0) var(--tw-gradient-to-position) !important;
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-via, var(--tw-gradient-to)), var(--tw-gradient-to) !important;
+}
+html[data-theme="synthwave"] .config-tabs-root [class*="to-fuchsia"],
+html[data-theme="synthwave"] .config-tabs-root [class*="to-orange"],
+html[data-theme="synthwave"] .config-tabs-root [class*="to-cyan"],
+html[data-theme="synthwave"] .config-tabs-root [class*="to-teal"],
+html[data-theme="synthwave"] .config-tabs-root [class*="to-pink"],
+html[data-theme="synthwave"] .config-tabs-root [class*="to-violet"] {
+  --tw-gradient-to: rgba(110, 43, 255, 0.14) var(--tw-gradient-to-position) !important;
+}
+html[data-theme="synthwave"] .config-tabs-root .bg-gradient-to-r[class*="from-amber"],
+html[data-theme="synthwave"] .config-tabs-root .bg-gradient-to-r[class*="from-violet"],
+html[data-theme="synthwave"] .config-tabs-root .bg-gradient-to-r[class*="from-sky"],
+html[data-theme="synthwave"] .config-tabs-root .bg-gradient-to-r[class*="from-emerald"],
+html[data-theme="synthwave"] .config-tabs-root .bg-gradient-to-r[class*="from-rose"],
+html[data-theme="synthwave"] .config-tabs-root .bg-gradient-to-r[class*="from-indigo"] {
+  background: linear-gradient(90deg, var(--accent-3) 0%, var(--accent) 50%, var(--accent-2) 100%) !important;
+}
+html[data-theme="synthwave"] .config-tabs-root .blur-3xl {
+  background-color: rgba(255, 42, 142, 0.08) !important;
+}
+
+html[data-theme="synthwave"] .my-profile-card {
+  background: linear-gradient(180deg,
+    rgba(28, 10, 55, 0.95) 0%, rgba(20, 8, 42, 0.97) 50%, rgba(16, 6, 36, 0.98) 100%) !important;
+  border-color: var(--border) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 18px 50px rgba(0, 0, 0, 0.65) !important;
+}
+html[data-theme="synthwave"] .my-profile-card .border-white\/8 {
+  border-color: rgba(255, 42, 142, 0.18) !important;
+}
+
+
+/* ── 9. MICRO-DETALLES + REVEAL ─────────────────────────────────────── */
+html[data-theme="synthwave"] .glass-surface::after,
+html[data-theme="synthwave"] .glass-2::after,
+html[data-theme="synthwave"] .glass-3::after,
+html[data-theme="synthwave"] .glass-4::after {
+  content: ""; position: absolute; top: 0; left: 0; right: 0;
+  height: 2px; pointer-events: none; z-index: 2;
+  background: linear-gradient(90deg,
+    transparent 0%, transparent 22%,
+    rgba(110, 43, 255, 0.65) 38%,
+    rgba(255, 42, 142, 1.00) 50%,
+    rgba(255, 138, 58, 0.65) 62%,
+    transparent 78%, transparent 100%);
+  background-size: 280% 100%; background-position: 100% 0;
+  animation: synth-shimmer 6s ease-in-out infinite;
+  border-top-left-radius: inherit; border-top-right-radius: inherit;
+}
+@keyframes synth-shimmer {
+  0%   { background-position: 130% 0; }
+  100% { background-position: -30% 0; }
+}
+
+html[data-theme="synthwave"] h2,
+html[data-theme="synthwave"] h3 { position: relative; }
+html[data-theme="synthwave"] h2::after,
+html[data-theme="synthwave"] h3::after {
+  content: ""; display: block; width: 48px; height: 2px;
+  margin-top: 8px;
+  background: linear-gradient(90deg, var(--accent-3) 0%, var(--accent) 60%, transparent 100%);
+  box-shadow: 0 0 8px rgba(255, 42, 142, 0.55); border-radius: 999px;
+}
+html[data-theme="synthwave"] h3::after { width: 32px; height: 1.5px; margin-top: 6px; }
+
+html[data-theme="synthwave"] .glass-surface,
+html[data-theme="synthwave"] .glass-2,
+html[data-theme="synthwave"] .glass-3,
+html[data-theme="synthwave"] .glass-4 {
+  animation: synth-card-reveal 0.55s cubic-bezier(0.22, 0.61, 0.36, 1) backwards;
+}
+html[data-theme="synthwave"] .glass-surface:nth-child(1),
+html[data-theme="synthwave"] .glass-2:nth-child(1),
+html[data-theme="synthwave"] .glass-3:nth-child(1),
+html[data-theme="synthwave"] .glass-4:nth-child(1) { animation-delay: 0.04s; }
+html[data-theme="synthwave"] .glass-surface:nth-child(2),
+html[data-theme="synthwave"] .glass-2:nth-child(2),
+html[data-theme="synthwave"] .glass-3:nth-child(2),
+html[data-theme="synthwave"] .glass-4:nth-child(2) { animation-delay: 0.08s; }
+html[data-theme="synthwave"] .glass-surface:nth-child(3),
+html[data-theme="synthwave"] .glass-2:nth-child(3),
+html[data-theme="synthwave"] .glass-3:nth-child(3),
+html[data-theme="synthwave"] .glass-4:nth-child(3) { animation-delay: 0.12s; }
+html[data-theme="synthwave"] .glass-surface:nth-child(4),
+html[data-theme="synthwave"] .glass-2:nth-child(4),
+html[data-theme="synthwave"] .glass-3:nth-child(4),
+html[data-theme="synthwave"] .glass-4:nth-child(4) { animation-delay: 0.16s; }
+html[data-theme="synthwave"] .glass-surface:nth-child(5),
+html[data-theme="synthwave"] .glass-2:nth-child(5),
+html[data-theme="synthwave"] .glass-3:nth-child(5),
+html[data-theme="synthwave"] .glass-4:nth-child(5) { animation-delay: 0.20s; }
+
+@keyframes synth-card-reveal {
+  0%   { opacity: 0; transform: translateY(8px); }
+  100% { opacity: 1; transform: translateY(0);    }
+}
+
+
+/* ── 10. REDUCED MOTION ─────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  html[data-theme="synthwave"] .synth-bg .synth-grid,
+  html[data-theme="synthwave"] .synth-bg .synth-sun,
+  html[data-theme="synthwave"] .synth-bg .synth-stars,
+  html[data-theme="synthwave"] .synth-bg .synth-sun-reflection,
+  html[data-theme="synthwave"] .glass-surface::after,
+  html[data-theme="synthwave"] .glass-2::after,
+  html[data-theme="synthwave"] .glass-3::after,
+  html[data-theme="synthwave"] .glass-4::after,
+  html[data-theme="synthwave"] .glass-surface,
+  html[data-theme="synthwave"] .glass-2,
+  html[data-theme="synthwave"] .glass-3,
+  html[data-theme="synthwave"] .glass-4 {
+    animation: none !important;
+  }
+}

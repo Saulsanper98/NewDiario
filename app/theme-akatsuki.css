@@ -1,0 +1,1168 @@
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║   TEMA "AKATSUKI" v1 · TRIBUTO · Negro profundo + Rojo sangre            ║
+ * ║                                                                          ║
+ * ║   Estética cinematográfica inspirada en la Akatsuki (Naruto):           ║
+ * ║     · Paleta: negro carbón #070405, rojo sangre #d6343a, hueso #f3ead9. ║
+ * ║     · Nubes "akagumo" (rojas con contorno hueso) decorativas.           ║
+ * ║     · Kanji 暁 (akatsuki = alba/amanecer) como marca de agua.           ║
+ * ║     · Sharingan como acento decorativo (no reemplaza avatares reales).  ║
+ * ║                                                                          ║
+ * ║   Prioridad: LEGIBILIDAD DEL TEXTO. El drama vive en los bordes;        ║
+ * ║   la zona de lectura es sólida y de altísimo contraste.                 ║
+ * ║                                                                          ║
+ * ║   AISLAMIENTO TOTAL bajo `html[data-theme="akatsuki"]`.                 ║
+ * ║   `aurora` no se ve afectado en ningún momento (es el tema default      ║
+ * ║   protegido, sin `data-theme`, identificado por `data-aurora="true"`).  ║
+ * ║                                                                          ║
+ * ║   FASE 1 (actual): SOLO TOKENS + canvas mínimo coherente.                ║
+ * ║     - El tema es seleccionable y aplica su paleta.                       ║
+ * ║     - Sin atmósfera animada todavía (eso es FASE 2).                    ║
+ * ║     - Sin override de superficies/tipografía (eso es FASE 3-4).         ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                1.  TOKENS DEL TEMA                                        ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="akatsuki"] {
+  /* ── Paleta base ──────────────────────────────────────────────────────── */
+  --bg-0: #070405;
+  --bg-1: #0e0809;
+  --bg-2: #150a0d;
+
+  /* ── Superficie de lectura: SÓLIDA (no glass) para contraste máximo ──── */
+  --card: linear-gradient(180deg, #1a0e11 0%, #130a0c 60%, #0f0709 100%);
+  --surface:   rgba(33, 17, 21, 0.92);
+  --surface-2: rgba(255, 255, 255, 0.04);
+  --border:        rgba(214, 52, 58, 0.20);
+  --border-strong: rgba(214, 52, 58, 0.42);
+
+  /* ── Nube Akatsuki (akagumo) ──────────────────────────────────────────── */
+  --cloud-red:        #b3151a;
+  --cloud-red-bright: #ef2a35;
+  --cloud-outline:    #f3ead9;
+
+  /* ── Acento rojo sangre ────────────────────────────────────────────────── */
+  --accent:        #d6343a;
+  --accent-bright: #ff3a45;
+  --accent-glow:   rgba(255, 58, 69, 0.35);
+
+  /* ── Texto (contraste alto) ───────────────────────────────────────────── */
+  --text:      #f4ecdf;
+  --text-soft: #d8c9bb;
+  --muted:     #8c7a72;
+
+  /* ── Semánticos / reliquias ───────────────────────────────────────────── */
+  --ok:         #7bb074;
+  --gold-relic: #d4ac57;
+
+  /* ── Tipografía (las variables --font-akatsuki-* las inyecta next/font
+       desde app/layout.tsx; aquí solo las mapeamos a los aliases del prompt). */
+  --font-display: var(--font-akatsuki-display), "Shippori Mincho", serif;
+  --font-ui:      var(--font-akatsuki-ui), "Zen Kaku Gothic New", sans-serif;
+
+  /* ╔════════════════════════════════════════════════════════════════════╗
+   * ║   2. OVERRIDES DEL SISTEMA BASE                                     ║
+   * ║                                                                     ║
+   * ║   Patrón canónico (ocaso, neon, volcano, abyss, cosmos, storm,    ║
+   * ║   ccmgc, dunas, meteor):                                            ║
+   * ║     · `--app-canvas-color: transparent` → el `<body>` no tapa el    ║
+   * ║        fondo del componente <AkatsukiBackground />.                 ║
+   * ║     · `--app-canvas-image: none` → ídem.                            ║
+   * ║     · `--card-isolation: auto` → no se rompe `backdrop-filter` en   ║
+   * ║        las `.glass`.                                                 ║
+   * ╚════════════════════════════════════════════════════════════════════╝ */
+  --app-canvas-color: transparent;
+  --app-canvas-image: none;
+  --card-isolation: auto;
+
+  color-scheme: dark;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                3.  STACKING · isolation: auto en sidebar/header           ║
+ * ║                                                                          ║
+ * ║   Sin esto, el `isolation: isolate` que aplica globals.css a la sidebar ║
+ * ║   y al header rompería el backdrop-filter futuro y crearía capas        ║
+ * ║   opacas que tapan el fondo del tema. Es el mismo patrón que ya usan    ║
+ * ║   ocaso, neon, volcano, abyss, cosmos, storm, ccmgc, dunas, meteor.    ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+html[data-theme="akatsuki"] body {
+  min-height: 100vh;
+}
+
+html[data-theme="akatsuki"] .app-sidebar-shell,
+html[data-theme="akatsuki"] .app-top-header {
+  isolation: auto !important;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                4.  FONDO  ·  <AkatsukiBackground />                       ║
+ * ║                                                                          ║
+ * ║   Capa de atmósfera FASE 2:                                              ║
+ * ║     · Base oscura con tinte rojizo apenas perceptible.                  ║
+ * ║     · 2 brasas (orbes rojos) en esquinas opuestas, blur 72px, drift     ║
+ * ║       orgánico ~70-90s.                                                  ║
+ * ║     · 2 nubes Akatsuki (akagumo) en los bordes laterales, opacity 0.14, ║
+ * ║       rotación distinta + drift muy lento.                              ║
+ * ║     · Kanji 暁 marca de agua gigante (rgba(255,58,69,.05)).            ║
+ * ║     · Velo radial central para calmar la zona de lectura.               ║
+ * ║     · Grano fílmico fijo + viñeta.                                      ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="akatsuki"] .akatsuki-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -10;
+  overflow: hidden;
+  pointer-events: none;
+  /* Base: linear vertical negro carbón → tinte rojizo apenas perceptible
+     → negro carbón. Es el "lienzo" sobre el que pintan las brasas. */
+  background:
+    radial-gradient(ellipse 90% 65% at 50% 50%, rgba(33, 12, 16, 0.55) 0%, transparent 70%),
+    linear-gradient(180deg, var(--bg-0) 0%, var(--bg-1) 50%, var(--bg-0) 100%);
+}
+
+/* `<defs>` SVG ocultos — sólo alojan los `<symbol>`. */
+html[data-theme="akatsuki"] .akatsuki-bg .akatsuki-defs {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+
+/* ── 4.1  Brasas (embers) ─────────────────────────────────────────────────
+   Dos orbes radiales rojos en esquinas opuestas. Blur grande (~72px)
+   para que parezcan rescoldos atmosféricos, no luces puntuales. Drift
+   orgánico con translate + scale a ritmos distintos para que respiren. */
+html[data-theme="akatsuki"] .akatsuki-bg .akatsuki-ember {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  filter: blur(72px);
+  will-change: transform, opacity;
+  mix-blend-mode: screen;
+}
+
+html[data-theme="akatsuki"] .akatsuki-bg .akatsuki-ember-1 {
+  /* Esquina inferior-izquierda — la brasa más grande, rojo profundo. */
+  left:  -8%;
+  bottom: -10%;
+  width:  62%;
+  height: 62%;
+  background: radial-gradient(
+    circle at center,
+    rgba(214, 52, 58, 0.78) 0%,
+    rgba(179, 21, 26, 0.50) 28%,
+    rgba(122, 10, 18, 0.22) 56%,
+    transparent 78%
+  );
+  animation: akatsuki-ember-drift-1 78s ease-in-out infinite alternate;
+}
+
+html[data-theme="akatsuki"] .akatsuki-bg .akatsuki-ember-2 {
+  /* Esquina superior-derecha — brasa más chica, rojo claro/anaranjado
+     (variación cromática sutil para evitar simetría aburrida). */
+  right: -10%;
+  top:   -12%;
+  width:  54%;
+  height: 56%;
+  background: radial-gradient(
+    circle at center,
+    rgba(255, 58, 69, 0.62) 0%,
+    rgba(214, 52, 58, 0.36) 32%,
+    rgba(122, 10, 18, 0.14) 60%,
+    transparent 80%
+  );
+  animation: akatsuki-ember-drift-2 92s ease-in-out infinite alternate;
+}
+
+@keyframes akatsuki-ember-drift-1 {
+  0%   { transform: translate(0px, 0px)   scale(1.00); opacity: 0.92; }
+  100% { transform: translate(28px, -22px) scale(1.08); opacity: 1.00; }
+}
+@keyframes akatsuki-ember-drift-2 {
+  0%   { transform: translate(0px, 0px)    scale(1.00); opacity: 0.88; }
+  100% { transform: translate(-32px, 26px) scale(1.10); opacity: 1.00; }
+}
+
+
+/* ── 4.2  Nubes Akatsuki (akagumo) ────────────────────────────────────────
+   Forma cumuliforme del path SVG inline en <symbol id="akcloud">. En el
+   tema activo aparecen 2 nubes tenues a los lados (opacity ~0.14), con
+   rotación distinta y drift muy lento. El `stroke` (color hueso) sigue
+   visible aunque la opacity sea baja, así se distingue la silueta. */
+html[data-theme="akatsuki"] .akatsuki-bg .akatsuki-cloud {
+  position: absolute;
+  pointer-events: none;
+  opacity: 0.14;
+  filter: drop-shadow(0 0 14px rgba(214, 52, 58, 0.35));
+  will-change: transform;
+}
+
+html[data-theme="akatsuki"] .akatsuki-bg .akatsuki-cloud-1 {
+  /* Borde izquierdo, parte alta. Inclinada ligeramente hacia arriba. */
+  top:    8%;
+  left:  -4%;
+  width:  240px;
+  height: auto;
+  transform: rotate(-12deg);
+  animation: akatsuki-cloud-drift-1 180s ease-in-out infinite alternate;
+}
+
+html[data-theme="akatsuki"] .akatsuki-bg .akatsuki-cloud-2 {
+  /* Borde derecho, parte baja. Rotación opuesta, escala distinta. */
+  bottom: 6%;
+  right: -2%;
+  width:  300px;
+  height: auto;
+  transform: rotate(18deg);
+  animation: akatsuki-cloud-drift-2 220s ease-in-out infinite alternate;
+}
+
+@keyframes akatsuki-cloud-drift-1 {
+  0%   { transform: rotate(-12deg) translate(0px, 0px); }
+  100% { transform: rotate(-9deg)  translate(14px, -10px); }
+}
+@keyframes akatsuki-cloud-drift-2 {
+  0%   { transform: rotate(18deg) translate(0px, 0px); }
+  100% { transform: rotate(15deg) translate(-16px, 12px); }
+}
+
+
+/* ── 4.3  Kanji 暁 marca de agua ──────────────────────────────────────────
+   Gigante (clamp ~14-22rem según viewport), pegado al borde derecho,
+   font-family display del tema. Color rojo a opacity .05 para que se
+   "sienta" sin nunca competir con el contenido. Respiración muy lenta
+   para que parezca apenas vivo, no estático. */
+html[data-theme="akatsuki"] .akatsuki-bg .akatsuki-kanji {
+  position: absolute;
+  right: -2%;
+  top: 50%;
+  transform: translateY(-50%);
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: clamp(14rem, 22vw, 30rem);
+  line-height: 1;
+  color: rgba(255, 58, 69, 0.05);
+  pointer-events: none;
+  user-select: none;
+  letter-spacing: -0.02em;
+  will-change: opacity;
+  animation: akatsuki-kanji-breath 14s ease-in-out infinite;
+}
+
+@keyframes akatsuki-kanji-breath {
+  0%, 100% { opacity: 0.85; }
+  50%      { opacity: 1.00; }
+}
+
+
+/* ── 4.4  Velo radial central ────────────────────────────────────────────
+   Capa oscura centrada que "calma" el fondo bajo la zona de lectura. Sin
+   esto las brasas pueden colarse demasiado cerca del texto. Esta capa va
+   ENCIMA de las brasas/nubes/kanji pero DEBAJO del grano/viñeta. */
+html[data-theme="akatsuki"] .akatsuki-bg .akatsuki-veil {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse 75% 55% at 50% 50%,
+    rgba(7, 4, 5, 0.42) 0%,
+    rgba(7, 4, 5, 0.22) 38%,
+    transparent 78%
+  );
+  pointer-events: none;
+}
+
+
+/* ── 4.5  Grano fílmico ──────────────────────────────────────────────────
+   Data URI con feTurbulence. mix-blend overlay para sumar textura sin
+   alterar la luminancia general. */
+html[data-theme="akatsuki"] .akatsuki-bg .akatsuki-grain {
+  position: absolute;
+  inset: 0;
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.78' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  mix-blend-mode: overlay;
+  pointer-events: none;
+}
+
+
+/* ── 4.6  Viñeta ─────────────────────────────────────────────────────────
+   Radial transparent → rgba(0,0,0,0.55) en los bordes. Refuerza el foco
+   en el centro de lectura. */
+html[data-theme="akatsuki"] .akatsuki-bg .akatsuki-vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse 100% 80% at 50% 50%,
+    transparent 50%,
+    rgba(0, 0, 0, 0.32) 82%,
+    rgba(0, 0, 0, 0.55) 100%
+  );
+  pointer-events: none;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                5.  TIPOGRAFÍA · Shippori Mincho + Zen Kaku Gothic         ║
+ * ║                                                                          ║
+ * ║   Las dos fuentes se cargan en `app/layout.tsx` via `next/font/google`  ║
+ * ║   y se inyectan como CSS vars en `<html>`. Aquí las aplicamos SOLO       ║
+ * ║   bajo el scope del tema akatsuki.                                       ║
+ * ║                                                                          ║
+ * ║     · Body / UI    → Zen Kaku Gothic New (vía `var(--font-ui)`)         ║
+ * ║     · Títulos       → Shippori Mincho (vía `var(--font-display)`)        ║
+ * ║                                                                          ║
+ * ║   Ningún otro tema toca su tipografía (Sora sigue siendo la default).   ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="akatsuki"] body {
+  color: var(--text);
+  font-family: var(--font-ui);
+  font-weight: 400;
+}
+
+html[data-theme="akatsuki"] h1,
+html[data-theme="akatsuki"] h2,
+html[data-theme="akatsuki"] h3,
+html[data-theme="akatsuki"] h4,
+html[data-theme="akatsuki"] h5,
+html[data-theme="akatsuki"] h6 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+
+/* Títulos grandes (h1 / page titles) — más peso del display, hueso puro
+   para dominar la jerarquía visual. */
+html[data-theme="akatsuki"] h1,
+html[data-theme="akatsuki"] h2 {
+  font-weight: 800;
+  color: #ffffff;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                6.  SHELL DEL DASHBOARD                                    ║
+ * ║                                                                          ║
+ * ║   Shell totalmente transparente: la atmósfera del componente             ║
+ * ║   <AkatsukiBackground /> debe verse sin interrupciones. Las tarjetas    ║
+ * ║   individuales son las que llevan fondo sólido — el shell solo agrupa. ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="akatsuki"] .glass-shell-frame {
+  margin: 18px;
+  padding: 0;
+  border-radius: 18px;
+  background: transparent;
+  box-shadow: none;
+  isolation: auto !important;
+}
+html[data-theme="akatsuki"] .glass-shell-inner {
+  border-radius: 17px;
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  isolation: auto !important;
+  overflow: visible;
+  padding: 20px;
+}
+
+@media (max-width: 768px) {
+  html[data-theme="akatsuki"] .glass-shell-inner { padding: 6px; }
+  html[data-theme="akatsuki"] .app-dashboard-root { gap: 8px; }
+}
+@media (max-width: 640px) {
+  html[data-theme="akatsuki"] .glass-shell-frame { margin: 4px; border-radius: 12px; }
+  html[data-theme="akatsuki"] .glass-shell-inner { border-radius: 11px; }
+}
+@media (max-width: 480px) {
+  html[data-theme="akatsuki"] .glass-shell-frame {
+    margin: 0; padding: 0; border-radius: 0; background: none;
+  }
+  html[data-theme="akatsuki"] .glass-shell-inner { padding: 0; border-radius: 0; }
+  html[data-theme="akatsuki"] .app-dashboard-root { gap: 0; }
+}
+
+html[data-theme="akatsuki"] .glass-shell-frame::before,
+html[data-theme="akatsuki"] .glass-shell-frame::after,
+html[data-theme="akatsuki"] .glass-shell-inner::before,
+html[data-theme="akatsuki"] .glass-shell-inner::after { display: none !important; }
+
+html[data-theme="akatsuki"] .app-dashboard-root {
+  background: transparent !important;
+  gap: 16px;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                7.  SUPERFICIES SÓLIDAS · .glass-surface / .glass-N      ║
+ * ║                                                                          ║
+ * ║   Punto crítico del tema: superficies de lectura SÓLIDAS (no glass      ║
+ * ║   semitransparente). Sin backdrop-filter. Borde rojo apagado            ║
+ * ║   (var(--border)) o más intenso en hover (var(--border-strong)).        ║
+ * ║                                                                          ║
+ * ║   Razón: con un fondo cinematográfico de tanto contraste (brasas,       ║
+ * ║   kanji, viñeta), una superficie translúcida tendría textos saltando    ║
+ * ║   de luminancia y rompería la legibilidad AA.                            ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="akatsuki"] .glass-surface {
+  position: relative;
+  isolation: auto;
+  background: var(--card);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border: 1px solid var(--border);
+  box-shadow:
+    inset 0 1px 0 rgba(243, 234, 217, 0.04),
+    0 1px 0 rgba(0, 0, 0, 0.55),
+    0 18px 40px rgba(0, 0, 0, 0.45);
+  border-radius: 14px;
+  transition: border-color 0.2s ease, transform 0.2s ease;
+  overflow: hidden;
+}
+html[data-theme="akatsuki"] .glass-surface::before { display: none; }
+html[data-theme="akatsuki"] .glass-surface > * { position: relative; z-index: 1; }
+html[data-theme="akatsuki"] .glass-surface:hover {
+  border-color: var(--border-strong);
+}
+
+html[data-theme="akatsuki"] .glass,
+html[data-theme="akatsuki"] .glass-1,
+html[data-theme="akatsuki"] .glass-2,
+html[data-theme="akatsuki"] .glass-3,
+html[data-theme="akatsuki"] .glass-4 {
+  isolation: auto !important;
+  position: relative;
+  border-radius: 14px;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+/* Las 5 capas escalan en luminosidad usando --surface (rgba blanco a baja
+   opacidad sobre fondo oscuro = aclara progresivamente). Sin
+   backdrop-filter en ninguna. */
+html[data-theme="akatsuki"] .glass {
+  background: var(--card);
+  border: 1px solid var(--border);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow:
+    inset 0 1px 0 rgba(243, 234, 217, 0.03),
+    0 12px 30px rgba(0, 0, 0, 0.40);
+}
+html[data-theme="akatsuki"] .glass-1 {
+  background: var(--card);
+  border: 1px solid var(--border);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow:
+    inset 0 1px 0 rgba(243, 234, 217, 0.03),
+    0 12px 30px rgba(0, 0, 0, 0.40);
+}
+html[data-theme="akatsuki"] .glass-2 {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.025), rgba(255, 255, 255, 0)),
+    var(--card);
+  border: 1px solid var(--border);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow:
+    inset 0 1px 0 rgba(243, 234, 217, 0.04),
+    0 16px 36px rgba(0, 0, 0, 0.45);
+}
+html[data-theme="akatsuki"] .glass-3 {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0)),
+    var(--card);
+  border: 1px solid var(--border-strong);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow:
+    inset 0 1px 0 rgba(243, 234, 217, 0.05),
+    0 20px 44px rgba(0, 0, 0, 0.50);
+}
+html[data-theme="akatsuki"] .glass-4 {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0)),
+    var(--card);
+  border: 1px solid var(--border-strong);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow:
+    inset 0 1px 0 rgba(243, 234, 217, 0.06),
+    0 28px 56px rgba(0, 0, 0, 0.60);
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                8.  SIDEBAR & HEADER                                       ║
+ * ║                                                                          ║
+ * ║   Fondo sólido oscuro coherente con el resto del tema, sin              ║
+ * ║   backdrop-filter (al desactivar `--card-isolation: auto` ya no hace    ║
+ * ║   falta). El borde interior es rojo apagado.                            ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+/* Sidebar y header MEZCLADOS con el fondo del tema (no rectángulos
+   negros pegados). Strategy:
+     · Background con baja opacidad (0.42-0.55) y gradient tenue para
+       dar respiración interna.
+     · backdrop-filter blur + saturate para que las brasas del fondo se
+       perciban "filtradas" detrás del menú, no cortadas en seco.
+     · Border interno muy sutil (gradient rojo desvaneciéndose) en lugar
+       de border-color sólido (que era el que daba la sensación
+       "cantosa" de panel pegado).
+   `isolation: auto` ya está aplicado más arriba — sin él, el blur no
+   leería el fondo y se aplanaría a opaco. */
+
+html[data-theme="akatsuki"] .app-sidebar-shell {
+  background:
+    linear-gradient(180deg,
+      rgba(15, 7, 9, 0.48) 0%,
+      rgba(11, 5, 7, 0.55) 60%,
+      rgba(10, 4, 6, 0.58) 100%);
+  border-right: none;
+  backdrop-filter: blur(22px) saturate(118%);
+  -webkit-backdrop-filter: blur(22px) saturate(118%);
+  /* Sombras y línea sutil de cierre con la realidad de detrás: un
+     gradient rojo apagado en el borde derecho, fade vertical, para
+     dar continuidad sin "frontera dura". */
+  box-shadow:
+    inset -1px 0 0 rgba(214, 52, 58, 0.10),
+    4px 0 22px rgba(0, 0, 0, 0.35);
+}
+
+html[data-theme="akatsuki"] .app-top-header {
+  background:
+    linear-gradient(180deg,
+      rgba(11, 5, 7, 0.50) 0%,
+      rgba(11, 5, 7, 0.42) 100%);
+  border-bottom: none;
+  backdrop-filter: blur(22px) saturate(118%);
+  -webkit-backdrop-filter: blur(22px) saturate(118%);
+  box-shadow:
+    inset 0 -1px 0 rgba(214, 52, 58, 0.10),
+    0 4px 22px rgba(0, 0, 0, 0.28);
+}
+
+
+/* ── 8.1  Menú lateral · refinamiento del item activo + hover ──────────────
+   El item activo de la sidebar viene en clases Tailwind utility con la
+   paleta CCMGC (amarillo #ffeb66). En Akatsuki eso se ve fuera de
+   tema. Lo sobreescribimos para que el active sea rojo sangre coherente.
+   Hover de items: color hueso brillante + fondo rojo apagado muy
+   contenido. */
+
+/* Activo: gradient rojo suave + texto blanco bold + ring rojo sutil
+   en lugar del amarillo CCMGC original. */
+html[data-theme="akatsuki"] .sidebar-nav-link-active {
+  background: linear-gradient(180deg,
+    rgba(214, 52, 58, 0.18) 0%,
+    rgba(214, 52, 58, 0.10) 100%) !important;
+  color: #ffffff !important;
+  border-color: rgba(214, 52, 58, 0.32) !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(214, 52, 58, 0.18),
+    0 0 14px rgba(214, 52, 58, 0.18) !important;
+}
+html[data-theme="akatsuki"] .sidebar-nav-link-active.ring-2 {
+  /* Modo colapsado: ring amarillo → ring rojo. */
+  --tw-ring-color: rgba(255, 90, 100, 0.45) !important;
+}
+
+/* Hover de items inactivos: fondo rojo apagado MUY contenido (no salta
+   a blanco/6 como tenía Tailwind base — eso quedaba "vacío" sobre el
+   fondo translúcido del tema). */
+html[data-theme="akatsuki"] .sidebar-nav-link:hover:not(.sidebar-nav-link-active) {
+  background: rgba(214, 52, 58, 0.08) !important;
+  color: var(--text) !important;
+}
+
+/* Barra vertical roja del item activo (componente `.sidebar-active-bar`). */
+html[data-theme="akatsuki"] .sidebar-active-bar {
+  background: linear-gradient(180deg, var(--accent-bright) 0%, var(--accent) 100%) !important;
+  box-shadow: 0 0 10px rgba(255, 58, 69, 0.55) !important;
+}
+
+/* Cabeceras de sección de la sidebar ("OPERATIVA", "COLABORACIÓN",
+   "SISTEMA"). En base son `text-white/40` — un pelín apagadas para
+   el tono "moody" del tema. Refinamos a cremoso muted con letter
+   spacing un poquito más amplio para que se sientan "tipográficas". */
+html[data-theme="akatsuki"] nav .text-white\/40,
+html[data-theme="akatsuki"] nav [class*="text-white"][class*="uppercase"] {
+  color: rgba(214, 200, 187, 0.55) !important;
+  letter-spacing: 0.10em;
+}
+
+/* Borde superior del bloque de footer de la sidebar ("border-t border-white/8"). */
+html[data-theme="akatsuki"] .app-sidebar-shell .border-t {
+  border-top-color: rgba(214, 52, 58, 0.12) !important;
+}
+
+/* Logo de la cabecera del menú expandido: el wrapper en aurora tiene un
+   fondo que destaca; lo dejamos coherente con la sidebar translúcida. */
+html[data-theme="akatsuki"] .app-sidebar-shell .bg-white\/5 {
+  background-color: rgba(255, 255, 255, 0.02) !important;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                9.  TEXTO  ·  Cuerpo, secundario, muted, enlaces           ║
+ * ║                                                                          ║
+ * ║   Contraste alto. El cuerpo en `--text` (#f4ecdf) sobre fondo            ║
+ * ║   `var(--card)` (~#130a0c) da ratio ≈ 11:1 (AAA). Acentos visibles.    ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+/* Cuerpo de notas (lectura) y editor (ProseMirror) — tamaño cómodo,
+   line-height generoso, alta legibilidad. */
+html[data-theme="akatsuki"] [data-bitacora-html-body],
+html[data-theme="akatsuki"] [data-bitacora-prose].prose,
+html[data-theme="akatsuki"] [data-bitacora-prose] .ProseMirror {
+  color: var(--text);
+  font-family: var(--font-ui);
+  font-size: 16.5px;
+  line-height: 1.85;
+}
+
+/* Primer párrafo (entradilla) — blanco puro y bold para crear jerarquía. */
+html[data-theme="akatsuki"] [data-bitacora-html-body] > p:first-child,
+html[data-theme="akatsuki"] [data-bitacora-prose].prose > p:first-child {
+  color: #ffffff;
+  font-weight: 600;
+}
+
+/* IMPORTANTE: este override de `a` está RESTRINGIDO al cuerpo de notas
+   y al editor TipTap. NO se aplica a los `<Link>` de la sidebar / header
+   / cards (que renderizan `<a>` pero deben mantener el color UI del
+   componente). Sin esta restricción, toda la sidebar quedaba en rojo
+   sangre — cantosa e ilegible. */
+html[data-theme="akatsuki"] [data-bitacora-html-body] a,
+html[data-theme="akatsuki"] [data-bitacora-prose] .ProseMirror a {
+  color: var(--accent-bright);
+  text-decoration: none;
+  border-bottom: 1px solid rgba(255, 58, 69, 0.25);
+  transition: border-color 0.2s ease, color 0.2s ease;
+}
+html[data-theme="akatsuki"] [data-bitacora-html-body] a:hover,
+html[data-theme="akatsuki"] [data-bitacora-prose] .ProseMirror a:hover {
+  color: #ff5a64;
+  border-bottom-color: rgba(255, 90, 100, 0.65);
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                10. RESALTADOS  ·  <mark>                                  ║
+ * ║                                                                          ║
+ * ║   Resaltado tipo "highlight" muy visible: gradient rojo sangre nítido   ║
+ * ║   con texto blanco bold y borde interior cremoso. SIN glow difuso —    ║
+ * ║   bordes definidos para que se lea como una banda impresa, no como     ║
+ * ║   un brillo blando.                                                      ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="akatsuki"] mark,
+html[data-theme="akatsuki"] .ProseMirror mark,
+html[data-theme="akatsuki"] [data-bitacora-html-body] mark {
+  background: linear-gradient(180deg, #e23740 0%, #b3151a 100%);
+  color: #ffffff;
+  font-weight: 700;
+  border-radius: 3px;
+  padding: 0 5px;
+  box-shadow:
+    inset 0 0 0 1px rgba(243, 234, 217, 0.40),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22);
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.35);
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                11. INPUTS, BOTONES Y FORMULARIOS                          ║
+ * ║                                                                          ║
+ * ║   Inputs sólidos con borde rojo apagado, foco con borde fuerte +       ║
+ * ║   shadow rojo contenido. Botones primarios en `--accent` con hover    ║
+ * ║   a `--accent-bright`.                                                  ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+/* IMPORTANTE: inputs con fondo MÁS CLARO que el card, no más oscuro.
+   Antes usábamos `var(--surface)` (rgba(33,17,21,0.92), casi negro)
+   que sobre un card oscuro se veía como un "agujero" negro pegado
+   — visible sobre todo en el input de "ETIQUETAS" del editor de
+   notas. Solución: rgba(255,255,255,0.025) crea un escalón hacia
+   arriba (un poco más claro que el card). */
+html[data-theme="akatsuki"] input,
+html[data-theme="akatsuki"] textarea,
+html[data-theme="akatsuki"] select {
+  background-color: rgba(255, 255, 255, 0.025);
+  color: var(--text);
+  border-color: var(--border);
+}
+
+html[data-theme="akatsuki"] input::placeholder,
+html[data-theme="akatsuki"] textarea::placeholder {
+  color: var(--muted);
+}
+
+html[data-theme="akatsuki"] input:focus,
+html[data-theme="akatsuki"] textarea:focus,
+html[data-theme="akatsuki"] select:focus {
+  border-color: var(--border-strong);
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(214, 52, 58, 0.18);
+}
+
+/* `<input type="text">` "tags" del editor de bitácora: el padre tiene
+   una clase Tailwind `bg-white/5` o similar que sigue forzando un fondo
+   negro/oscuro. Forzamos transparente para herencia. */
+html[data-theme="akatsuki"] [data-bitacora-prose] input[type="text"],
+html[data-theme="akatsuki"] form input[type="text"] {
+  background-color: rgba(255, 255, 255, 0.025);
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║              14. PORTALES · DROPDOWN, COMMAND PALETTE, MODAL              ║
+ * ║                                                                          ║
+ * ║   Los portales (createPortal) escapan del árbol React normal y se        ║
+ * ║   adjuntan a `<body>`. Sus estilos vienen de `inline style` o de         ║
+ * ║   clases Tailwind hardcodeadas con colores del tema base (aurora azul).  ║
+ * ║   Aquí los tematizamos por id/atributo estable.                          ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+/* ── 14.1  Dropdown del selector de temas (`#theme-selector-panel`) ────────
+   El componente fija un `background: linear-gradient(155deg, rgb(13,20,40)
+   0%, rgb(10,15,28) 100%)` inline (azul aurora) — para sobreescribir hay
+   que usar `!important`. */
+html[data-theme="akatsuki"] #theme-selector-panel {
+  background:
+    linear-gradient(155deg, #1a0e11 0%, #0e0709 60%, #0a0507 100%) !important;
+  border-color: var(--border) !important;
+  box-shadow:
+    0 16px 48px rgba(0, 0, 0, 0.68),
+    0 0 0 1px rgba(214, 52, 58, 0.10) !important;
+}
+
+/* Cabecera (buscador de tema) — la cápsula de input tiene clases
+   Tailwind `bg-white/[0.045] ring-1 ring-white/10`. Repintamos con
+   rojo apagado en el ring. */
+html[data-theme="akatsuki"] #theme-selector-panel input[type="text"] {
+  background-color: rgba(255, 255, 255, 0.03) !important;
+  color: var(--text) !important;
+}
+
+/* Separador inferior de la cabecera del dropdown. */
+html[data-theme="akatsuki"] #theme-selector-panel .border-b {
+  border-color: var(--border) !important;
+}
+
+
+/* ── 14.2  Command Palette (Ctrl+K)  ───────────────────────────────────────
+   La librería `cmdk` aplica atributos estables `[cmdk-root]`, `[cmdk-list]`,
+   `[cmdk-input-wrapper]`, etc. en su raíz interna. El contenedor exterior
+   del proyecto tiene id `#cmd-palette-panel`. El componente fija color
+   azul-aurora `bg-[#0a0f1e]` / `bg-[#060912]` con clases Tailwind
+   arbitrarias hardcodeadas — sobreescribimos con `!important`. */
+
+/* Backdrop (oscuro semi-transparente detrás del panel). En aurora es
+   `bg-[#020308]/88`. Lo dejamos casi igual pero con tinte rojizo. */
+html[data-theme="akatsuki"] .cmd-palette-backdrop {
+  background-color: rgba(8, 4, 5, 0.88) !important;
+}
+
+/* Panel principal del Command + sub-cabeceras y listas. */
+html[data-theme="akatsuki"] #cmd-palette-panel [cmdk-root],
+html[data-theme="akatsuki"] #cmd-palette-panel [cmdk-list] {
+  background-color: #130a0c !important;
+  border-color: var(--border) !important;
+}
+
+/* Cabecera con icono de búsqueda + input + spinner: background `bg-[#0a0f1e]`. */
+html[data-theme="akatsuki"] #cmd-palette-panel [cmdk-input-wrapper],
+html[data-theme="akatsuki"] #cmd-palette-panel > div > div:first-child {
+  background-color: #130a0c !important;
+  border-color: var(--border) !important;
+}
+
+/* Cápsula interior del input: `bg-[#060912]`. */
+html[data-theme="akatsuki"] #cmd-palette-panel [class*="bg-\[\#060912\]"],
+html[data-theme="akatsuki"] #cmd-palette-panel input[cmdk-input] {
+  background-color: rgba(255, 255, 255, 0.025) !important;
+  color: var(--text) !important;
+  border-color: var(--border) !important;
+}
+
+/* Borde de focus del input cmdk (en aurora es `border-[#ffeb66]/55`).
+   En akatsuki: rojo claro. */
+html[data-theme="akatsuki"] #cmd-palette-panel [cmdk-input-wrapper] > div:focus-within {
+  border-color: rgba(255, 90, 100, 0.55) !important;
+}
+
+/* Items del cmdk: hover con tinte rojo apagado. */
+html[data-theme="akatsuki"] #cmd-palette-panel [cmdk-item][data-selected="true"] {
+  background-color: rgba(214, 52, 58, 0.14) !important;
+  color: var(--text) !important;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║              15. PÁGINA DE CONFIGURACIÓN (config-tabs-root)               ║
+ * ║                                                                          ║
+ * ║   `ConfigTabs.tsx` codifica un sistema de "tonos cromáticos" por          ║
+ * ║   pestaña (amber/violet/sky/emerald/rose/indigo) con clases Tailwind     ║
+ * ║   directas (`text-violet-200`, `bg-violet-400/10`, `ring-violet-400/30`,  ║
+ * ║   `from-violet-500/...`, etc.). Bajo el tema akatsuki todos esos tonos    ║
+ * ║   quedan fuera de paleta. Aquí los neutralizamos al rojo sangre del      ║
+ * ║   tema, manteniendo la diferenciación entre pestañas vía intensidad       ║
+ * ║   de borde/glow en lugar de matiz cromático.                             ║
+ * ║                                                                          ║
+ * ║   El scope es `html[data-theme="akatsuki"] .config-tabs-root ...`         ║
+ * ║   para no contaminar otras zonas de la app que usan estas mismas         ║
+ * ║   clases Tailwind por otras razones.                                     ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+/* TEXTOS — `text-{violet|amber|sky|emerald|rose|indigo}-{200|300|...}` */
+html[data-theme="akatsuki"] .config-tabs-root [class*="text-violet-"],
+html[data-theme="akatsuki"] .config-tabs-root [class*="text-amber-"],
+html[data-theme="akatsuki"] .config-tabs-root [class*="text-sky-"],
+html[data-theme="akatsuki"] .config-tabs-root [class*="text-emerald-"],
+html[data-theme="akatsuki"] .config-tabs-root [class*="text-rose-"],
+html[data-theme="akatsuki"] .config-tabs-root [class*="text-indigo-"],
+html[data-theme="akatsuki"] .config-tabs-root [class*="text-fuchsia-"],
+html[data-theme="akatsuki"] .config-tabs-root [class*="text-cyan-"],
+html[data-theme="akatsuki"] .config-tabs-root [class*="text-pink-"],
+html[data-theme="akatsuki"] .config-tabs-root [class*="text-teal-"],
+html[data-theme="akatsuki"] .config-tabs-root [class*="text-orange-"] {
+  color: var(--accent-bright) !important;
+}
+
+/* FONDOS — `bg-{tono}-{nivel}` (incluye variantes `/X` con opacidad). */
+html[data-theme="akatsuki"] .config-tabs-root [class*="bg-violet-"],
+html[data-theme="akatsuki"] .config-tabs-root [class*="bg-amber-"],
+html[data-theme="akatsuki"] .config-tabs-root [class*="bg-sky-"],
+html[data-theme="akatsuki"] .config-tabs-root [class*="bg-emerald-"],
+html[data-theme="akatsuki"] .config-tabs-root [class*="bg-rose-"],
+html[data-theme="akatsuki"] .config-tabs-root [class*="bg-indigo-"],
+html[data-theme="akatsuki"] .config-tabs-root [class*="bg-fuchsia-"],
+html[data-theme="akatsuki"] .config-tabs-root [class*="bg-cyan-"],
+html[data-theme="akatsuki"] .config-tabs-root [class*="bg-pink-"],
+html[data-theme="akatsuki"] .config-tabs-root [class*="bg-teal-"],
+html[data-theme="akatsuki"] .config-tabs-root [class*="bg-orange-"] {
+  background-color: rgba(214, 52, 58, 0.10) !important;
+}
+
+/* BORDES */
+html[data-theme="akatsuki"] .config-tabs-root [class*="border-violet-"],
+html[data-theme="akatsuki"] .config-tabs-root [class*="border-amber-"],
+html[data-theme="akatsuki"] .config-tabs-root [class*="border-sky-"],
+html[data-theme="akatsuki"] .config-tabs-root [class*="border-emerald-"],
+html[data-theme="akatsuki"] .config-tabs-root [class*="border-rose-"],
+html[data-theme="akatsuki"] .config-tabs-root [class*="border-indigo-"],
+html[data-theme="akatsuki"] .config-tabs-root [class*="border-fuchsia-"],
+html[data-theme="akatsuki"] .config-tabs-root [class*="border-cyan-"],
+html[data-theme="akatsuki"] .config-tabs-root [class*="border-pink-"],
+html[data-theme="akatsuki"] .config-tabs-root [class*="border-teal-"],
+html[data-theme="akatsuki"] .config-tabs-root [class*="border-orange-"] {
+  border-color: rgba(214, 52, 58, 0.20) !important;
+}
+
+/* RINGS (Tailwind usa `--tw-ring-color`) */
+html[data-theme="akatsuki"] .config-tabs-root [class*="ring-violet-"],
+html[data-theme="akatsuki"] .config-tabs-root [class*="ring-amber-"],
+html[data-theme="akatsuki"] .config-tabs-root [class*="ring-sky-"],
+html[data-theme="akatsuki"] .config-tabs-root [class*="ring-emerald-"],
+html[data-theme="akatsuki"] .config-tabs-root [class*="ring-rose-"],
+html[data-theme="akatsuki"] .config-tabs-root [class*="ring-indigo-"],
+html[data-theme="akatsuki"] .config-tabs-root [class*="ring-fuchsia-"],
+html[data-theme="akatsuki"] .config-tabs-root [class*="ring-cyan-"],
+html[data-theme="akatsuki"] .config-tabs-root [class*="ring-pink-"],
+html[data-theme="akatsuki"] .config-tabs-root [class*="ring-teal-"],
+html[data-theme="akatsuki"] .config-tabs-root [class*="ring-orange-"] {
+  --tw-ring-color: rgba(214, 52, 58, 0.30) !important;
+}
+
+/* GRADIENT FROM/VIA/TO (Tailwind variables) — el hero usa
+   `from-violet-500/[0.07] via-white/[0.02] to-fuchsia-500/[0.04]`, etc.
+   Las sobreescribimos en cascada para que el gradient sea rojo apagado. */
+html[data-theme="akatsuki"] .config-tabs-root [class*="from-violet"],
+html[data-theme="akatsuki"] .config-tabs-root [class*="from-amber"],
+html[data-theme="akatsuki"] .config-tabs-root [class*="from-sky"],
+html[data-theme="akatsuki"] .config-tabs-root [class*="from-emerald"],
+html[data-theme="akatsuki"] .config-tabs-root [class*="from-rose"],
+html[data-theme="akatsuki"] .config-tabs-root [class*="from-indigo"] {
+  --tw-gradient-from: rgba(214, 52, 58, 0.10) var(--tw-gradient-from-position) !important;
+  --tw-gradient-to: rgba(214, 52, 58, 0) var(--tw-gradient-to-position) !important;
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-via, var(--tw-gradient-to)), var(--tw-gradient-to) !important;
+}
+html[data-theme="akatsuki"] .config-tabs-root [class*="to-fuchsia"],
+html[data-theme="akatsuki"] .config-tabs-root [class*="to-orange"],
+html[data-theme="akatsuki"] .config-tabs-root [class*="to-cyan"],
+html[data-theme="akatsuki"] .config-tabs-root [class*="to-teal"],
+html[data-theme="akatsuki"] .config-tabs-root [class*="to-pink"],
+html[data-theme="akatsuki"] .config-tabs-root [class*="to-violet"] {
+  --tw-gradient-to: rgba(255, 90, 100, 0.08) var(--tw-gradient-to-position) !important;
+}
+
+/* La "rayita" decorativa de la pestaña activa (Tailwind utility
+   `bg-gradient-to-r from-X via-X to-X`). Forzamos un gradient rojo
+   unificado. */
+html[data-theme="akatsuki"] .config-tabs-root .bg-gradient-to-r[class*="from-amber"],
+html[data-theme="akatsuki"] .config-tabs-root .bg-gradient-to-r[class*="from-violet"],
+html[data-theme="akatsuki"] .config-tabs-root .bg-gradient-to-r[class*="from-sky"],
+html[data-theme="akatsuki"] .config-tabs-root .bg-gradient-to-r[class*="from-emerald"],
+html[data-theme="akatsuki"] .config-tabs-root .bg-gradient-to-r[class*="from-rose"],
+html[data-theme="akatsuki"] .config-tabs-root .bg-gradient-to-r[class*="from-indigo"] {
+  background: linear-gradient(90deg,
+    var(--accent) 0%,
+    var(--accent-bright) 50%,
+    var(--accent) 100%) !important;
+}
+
+/* Manchas decorativas del hero (bg-white/10 blur-3xl) — bajan un poco
+   la opacidad para que no laven el fondo akatsuki. */
+html[data-theme="akatsuki"] .config-tabs-root .blur-3xl {
+  background-color: rgba(214, 52, 58, 0.06) !important;
+}
+
+/* ── 15.1  Card del perfil "Mi cuenta" (.my-profile-card) ──────────────────
+   El componente fuerza `bg-gradient-to-b from-[#121a2e]/95 to-[#0d1427]/98`
+   (azul-aurora hardcoded en `MyProfileTab.tsx`). En akatsuki eso quedaba
+   un rectángulo azul-oscuro sobre fondo rojo, rompiendo toda la coherencia.
+   Lo sustituyo por un gradient akatsuki coherente con `--card`. */
+html[data-theme="akatsuki"] .my-profile-card {
+  background: linear-gradient(
+    180deg,
+    rgba(26, 14, 17, 0.95) 0%,
+    rgba(19, 10, 12, 0.97) 50%,
+    rgba(15, 7, 9, 0.98) 100%
+  ) !important;
+  border-color: var(--border) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(243, 234, 217, 0.04),
+    0 18px 50px rgba(0, 0, 0, 0.55) !important;
+}
+
+/* El separador inferior del banner del avatar dentro del card también
+   está hardcoded a `border-white/8`. Lo paso a rojo apagado coherente. */
+html[data-theme="akatsuki"] .my-profile-card .border-white\/8 {
+  border-color: rgba(214, 52, 58, 0.14) !important;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                12. MICRO-DETALLES DE IMPACTO                              ║
+ * ║                                                                          ║
+ * ║   Pequeñas capas de tensión visual que firman el tema sin               ║
+ * ║   comprometer la legibilidad ganada en FASE 3.                          ║
+ * ║                                                                          ║
+ * ║     12.1  Sharingan decorativo  (en el fondo, esquina)                  ║
+ * ║     12.2  Hilo rojo superior con shimmer  (tarjetas elevadas)           ║
+ * ║     12.3  Regla roja inferior bajo títulos h2/h3                        ║
+ * ║     12.4  Hover de botones con glow rojo contenido                      ║
+ * ║     12.5  Reveal escalonado al entrar al dashboard                      ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+
+/* ── 12.1  Sharingan decorativo ─────────────────────────────────────────── */
+html[data-theme="akatsuki"] .akatsuki-bg .akatsuki-sharingan-deco {
+  position: absolute;
+  /* Esquina inferior-izquierda, fuera del flujo de lectura. Tamaño
+     pequeño (~70px) para que sea un detalle y no un eyesore. */
+  bottom: 28px;
+  left:   28px;
+  width:  72px;
+  height: 72px;
+  opacity: 0.18;
+  /* Filtro: drop-shadow rojo para que el Sharingan se "aceche" desde
+     la sombra y no parezca un sticker plano. */
+  filter: drop-shadow(0 0 14px rgba(214, 52, 58, 0.45));
+  pointer-events: none;
+  will-change: transform;
+  animation: akatsuki-sharingan-spin 60s linear infinite;
+}
+
+@media (max-width: 768px) {
+  html[data-theme="akatsuki"] .akatsuki-bg .akatsuki-sharingan-deco {
+    width: 52px;
+    height: 52px;
+    bottom: 14px;
+    left:   14px;
+    opacity: 0.14;
+  }
+}
+
+@keyframes akatsuki-sharingan-spin {
+  0%   { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+
+/* ── 12.2  Hilo rojo superior con shimmer ──────────────────────────────────
+   Solo en tarjetas elevadas (`glass-2`, `glass-3`, `glass-4`) y en
+   `.glass-surface` — el tema no usa `.glass`/`.glass-1` con prominencia.
+   Implementado con `::after` (no `::before`, evita colisión con
+   `.glass-surface::before { display: none }` de FASE 3). */
+html[data-theme="akatsuki"] .glass-surface::after,
+html[data-theme="akatsuki"] .glass-2::after,
+html[data-theme="akatsuki"] .glass-3::after,
+html[data-theme="akatsuki"] .glass-4::after {
+  content: "";
+  position: absolute;
+  top:    0;
+  left:   0;
+  right:  0;
+  height: 2px;
+  pointer-events: none;
+  z-index: 2;
+  /* Shimmer: gradient con un punto brillante que se desliza. */
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    transparent 28%,
+    rgba(214, 52, 58, 0.55) 44%,
+    rgba(255, 90, 100, 1.00) 50%,
+    rgba(214, 52, 58, 0.55) 56%,
+    transparent 72%,
+    transparent 100%
+  );
+  background-size: 260% 100%;
+  background-position: 100% 0;
+  animation: akatsuki-shimmer 6s ease-in-out infinite;
+  border-top-left-radius:  inherit;
+  border-top-right-radius: inherit;
+}
+
+@keyframes akatsuki-shimmer {
+  0%   { background-position: 130% 0; }
+  100% { background-position: -30% 0; }
+}
+
+
+/* ── 12.3  Regla roja inferior bajo títulos h2/h3 ──────────────────────────
+   Pequeño detalle de jerarquía: una línea roja corta justo debajo del
+   título, con glow ligero. Se aplica a h2/h3 que NO estén dentro de
+   listas/botones (evita inflar UI). Implementado con `::after` block.
+   h1 se queda limpio (el peso 800 ya domina). */
+html[data-theme="akatsuki"] h2,
+html[data-theme="akatsuki"] h3 {
+  position: relative;
+}
+
+html[data-theme="akatsuki"] h2::after,
+html[data-theme="akatsuki"] h3::after {
+  content: "";
+  display: block;
+  width: 48px;
+  height: 2px;
+  margin-top: 8px;
+  background: linear-gradient(
+    90deg,
+    var(--accent) 0%,
+    var(--accent-bright) 60%,
+    transparent 100%
+  );
+  box-shadow: 0 0 8px rgba(255, 58, 69, 0.45);
+  border-radius: 999px;
+}
+
+/* h3 con regla más fina y corta — diferenciación de jerarquía. */
+html[data-theme="akatsuki"] h3::after {
+  width: 32px;
+  height: 1.5px;
+  margin-top: 6px;
+  box-shadow: 0 0 6px rgba(255, 58, 69, 0.35);
+}
+
+
+/* ── 12.4  Hover de botones con glow rojo contenido ────────────────────────
+   Sin abusar de selectores globales: aplicamos a botones tipo
+   "primario/destacado" comunes del proyecto (`.btn-primary` y a
+   cualquier `button` que tenga clase `btn` con variante destacada). */
+html[data-theme="akatsuki"] button:hover {
+  transition: box-shadow 0.2s ease, transform 0.15s ease;
+}
+html[data-theme="akatsuki"] .btn-primary,
+html[data-theme="akatsuki"] button[data-variant="primary"] {
+  background: linear-gradient(180deg, var(--accent-bright) 0%, var(--accent) 100%);
+  color: #ffffff;
+  border: 1px solid rgba(255, 90, 100, 0.55);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.20),
+    0 1px 0 rgba(0, 0, 0, 0.45);
+}
+html[data-theme="akatsuki"] .btn-primary:hover,
+html[data-theme="akatsuki"] button[data-variant="primary"]:hover {
+  background: linear-gradient(180deg, #ff5a64 0%, var(--accent-bright) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.25),
+    0 0 0 1px rgba(255, 90, 100, 0.42),
+    0 0 18px rgba(255, 58, 69, 0.45);
+}
+
+
+/* ── 12.5  Reveal escalonado al entrar al dashboard ────────────────────────
+   Suave fade-in + slide-up de las tarjetas. `backwards` para que el
+   estado "antes del 0%" se aplique antes de empezar la animación
+   (evita el flash inicial). Delays cortos (40-180ms) para que el
+   stagger sea perceptible pero NO se sienta como "carga lenta". */
+html[data-theme="akatsuki"] .glass-surface,
+html[data-theme="akatsuki"] .glass-2,
+html[data-theme="akatsuki"] .glass-3,
+html[data-theme="akatsuki"] .glass-4 {
+  animation: akatsuki-card-reveal 0.55s cubic-bezier(0.22, 0.61, 0.36, 1) backwards;
+}
+html[data-theme="akatsuki"] .glass-surface:nth-child(1),
+html[data-theme="akatsuki"] .glass-2:nth-child(1),
+html[data-theme="akatsuki"] .glass-3:nth-child(1),
+html[data-theme="akatsuki"] .glass-4:nth-child(1) { animation-delay: 0.04s; }
+html[data-theme="akatsuki"] .glass-surface:nth-child(2),
+html[data-theme="akatsuki"] .glass-2:nth-child(2),
+html[data-theme="akatsuki"] .glass-3:nth-child(2),
+html[data-theme="akatsuki"] .glass-4:nth-child(2) { animation-delay: 0.08s; }
+html[data-theme="akatsuki"] .glass-surface:nth-child(3),
+html[data-theme="akatsuki"] .glass-2:nth-child(3),
+html[data-theme="akatsuki"] .glass-3:nth-child(3),
+html[data-theme="akatsuki"] .glass-4:nth-child(3) { animation-delay: 0.12s; }
+html[data-theme="akatsuki"] .glass-surface:nth-child(4),
+html[data-theme="akatsuki"] .glass-2:nth-child(4),
+html[data-theme="akatsuki"] .glass-3:nth-child(4),
+html[data-theme="akatsuki"] .glass-4:nth-child(4) { animation-delay: 0.16s; }
+html[data-theme="akatsuki"] .glass-surface:nth-child(5),
+html[data-theme="akatsuki"] .glass-2:nth-child(5),
+html[data-theme="akatsuki"] .glass-3:nth-child(5),
+html[data-theme="akatsuki"] .glass-4:nth-child(5) { animation-delay: 0.20s; }
+
+@keyframes akatsuki-card-reveal {
+  0%   { opacity: 0; transform: translateY(8px); }
+  100% { opacity: 1; transform: translateY(0);    }
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                13. ACCESIBILIDAD · prefers-reduced-motion                 ║
+ * ║                                                                          ║
+ * ║   Detiene TODAS las animaciones del tema (atmósfera + micro-detalles). ║
+ * ║   El reveal escalonado también se desactiva (sustituido por estado     ║
+ * ║   final).                                                               ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-theme="akatsuki"] .akatsuki-bg .akatsuki-ember,
+  html[data-theme="akatsuki"] .akatsuki-bg .akatsuki-cloud,
+  html[data-theme="akatsuki"] .akatsuki-bg .akatsuki-kanji,
+  html[data-theme="akatsuki"] .akatsuki-bg .akatsuki-sharingan-deco,
+  html[data-theme="akatsuki"] .glass-surface::after,
+  html[data-theme="akatsuki"] .glass-2::after,
+  html[data-theme="akatsuki"] .glass-3::after,
+  html[data-theme="akatsuki"] .glass-4::after,
+  html[data-theme="akatsuki"] .glass-surface,
+  html[data-theme="akatsuki"] .glass-2,
+  html[data-theme="akatsuki"] .glass-3,
+  html[data-theme="akatsuki"] .glass-4 {
+    animation: none !important;
+  }
+}

@@ -1,0 +1,1422 @@
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║          TEMA  "ABISMO"  ·  Bajo el océano profundo                      ║
+ * ║                                                                          ║
+ * ║   Inspiración: Mariana Trench, documentales de criaturas abisales,       ║
+ * ║   "Avatar: The Way of Water" (zona Cove of the Ancestors), fotografía    ║
+ * ║   de bioluminiscencia marina. Inmersión total, claustrofobia controlada. ║
+ * ║                                                                          ║
+ * ║   Identidad visual:                                                      ║
+ * ║     · Fondo: agua en gradiente vertical, más oscuro hacia abajo          ║
+ * ║       (azul abismal #020817 → #03102b → #062247).                        ║
+ * ║     · Rayos de luz tenues filtrándose desde arriba (CSS).                ║
+ * ║     · Medusas bioluminiscentes (SVG con animación de pulso).             ║
+ * ║     · Partículas (plancton) ascendiendo muy lentamente.                  ║
+ * ║     · Cards: cristal acuoso con tinte cyan + borde bioluminiscente.      ║
+ * ║     · Acentos: cyan brillante, azul medianoche, amarillo CCMGC.          ║
+ * ║                                                                          ║
+ * ║   AISLAMIENTO TOTAL bajo `html[data-theme="abyss"]`.                     ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                         1.  PALETA Y TOKENS                              ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="abyss"] {
+  --bg-deep: #020817;
+  --accent: #FFEB66;
+
+  --text: #e8f4ff;
+  --text-dim: #a8c8e0;
+  --text-faint: #6a8aa8;
+
+  /* Paleta abisal */
+  --abyss-void: #020817;
+  --abyss-deep: #03102b;
+  --abyss-mid: #062247;
+  --abyss-bio: #00e0d4;
+  --abyss-electric: #0099ff;
+  --abyss-jelly: #5be0ff;
+  --abyss-algae: #3dffb4;
+  --abyss-coral: #ff6ba8;
+  --abyss-pearl: #e8f4ff;
+
+  /* Cristal acuoso (tinte cyan/azul frío) */
+  --glass-bg: rgba(120, 200, 230, 0.06);
+  --glass-bg-2: rgba(120, 200, 230, 0.12);
+  --glass-border: rgba(100, 200, 230, 0.18);
+  --glass-border-glow: rgba(0, 224, 212, 0.55);
+  --glass-blur: 22px;
+  --glass-shadow: 0 14px 50px rgba(2, 10, 28, 0.62);
+  --glass-highlight:
+    inset 0 1px 0 rgba(180, 230, 255, 0.18),
+    inset 1px 0 0 rgba(180, 230, 255, 0.06);
+
+  --glow-bio: rgba(0, 224, 212, 0.30);
+  --glow-electric: rgba(0, 153, 255, 0.24);
+
+  --stat-purple: #c69bff;
+  --stat-blue:   #5be0ff;
+  --stat-cyan:   var(--abyss-bio);
+  --stat-green:  var(--abyss-algae);
+
+  --app-canvas-color: transparent;
+  --app-canvas-image: none;
+  --card-isolation: auto;
+
+  --abyss-radius: 18px;
+  --abyss-radius-shell: 24px;
+
+  /* Profile menu — azul abismal con borde cyan bioluminiscente. */
+  --profile-menu-bg: rgba(3, 16, 38, 0.96);
+  --profile-menu-solid: #031026;
+  --profile-menu-border: rgba(0, 224, 212, 0.22);
+  --profile-menu-shadow: 0 16px 48px rgba(2, 8, 22, 0.62);
+  --profile-menu-section: rgba(100, 200, 230, 0.05);
+
+  color-scheme: dark;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║              2.  FIX DE CAPAS OPACAS                                     ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="abyss"] body {
+  color: var(--text);
+  font-weight: 400;
+  min-height: 100vh;
+}
+
+html[data-theme="abyss"] .app-sidebar-shell,
+html[data-theme="abyss"] .app-top-header {
+  isolation: auto !important;
+}
+
+html[data-theme="abyss"] .glass-shell-frame {
+  margin: 18px;
+  padding: 1.5px;
+  border-radius: var(--abyss-radius-shell);
+  background: linear-gradient(
+    135deg,
+    rgba(0, 224, 212, 0.55),
+    rgba(91, 224, 255, 0.40) 35%,
+    rgba(0, 153, 255, 0.45) 65%,
+    rgba(61, 255, 180, 0.32)
+  );
+  box-shadow:
+    0 0 60px rgba(0, 224, 212, 0.18),
+    0 0 120px rgba(0, 153, 255, 0.10);
+}
+
+html[data-theme="abyss"] .glass-shell-inner {
+  border-radius: calc(var(--abyss-radius-shell) - 2px);
+  background: rgba(6, 22, 50, 0.40);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  overflow: hidden;
+  padding: 20px;
+}
+
+@media (max-width: 768px) {
+  html[data-theme="abyss"] .glass-shell-inner { padding: 6px; }
+  html[data-theme="abyss"] .app-dashboard-root { gap: 8px; }
+}
+@media (max-width: 640px) {
+  html[data-theme="abyss"] .glass-shell-frame {
+    margin: 4px;
+    border-radius: 16px;
+  }
+  html[data-theme="abyss"] .glass-shell-inner {
+    border-radius: 14px;
+  }
+}
+@media (max-width: 480px) {
+  html[data-theme="abyss"] .glass-shell-frame {
+    margin: 0;
+    padding: 0;
+    border-radius: 0;
+    box-shadow: none;
+    background: rgba(0, 224, 212, 0.28);
+  }
+  html[data-theme="abyss"] .glass-shell-inner {
+    padding: 0;
+    border-radius: 0;
+  }
+  html[data-theme="abyss"] .app-dashboard-root { gap: 0; }
+}
+
+html[data-theme="abyss"] .glass-shell-frame::before,
+html[data-theme="abyss"] .glass-shell-frame::after,
+html[data-theme="abyss"] .glass-shell-inner::before,
+html[data-theme="abyss"] .glass-shell-inner::after {
+  display: none !important;
+}
+
+html[data-theme="abyss"] .app-dashboard-root {
+  background: transparent !important;
+  gap: 16px;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║              3.  FONDO  ·  <AbyssBackground />                           ║
+ * ║                                                                          ║
+ * ║   Capas (todas dentro de `.abyss-bg`, position:fixed; z-index:-10):      ║
+ * ║     1. Agua: gradiente vertical, más profundo hacia abajo.               ║
+ * ║     2. `.abyss-rays`     ← rayos de luz cónicos desde arriba.            ║
+ * ║     3. `.abyss-jellies`  ← 2-3 medusas SVG con pulse + tentáculos.       ║
+ * ║     4. `.abyss-plankton` ← partículas ascendentes (12 puntos, CSS).      ║
+ * ║     5. `.abyss-bottom`   ← gradiente más oscuro en la base (algas).      ║
+ * ║     6. `.abyss-noise`    ← ruido SVG para evitar banding.                ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="abyss"] .abyss-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -10;
+  overflow: hidden;
+  background:
+    radial-gradient(
+      ellipse 80% 25% at 50% 100%,
+      rgba(0, 80, 120, 0.20) 0%,
+      transparent 70%
+    ),
+    radial-gradient(
+      ellipse 40% 30% at 30% 0%,
+      rgba(6, 60, 100, 0.30) 0%,
+      transparent 60%
+    ),
+    linear-gradient(
+      180deg,
+      #072a55 0%,
+      #03122e 28%,
+      #020918 55%,
+      #010510 78%,
+      #000308 100%
+    );
+  pointer-events: none;
+}
+
+/* ── Capa 2: rayos de luz desde la superficie (god rays) ──────────────── */
+html[data-theme="abyss"] .abyss-bg .abyss-rays {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background:
+    /* Rayo central — el más prominente */
+    linear-gradient(180deg, rgba(91, 224, 255, 0.18) 0%, transparent 62%),
+    /* Rayo izquierdo — diagonal sutil */
+    linear-gradient(165deg, rgba(91, 224, 255, 0.09) 0%, transparent 48%),
+    /* Rayo derecho — diagonal sutil opuesto */
+    linear-gradient(195deg, rgba(91, 224, 255, 0.09) 0%, transparent 48%),
+    /* Rayo lejano izquierdo extra */
+    linear-gradient(158deg, rgba(60, 200, 255, 0.05) 0%, transparent 38%);
+  filter: blur(18px);
+  /* Duración 20s (antes 18s) — la luz sobre el agua se mueve algo más
+     lento, da sensación de profundidad. */
+  animation: abyss-rays-shift 20s ease-in-out infinite;
+  pointer-events: none;
+  /* transform-origin centro para que el skew no descoloque al elemento */
+  transform-origin: 50% 0;
+  will-change: transform, opacity;
+}
+
+@keyframes abyss-rays-shift {
+  /* Ahora combinamos translateX con skewX(±3deg) para simular la
+     refracción del agua sobre la luz que cae verticalmente. La luz
+     no se mueve sólo lateralmente: también se distorsiona. */
+  0%, 100% { opacity: 0.75; transform: translateX(-1%) skewX(-3deg); }
+  50%      { opacity: 1.0;  transform: translateX( 1%) skewX( 3deg); }
+}
+
+/* ── Capa 3: medusas (en el componente) ──────────────────────────────── */
+html[data-theme="abyss"] .abyss-bg .abyss-jellies {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+html[data-theme="abyss"] .abyss-bg .abyss-jelly {
+  position: absolute;
+  width: 100px;
+  height: 140px;
+  filter:
+    drop-shadow(0 0 28px rgba(0, 224, 212, 0.65))
+    drop-shadow(0 0 60px rgba(0, 180, 220, 0.30));
+  animation: abyss-jelly-float var(--jelly-dur, 14s) ease-in-out infinite;
+}
+
+html[data-theme="abyss"] .abyss-bg .abyss-jelly svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+html[data-theme="abyss"] .abyss-bg .abyss-jelly .j-bell {
+  fill: url(#abyss-jelly-grad);
+  opacity: 0.9;
+}
+
+html[data-theme="abyss"] .abyss-bg .abyss-jelly .j-tentacle {
+  stroke: rgba(91, 224, 255, 0.65);
+  stroke-width: 1.5;
+  fill: none;
+  stroke-linecap: round;
+}
+
+@keyframes abyss-jelly-float {
+  0%, 100% { transform: translateY(0) scaleY(1); }
+  50%      { transform: translateY(-25px) scaleY(0.95); }
+}
+
+/* ── Capa 4: plancton ascendente (12 puntos) ─────────────────────────── */
+html[data-theme="abyss"] .abyss-bg .abyss-plankton {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+html[data-theme="abyss"] .abyss-bg .abyss-plankton .p {
+  position: absolute;
+  bottom: -10px;
+  width: 2px;
+  height: 2px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(180, 240, 255, 1) 0%, rgba(0, 224, 212, 0.6) 70%, transparent 100%);
+  box-shadow: 0 0 6px rgba(91, 224, 255, 0.6);
+  opacity: 0;
+  animation: abyss-plankton-rise 14s linear infinite;
+}
+
+@keyframes abyss-plankton-rise {
+  0%   { transform: translate(var(--px, 0px), 0px) scale(1); opacity: 0; }
+  10%  { opacity: 0.85; }
+  50%  { transform: translate(calc(var(--px, 0px) * 1.5), -50vh) scale(1.1); opacity: 0.65; }
+  100% { transform: translate(calc(var(--px, 0px) * 2.5), -110vh) scale(0.6); opacity: 0; }
+}
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║   NUEVAS CAPAS — corales, anémonas, cardumen, rape, burbujas, cáusticas  ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+/* ── Cáusticas en la superficie (patrón ondulado animado) ─────────────
+ *  Antes movíamos sólo el elemento entero; ahora animamos también
+ *  `background-position` sobre un background-size 300% 300% para que
+ *  el propio patrón "fluya" como agua real, no se desplace en bloque.
+ *  Composición visual: 3 elipses radiales con blend screen + blur.
+ */
+html[data-theme="abyss"] .abyss-bg .abyss-caustics {
+  position: absolute;
+  top: 0;
+  left: -10%;
+  width: 120%;
+  height: 42%;
+  background:
+    radial-gradient(ellipse at 20% 0%, rgba(180, 240, 255, 0.26) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 10%, rgba(180, 240, 255, 0.18) 0%, transparent 55%),
+    radial-gradient(ellipse at 80% 0%, rgba(180, 240, 255, 0.22) 0%, transparent 50%),
+    radial-gradient(ellipse at 35% 5%, rgba(120, 220, 255, 0.12) 0%, transparent 45%);
+  background-size: 300% 300%;
+  background-position: 0% 0%;
+  filter: blur(7px);
+  mix-blend-mode: screen;
+  pointer-events: none;
+  will-change: background-position, transform, opacity;
+  /* Combinamos 2 animaciones: shift del background-position (8s, rápido,
+     da la sensación de patrón fluyendo) + drift del elemento (18s, sutil,
+     da la oscilación lateral previa). */
+  animation:
+    abyss-caustics-shift 8s ease infinite,
+    abyss-caustics-drift 18s ease-in-out infinite;
+}
+@keyframes abyss-caustics-shift {
+  0%   { background-position: 0% 0%; }
+  50%  { background-position: 100% 100%; }
+  100% { background-position: 0% 0%; }
+}
+@keyframes abyss-caustics-drift {
+  0%, 100% { transform: translateX(0) scaleY(1);    opacity: 0.7; }
+  50%      { transform: translateX(8%) scaleY(1.1); opacity: 1; }
+}
+
+/* ── Cardumen de peces silueta ─── */
+html[data-theme="abyss"] .abyss-bg .abyss-fish-school {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+html[data-theme="abyss"] .abyss-bg .abyss-fish-school .fish-row {
+  position: absolute;
+  left: -50%;
+  width: 800px;
+  height: 60px;
+  transform-origin: center;
+}
+html[data-theme="abyss"] .abyss-bg .abyss-fish-school .fish-row svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+html[data-theme="abyss"] .abyss-bg .abyss-fish-school .fish-row-ltr {
+  animation: abyss-fish-ltr linear infinite;
+}
+html[data-theme="abyss"] .abyss-bg .abyss-fish-school .fish-row-rtl {
+  animation: abyss-fish-rtl linear infinite;
+  transform: scaleX(-1);
+}
+@keyframes abyss-fish-ltr {
+  from { transform: translateX(-50%); }
+  to   { transform: translateX(160vw); }
+}
+@keyframes abyss-fish-rtl {
+  from { transform: translateX(160vw) scaleX(-1); }
+  to   { transform: translateX(-50%) scaleX(-1); }
+}
+
+/* ── RAPE PESCADOR con su luz pulsante ─── */
+html[data-theme="abyss"] .abyss-bg .abyss-anglerfish {
+  position: absolute;
+  top: 64%;
+  right: 6%;
+  width: 280px;
+  height: 200px;
+  pointer-events: none;
+  z-index: 4;
+  overflow: visible;
+  /* Trayectoria amplia (30s, antes 18s y sólo 30px). El rape ahora
+     "patrulla" una zona mayor del abismo, ±10vw horizontal y ±5vh
+     vertical, lo que da sensación de un pez de verdad rondando la
+     escena en lugar de oscilar en su sitio. */
+  animation: abyss-anglerfish-drift 30s ease-in-out infinite;
+  filter: drop-shadow(0 0 20px rgba(255, 180, 70, 0.45));
+  will-change: transform;
+}
+html[data-theme="abyss"] .abyss-bg .abyss-anglerfish svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  overflow: visible;
+}
+html[data-theme="abyss"] .abyss-bg .abyss-anglerfish .angler-glow,
+html[data-theme="abyss"] .abyss-bg .abyss-anglerfish .angler-bait {
+  animation: abyss-anglerfish-light 2.4s ease-in-out infinite;
+  transform-origin: center;
+}
+@keyframes abyss-anglerfish-drift {
+  0%   { transform: translate(0, 0); }
+  25%  { transform: translate(-5vw, 5vh); }
+  50%  { transform: translate(-10vw, 0); }
+  75%  { transform: translate(-5vw, -3vh); }
+  100% { transform: translate(0, 0); }
+}
+@keyframes abyss-anglerfish-light {
+  0%, 100% { opacity: 0.85; }
+  35%      { opacity: 1; }
+  55%      { opacity: 0.65; }
+  75%      { opacity: 0.95; }
+}
+@media (max-width: 640px) {
+  html[data-theme="abyss"] .abyss-bg .abyss-anglerfish {
+    width: 180px;
+    height: 130px;
+    right: 2%;
+    top: 70%;
+  }
+}
+
+/* ── CORALES ─── */
+html[data-theme="abyss"] .abyss-bg .abyss-corals {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 20%;
+  pointer-events: none;
+  z-index: 3;
+}
+html[data-theme="abyss"] .abyss-bg .abyss-corals svg {
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* ── ANÉMONAS ─── */
+html[data-theme="abyss"] .abyss-bg .abyss-anemones {
+  position: absolute;
+  bottom: 4%;
+  left: 0;
+  width: 100%;
+  height: 14%;
+  pointer-events: none;
+  z-index: 3;
+}
+html[data-theme="abyss"] .abyss-bg .abyss-anemones .anemone {
+  position: absolute;
+  bottom: 0;
+  width: 60px;
+  height: 80px;
+  animation: abyss-anemone-sway 5s ease-in-out infinite;
+  transform-origin: bottom center;
+}
+html[data-theme="abyss"] .abyss-bg .abyss-anemones .anemone svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+html[data-theme="abyss"] .abyss-bg .abyss-anemones .anemone-tentacle {
+  animation: abyss-tentacle-wave 4s ease-in-out infinite;
+  transform-origin: bottom center;
+}
+@keyframes abyss-anemone-sway {
+  0%, 100% { transform: rotate(-2deg); }
+  50%      { transform: rotate(2deg); }
+}
+@keyframes abyss-tentacle-wave {
+  0%, 100% { transform: translateX(0) scaleY(1); }
+  50%      { transform: translateX(2px) scaleY(0.96); }
+}
+
+/* ── BURBUJAS subiendo ─── */
+html[data-theme="abyss"] .abyss-bg .abyss-bubbles {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+html[data-theme="abyss"] .abyss-bg .abyss-bubbles .bubble {
+  position: absolute;
+  bottom: -2vh;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 30% 30%,
+    rgba(255, 255, 255, 0.65) 0%,
+    rgba(180, 240, 255, 0.30) 40%,
+    rgba(80, 160, 220, 0.15) 80%,
+    transparent 100%
+  );
+  border: 0.5px solid rgba(180, 240, 255, 0.25);
+  box-shadow: inset 0 0 4px rgba(180, 240, 255, 0.45);
+  opacity: 0;
+  animation: abyss-bubble-rise linear infinite;
+}
+@keyframes abyss-bubble-rise {
+  0%   { transform: translate(0, 0)                       scale(0.5); opacity: 0; }
+  10%  {                                                              opacity: 0.85; }
+  90%  {                                                              opacity: 0.6; }
+  100% { transform: translate(var(--bx, 0), -110vh)       scale(1);   opacity: 0; }
+}
+
+/* ── Capa 5: gradiente más oscuro al fondo (suelo abisal) ────────────── */
+html[data-theme="abyss"] .abyss-bg .abyss-bottom {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 22%;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    rgba(1, 4, 13, 0.45) 50%,
+    rgba(0, 2, 8, 0.85) 100%
+  );
+  pointer-events: none;
+}
+
+/* ── Capa 6: ruido ────────────────────────────────────────────────── */
+html[data-theme="abyss"] .abyss-bg .abyss-noise {
+  position: absolute;
+  inset: 0;
+  opacity: 0.04;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  pointer-events: none;
+  mix-blend-mode: overlay;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                4.  CLASE DE CRISTAL  ·  .glass-surface                   ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="abyss"] .glass-surface {
+  position: relative;
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur)) saturate(150%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(150%);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow), var(--glass-highlight);
+  border-radius: var(--abyss-radius);
+  transition:
+    border-color 0.3s ease,
+    transform 0.3s ease,
+    background 0.3s ease,
+    box-shadow 0.3s ease;
+  overflow: hidden;
+}
+
+html[data-theme="abyss"] .glass-surface::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background: linear-gradient(
+    135deg,
+    rgba(180, 230, 255, 0.16) 0%,
+    rgba(180, 230, 255, 0.04) 22%,
+    transparent 46%
+  );
+  border-radius: inherit;
+}
+
+html[data-theme="abyss"] .glass-surface > * {
+  position: relative;
+  z-index: 1;
+}
+
+html[data-theme="abyss"] .glass-surface:hover {
+  border-color: var(--glass-border-glow);
+  transform: translateY(-2px);
+  background: var(--glass-bg-2);
+  box-shadow:
+    0 18px 58px rgba(2, 10, 28, 0.62),
+    0 0 32px var(--glow-bio),
+    0 0 56px var(--glow-electric),
+    var(--glass-highlight);
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║              5.  ALIAS  ·  Cards del sistema                             ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="abyss"] .glass,
+html[data-theme="abyss"] .glass-1,
+html[data-theme="abyss"] .glass-2,
+html[data-theme="abyss"] .glass-3,
+html[data-theme="abyss"] .glass-4 {
+  isolation: var(--card-isolation);
+  position: relative;
+  border-radius: var(--abyss-radius);
+  transition:
+    background 0.3s ease,
+    border-color 0.3s ease,
+    box-shadow 0.3s ease,
+    transform 0.3s ease;
+}
+
+html[data-theme="abyss"] .glass {
+  background: rgba(120, 200, 230, 0.020);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  border: 1px solid rgba(120, 200, 230, 0.05);
+  box-shadow: none;
+}
+
+html[data-theme="abyss"] .glass-1 {
+  background: rgba(120, 200, 230, 0.08);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  border: 1px solid rgba(100, 200, 230, 0.16);
+  box-shadow: var(--glass-shadow), var(--glass-highlight);
+}
+
+html[data-theme="abyss"] .glass-2 {
+  background: rgba(120, 200, 230, 0.10);
+  backdrop-filter: blur(20px) saturate(150%);
+  -webkit-backdrop-filter: blur(20px) saturate(150%);
+  border: 1px solid rgba(100, 200, 230, 0.20);
+  box-shadow: var(--glass-shadow), var(--glass-highlight);
+}
+
+html[data-theme="abyss"] .glass-3,
+html[data-theme="abyss"] .glass-4 {
+  background: linear-gradient(
+    155deg,
+    rgba(8, 28, 60, 0.55) 0%,
+    rgba(120, 200, 230, 0.10) 45%,
+    rgba(120, 200, 230, 0.05) 100%
+  );
+  backdrop-filter: blur(var(--glass-blur)) saturate(155%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(155%);
+  border: 1px solid rgba(100, 200, 230, 0.22);
+  box-shadow: var(--glass-shadow), var(--glass-highlight);
+}
+
+html[data-theme="abyss"] .glass::before,
+html[data-theme="abyss"] .glass-1::before,
+html[data-theme="abyss"] .glass-2::before,
+html[data-theme="abyss"] .glass-3::before,
+html[data-theme="abyss"] .glass-4::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background: linear-gradient(
+    135deg,
+    rgba(180, 230, 255, 0.14) 0%,
+    rgba(180, 230, 255, 0.04) 22%,
+    transparent 46%
+  );
+  border-radius: inherit;
+}
+
+html[data-theme="abyss"] .glass > *,
+html[data-theme="abyss"] .glass-1 > *,
+html[data-theme="abyss"] .glass-2 > *,
+html[data-theme="abyss"] .glass-3 > *,
+html[data-theme="abyss"] .glass-4 > * {
+  position: relative;
+  z-index: 1;
+}
+
+html[data-theme="abyss"] .glass-1:hover,
+html[data-theme="abyss"] .glass-2:hover,
+html[data-theme="abyss"] .glass-3:hover,
+html[data-theme="abyss"] .glass-4:hover {
+  border-color: var(--glass-border-glow);
+}
+
+html[data-theme="abyss"] .glass-hover:hover {
+  background: var(--glass-bg-2);
+  border-color: var(--glass-border-glow);
+  transform: translateY(-2px);
+  box-shadow:
+    0 18px 58px rgba(2, 10, 28, 0.62),
+    0 0 32px var(--glow-bio),
+    0 0 56px var(--glow-electric),
+    var(--glass-highlight);
+}
+
+html[data-theme="abyss"] .glass .glass-hover:hover,
+html[data-theme="abyss"] .glass-1 .glass-hover:hover,
+html[data-theme="abyss"] .glass-2 .glass-hover:hover,
+html[data-theme="abyss"] .glass-3 .glass-hover:hover,
+html[data-theme="abyss"] .glass-4 .glass-hover:hover {
+  transform: none !important;
+  box-shadow: var(--glass-highlight) !important;
+}
+
+html[data-theme="abyss"] .glass:has(.glass-hover) {
+  overflow: hidden;
+}
+
+html[data-theme="abyss"] .dashboard-quick-action.glass-hover:hover {
+  transform: translateY(-1px);
+  box-shadow:
+    0 1px 4px rgba(2, 10, 28, 0.40),
+    0 0 4px rgba(0, 224, 212, 0.38),
+    var(--glass-highlight);
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║          6.  BORDE ANIMADO                                               ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+@property --abyss-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+html[data-theme="abyss"] .glow-border {
+  position: relative;
+}
+
+html[data-theme="abyss"] .glow-border::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1.5px;
+  background: conic-gradient(
+    from var(--abyss-angle),
+    transparent 0%,
+    transparent 65%,
+    var(--abyss-bio) 75%,
+    var(--abyss-jelly) 82%,
+    var(--abyss-electric) 90%,
+    transparent 98%
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+          mask-composite: exclude;
+  animation: abyss-border-run 10s linear infinite;
+  pointer-events: none;
+  z-index: 2;
+}
+
+@keyframes abyss-border-run {
+  to { --abyss-angle: 360deg; }
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                  7.  APARICIÓN ESCALONADA                                ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="abyss"] .reveal {
+  opacity: 0;
+  transform: translateY(14px);
+  animation: abyss-reveal-up 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes abyss-reveal-up {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                  8.  CHROME  ·  Sidebar + Header                         ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="abyss"] .app-sidebar-shell {
+  background: transparent !important;
+  background-image: none !important;
+  border-right: 1px solid rgba(100, 200, 230, 0.10);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  box-shadow: none;
+}
+
+html[data-theme="abyss"] .app-sidebar-shell.sidebar-expanded-solid {
+  /* Azul abismal profundo armonizando con las profundidades */
+  background: linear-gradient(
+    180deg,
+    rgba(6, 24, 52, 0.94) 0%,
+    rgba(2, 10, 28, 0.97) 100%
+  ) !important;
+  border-right: 1px solid rgba(0, 170, 204, 0.22) !important;
+  box-shadow: 4px 0 18px rgba(0, 170, 204, 0.08) !important;
+  backdrop-filter: blur(32px) saturate(160%) !important;
+  -webkit-backdrop-filter: blur(32px) saturate(160%) !important;
+  border-right: 1px solid var(--glass-border) !important;
+  box-shadow:
+    var(--glass-highlight),
+    8px 0 32px rgba(2, 10, 28, 0.55),
+    0 0 60px rgba(0, 224, 212, 0.08) !important;
+  border-radius: 0 !important;
+}
+
+html[data-theme="abyss"] .sidebar-nav-link-active {
+  position: relative;
+  background: linear-gradient(
+    90deg,
+    rgba(0, 224, 212, 0.18) 0%,
+    rgba(91, 224, 255, 0.08) 100%
+  ) !important;
+  color: var(--text) !important;
+  border-color: transparent !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(0, 224, 212, 0.38),
+    0 0 22px rgba(0, 224, 212, 0.22) !important;
+  overflow: hidden;
+}
+
+html[data-theme="abyss"] .sidebar-nav-link-active::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 6px;
+  bottom: 6px;
+  width: 3px;
+  border-radius: 2px;
+  background: linear-gradient(
+    180deg,
+    var(--abyss-jelly) 0%,
+    var(--abyss-bio) 50%,
+    var(--abyss-electric) 100%
+  );
+  box-shadow: 0 0 8px var(--abyss-bio);
+  pointer-events: none;
+}
+
+html[data-theme="abyss"] .sidebar-nav-link:not(.sidebar-nav-link-active):hover {
+  background: rgba(0, 224, 212, 0.08);
+  color: var(--text);
+  box-shadow: inset 0 0 0 1px rgba(0, 224, 212, 0.22);
+}
+
+html[data-theme="abyss"] .app-top-header {
+  background: transparent !important;
+  background-image: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: none !important;
+  border-bottom: none !important;
+  box-shadow: none !important;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                  9.  TIPOGRAFÍA                                          ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="abyss"] h1,
+html[data-theme="abyss"] h2,
+html[data-theme="abyss"] h3,
+html[data-theme="abyss"] .text-2xl,
+html[data-theme="abyss"] .text-3xl,
+html[data-theme="abyss"] .text-4xl {
+  font-weight: 300;
+  letter-spacing: -0.01em;
+}
+
+html[data-theme="abyss"] [data-stat-value],
+html[data-theme="abyss"] .stat-value,
+html[data-theme="abyss"] .text-4xl.font-bold,
+html[data-theme="abyss"] .text-3xl.font-bold {
+  font-weight: 300 !important;
+  letter-spacing: -0.02em;
+}
+
+html[data-theme="abyss"] button[data-variant="primary"],
+html[data-theme="abyss"] .btn-primary,
+html[data-theme="abyss"] [data-cta="primary"] {
+  font-weight: 600;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                10.  CTA AMARILLO                                         ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="abyss"] button[data-variant="primary"]:not(:disabled),
+html[data-theme="abyss"] .btn-primary:not(:disabled),
+html[data-theme="abyss"] [data-cta="primary"]:not(:disabled) {
+  background: var(--accent) !important;
+  color: #051528 !important;
+  border: none !important;
+  box-shadow:
+    0 8px 24px rgba(255, 235, 102, 0.30),
+    0 0 24px rgba(0, 224, 212, 0.18);
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+html[data-theme="abyss"] button[data-variant="primary"]:hover:not(:disabled),
+html[data-theme="abyss"] .btn-primary:hover:not(:disabled),
+html[data-theme="abyss"] [data-cta="primary"]:hover:not(:disabled) {
+  background: #FFE94D !important;
+  box-shadow:
+    0 10px 32px rgba(255, 235, 102, 0.40),
+    0 0 32px rgba(0, 224, 212, 0.28);
+  transform: translateY(-1px);
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║      11.  PARCHE Tailwind arbitrary hex                                  ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="abyss"] .bg-\[\#060a14\],
+html[data-theme="abyss"] .bg-\[\#060a12\],
+html[data-theme="abyss"] .bg-\[\#060b18\],
+html[data-theme="abyss"] .bg-\[\#020308\]\/85,
+html[data-theme="abyss"] .bg-\[\#020408\]\/80 {
+  background-color: rgba(3, 16, 38, 0.85) !important;
+}
+
+html[data-theme="abyss"] .bg-\[\#0a0f1e\],
+html[data-theme="abyss"] .bg-\[\#0a0f1e\]\/95,
+html[data-theme="abyss"] .bg-\[\#0a0f1e\]\/88,
+html[data-theme="abyss"] .bg-\[\#0a0f1e\]\/85,
+html[data-theme="abyss"] .bg-\[\#0a0f1e\]\/72,
+html[data-theme="abyss"] .bg-\[\#0a0f1e\]\/40,
+html[data-theme="abyss"] .bg-\[\#0a0f1e\]\/15,
+html[data-theme="abyss"] .bg-\[\#0a1020\] {
+  background-color: rgba(6, 22, 50, 0.86) !important;
+}
+
+html[data-theme="abyss"] .bg-\[\#0c1224\]\/95,
+html[data-theme="abyss"] .bg-\[\#0c1325\],
+html[data-theme="abyss"] .bg-\[\#0d1324\]\/96,
+html[data-theme="abyss"] .bg-\[\#0d1324\]\/92,
+html[data-theme="abyss"] .bg-\[\#0d1325\],
+html[data-theme="abyss"] .bg-\[\#0d1427\]\/95,
+html[data-theme="abyss"] .bg-\[\#0d1428\],
+html[data-theme="abyss"] .bg-\[\#0d1428\]\/95,
+html[data-theme="abyss"] .bg-\[\#0f1424\],
+html[data-theme="abyss"] .bg-\[\#0f1524\] {
+  background-color: rgba(6, 22, 50, 0.88) !important;
+  backdrop-filter: blur(18px) saturate(150%);
+  -webkit-backdrop-filter: blur(18px) saturate(150%);
+}
+
+html[data-theme="abyss"] .bg-\[\#121a2e\],
+html[data-theme="abyss"] .bg-\[\#161f36\],
+html[data-theme="abyss"] .bg-\[\#1a2238\] {
+  background-color: rgba(120, 200, 230, 0.09) !important;
+  border-color: rgba(100, 200, 230, 0.14) !important;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║               12.  DROPDOWNS                                             ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="abyss"] .app-dropdown-panel {
+  background: linear-gradient(
+    155deg,
+    rgba(10, 36, 72, 0.84) 0%,
+    rgba(3, 14, 32, 0.92) 100%
+  ) !important;
+  backdrop-filter: blur(22px) saturate(155%) !important;
+  -webkit-backdrop-filter: blur(22px) saturate(155%) !important;
+  border-color: var(--glass-border) !important;
+  box-shadow:
+    var(--glass-highlight),
+    0 22px 52px rgba(2, 10, 28, 0.58),
+    0 0 36px rgba(0, 224, 212, 0.14) !important;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║         13.  KANBAN                                                      ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="abyss"] .kanban-column-well {
+  background: transparent !important;
+}
+html[data-theme="abyss"] .kanban-column-well::after,
+html[data-theme="abyss"] .kanban-column-well::before {
+  background: transparent !important;
+  display: none !important;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║         14.  EDITOR  ·  ProseMirror                                      ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="abyss"] .ProseMirror pre {
+  background: rgba(3, 14, 32, 0.78) !important;
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║         15.  DETAIL FULL-SCREEN                                          ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="abyss"]
+  .detail-fullscreen-bg.detail-fullscreen-bg.detail-fullscreen-bg {
+  background: transparent !important;
+  background-image: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+html[data-theme="abyss"] .detail-fullscreen-bg::before {
+  content: none;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                16.  INPUTS                                               ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="abyss"] input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]),
+html[data-theme="abyss"] textarea,
+html[data-theme="abyss"] select {
+  background: rgba(120, 200, 230, 0.05);
+  border: 1px solid var(--glass-border);
+  color: var(--text);
+}
+
+html[data-theme="abyss"] input:focus,
+html[data-theme="abyss"] textarea:focus,
+html[data-theme="abyss"] select:focus {
+  outline: none;
+  border-color: var(--glass-border-glow);
+  box-shadow: 0 0 0 3px rgba(0, 224, 212, 0.28);
+}
+
+html[data-theme="abyss"] #cmd-palette-trigger {
+  background: rgba(0, 224, 212, 0.08) !important;
+  border-color: rgba(0, 224, 212, 0.30) !important;
+  color: var(--text-dim) !important;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+html[data-theme="abyss"] #cmd-palette-trigger:hover {
+  background: rgba(0, 224, 212, 0.16) !important;
+  border-color: var(--glass-border-glow) !important;
+  color: var(--text) !important;
+  box-shadow: 0 0 24px rgba(0, 224, 212, 0.26);
+}
+html[data-theme="abyss"] #cmd-palette-trigger kbd {
+  background: rgba(0, 224, 212, 0.18) !important;
+  border-color: rgba(0, 224, 212, 0.34) !important;
+  color: var(--text);
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                  17.  SCROLLBARS                                         ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="abyss"] ::-webkit-scrollbar-thumb {
+  background: rgba(120, 200, 230, 0.12);
+  border-radius: 6px;
+}
+html[data-theme="abyss"] ::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 224, 212, 0.46);
+}
+html[data-theme="abyss"] .overflow-y-auto:hover::-webkit-scrollbar-thumb,
+html[data-theme="abyss"] .overflow-x-auto:hover::-webkit-scrollbar-thumb,
+html[data-theme="abyss"] .overflow-auto:hover::-webkit-scrollbar-thumb,
+html[data-theme="abyss"] *:hover::-webkit-scrollbar-thumb {
+  background: rgba(0, 224, 212, 0.38);
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║              18.  STATS / DASHBOARD                                      ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="abyss"] [data-stat-color="purple"] { color: var(--stat-purple); }
+html[data-theme="abyss"] [data-stat-color="blue"]   { color: var(--stat-blue); }
+html[data-theme="abyss"] [data-stat-color="cyan"]   { color: var(--stat-cyan); }
+html[data-theme="abyss"] [data-stat-color="green"]  { color: var(--stat-green); }
+
+html[data-theme="abyss"] .dashboard-shift-track {
+  background: rgba(120, 200, 230, 0.08) !important;
+  border: 1px solid var(--glass-border);
+  overflow: hidden;
+}
+html[data-theme="abyss"] .dashboard-shift-fill {
+  background: linear-gradient(90deg, var(--abyss-bio) 0%, var(--abyss-jelly) 100%) !important;
+  box-shadow: 0 0 14px rgba(0, 224, 212, 0.55);
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║      19-32. RESTO DE OVERRIDES                                           ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="abyss"] .presence-online,
+html[data-theme="abyss"] [data-online="true"] .presence-dot {
+  box-shadow:
+    0 0 0 2px var(--bg-deep),
+    0 0 14px rgba(61, 255, 180, 0.65);
+}
+
+html[data-theme="abyss"] .user-avatar-ring {
+  box-shadow:
+    0 0 0 2px var(--bg-deep),
+    0 0 0 3px var(--glass-border-glow);
+}
+
+html[data-theme="abyss"] .glass-opaque-bitacora {
+  isolation: auto;
+  background: rgba(120, 200, 230, 0.08);
+  backdrop-filter: blur(22px) saturate(155%);
+  -webkit-backdrop-filter: blur(22px) saturate(155%);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-highlight), 0 6px 26px rgba(2, 10, 28, 0.38);
+}
+
+html[data-theme="abyss"] .app-modal-dialog[data-modal-surface="dark"] {
+  position: relative;
+  background: linear-gradient(
+    155deg,
+    rgba(10, 36, 72, 0.66) 0%,
+    rgba(3, 14, 32, 0.82) 100%
+  ) !important;
+  backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+  border-color: var(--glass-border) !important;
+  box-shadow:
+    0 24px 68px rgba(2, 10, 28, 0.58),
+    0 0 52px rgba(0, 224, 212, 0.18),
+    0 0 80px rgba(0, 153, 255, 0.12),
+    var(--glass-highlight) !important;
+  overflow: hidden;
+}
+
+html[data-theme="abyss"] .app-modal-dialog[data-modal-surface="dark"]::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    135deg,
+    rgba(180, 230, 255, 0.10) 0%,
+    rgba(180, 230, 255, 0.04) 18%,
+    transparent 32%
+  );
+  border-radius: inherit;
+  z-index: 0;
+}
+html[data-theme="abyss"] .app-modal-dialog[data-modal-surface="dark"] > *:not(button[aria-label="Cerrar"]) {
+  position: relative;
+  z-index: 1;
+}
+
+html[data-theme="abyss"] .modal-backdrop {
+  background: rgba(1, 4, 13, 0.55);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+html[data-theme="abyss"] .mobile-bottom-nav {
+  background: linear-gradient(
+    180deg,
+    rgba(6, 22, 50, 0.62) 0%,
+    rgba(2, 10, 28, 0.82) 100%
+  ) !important;
+  border-top-color: var(--glass-border) !important;
+  backdrop-filter: blur(22px) saturate(155%);
+  -webkit-backdrop-filter: blur(22px) saturate(155%);
+  box-shadow:
+    inset 0 1px 0 rgba(180, 230, 255, 0.10),
+    0 -8px 30px rgba(2, 10, 28, 0.50);
+}
+
+html[data-theme="abyss"] [data-tooltip-content],
+html[data-theme="abyss"] [role="tooltip"] {
+  background: linear-gradient(
+    155deg,
+    rgba(10, 36, 72, 0.84) 0%,
+    rgba(3, 14, 32, 0.92) 100%
+  ) !important;
+  border: 1px solid var(--glass-border) !important;
+  color: var(--text) !important;
+  backdrop-filter: blur(14px) saturate(155%);
+  -webkit-backdrop-filter: blur(14px) saturate(155%);
+  box-shadow: var(--glass-shadow), var(--glass-highlight);
+}
+
+html[data-theme="abyss"] .toast-glass {
+  background: linear-gradient(
+    155deg,
+    rgba(10, 36, 72, 0.84) 0%,
+    rgba(3, 14, 32, 0.92) 100%
+  ) !important;
+  border: 1px solid var(--glass-border) !important;
+  color: var(--text) !important;
+  backdrop-filter: blur(22px) saturate(160%);
+  -webkit-backdrop-filter: blur(22px) saturate(160%);
+  box-shadow:
+    var(--glass-highlight),
+    0 18px 44px rgba(2, 10, 28, 0.55),
+    0 0 32px rgba(0, 224, 212, 0.16);
+}
+
+html[data-theme="abyss"] .loading-card {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+html[data-theme="abyss"] .dashboard-allgood-banner {
+  background: linear-gradient(
+    135deg,
+    rgba(61, 255, 180, 0.10) 0%,
+    rgba(0, 224, 212, 0.08) 100%
+  ) !important;
+  border-color: rgba(180, 230, 255, 0.14) !important;
+  backdrop-filter: blur(14px) saturate(145%);
+  -webkit-backdrop-filter: blur(14px) saturate(145%);
+  box-shadow:
+    inset 0 1px 0 rgba(180, 230, 255, 0.10),
+    0 0 28px rgba(61, 255, 180, 0.12);
+}
+
+html[data-theme="abyss"] .dashboard-allgood-icon {
+  background: rgba(61, 255, 180, 0.20) !important;
+  box-shadow: inset 0 0 0 1px rgba(61, 255, 180, 0.40);
+}
+
+html[data-theme="abyss"] .bg-sky-400\/10,
+html[data-theme="abyss"] .bg-emerald-400\/10,
+html[data-theme="abyss"] .bg-orange-400\/10,
+html[data-theme="abyss"] .bg-red-400\/10,
+html[data-theme="abyss"] .bg-red-500\/10,
+html[data-theme="abyss"] .bg-violet-400\/10,
+html[data-theme="abyss"] .bg-yellow-400\/10,
+html[data-theme="abyss"] .bg-green-400\/10,
+html[data-theme="abyss"] .bg-blue-400\/10,
+html[data-theme="abyss"] .bg-amber-400\/10,
+html[data-theme="abyss"] .bg-indigo-400\/10,
+html[data-theme="abyss"] .bg-emerald-500\/6,
+html[data-theme="abyss"] .bg-emerald-500\/8,
+html[data-theme="abyss"] .bg-emerald-400\/8,
+html[data-theme="abyss"] .bg-emerald-400\/\[0\.06\],
+html[data-theme="abyss"] .bg-emerald-400\/5,
+html[data-theme="abyss"] .bg-amber-400\/8,
+html[data-theme="abyss"] .bg-emerald-500\/12,
+html[data-theme="abyss"] .bg-emerald-500\/15,
+html[data-theme="abyss"] .bg-rose-400\/10,
+html[data-theme="abyss"] .bg-rose-500\/10,
+html[data-theme="abyss"] .hover\:bg-rose-500\/10:hover,
+html[data-theme="abyss"] .hover\:bg-rose-50:hover {
+  background-image: linear-gradient(
+    rgba(0, 224, 212, 0.06),
+    rgba(91, 224, 255, 0.04)
+  );
+}
+
+html[data-theme="abyss"] .bg-slate-900\/45,
+html[data-theme="abyss"] .bg-black\/75,
+html[data-theme="abyss"] .bg-black\/65,
+html[data-theme="abyss"] .bg-black\/60,
+html[data-theme="abyss"] .bg-black\/55,
+html[data-theme="abyss"] .bg-black\/45,
+html[data-theme="abyss"] .bg-black\/40,
+html[data-theme="abyss"] .bg-black\/35 {
+  background-color: rgba(3, 14, 32, 0.55) !important;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+html[data-theme="abyss"] .bg-black\/30,
+html[data-theme="abyss"] .bg-black\/25,
+html[data-theme="abyss"] .bg-black\/20,
+html[data-theme="abyss"] .bg-black\/15,
+html[data-theme="abyss"] .bg-black\/10 {
+  background-color: rgba(6, 22, 50, 0.32) !important;
+}
+
+html[data-theme="abyss"] .bg-black\/\[0\.05\],
+html[data-theme="abyss"] .bg-black\/\[0\.04\],
+html[data-theme="abyss"] .bg-black\/\[0\.06\] {
+  background-color: rgba(120, 200, 230, 0.05) !important;
+}
+
+html[data-theme="abyss"] .bg-zinc-900,
+html[data-theme="abyss"] .bg-zinc-800,
+html[data-theme="abyss"] .hover\:bg-zinc-800:hover {
+  background-color: rgba(6, 22, 50, 0.92) !important;
+  border-color: rgba(100, 200, 230, 0.22) !important;
+}
+
+html[data-theme="abyss"] .text-\[\#0a0f1e\] {
+  color: rgba(3, 14, 32, 1) !important;
+}
+
+html[data-theme="abyss"] img.rounded-full.object-cover {
+  box-shadow: inset 0 0 0 1px rgba(0, 224, 212, 0.32);
+}
+
+html[data-theme="abyss"] .border-\[\#0a0f1e\] {
+  border-color: rgba(3, 14, 32, 0.92) !important;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║      33.  AUTO-STAGE-IN + SHINE                                          ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes abyss-stage-in {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  html[data-theme="abyss"] .app-dashboard-root > main,
+  html[data-theme="abyss"] .app-dashboard-root > section {
+    animation: abyss-stage-in 380ms cubic-bezier(0.2, 0.6, 0.2, 1) both;
+  }
+}
+
+html[data-theme="abyss"] .glass-hover {
+  overflow: hidden;
+}
+
+html[data-theme="abyss"] .glass-hover::after,
+html[data-theme="abyss"] .glass-surface::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    115deg,
+    transparent 30%,
+    rgba(91, 224, 255, 0.18) 50%,
+    transparent 70%
+  );
+  transform: translateX(-110%);
+  transition: transform 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+  border-radius: inherit;
+  z-index: 0;
+}
+
+html[data-theme="abyss"] .glass-hover > * {
+  position: relative;
+  z-index: 1;
+}
+
+html[data-theme="abyss"] .glass-hover:hover::after,
+html[data-theme="abyss"] .glass-surface:hover::after {
+  transform: translateX(110%);
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║      34.  ACCESIBILIDAD  ·  prefers-reduced-motion                       ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-theme="abyss"] .abyss-bg .abyss-rays,
+  html[data-theme="abyss"] .abyss-bg .abyss-jelly,
+  html[data-theme="abyss"] .abyss-bg .abyss-caustics,
+  html[data-theme="abyss"] .abyss-bg .abyss-fish-school .fish-row,
+  html[data-theme="abyss"] .abyss-bg .abyss-anglerfish,
+  html[data-theme="abyss"] .abyss-bg .abyss-anglerfish .angler-glow,
+  html[data-theme="abyss"] .abyss-bg .abyss-anglerfish .angler-bait,
+  html[data-theme="abyss"] .abyss-bg .abyss-anemones .anemone,
+  html[data-theme="abyss"] .abyss-bg .abyss-anemones .anemone-tentacle,
+  html[data-theme="abyss"] .abyss-bg .abyss-bubbles .bubble {
+    animation: none !important;
+  }
+  html[data-theme="abyss"] .abyss-bg .abyss-bubbles .bubble {
+    display: none !important;
+  }
+  html[data-theme="abyss"] .abyss-bg .abyss-plankton .p {
+    display: none !important;
+  }
+  html[data-theme="abyss"] .glow-border::after {
+    animation: none !important;
+  }
+  html[data-theme="abyss"] .reveal {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+  html[data-theme="abyss"] .app-dashboard-root > main,
+  html[data-theme="abyss"] .app-dashboard-root > section {
+    animation: none !important;
+  }
+  html[data-theme="abyss"] .glass-hover::after,
+  html[data-theme="abyss"] .glass-surface::after {
+    display: none !important;
+  }
+  html[data-theme="abyss"] .glass-surface,
+  html[data-theme="abyss"] .glass,
+  html[data-theme="abyss"] .glass-1,
+  html[data-theme="abyss"] .glass-2,
+  html[data-theme="abyss"] .glass-3,
+  html[data-theme="abyss"] .glass-4 {
+    transition: none !important;
+  }
+}

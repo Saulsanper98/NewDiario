@@ -45,6 +45,11 @@ next-start.err.log
 # backups locales (snapshot manual de archivos antes de refactor)
 *.backup
 *.bak
+/backups/
+
+# bundles y logs temporales de trabajo local
+tmp-*.log
+tmp-*.txt
 
 # env files (can opt-in for committing if needed)
 .env*

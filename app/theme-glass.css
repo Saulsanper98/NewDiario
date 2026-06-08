@@ -64,6 +64,14 @@ html[data-theme="glass"] {
      Sin esto, el `backdrop-filter` de las cards no ve los orbes globales
      del fondo y el cristal queda gris plano (el bug que mata Glass). */
   --card-isolation: auto;
+
+  /* Profile menu — violeta Cristal con borde magenta sutil. Ver bloque de
+   * comentarios sobre `--profile-menu-*` en `globals.css`. */
+  --profile-menu-bg: rgba(28, 13, 49, 0.96);
+  --profile-menu-solid: #1c0d31;
+  --profile-menu-border: rgba(232, 121, 249, 0.20);
+  --profile-menu-shadow: 0 16px 48px rgba(28, 13, 49, 0.55);
+  --profile-menu-section: rgba(255, 255, 255, 0.04);
 }
 
 

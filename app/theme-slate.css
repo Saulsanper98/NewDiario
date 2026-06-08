@@ -79,6 +79,14 @@ html[data-theme="slate"] {
   --slate-radius: 18px;
   --slate-radius-shell: 24px;
 
+  /* Profile menu — grafito Slate con borde acero. Ver bloque de comentarios
+   * sobre `--profile-menu-*` en `globals.css`. */
+  --profile-menu-bg: rgba(15, 19, 24, 0.96);
+  --profile-menu-solid: #0f1318;
+  --profile-menu-border: rgba(148, 163, 184, 0.20);
+  --profile-menu-shadow: 0 16px 48px rgba(8, 12, 18, 0.55);
+  --profile-menu-section: rgba(255, 255, 255, 0.035);
+
   color-scheme: dark;
 }
 

@@ -1,0 +1,1393 @@
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║          TEMA  "DUNAS"  ·  Atardecer cinematográfico en Maspalomas      ║
+ * ║                                                                          ║
+ * ║   Inspiración: La Palma (Cumbre Vieja 2021), Teide al atardecer,         ║
+ * ║   Stromboli nocturno, Anak Krakatoa. Atardecer dramático con un          ║
+ * ║   Dunas en erupción al fondo. El usuario lee la app mientras la         ║
+ * ║   naturaleza arde silenciosa lejos.                                      ║
+ * ║                                                                          ║
+ * ║   Identidad visual:                                                      ║
+ * ║     · Fondo: noche violeta profundo arriba → rojo brasa en el horizonte. ║
+ * ║     · Silueta de Dunas SVG con cráter dentado (en el componente).       ║
+ * ║     · Resplandor radial sobre el cráter pulsando lento (8s).             ║
+ * ║     · Chispas/cenizas subiendo desde el cráter (partículas CSS).         ║
+ * ║     · Cards: cristal cálido con tinte coral/lava + borde rojo apagado.   ║
+ * ║     · Acentos: coral lava, oro encendido, amarillo CCMGC.                ║
+ * ║                                                                          ║
+ * ║   AISLAMIENTO TOTAL bajo `html[data-theme="dunas"]`.                   ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                         1.  PALETA Y TOKENS                              ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="dunas"] {
+  --bg-deep: #2a1a0e;
+  --accent: #FFEB66;
+
+  --text: #fff2dc;
+  --text-dim: #e6c98f;
+  --text-faint: #8a6a3a;
+
+  /* Paleta dunas Maspalomas */
+  --dunas-sky-top: #2a1a0e;
+  --dunas-sky-mid: #5c2f1a;
+  --dunas-sky-low: #d97540;
+  --dunas-sun: #ffc97a;
+  --dunas-sand-light: #e6b870;
+  --dunas-sand-mid: #b07a45;
+  --dunas-sand-dark: #5c3a20;
+  --dunas-sand-shadow: #2a1a0e;
+  --dunas-ochre: #c9863d;
+  --dunas-gold: #ffe6a8;
+
+  /* Cristal cálido tinte arena */
+  --glass-bg: rgba(255, 215, 165, 0.07);
+  --glass-bg-2: rgba(255, 215, 165, 0.13);
+  --glass-border: rgba(230, 184, 112, 0.20);
+  --glass-border-glow: rgba(255, 201, 122, 0.62);
+  --glass-blur: 22px;
+  --glass-shadow: 0 14px 50px rgba(42, 26, 14, 0.55);
+  --glass-highlight:
+    inset 0 1px 0 rgba(255, 240, 210, 0.20),
+    inset 1px 0 0 rgba(255, 240, 210, 0.06);
+
+  --glow-sand:  rgba(230, 184, 112, 0.36);
+  --glow-sun:   rgba(255, 201, 122, 0.28);
+
+  --stat-purple: #d29bff;
+  --stat-blue:   #9dc6ff;
+  --stat-cyan:   #ffaa88;
+  --stat-green:  #b8e4a0;
+
+  --app-canvas-color: transparent;
+  --app-canvas-image: none;
+  --card-isolation: auto;
+
+  --dunas-radius: 18px;
+  --dunas-radius-shell: 24px;
+
+  /* Profile menu — marrón dunas con borde ámbar tenue. */
+  --profile-menu-bg: rgba(42, 26, 14, 0.96);
+  --profile-menu-solid: #2a1a0e;
+  --profile-menu-border: rgba(255, 201, 122, 0.26);
+  --profile-menu-shadow: 0 16px 48px rgba(20, 12, 6, 0.62);
+  --profile-menu-section: rgba(230, 184, 112, 0.05);
+
+  color-scheme: dark;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║              2.  FIX DE CAPAS OPACAS                                     ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="dunas"] body {
+  color: var(--text);
+  font-weight: 400;
+  min-height: 100vh;
+}
+
+html[data-theme="dunas"] .app-sidebar-shell,
+html[data-theme="dunas"] .app-top-header {
+  isolation: auto !important;
+}
+
+/* ── Marco con gradient lava ─────────────────────────────────────────── */
+html[data-theme="dunas"] .glass-shell-frame {
+  margin: 18px;
+  padding: 1.5px;
+  border-radius: var(--dunas-radius-shell);
+  background: linear-gradient(
+    135deg,
+    rgba(217, 117, 64, 0.55),
+    rgba(255, 201, 122, 0.40) 35%,
+    rgba(201, 134, 61, 0.45) 65%,
+    rgba(170, 100, 50, 0.32)
+  );
+  box-shadow:
+    0 0 60px rgba(201, 134, 61, 0.20),
+    0 0 120px rgba(217, 117, 64, 0.10);
+}
+
+html[data-theme="dunas"] .glass-shell-inner {
+  border-radius: calc(var(--dunas-radius-shell) - 2px);
+  background: rgba(42, 26, 14, 0.34);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  overflow: hidden;
+  padding: 20px;
+}
+
+@media (max-width: 768px) {
+  html[data-theme="dunas"] .glass-shell-inner { padding: 6px; }
+  html[data-theme="dunas"] .app-dashboard-root { gap: 8px; }
+}
+@media (max-width: 640px) {
+  html[data-theme="dunas"] .glass-shell-frame {
+    margin: 4px;
+    border-radius: 16px;
+  }
+  html[data-theme="dunas"] .glass-shell-inner {
+    border-radius: 14px;
+  }
+}
+@media (max-width: 480px) {
+  html[data-theme="dunas"] .glass-shell-frame {
+    margin: 0;
+    padding: 0;
+    border-radius: 0;
+    box-shadow: none;
+    background: rgba(217, 117, 64, 0.30);
+  }
+  html[data-theme="dunas"] .glass-shell-inner {
+    padding: 0;
+    border-radius: 0;
+  }
+  html[data-theme="dunas"] .app-dashboard-root { gap: 0; }
+}
+
+html[data-theme="dunas"] .glass-shell-frame::before,
+html[data-theme="dunas"] .glass-shell-frame::after,
+html[data-theme="dunas"] .glass-shell-inner::before,
+html[data-theme="dunas"] .glass-shell-inner::after {
+  display: none !important;
+}
+
+html[data-theme="dunas"] .app-dashboard-root {
+  background: transparent !important;
+  gap: 16px;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║              3.  FONDO  ·  <DunasBackground />                           ║
+ * ║                                                                          ║
+ * ║   Capas (todas dentro de `.dunas-bg`, position:fixed; z-index:-10):      ║
+ * ║     1. Cielo: gradiente vertical (negro-marrón → coral → oro arena).     ║
+ * ║     2. `.dunas-sun`     ← sol radial bajo el horizonte (dorado).         ║
+ * ║     3. `.dunas-sands`   ← 4 SVG de dunas apiladas (back → front).        ║
+ * ║     4. `.dunas-windgrains` ← granos de arena soplando (drift horizontal).║
+ * ║     5. `.dunas-noise`   ← ruido SVG sutil.                               ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="dunas"] .dunas-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -10;
+  overflow: hidden;
+  background:
+    radial-gradient(
+      ellipse 80% 40% at 62% 70%,
+      rgba(255, 180, 80, 0.22) 0%,
+      transparent 70%
+    ),
+    linear-gradient(
+      180deg,
+      #0e0804 0%,
+      #1c0d07 14%,
+      #3a1808 30%,
+      #7a3015 48%,
+      #b85228 62%,
+      #d8813a 74%,
+      #e8b555 86%,
+      #cf8e3e 100%
+    );
+  pointer-events: none;
+}
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║   CAPA 2 — CIRROS finos cruzando el cielo (drift muy lento)             ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+html[data-theme="dunas"] .dunas-bg .dunas-clouds {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+html[data-theme="dunas"] .dunas-bg .dunas-clouds .cloud {
+  position: absolute;
+  left: -40%;
+  height: 18px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 235, 195, 0.65) 15%,
+    rgba(255, 248, 218, 0.90) 45%,
+    rgba(255, 240, 210, 0.80) 70%,
+    rgba(255, 225, 185, 0.50) 88%,
+    transparent 100%
+  );
+  border-radius: 50%;
+  filter: blur(7px);
+  animation: dunas-cloud-drift var(--d, 100s) linear infinite;
+}
+@keyframes dunas-cloud-drift {
+  from { transform: translateX(0); }
+  to   { transform: translateX(180vw); }
+}
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║   CAPA 3 — SOL con halo + corona                                         ║
+ * ║   Halo grande (50%) detrás del sol pequeño y nítido.                    ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+/* SOL y HALO — antes ambos centrados (left:50%); ahora desplazados a
+ *  left:62% bottom:30% para una composición más cinematográfica de
+ *  atardecer (sol fuera del eje central, regla de tercios). Mantenemos
+ *  `translateX(-50%)` para que sea el CENTRO del sol el que esté en 62%.
+ *  Halo y sol se mueven JUNTOS — son dos elementos independientes pero
+ *  deben coincidir o el halo se descoloca. */
+html[data-theme="dunas"] .dunas-bg .dunas-sun-halo {
+  position: absolute;
+  bottom: 30%;
+  left: 62%;
+  transform: translateX(-50%);
+  width: 110vw;
+  height: 110vw;
+  max-width: 1400px;
+  max-height: 1400px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(255, 210, 140, 0.50) 0%,
+    rgba(255, 175, 95, 0.30) 15%,
+    rgba(230, 130, 65, 0.16) 35%,
+    rgba(200, 100, 45, 0.07) 55%,
+    transparent 72%
+  );
+  filter: blur(14px);
+  pointer-events: none;
+  animation: dunas-sun-pulse 8s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+html[data-theme="dunas"] .dunas-bg .dunas-sun {
+  position: absolute;
+  bottom: 30%;
+  left: 62%;
+  transform: translateX(-50%);
+  width: 28vw;
+  height: 28vw;
+  max-width: 340px;
+  max-height: 340px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(255, 255, 240, 1) 0%,
+    rgba(255, 240, 185, 0.97) 18%,
+    rgba(255, 205, 120, 0.82) 42%,
+    rgba(255, 160, 75, 0.45) 68%,
+    rgba(230, 120, 50, 0.15) 85%,
+    transparent 100%
+  );
+  filter: blur(2.5px);
+  box-shadow:
+    0 0 80px rgba(255, 210, 130, 0.70),
+    0 0 160px rgba(255, 175, 85, 0.42),
+    0 0 260px rgba(220, 120, 50, 0.20);
+  pointer-events: none;
+}
+@keyframes dunas-sun-pulse {
+  0%, 100% { opacity: 0.85; transform: translateX(-50%) scale(1); }
+  50%      { opacity: 1.0;  transform: translateX(-50%) scale(1.04); }
+}
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║   CAPA 2.5 — RAYOS CREPUSCULARES del sol                                ║
+ * ║   Cono de luz que irradia desde la posición del sol. Efecto              ║
+ * ║   cinematográfico clásico de atardecer en el desierto.                  ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+html[data-theme="dunas"] .dunas-bg .dunas-godrays {
+  position: absolute;
+  bottom: 28%;
+  left: 62%;
+  transform: translateX(-50%);
+  width: 300vw;
+  height: 300vw;
+  background: repeating-conic-gradient(
+    from 0deg at 50% 100%,
+    rgba(255, 210, 120, 0.09) 0deg,
+    transparent 4deg,
+    rgba(255, 195, 100, 0.06) 6.5deg,
+    transparent 10deg
+  );
+  mask-image: radial-gradient(
+    ellipse 50% 60% at 50% 100%,
+    black 0%,
+    black 30%,
+    transparent 70%
+  );
+  -webkit-mask-image: radial-gradient(
+    ellipse 50% 60% at 50% 100%,
+    black 0%,
+    black 30%,
+    transparent 70%
+  );
+  mix-blend-mode: screen;
+  pointer-events: none;
+  z-index: 1;
+  animation: dunas-rays-breathe 12s ease-in-out infinite;
+}
+@keyframes dunas-rays-breathe {
+  0%, 100% { opacity: 0.60; }
+  50%      { opacity: 1.00; }
+}
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║   CAPA 4 — NIEBLA DE CALOR en el horizonte                              ║
+ * ║   Banda horizontal sutil con shimmer animado.                           ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+html[data-theme="dunas"] .dunas-bg .dunas-haze {
+  position: absolute;
+  bottom: 26%;
+  left: 0;
+  width: 100%;
+  height: 18%;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    rgba(255, 205, 145, 0.28) 40%,
+    rgba(255, 185, 110, 0.20) 65%,
+    transparent 100%
+  );
+  filter: blur(6px);
+  pointer-events: none;
+  animation: dunas-haze-shimmer 6s ease-in-out infinite;
+}
+@keyframes dunas-haze-shimmer {
+  0%, 100% { opacity: 0.65; transform: scaleX(1.0); }
+  33%      { opacity: 1.0;  transform: scaleX(1.02); }
+  66%      { opacity: 0.80; transform: scaleX(0.98); }
+}
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║   CAPA 5 — DUNAS apiladas (5 capas con perfil asimétrico)               ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+html[data-theme="dunas"] .dunas-bg .dunas-sands {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 72%;
+  pointer-events: none;
+  z-index: 2;
+}
+
+html[data-theme="dunas"] .dunas-bg .dunas-sands svg {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+html[data-theme="dunas"] .dunas-bg .dunas-sands .dune-floor {
+  fill: rgba(50, 28, 10, 1);
+}
+
+/* Cresta iluminada (capa media — opcional override por SVG) */
+html[data-theme="dunas"] .dunas-bg .dunas-sands .dune-rim {
+  fill: none;
+  stroke: rgba(255, 230, 168, 0.55);
+  stroke-width: 1.4;
+}
+
+/* Ripples (ondulaciones secundarias) */
+html[data-theme="dunas"] .dunas-bg .dunas-sands .dune-ripples path {
+  vector-effect: non-scaling-stroke;
+}
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║   CAPA 6 — PALMERAS                                                      ║
+ * ║   Cada palmera es un div absolute con un SVG dentro. Las capas tienen   ║
+ * ║   opacity/tinte distinto para crear perspectiva. Animación de "balanceo"║
+ * ║   muy sutil para que parezca movimiento del viento.                     ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+html[data-theme="dunas"] .dunas-bg .dunas-palms {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 3;
+}
+html[data-theme="dunas"] .dunas-bg .dunas-palms .palm {
+  position: absolute;
+  width: 140px;
+  height: 220px;
+  transform-origin: bottom center;
+  animation: dunas-palm-sway 6s ease-in-out infinite;
+  will-change: transform;
+}
+html[data-theme="dunas"] .dunas-bg .dunas-palms .palm svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+/* Distintos delays y duraciones por capa para que las palmeras no
+   se balanceen sincronizadas */
+html[data-theme="dunas"] .dunas-bg .dunas-palms .palm-back  { animation-duration: 8s; animation-delay: 0s;   filter: brightness(0.7) blur(0.5px); opacity: 0.85; }
+html[data-theme="dunas"] .dunas-bg .dunas-palms .palm-mid   { animation-duration: 6s; animation-delay: -2s;  filter: brightness(0.85); opacity: 0.95; }
+html[data-theme="dunas"] .dunas-bg .dunas-palms .palm-front { animation-duration: 7s; animation-delay: -1s;  filter: brightness(1); opacity: 1; }
+
+html[data-theme="dunas"] .dunas-bg .dunas-palms .palm-trunk {
+  fill: #2a1608;
+}
+html[data-theme="dunas"] .dunas-bg .dunas-palms .palm-fronds path {
+  fill: #1a0e04;
+}
+html[data-theme="dunas"] .dunas-bg .dunas-palms .palm-coconuts circle {
+  fill: #4a2814;
+}
+
+/* sway de palmeras — combina rotate + translateX en el MISMO transform.
+ *  Antes era sólo rotate; ahora la base también se mueve ±2px
+ *  horizontalmente, dándole un balanceo más orgánico al viento. */
+@keyframes dunas-palm-sway {
+  0%, 100% { transform: rotate(-1deg)   translateX(-2px); }
+  50%      { transform: rotate(1.5deg)  translateX(2px); }
+}
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║   CAPA 7 — GRANOS DE ARENA soplando                                     ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+html[data-theme="dunas"] .dunas-bg .dunas-windgrains {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 4;
+}
+
+html[data-theme="dunas"] .dunas-bg .dunas-windgrains .grain {
+  position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 230, 168, 0.85) 0%, rgba(217, 117, 64, 0.35) 70%, transparent 100%);
+  box-shadow: 0 0 4px rgba(255, 201, 122, 0.55);
+  opacity: 0;
+  animation: dunas-grain-blow 7s linear infinite;
+}
+
+@keyframes dunas-grain-blow {
+  0%   { transform: translate(0, 0)                  scale(0.6); opacity: 0; }
+  10%  {                                                          opacity: 0.85; }
+  100% { transform: translate(110vw, var(--gy, -12vh)) scale(1);   opacity: 0; }
+}
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║   CAPA 4.5 — TORMENTA DE ARENA esporádica                               ║
+ * ║                                                                          ║
+ * ║   Capa full-viewport que normalmente es transparente y cada 45s sube    ║
+ * ║   a una opacidad sutil (~0.12) simulando una ráfaga de viento que       ║
+ * ║   levanta arena. Pointer-events:none.                                    ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+html[data-theme="dunas"] .dunas-bg .dunas-sandstorm {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 5;
+  background: rgba(200, 140, 80, 0);
+  animation: dunas-sandstorm-pulse 45s ease-in-out infinite;
+  will-change: background-color;
+  /* mix-blend multiply para que la ráfaga "tinte" la escena en vez de
+     simplemente superponerse como un velo opaco. */
+  mix-blend-mode: multiply;
+}
+@keyframes dunas-sandstorm-pulse {
+  0%, 100% { background-color: rgba(200, 140, 80, 0); }
+  45%      { background-color: rgba(200, 140, 80, 0.10); }
+  50%      { background-color: rgba(200, 140, 80, 0.12); }
+  55%      { background-color: rgba(200, 140, 80, 0.10); }
+}
+
+/* ── Capa 5: ruido ────────────────────────────────────────────────── */
+html[data-theme="dunas"] .dunas-bg .dunas-noise {
+  position: absolute;
+  inset: 0;
+  opacity: 0.05;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  pointer-events: none;
+  mix-blend-mode: overlay;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                4.  CLASE DE CRISTAL  ·  .glass-surface                   ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="dunas"] .glass-surface {
+  position: relative;
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur)) saturate(150%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(150%);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow), var(--glass-highlight);
+  border-radius: var(--dunas-radius);
+  transition:
+    border-color 0.3s ease,
+    transform 0.3s ease,
+    background 0.3s ease,
+    box-shadow 0.3s ease;
+  overflow: hidden;
+}
+
+html[data-theme="dunas"] .glass-surface::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 240, 210, 0.20) 0%,
+    rgba(255, 240, 210, 0.05) 22%,
+    transparent 46%
+  );
+  border-radius: inherit;
+}
+
+html[data-theme="dunas"] .glass-surface > * {
+  position: relative;
+  z-index: 1;
+}
+
+html[data-theme="dunas"] .glass-surface:hover {
+  border-color: var(--glass-border-glow);
+  transform: translateY(-2px);
+  background: var(--glass-bg-2);
+  box-shadow:
+    0 18px 58px rgba(42, 26, 14, 0.62),
+    0 0 32px var(--glow-sand),
+    0 0 56px var(--glow-sun),
+    var(--glass-highlight);
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║              5.  ALIAS  ·  Cards del sistema                             ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="dunas"] .glass,
+html[data-theme="dunas"] .glass-1,
+html[data-theme="dunas"] .glass-2,
+html[data-theme="dunas"] .glass-3,
+html[data-theme="dunas"] .glass-4 {
+  isolation: var(--card-isolation);
+  position: relative;
+  border-radius: var(--dunas-radius);
+  transition:
+    background 0.3s ease,
+    border-color 0.3s ease,
+    box-shadow 0.3s ease,
+    transform 0.3s ease;
+}
+
+html[data-theme="dunas"] .glass {
+  background: rgba(255, 215, 165, 0.020);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 215, 165, 0.05);
+  box-shadow: none;
+}
+
+html[data-theme="dunas"] .glass-1 {
+  background: rgba(255, 215, 165, 0.10);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  border: 1px solid rgba(230, 184, 112, 0.18);
+  box-shadow: var(--glass-shadow), var(--glass-highlight);
+}
+
+html[data-theme="dunas"] .glass-2 {
+  background: rgba(255, 215, 165, 0.12);
+  backdrop-filter: blur(20px) saturate(150%);
+  -webkit-backdrop-filter: blur(20px) saturate(150%);
+  border: 1px solid rgba(230, 184, 112, 0.20);
+  box-shadow: var(--glass-shadow), var(--glass-highlight);
+}
+
+html[data-theme="dunas"] .glass-3,
+html[data-theme="dunas"] .glass-4 {
+  background: linear-gradient(
+    155deg,
+    rgba(60, 38, 22, 0.48) 0%,
+    rgba(255, 215, 165, 0.12) 45%,
+    rgba(255, 215, 165, 0.06) 100%
+  );
+  backdrop-filter: blur(var(--glass-blur)) saturate(155%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(155%);
+  border: 1px solid rgba(230, 184, 112, 0.24);
+  box-shadow: var(--glass-shadow), var(--glass-highlight);
+}
+
+html[data-theme="dunas"] .glass::before,
+html[data-theme="dunas"] .glass-1::before,
+html[data-theme="dunas"] .glass-2::before,
+html[data-theme="dunas"] .glass-3::before,
+html[data-theme="dunas"] .glass-4::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 240, 210, 0.18) 0%,
+    rgba(255, 240, 210, 0.04) 22%,
+    transparent 46%
+  );
+  border-radius: inherit;
+}
+
+html[data-theme="dunas"] .glass > *,
+html[data-theme="dunas"] .glass-1 > *,
+html[data-theme="dunas"] .glass-2 > *,
+html[data-theme="dunas"] .glass-3 > *,
+html[data-theme="dunas"] .glass-4 > * {
+  position: relative;
+  z-index: 1;
+}
+
+html[data-theme="dunas"] .glass-1:hover,
+html[data-theme="dunas"] .glass-2:hover,
+html[data-theme="dunas"] .glass-3:hover,
+html[data-theme="dunas"] .glass-4:hover {
+  border-color: var(--glass-border-glow);
+}
+
+html[data-theme="dunas"] .glass-hover:hover {
+  background: var(--glass-bg-2);
+  border-color: var(--glass-border-glow);
+  transform: translateY(-2px);
+  box-shadow:
+    0 18px 58px rgba(42, 26, 14, 0.62),
+    0 0 32px var(--glow-sand),
+    0 0 56px var(--glow-sun),
+    var(--glass-highlight);
+}
+
+html[data-theme="dunas"] .glass .glass-hover:hover,
+html[data-theme="dunas"] .glass-1 .glass-hover:hover,
+html[data-theme="dunas"] .glass-2 .glass-hover:hover,
+html[data-theme="dunas"] .glass-3 .glass-hover:hover,
+html[data-theme="dunas"] .glass-4 .glass-hover:hover {
+  transform: none !important;
+  box-shadow: var(--glass-highlight) !important;
+}
+
+html[data-theme="dunas"] .glass:has(.glass-hover) {
+  overflow: hidden;
+}
+
+html[data-theme="dunas"] .dashboard-quick-action.glass-hover:hover {
+  transform: translateY(-1px);
+  box-shadow:
+    0 1px 4px rgba(42, 26, 14, 0.36),
+    0 0 4px rgba(217, 117, 64, 0.40),
+    var(--glass-highlight);
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║          6.  BORDE ANIMADO  ·  .glow-border                              ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+@property --dunas-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+html[data-theme="dunas"] .glow-border {
+  position: relative;
+}
+
+html[data-theme="dunas"] .glow-border::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1.5px;
+  background: conic-gradient(
+    from var(--dunas-angle),
+    transparent 0%,
+    transparent 65%,
+    var(--dunas-ochre) 75%,
+    var(--dunas-sun) 82%,
+    var(--dunas-gold) 90%,
+    transparent 98%
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+          mask-composite: exclude;
+  animation: dunas-border-run 10s linear infinite;
+  pointer-events: none;
+  z-index: 2;
+}
+
+@keyframes dunas-border-run {
+  to { --dunas-angle: 360deg; }
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                  7.  APARICIÓN ESCALONADA                                ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="dunas"] .reveal {
+  opacity: 0;
+  transform: translateY(14px);
+  animation: dunas-reveal-up 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes dunas-reveal-up {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                  8.  CHROME  ·  Sidebar + Header                         ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="dunas"] .app-sidebar-shell {
+  background: transparent !important;
+  background-image: none !important;
+  border-right: 1px solid rgba(230, 184, 112, 0.10);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  box-shadow: none;
+}
+
+html[data-theme="dunas"] .app-sidebar-shell.sidebar-expanded-solid {
+  /* Marrón cálido oscuro armonizando con las dunas y el atardecer dorado */
+  background: linear-gradient(
+    180deg,
+    rgba(48, 26, 14, 0.92) 0%,
+    rgba(28, 14, 6, 0.96) 100%
+  ) !important;
+  border-right: 1px solid rgba(217, 140, 70, 0.22) !important;
+  box-shadow: 4px 0 18px rgba(217, 140, 70, 0.08) !important;
+  backdrop-filter: blur(32px) saturate(160%) !important;
+  -webkit-backdrop-filter: blur(32px) saturate(160%) !important;
+  border-right: 1px solid var(--glass-border) !important;
+  box-shadow:
+    var(--glass-highlight),
+    8px 0 32px rgba(42, 26, 14, 0.55),
+    0 0 60px rgba(217, 117, 64, 0.10) !important;
+  border-radius: 0 !important;
+}
+
+html[data-theme="dunas"] .sidebar-nav-link-active {
+  position: relative;
+  background: linear-gradient(
+    90deg,
+    rgba(217, 117, 64, 0.20) 0%,
+    rgba(255, 201, 122, 0.08) 100%
+  ) !important;
+  color: var(--text) !important;
+  border-color: transparent !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(217, 117, 64, 0.38),
+    0 0 22px rgba(217, 117, 64, 0.24) !important;
+  overflow: hidden;
+}
+
+html[data-theme="dunas"] .sidebar-nav-link-active::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 6px;
+  bottom: 6px;
+  width: 3px;
+  border-radius: 2px;
+  background: linear-gradient(
+    180deg,
+    var(--dunas-gold) 0%,
+    var(--dunas-sun) 35%,
+    var(--dunas-ochre) 70%,
+    var(--dunas-ochre) 100%
+  );
+  box-shadow: 0 0 8px var(--dunas-ochre);
+  pointer-events: none;
+}
+
+html[data-theme="dunas"] .sidebar-nav-link:not(.sidebar-nav-link-active):hover {
+  background: rgba(217, 117, 64, 0.08);
+  color: var(--text);
+  box-shadow: inset 0 0 0 1px rgba(217, 117, 64, 0.22);
+}
+
+html[data-theme="dunas"] .app-top-header {
+  background: transparent !important;
+  background-image: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: none !important;
+  border-bottom: none !important;
+  box-shadow: none !important;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                  9.  TIPOGRAFÍA                                          ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="dunas"] h1,
+html[data-theme="dunas"] h2,
+html[data-theme="dunas"] h3,
+html[data-theme="dunas"] .text-2xl,
+html[data-theme="dunas"] .text-3xl,
+html[data-theme="dunas"] .text-4xl {
+  font-weight: 300;
+  letter-spacing: -0.01em;
+}
+
+html[data-theme="dunas"] [data-stat-value],
+html[data-theme="dunas"] .stat-value,
+html[data-theme="dunas"] .text-4xl.font-bold,
+html[data-theme="dunas"] .text-3xl.font-bold {
+  font-weight: 300 !important;
+  letter-spacing: -0.02em;
+}
+
+html[data-theme="dunas"] button[data-variant="primary"],
+html[data-theme="dunas"] .btn-primary,
+html[data-theme="dunas"] [data-cta="primary"] {
+  font-weight: 600;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                10.  CTA AMARILLO                                         ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="dunas"] button[data-variant="primary"]:not(:disabled),
+html[data-theme="dunas"] .btn-primary:not(:disabled),
+html[data-theme="dunas"] [data-cta="primary"]:not(:disabled) {
+  background: var(--accent) !important;
+  color: #2a1a0e !important;
+  border: none !important;
+  box-shadow:
+    0 8px 24px rgba(255, 235, 102, 0.32),
+    0 0 24px rgba(217, 117, 64, 0.22);
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+html[data-theme="dunas"] button[data-variant="primary"]:hover:not(:disabled),
+html[data-theme="dunas"] .btn-primary:hover:not(:disabled),
+html[data-theme="dunas"] [data-cta="primary"]:hover:not(:disabled) {
+  background: #FFE94D !important;
+  box-shadow:
+    0 10px 32px rgba(255, 235, 102, 0.42),
+    0 0 32px rgba(217, 117, 64, 0.32);
+  transform: translateY(-1px);
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║      11.  PARCHE Tailwind arbitrary hex                                  ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="dunas"] .bg-\[\#060a14\],
+html[data-theme="dunas"] .bg-\[\#060a12\],
+html[data-theme="dunas"] .bg-\[\#060b18\],
+html[data-theme="dunas"] .bg-\[\#020308\]\/85,
+html[data-theme="dunas"] .bg-\[\#020408\]\/80 {
+  background-color: rgba(42, 26, 14, 0.85) !important;
+}
+
+html[data-theme="dunas"] .bg-\[\#0a0f1e\],
+html[data-theme="dunas"] .bg-\[\#0a0f1e\]\/95,
+html[data-theme="dunas"] .bg-\[\#0a0f1e\]\/88,
+html[data-theme="dunas"] .bg-\[\#0a0f1e\]\/85,
+html[data-theme="dunas"] .bg-\[\#0a0f1e\]\/72,
+html[data-theme="dunas"] .bg-\[\#0a0f1e\]\/40,
+html[data-theme="dunas"] .bg-\[\#0a0f1e\]\/15,
+html[data-theme="dunas"] .bg-\[\#0a1020\] {
+  background-color: rgba(60, 38, 22, 0.86) !important;
+}
+
+html[data-theme="dunas"] .bg-\[\#0c1224\]\/95,
+html[data-theme="dunas"] .bg-\[\#0c1325\],
+html[data-theme="dunas"] .bg-\[\#0d1324\]\/96,
+html[data-theme="dunas"] .bg-\[\#0d1324\]\/92,
+html[data-theme="dunas"] .bg-\[\#0d1325\],
+html[data-theme="dunas"] .bg-\[\#0d1427\]\/95,
+html[data-theme="dunas"] .bg-\[\#0d1428\],
+html[data-theme="dunas"] .bg-\[\#0d1428\]\/95,
+html[data-theme="dunas"] .bg-\[\#0f1424\],
+html[data-theme="dunas"] .bg-\[\#0f1524\] {
+  background-color: rgba(60, 38, 22, 0.88) !important;
+  backdrop-filter: blur(18px) saturate(150%);
+  -webkit-backdrop-filter: blur(18px) saturate(150%);
+}
+
+html[data-theme="dunas"] .bg-\[\#121a2e\],
+html[data-theme="dunas"] .bg-\[\#161f36\],
+html[data-theme="dunas"] .bg-\[\#1a2238\] {
+  background-color: rgba(255, 215, 165, 0.10) !important;
+  border-color: rgba(230, 184, 112, 0.14) !important;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║               12.  DROPDOWNS                                             ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="dunas"] .app-dropdown-panel {
+  background: linear-gradient(
+    155deg,
+    rgba(80, 50, 28, 0.84) 0%,
+    rgba(36, 22, 12, 0.92) 100%
+  ) !important;
+  backdrop-filter: blur(22px) saturate(155%) !important;
+  -webkit-backdrop-filter: blur(22px) saturate(155%) !important;
+  border-color: var(--glass-border) !important;
+  box-shadow:
+    var(--glass-highlight),
+    0 22px 52px rgba(42, 26, 14, 0.58),
+    0 0 36px rgba(217, 117, 64, 0.16) !important;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║         13.  KANBAN                                                      ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="dunas"] .kanban-column-well {
+  background: transparent !important;
+}
+html[data-theme="dunas"] .kanban-column-well::after,
+html[data-theme="dunas"] .kanban-column-well::before {
+  background: transparent !important;
+  display: none !important;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║         14.  EDITOR  ·  ProseMirror                                      ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="dunas"] .ProseMirror pre {
+  background: rgba(36, 22, 12, 0.78) !important;
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║         15.  DETAIL FULL-SCREEN                                          ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="dunas"]
+  .detail-fullscreen-bg.detail-fullscreen-bg.detail-fullscreen-bg {
+  background: transparent !important;
+  background-image: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+html[data-theme="dunas"] .detail-fullscreen-bg::before {
+  content: none;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                16.  INPUTS                                               ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="dunas"] input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]),
+html[data-theme="dunas"] textarea,
+html[data-theme="dunas"] select {
+  background: rgba(255, 215, 165, 0.05);
+  border: 1px solid var(--glass-border);
+  color: var(--text);
+}
+
+html[data-theme="dunas"] input:focus,
+html[data-theme="dunas"] textarea:focus,
+html[data-theme="dunas"] select:focus {
+  outline: none;
+  border-color: var(--glass-border-glow);
+  box-shadow: 0 0 0 3px rgba(217, 117, 64, 0.30);
+}
+
+html[data-theme="dunas"] #cmd-palette-trigger {
+  background: rgba(217, 117, 64, 0.08) !important;
+  border-color: rgba(217, 117, 64, 0.30) !important;
+  color: var(--text-dim) !important;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+html[data-theme="dunas"] #cmd-palette-trigger:hover {
+  background: rgba(217, 117, 64, 0.16) !important;
+  border-color: var(--glass-border-glow) !important;
+  color: var(--text) !important;
+  box-shadow: 0 0 24px rgba(217, 117, 64, 0.28);
+}
+html[data-theme="dunas"] #cmd-palette-trigger kbd {
+  background: rgba(217, 117, 64, 0.18) !important;
+  border-color: rgba(217, 117, 64, 0.36) !important;
+  color: var(--text);
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                  17.  SCROLLBARS                                         ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="dunas"] ::-webkit-scrollbar-thumb {
+  background: rgba(255, 215, 165, 0.12);
+  border-radius: 6px;
+}
+html[data-theme="dunas"] ::-webkit-scrollbar-thumb:hover {
+  background: rgba(217, 117, 64, 0.50);
+}
+html[data-theme="dunas"] .overflow-y-auto:hover::-webkit-scrollbar-thumb,
+html[data-theme="dunas"] .overflow-x-auto:hover::-webkit-scrollbar-thumb,
+html[data-theme="dunas"] .overflow-auto:hover::-webkit-scrollbar-thumb,
+html[data-theme="dunas"] *:hover::-webkit-scrollbar-thumb {
+  background: rgba(217, 117, 64, 0.40);
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║              18.  STATS / DASHBOARD                                      ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="dunas"] [data-stat-color="purple"] { color: var(--stat-purple); }
+html[data-theme="dunas"] [data-stat-color="blue"]   { color: var(--stat-blue); }
+html[data-theme="dunas"] [data-stat-color="cyan"]   { color: var(--stat-cyan); }
+html[data-theme="dunas"] [data-stat-color="green"]  { color: var(--stat-green); }
+
+html[data-theme="dunas"] .dashboard-shift-track {
+  background: rgba(255, 215, 165, 0.08) !important;
+  border: 1px solid var(--glass-border);
+  overflow: hidden;
+}
+html[data-theme="dunas"] .dashboard-shift-fill {
+  background: linear-gradient(90deg, var(--dunas-ochre) 0%, var(--dunas-gold) 100%) !important;
+  box-shadow: 0 0 14px rgba(217, 117, 64, 0.60);
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║      19-32. RESTO DE OVERRIDES                                           ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="dunas"] .presence-online,
+html[data-theme="dunas"] [data-online="true"] .presence-dot {
+  box-shadow:
+    0 0 0 2px var(--bg-deep),
+    0 0 14px rgba(184, 228, 160, 0.65);
+}
+
+html[data-theme="dunas"] .user-avatar-ring {
+  box-shadow:
+    0 0 0 2px var(--bg-deep),
+    0 0 0 3px var(--glass-border-glow);
+}
+
+html[data-theme="dunas"] .glass-opaque-bitacora {
+  isolation: auto;
+  background: rgba(255, 215, 165, 0.10);
+  backdrop-filter: blur(22px) saturate(155%);
+  -webkit-backdrop-filter: blur(22px) saturate(155%);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-highlight), 0 6px 26px rgba(42, 26, 14, 0.38);
+}
+
+html[data-theme="dunas"] .app-modal-dialog[data-modal-surface="dark"] {
+  position: relative;
+  background: linear-gradient(
+    155deg,
+    rgba(80, 50, 28, 0.64) 0%,
+    rgba(36, 22, 12, 0.82) 100%
+  ) !important;
+  backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+  border-color: var(--glass-border) !important;
+  box-shadow:
+    0 24px 68px rgba(42, 26, 14, 0.58),
+    0 0 52px rgba(217, 117, 64, 0.22),
+    0 0 80px rgba(255, 201, 122, 0.14),
+    var(--glass-highlight) !important;
+  overflow: hidden;
+}
+
+html[data-theme="dunas"] .app-modal-dialog[data-modal-surface="dark"]::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 240, 210, 0.12) 0%,
+    rgba(255, 240, 210, 0.04) 18%,
+    transparent 32%
+  );
+  border-radius: inherit;
+  z-index: 0;
+}
+html[data-theme="dunas"] .app-modal-dialog[data-modal-surface="dark"] > *:not(button[aria-label="Cerrar"]) {
+  position: relative;
+  z-index: 1;
+}
+
+html[data-theme="dunas"] .modal-backdrop {
+  background: rgba(20, 12, 6, 0.55);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+html[data-theme="dunas"] .mobile-bottom-nav {
+  background: linear-gradient(
+    180deg,
+    rgba(60, 38, 22, 0.64) 0%,
+    rgba(42, 26, 14, 0.84) 100%
+  ) !important;
+  border-top-color: var(--glass-border) !important;
+  backdrop-filter: blur(22px) saturate(155%);
+  -webkit-backdrop-filter: blur(22px) saturate(155%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 240, 210, 0.10),
+    0 -8px 30px rgba(42, 26, 14, 0.55);
+}
+
+html[data-theme="dunas"] [data-tooltip-content],
+html[data-theme="dunas"] [role="tooltip"] {
+  background: linear-gradient(
+    155deg,
+    rgba(80, 50, 28, 0.84) 0%,
+    rgba(36, 22, 12, 0.92) 100%
+  ) !important;
+  border: 1px solid var(--glass-border) !important;
+  color: var(--text) !important;
+  backdrop-filter: blur(14px) saturate(155%);
+  -webkit-backdrop-filter: blur(14px) saturate(155%);
+  box-shadow: var(--glass-shadow), var(--glass-highlight);
+}
+
+html[data-theme="dunas"] .toast-glass {
+  background: linear-gradient(
+    155deg,
+    rgba(80, 50, 28, 0.84) 0%,
+    rgba(36, 22, 12, 0.92) 100%
+  ) !important;
+  border: 1px solid var(--glass-border) !important;
+  color: var(--text) !important;
+  backdrop-filter: blur(22px) saturate(160%);
+  -webkit-backdrop-filter: blur(22px) saturate(160%);
+  box-shadow:
+    var(--glass-highlight),
+    0 18px 44px rgba(42, 26, 14, 0.58),
+    0 0 32px rgba(217, 117, 64, 0.20);
+}
+
+html[data-theme="dunas"] .loading-card {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+html[data-theme="dunas"] .dashboard-allgood-banner {
+  background: linear-gradient(
+    135deg,
+    rgba(184, 228, 160, 0.12) 0%,
+    rgba(255, 201, 122, 0.08) 100%
+  ) !important;
+  border-color: rgba(255, 240, 210, 0.14) !important;
+  backdrop-filter: blur(14px) saturate(145%);
+  -webkit-backdrop-filter: blur(14px) saturate(145%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 240, 210, 0.10),
+    0 0 28px rgba(184, 228, 160, 0.12);
+}
+
+html[data-theme="dunas"] .dashboard-allgood-icon {
+  background: rgba(184, 228, 160, 0.22) !important;
+  box-shadow: inset 0 0 0 1px rgba(184, 228, 160, 0.40);
+}
+
+html[data-theme="dunas"] .bg-sky-400\/10,
+html[data-theme="dunas"] .bg-emerald-400\/10,
+html[data-theme="dunas"] .bg-orange-400\/10,
+html[data-theme="dunas"] .bg-red-400\/10,
+html[data-theme="dunas"] .bg-red-500\/10,
+html[data-theme="dunas"] .bg-violet-400\/10,
+html[data-theme="dunas"] .bg-yellow-400\/10,
+html[data-theme="dunas"] .bg-green-400\/10,
+html[data-theme="dunas"] .bg-blue-400\/10,
+html[data-theme="dunas"] .bg-amber-400\/10,
+html[data-theme="dunas"] .bg-indigo-400\/10,
+html[data-theme="dunas"] .bg-emerald-500\/6,
+html[data-theme="dunas"] .bg-emerald-500\/8,
+html[data-theme="dunas"] .bg-emerald-400\/8,
+html[data-theme="dunas"] .bg-emerald-400\/\[0\.06\],
+html[data-theme="dunas"] .bg-emerald-400\/5,
+html[data-theme="dunas"] .bg-amber-400\/8,
+html[data-theme="dunas"] .bg-emerald-500\/12,
+html[data-theme="dunas"] .bg-emerald-500\/15,
+html[data-theme="dunas"] .bg-rose-400\/10,
+html[data-theme="dunas"] .bg-rose-500\/10,
+html[data-theme="dunas"] .hover\:bg-rose-500\/10:hover,
+html[data-theme="dunas"] .hover\:bg-rose-50:hover {
+  background-image: linear-gradient(
+    rgba(217, 117, 64, 0.06),
+    rgba(255, 201, 122, 0.04)
+  );
+}
+
+html[data-theme="dunas"] .bg-slate-900\/45,
+html[data-theme="dunas"] .bg-black\/75,
+html[data-theme="dunas"] .bg-black\/65,
+html[data-theme="dunas"] .bg-black\/60,
+html[data-theme="dunas"] .bg-black\/55,
+html[data-theme="dunas"] .bg-black\/45,
+html[data-theme="dunas"] .bg-black\/40,
+html[data-theme="dunas"] .bg-black\/35 {
+  background-color: rgba(42, 26, 14, 0.55) !important;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+html[data-theme="dunas"] .bg-black\/30,
+html[data-theme="dunas"] .bg-black\/25,
+html[data-theme="dunas"] .bg-black\/20,
+html[data-theme="dunas"] .bg-black\/15,
+html[data-theme="dunas"] .bg-black\/10 {
+  background-color: rgba(60, 38, 22, 0.32) !important;
+}
+
+html[data-theme="dunas"] .bg-black\/\[0\.05\],
+html[data-theme="dunas"] .bg-black\/\[0\.04\],
+html[data-theme="dunas"] .bg-black\/\[0\.06\] {
+  background-color: rgba(255, 215, 165, 0.05) !important;
+}
+
+html[data-theme="dunas"] .bg-zinc-900,
+html[data-theme="dunas"] .bg-zinc-800,
+html[data-theme="dunas"] .hover\:bg-zinc-800:hover {
+  background-color: rgba(60, 38, 22, 0.92) !important;
+  border-color: rgba(230, 184, 112, 0.22) !important;
+}
+
+html[data-theme="dunas"] .text-\[\#0a0f1e\] {
+  color: rgba(42, 26, 14, 1) !important;
+}
+
+html[data-theme="dunas"] img.rounded-full.object-cover {
+  box-shadow: inset 0 0 0 1px rgba(217, 117, 64, 0.34);
+}
+
+html[data-theme="dunas"] .border-\[\#0a0f1e\] {
+  border-color: rgba(42, 26, 14, 0.92) !important;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║      33.  AUTO-STAGE-IN + SHINE                                          ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes dunas-stage-in {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  html[data-theme="dunas"] .app-dashboard-root > main,
+  html[data-theme="dunas"] .app-dashboard-root > section {
+    animation: dunas-stage-in 380ms cubic-bezier(0.2, 0.6, 0.2, 1) both;
+  }
+}
+
+html[data-theme="dunas"] .glass-hover {
+  overflow: hidden;
+}
+
+html[data-theme="dunas"] .glass-hover::after,
+html[data-theme="dunas"] .glass-surface::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    115deg,
+    transparent 30%,
+    rgba(255, 201, 122, 0.20) 50%,
+    transparent 70%
+  );
+  transform: translateX(-110%);
+  transition: transform 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+  border-radius: inherit;
+  z-index: 0;
+}
+
+html[data-theme="dunas"] .glass-hover > * {
+  position: relative;
+  z-index: 1;
+}
+
+html[data-theme="dunas"] .glass-hover:hover::after,
+html[data-theme="dunas"] .glass-surface:hover::after {
+  transform: translateX(110%);
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║      34.  ACCESIBILIDAD  ·  prefers-reduced-motion                       ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-theme="dunas"] .dunas-bg .dunas-windgrains .grain,
+  html[data-theme="dunas"] .dunas-bg .dunas-clouds .cloud {
+    animation: none !important;
+    display: none !important;
+  }
+  html[data-theme="dunas"] .dunas-bg .dunas-palms .palm,
+  html[data-theme="dunas"] .dunas-bg .dunas-sun-halo,
+  html[data-theme="dunas"] .dunas-bg .dunas-haze,
+  html[data-theme="dunas"] .dunas-bg .dunas-sandstorm,
+  html[data-theme="dunas"] .dunas-bg .dunas-godrays {
+    animation: none !important;
+  }
+  /* Tormenta de arena no debe quedar visible en estático (sería un velo
+     marrón permanente sobre la escena). */
+  html[data-theme="dunas"] .dunas-bg .dunas-sandstorm {
+    background-color: transparent !important;
+  }
+  html[data-theme="dunas"] .glow-border::after {
+    animation: none !important;
+  }
+  html[data-theme="dunas"] .reveal {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+  html[data-theme="dunas"] .app-dashboard-root > main,
+  html[data-theme="dunas"] .app-dashboard-root > section {
+    animation: none !important;
+  }
+  html[data-theme="dunas"] .glass-hover::after,
+  html[data-theme="dunas"] .glass-surface::after {
+    display: none !important;
+  }
+  html[data-theme="dunas"] .glass-surface,
+  html[data-theme="dunas"] .glass,
+  html[data-theme="dunas"] .glass-1,
+  html[data-theme="dunas"] .glass-2,
+  html[data-theme="dunas"] .glass-3,
+  html[data-theme="dunas"] .glass-4 {
+    transition: none !important;
+  }
+}

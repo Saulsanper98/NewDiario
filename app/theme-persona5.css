@@ -1,0 +1,649 @@
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║   TEMA "PERSONA5" · TRIBUTO · Collage rojo-negro estilo cómic            ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="persona5"] {
+  --bg-0: #0a0204;
+  --bg-1: #14040a;
+  --bg-2: #1f0610;
+
+  --card: linear-gradient(180deg, #1f060c 0%, #150408 60%, #0c0306 100%);
+  --surface:   rgba(36, 10, 18, 0.92);
+  --surface-2: rgba(232, 18, 56, 0.04);
+  --border:        rgba(232, 18, 56, 0.22);
+  --border-strong: rgba(232, 18, 56, 0.55);
+
+  --accent:        #e81238;        /* rojo P5 */
+  --accent-bright: #ff4060;
+  --accent-glow:   rgba(232, 18, 56, 0.45);
+  --accent-2:      #ffffff;        /* blanco hueso */
+
+  --text:      #f4dce0;
+  --text-soft: #d4b0b8;
+  --muted:     #8a606a;
+
+  --ok:         #4dffaa;
+  --gold-relic: #d4a544;
+
+  --font-display: "Bebas Neue", "Oswald", "Sora", -apple-system, sans-serif;
+  --font-ui:      "Sora", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+
+  --app-canvas-color: transparent;
+  --app-canvas-image: none;
+  --card-isolation: auto;
+
+  color-scheme: dark;
+}
+
+html[data-theme="persona5"] body { min-height: 100vh; }
+html[data-theme="persona5"] .app-sidebar-shell,
+html[data-theme="persona5"] .app-top-header { isolation: auto !important; }
+
+
+/* ── 1. FONDO + ATMÓSFERA ────────────────────────────────────────────── */
+html[data-theme="persona5"] .p5-bg {
+  position: fixed; inset: 0; z-index: -10; overflow: hidden; pointer-events: none;
+  background:
+    /* Diagonal stripes muy sutiles */
+    repeating-linear-gradient(45deg,
+      transparent 0 24px,
+      rgba(255, 255, 255, 0.018) 24px 25px,
+      transparent 25px 50px),
+    radial-gradient(ellipse 80% 60% at 30% 70%, rgba(232, 18, 56, 0.18) 0%, transparent 65%),
+    radial-gradient(ellipse 70% 55% at 75% 30%, rgba(232, 18, 56, 0.10) 0%, transparent 60%),
+    linear-gradient(135deg, #0a0204 0%, #160408 50%, #0a0204 100%);
+}
+
+/* ── 1.1 Triángulos rojos en collage (estilo "ALL OUT ATTACK") ───────── */
+html[data-theme="persona5"] .p5-bg .p5-triangle {
+  position: absolute;
+  pointer-events: none;
+  filter: drop-shadow(0 0 12px rgba(232, 18, 56, 0.55));
+  animation: p5-triangle-jitter var(--dur, 6s) ease-in-out infinite;
+}
+@keyframes p5-triangle-jitter {
+  0%, 100% { transform: rotate(var(--rot, 0deg)) scale(1.00); opacity: 0.85; }
+  50%      { transform: rotate(calc(var(--rot, 0deg) + 1deg)) scale(1.02); opacity: 1.00; }
+}
+
+/* ── 1.2 Texto JOKER marca de agua ───────────────────────────────────── */
+html[data-theme="persona5"] .p5-bg .p5-mark {
+  position: absolute; right: 4%; bottom: 8%;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: clamp(8rem, 16vw, 22rem);
+  line-height: 0.85; letter-spacing: -0.02em;
+  color: rgba(232, 18, 56, 0.06);
+  pointer-events: none; user-select: none; text-transform: uppercase;
+  -webkit-text-stroke: 2px rgba(232, 18, 56, 0.18);
+  text-stroke: 2px rgba(232, 18, 56, 0.18);
+  animation: p5-mark-flash 5s ease-in-out infinite;
+}
+@keyframes p5-mark-flash {
+  0%, 100% { opacity: 0.85; }
+  50%      { opacity: 1.00; }
+}
+
+/* ── 1.3 Halftone dots (estilo cómic) ────────────────────────────────── */
+html[data-theme="persona5"] .p5-bg .p5-halftone {
+  position: absolute; left: 0; top: 0;
+  width: 40%; height: 40%;
+  background-image: radial-gradient(circle, rgba(232, 18, 56, 0.18) 1.2px, transparent 1.5px);
+  background-size: 14px 14px;
+  pointer-events: none;
+  -webkit-mask-image: linear-gradient(135deg, #000 0%, transparent 80%);
+  mask-image: linear-gradient(135deg, #000 0%, transparent 80%);
+}
+
+/* ── 1.3.b SPEED LINES radiales — estilo manga "rebellion focus" ────── */
+html[data-theme="persona5"] .p5-bg .p5-speed-lines {
+  position: absolute; left: 50%; top: 50%;
+  width: 0; height: 0;
+  pointer-events: none;
+  opacity: 0.55;
+  animation: p5-speed-rotate 30s linear infinite;
+}
+html[data-theme="persona5"] .p5-bg .p5-speed-line {
+  position: absolute;
+  left: 0; top: 0;
+  width: 1px;
+  height: 80vmax;
+  background: linear-gradient(180deg,
+    rgba(232, 18, 56, 0) 0%,
+    rgba(232, 18, 56, 0) 30%,
+    rgba(232, 18, 56, 0.85) 100%);
+  transform-origin: 0 0;
+  pointer-events: none;
+}
+@keyframes p5-speed-rotate {
+  0%   { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* ── 1.3.c SPLASH de tinta roja — fondo grunge ──────────────────────── */
+html[data-theme="persona5"] .p5-bg .p5-splash {
+  position: absolute; right: -8%; top: -10%;
+  width: 70%; height: 70%;
+  pointer-events: none;
+  filter: drop-shadow(0 0 32px rgba(232, 18, 56, 0.35));
+  opacity: 0.85;
+  animation: p5-splash-breath 9s ease-in-out infinite alternate;
+}
+@keyframes p5-splash-breath {
+  0%   { transform: scale(1.00) rotate(0deg);  opacity: 0.85; }
+  100% { transform: scale(1.05) rotate(-2deg); opacity: 1.00; }
+}
+
+/* ── 1.3.d MÁSCARA DEL JOKER — gran silueta blanca central ──────────── */
+html[data-theme="persona5"] .p5-bg .p5-joker-mask {
+  position: absolute;
+  left: 50%; top: 30%;
+  width: clamp(260px, 32vmin, 480px);
+  height: auto;
+  transform: translateX(-50%) rotate(-3deg);
+  pointer-events: none;
+  opacity: 0.18;
+  filter:
+    drop-shadow(0 0 24px rgba(255, 255, 255, 0.65))
+    drop-shadow(0 12px 36px rgba(0, 0, 0, 0.85));
+  animation: p5-mask-jitter 7s ease-in-out infinite;
+}
+@keyframes p5-mask-jitter {
+  0%, 100% { opacity: 0.16; transform: translateX(-50%) rotate(-3deg) scale(1.00); }
+  50%      { opacity: 0.22; transform: translateX(-50%) rotate(-2deg) scale(1.02); }
+}
+
+/* ── 1.3.e Texto "TAKE YOUR HEART" — overlay tipográfico rebelde ────── */
+html[data-theme="persona5"] .p5-bg .p5-text-overlay {
+  position: absolute;
+  left: 6%; top: 12%;
+  font-family: var(--font-display, "Bebas Neue", "Oswald", sans-serif);
+  font-weight: 900;
+  text-transform: uppercase;
+  pointer-events: none;
+  user-select: none;
+  z-index: 2;
+}
+html[data-theme="persona5"] .p5-bg .p5-text-line {
+  display: block;
+  font-size: clamp(2.2rem, 5vw, 5.5rem);
+  line-height: 0.85;
+  letter-spacing: 0.04em;
+  background: linear-gradient(180deg, #fff 0%, #f4ecd6 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-stroke: 2px rgba(232, 18, 56, 0.85);
+  text-shadow: 0 4px 12px rgba(0, 0, 0, 0.85);
+  opacity: 0.45;
+}
+html[data-theme="persona5"] .p5-bg .p5-text-line-1 { transform: rotate(-3deg) translateX(0);     animation: p5-text-pop 1.2s ease-out backwards; }
+html[data-theme="persona5"] .p5-bg .p5-text-line-2 { transform: rotate(2deg)  translateX(40px);  animation: p5-text-pop 1.2s ease-out 0.18s backwards; }
+html[data-theme="persona5"] .p5-bg .p5-text-line-3 { transform: rotate(-2deg) translateX(80px);  animation: p5-text-pop 1.2s ease-out 0.36s backwards; }
+@keyframes p5-text-pop {
+  0%   { opacity: 0; transform: translateX(0) rotate(0deg) scale(1.4); }
+  100% { opacity: 0.45; }
+}
+
+/* ── 1.4 Veil + grain + vignette ─────────────────────────────────────── */
+html[data-theme="persona5"] .p5-bg .p5-veil {
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse 75% 55% at 50% 50%,
+    rgba(10, 2, 4, 0.45) 0%, rgba(10, 2, 4, 0.20) 38%, transparent 78%);
+  pointer-events: none;
+}
+html[data-theme="persona5"] .p5-bg .p5-grain {
+  position: absolute; inset: 0; opacity: 0.045;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.78' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  mix-blend-mode: overlay; pointer-events: none;
+}
+html[data-theme="persona5"] .p5-bg .p5-vignette {
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse 100% 80% at 50% 50%,
+    transparent 50%, rgba(0, 0, 0, 0.40) 82%, rgba(0, 0, 0, 0.65) 100%);
+  pointer-events: none;
+}
+
+
+/* ── 2. TIPOGRAFÍA + SHELL ──────────────────────────────────────────── */
+html[data-theme="persona5"] body {
+  color: var(--text); font-family: var(--font-ui); font-weight: 400;
+}
+html[data-theme="persona5"] h1,
+html[data-theme="persona5"] h2,
+html[data-theme="persona5"] h3,
+html[data-theme="persona5"] h4,
+html[data-theme="persona5"] h5,
+html[data-theme="persona5"] h6 {
+  font-family: var(--font-display);
+  font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase;
+  color: #ffffff;
+  text-shadow:
+    2px 2px 0 var(--accent),
+    0 0 8px rgba(232, 18, 56, 0.55);
+}
+html[data-theme="persona5"] h1 { font-style: italic; }
+
+html[data-theme="persona5"] .glass-shell-frame {
+  margin: 18px; padding: 0; border-radius: 18px;
+  background: transparent; box-shadow: none; isolation: auto !important;
+}
+html[data-theme="persona5"] .glass-shell-inner {
+  border-radius: 17px; background: transparent;
+  backdrop-filter: none; -webkit-backdrop-filter: none;
+  isolation: auto !important; overflow: visible; padding: 20px;
+}
+@media (max-width: 768px) {
+  html[data-theme="persona5"] .glass-shell-inner { padding: 6px; }
+  html[data-theme="persona5"] .app-dashboard-root { gap: 8px; }
+}
+@media (max-width: 640px) {
+  html[data-theme="persona5"] .glass-shell-frame { margin: 4px; border-radius: 12px; }
+  html[data-theme="persona5"] .glass-shell-inner { border-radius: 11px; }
+}
+@media (max-width: 480px) {
+  html[data-theme="persona5"] .glass-shell-frame { margin: 0; padding: 0; border-radius: 0; background: none; }
+  html[data-theme="persona5"] .glass-shell-inner { padding: 0; border-radius: 0; }
+  html[data-theme="persona5"] .app-dashboard-root { gap: 0; }
+}
+html[data-theme="persona5"] .glass-shell-frame::before,
+html[data-theme="persona5"] .glass-shell-frame::after,
+html[data-theme="persona5"] .glass-shell-inner::before,
+html[data-theme="persona5"] .glass-shell-inner::after { display: none !important; }
+html[data-theme="persona5"] .app-dashboard-root { background: transparent !important; gap: 16px; }
+
+
+/* ── 3. SUPERFICIES ──────────────────────────────────────────────────── */
+html[data-theme="persona5"] .glass-surface {
+  position: relative; isolation: auto;
+  background: var(--card);
+  backdrop-filter: none; -webkit-backdrop-filter: none;
+  border: 2px solid var(--border); border-radius: 4px;
+  box-shadow:
+    inset 0 1px 0 rgba(232, 18, 56, 0.06),
+    0 1px 0 rgba(0, 0, 0, 0.55),
+    8px 8px 0 rgba(232, 18, 56, 0.18),
+    0 18px 40px rgba(0, 0, 0, 0.55);
+  transition: border-color 0.2s ease, transform 0.15s ease, box-shadow 0.15s ease;
+  overflow: hidden;
+}
+html[data-theme="persona5"] .glass-surface::before { display: none; }
+html[data-theme="persona5"] .glass-surface > * { position: relative; z-index: 1; }
+html[data-theme="persona5"] .glass-surface:hover {
+  border-color: var(--border-strong);
+  transform: translate(-2px, -2px);
+  box-shadow:
+    inset 0 1px 0 rgba(232, 18, 56, 0.08),
+    0 1px 0 rgba(0, 0, 0, 0.55),
+    10px 10px 0 rgba(232, 18, 56, 0.28),
+    0 22px 48px rgba(0, 0, 0, 0.65);
+}
+
+html[data-theme="persona5"] .glass,
+html[data-theme="persona5"] .glass-1,
+html[data-theme="persona5"] .glass-2,
+html[data-theme="persona5"] .glass-3,
+html[data-theme="persona5"] .glass-4 {
+  isolation: auto !important; position: relative; border-radius: 4px;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+html[data-theme="persona5"] .glass,
+html[data-theme="persona5"] .glass-1 {
+  background: var(--card); border: 2px solid var(--border);
+  backdrop-filter: none; -webkit-backdrop-filter: none;
+  box-shadow: 6px 6px 0 rgba(232, 18, 56, 0.14), 0 12px 30px rgba(0, 0, 0, 0.50);
+}
+html[data-theme="persona5"] .glass-2 {
+  background: linear-gradient(180deg, rgba(232, 18, 56, 0.025), rgba(232, 18, 56, 0)), var(--card);
+  border: 2px solid var(--border);
+  backdrop-filter: none; -webkit-backdrop-filter: none;
+  box-shadow: 6px 6px 0 rgba(232, 18, 56, 0.18), 0 16px 36px rgba(0, 0, 0, 0.55);
+}
+html[data-theme="persona5"] .glass-3 {
+  background: linear-gradient(180deg, rgba(232, 18, 56, 0.04), rgba(232, 18, 56, 0)), var(--card);
+  border: 2px solid var(--border-strong);
+  backdrop-filter: none; -webkit-backdrop-filter: none;
+  box-shadow: 8px 8px 0 rgba(232, 18, 56, 0.22), 0 20px 44px rgba(0, 0, 0, 0.60);
+}
+html[data-theme="persona5"] .glass-4 {
+  background: linear-gradient(180deg, rgba(232, 18, 56, 0.05), rgba(232, 18, 56, 0)), var(--card);
+  border: 2px solid var(--border-strong);
+  backdrop-filter: none; -webkit-backdrop-filter: none;
+  box-shadow: 10px 10px 0 rgba(232, 18, 56, 0.28), 0 28px 56px rgba(0, 0, 0, 0.70);
+}
+
+
+/* ── 4. SIDEBAR + HEADER ─────────────────────────────────────────────── */
+html[data-theme="persona5"] .app-sidebar-shell {
+  background: linear-gradient(180deg,
+    rgba(28, 8, 14, 0.55) 0%, rgba(20, 6, 10, 0.62) 60%, rgba(14, 4, 8, 0.65) 100%);
+  border-right: none;
+  backdrop-filter: blur(22px) saturate(125%);
+  -webkit-backdrop-filter: blur(22px) saturate(125%);
+  box-shadow: inset -2px 0 0 rgba(232, 18, 56, 0.20), 4px 0 22px rgba(0, 0, 0, 0.55);
+}
+html[data-theme="persona5"] .app-top-header {
+  background: linear-gradient(180deg, rgba(20, 6, 10, 0.55) 0%, rgba(20, 6, 10, 0.45) 100%);
+  border-bottom: none;
+  backdrop-filter: blur(22px) saturate(125%);
+  -webkit-backdrop-filter: blur(22px) saturate(125%);
+  box-shadow: inset 0 -2px 0 rgba(232, 18, 56, 0.20), 0 4px 22px rgba(0, 0, 0, 0.45);
+}
+
+html[data-theme="persona5"] .sidebar-nav-link-active {
+  background: linear-gradient(135deg, rgba(232, 18, 56, 0.30) 0%, rgba(232, 18, 56, 0.10) 100%) !important;
+  color: #ffffff !important;
+  border-color: rgba(232, 18, 56, 0.55) !important;
+  box-shadow: inset 0 0 0 2px rgba(232, 18, 56, 0.32), 4px 4px 0 rgba(232, 18, 56, 0.30) !important;
+  transform: translate(-2px, -2px);
+}
+html[data-theme="persona5"] .sidebar-nav-link-active.ring-2 {
+  --tw-ring-color: rgba(255, 64, 96, 0.65) !important;
+}
+html[data-theme="persona5"] .sidebar-nav-link:hover:not(.sidebar-nav-link-active) {
+  background: rgba(232, 18, 56, 0.12) !important; color: var(--text) !important;
+}
+html[data-theme="persona5"] .sidebar-active-bar {
+  background: linear-gradient(180deg, var(--accent-bright) 0%, var(--accent) 100%) !important;
+  box-shadow: 0 0 12px rgba(232, 18, 56, 0.85) !important;
+}
+html[data-theme="persona5"] nav .text-white\/40,
+html[data-theme="persona5"] nav [class*="text-white"][class*="uppercase"] {
+  color: rgba(212, 176, 184, 0.65) !important; letter-spacing: 0.10em;
+  font-style: italic;
+}
+html[data-theme="persona5"] .app-sidebar-shell .border-t {
+  border-top-color: rgba(232, 18, 56, 0.20) !important;
+}
+html[data-theme="persona5"] .app-sidebar-shell .bg-white\/5 {
+  background-color: rgba(232, 18, 56, 0.05) !important;
+}
+
+
+/* ── 5. TEXTO + LINKS + MARK ────────────────────────────────────────── */
+html[data-theme="persona5"] [data-bitacora-html-body],
+html[data-theme="persona5"] [data-bitacora-prose].prose,
+html[data-theme="persona5"] [data-bitacora-prose] .ProseMirror {
+  color: var(--text); font-family: var(--font-ui);
+  font-size: 16.5px; line-height: 1.85;
+}
+html[data-theme="persona5"] [data-bitacora-html-body] > p:first-child,
+html[data-theme="persona5"] [data-bitacora-prose].prose > p:first-child {
+  color: #ffffff; font-weight: 600;
+}
+html[data-theme="persona5"] [data-bitacora-html-body] a,
+html[data-theme="persona5"] [data-bitacora-prose] .ProseMirror a {
+  color: var(--accent-bright); text-decoration: none;
+  border-bottom: 2px solid rgba(232, 18, 56, 0.45);
+  font-weight: 600;
+}
+html[data-theme="persona5"] [data-bitacora-html-body] a:hover,
+html[data-theme="persona5"] [data-bitacora-prose] .ProseMirror a:hover {
+  color: #ff8090; border-bottom-color: rgba(255, 64, 96, 0.85);
+}
+
+html[data-theme="persona5"] mark,
+html[data-theme="persona5"] .ProseMirror mark,
+html[data-theme="persona5"] [data-bitacora-html-body] mark {
+  background: var(--accent);
+  color: #ffffff; font-weight: 800;
+  border-radius: 0; padding: 1px 6px;
+  text-transform: uppercase;
+  box-shadow:
+    inset 0 0 0 2px rgba(0, 0, 0, 0.50),
+    3px 3px 0 rgba(0, 0, 0, 0.55);
+  text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.45);
+}
+
+
+/* ── 6. INPUTS + BOTONES ─────────────────────────────────────────────── */
+html[data-theme="persona5"] input,
+html[data-theme="persona5"] textarea,
+html[data-theme="persona5"] select {
+  background-color: rgba(232, 18, 56, 0.025);
+  color: var(--text); border-color: var(--border);
+}
+html[data-theme="persona5"] input::placeholder,
+html[data-theme="persona5"] textarea::placeholder { color: var(--muted); }
+html[data-theme="persona5"] input:focus,
+html[data-theme="persona5"] textarea:focus,
+html[data-theme="persona5"] select:focus {
+  border-color: var(--border-strong); outline: none;
+  box-shadow: 0 0 0 2px rgba(232, 18, 56, 0.30);
+}
+html[data-theme="persona5"] [data-bitacora-prose] input[type="text"],
+html[data-theme="persona5"] form input[type="text"] {
+  background-color: rgba(232, 18, 56, 0.025);
+}
+
+html[data-theme="persona5"] .btn-primary,
+html[data-theme="persona5"] button[data-variant="primary"] {
+  background: var(--accent);
+  color: #ffffff; border: 2px solid #ffffff;
+  font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em;
+  border-radius: 0;
+  box-shadow:
+    inset 0 0 0 2px rgba(0, 0, 0, 0.40),
+    4px 4px 0 rgba(0, 0, 0, 0.85);
+  text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.45);
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+html[data-theme="persona5"] .btn-primary:hover,
+html[data-theme="persona5"] button[data-variant="primary"]:hover {
+  transform: translate(-2px, -2px);
+  box-shadow:
+    inset 0 0 0 2px rgba(0, 0, 0, 0.40),
+    6px 6px 0 rgba(0, 0, 0, 0.85);
+}
+
+
+/* ── 7. PORTALES ──────────────────────────────────────────────────────── */
+html[data-theme="persona5"] #theme-selector-panel {
+  background: linear-gradient(155deg, #1f060c 0%, #150408 60%, #0c0306 100%) !important;
+  border: 2px solid var(--border) !important;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.85), 0 0 0 1px rgba(232, 18, 56, 0.20), 8px 8px 0 rgba(232, 18, 56, 0.22) !important;
+}
+html[data-theme="persona5"] #theme-selector-panel input[type="text"] {
+  background-color: rgba(232, 18, 56, 0.05) !important; color: var(--text) !important;
+}
+html[data-theme="persona5"] #theme-selector-panel .border-b { border-color: var(--border) !important; }
+
+html[data-theme="persona5"] .cmd-palette-backdrop { background-color: rgba(10, 2, 4, 0.92) !important; }
+html[data-theme="persona5"] #cmd-palette-panel [cmdk-root],
+html[data-theme="persona5"] #cmd-palette-panel [cmdk-list] {
+  background-color: #150408 !important; border-color: var(--border) !important;
+}
+html[data-theme="persona5"] #cmd-palette-panel [cmdk-input-wrapper],
+html[data-theme="persona5"] #cmd-palette-panel > div > div:first-child {
+  background-color: #150408 !important; border-color: var(--border) !important;
+}
+html[data-theme="persona5"] #cmd-palette-panel [class*="bg-\[\#060912\]"],
+html[data-theme="persona5"] #cmd-palette-panel input[cmdk-input] {
+  background-color: rgba(232, 18, 56, 0.04) !important;
+  color: var(--text) !important; border-color: var(--border) !important;
+}
+html[data-theme="persona5"] #cmd-palette-panel [cmdk-input-wrapper] > div:focus-within {
+  border-color: rgba(255, 64, 96, 0.65) !important;
+}
+html[data-theme="persona5"] #cmd-palette-panel [cmdk-item][data-selected="true"] {
+  background-color: rgba(232, 18, 56, 0.18) !important; color: var(--text) !important;
+}
+
+
+/* ── 8. CONFIG TABS ──────────────────────────────────────────────────── */
+html[data-theme="persona5"] .config-tabs-root [class*="text-violet-"],
+html[data-theme="persona5"] .config-tabs-root [class*="text-amber-"],
+html[data-theme="persona5"] .config-tabs-root [class*="text-sky-"],
+html[data-theme="persona5"] .config-tabs-root [class*="text-emerald-"],
+html[data-theme="persona5"] .config-tabs-root [class*="text-rose-"],
+html[data-theme="persona5"] .config-tabs-root [class*="text-indigo-"],
+html[data-theme="persona5"] .config-tabs-root [class*="text-fuchsia-"],
+html[data-theme="persona5"] .config-tabs-root [class*="text-cyan-"],
+html[data-theme="persona5"] .config-tabs-root [class*="text-pink-"],
+html[data-theme="persona5"] .config-tabs-root [class*="text-teal-"],
+html[data-theme="persona5"] .config-tabs-root [class*="text-orange-"] {
+  color: var(--accent-bright) !important;
+}
+html[data-theme="persona5"] .config-tabs-root [class*="bg-violet-"],
+html[data-theme="persona5"] .config-tabs-root [class*="bg-amber-"],
+html[data-theme="persona5"] .config-tabs-root [class*="bg-sky-"],
+html[data-theme="persona5"] .config-tabs-root [class*="bg-emerald-"],
+html[data-theme="persona5"] .config-tabs-root [class*="bg-rose-"],
+html[data-theme="persona5"] .config-tabs-root [class*="bg-indigo-"],
+html[data-theme="persona5"] .config-tabs-root [class*="bg-fuchsia-"],
+html[data-theme="persona5"] .config-tabs-root [class*="bg-cyan-"],
+html[data-theme="persona5"] .config-tabs-root [class*="bg-pink-"],
+html[data-theme="persona5"] .config-tabs-root [class*="bg-teal-"],
+html[data-theme="persona5"] .config-tabs-root [class*="bg-orange-"] {
+  background-color: rgba(232, 18, 56, 0.10) !important;
+}
+html[data-theme="persona5"] .config-tabs-root [class*="border-violet-"],
+html[data-theme="persona5"] .config-tabs-root [class*="border-amber-"],
+html[data-theme="persona5"] .config-tabs-root [class*="border-sky-"],
+html[data-theme="persona5"] .config-tabs-root [class*="border-emerald-"],
+html[data-theme="persona5"] .config-tabs-root [class*="border-rose-"],
+html[data-theme="persona5"] .config-tabs-root [class*="border-indigo-"],
+html[data-theme="persona5"] .config-tabs-root [class*="border-fuchsia-"],
+html[data-theme="persona5"] .config-tabs-root [class*="border-cyan-"],
+html[data-theme="persona5"] .config-tabs-root [class*="border-pink-"],
+html[data-theme="persona5"] .config-tabs-root [class*="border-teal-"],
+html[data-theme="persona5"] .config-tabs-root [class*="border-orange-"] {
+  border-color: rgba(232, 18, 56, 0.22) !important;
+}
+html[data-theme="persona5"] .config-tabs-root [class*="ring-violet-"],
+html[data-theme="persona5"] .config-tabs-root [class*="ring-amber-"],
+html[data-theme="persona5"] .config-tabs-root [class*="ring-sky-"],
+html[data-theme="persona5"] .config-tabs-root [class*="ring-emerald-"],
+html[data-theme="persona5"] .config-tabs-root [class*="ring-rose-"],
+html[data-theme="persona5"] .config-tabs-root [class*="ring-indigo-"],
+html[data-theme="persona5"] .config-tabs-root [class*="ring-fuchsia-"],
+html[data-theme="persona5"] .config-tabs-root [class*="ring-cyan-"],
+html[data-theme="persona5"] .config-tabs-root [class*="ring-pink-"],
+html[data-theme="persona5"] .config-tabs-root [class*="ring-teal-"],
+html[data-theme="persona5"] .config-tabs-root [class*="ring-orange-"] {
+  --tw-ring-color: rgba(232, 18, 56, 0.35) !important;
+}
+html[data-theme="persona5"] .config-tabs-root [class*="from-violet"],
+html[data-theme="persona5"] .config-tabs-root [class*="from-amber"],
+html[data-theme="persona5"] .config-tabs-root [class*="from-sky"],
+html[data-theme="persona5"] .config-tabs-root [class*="from-emerald"],
+html[data-theme="persona5"] .config-tabs-root [class*="from-rose"],
+html[data-theme="persona5"] .config-tabs-root [class*="from-indigo"] {
+  --tw-gradient-from: rgba(232, 18, 56, 0.10) var(--tw-gradient-from-position) !important;
+  --tw-gradient-to: rgba(232, 18, 56, 0) var(--tw-gradient-to-position) !important;
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-via, var(--tw-gradient-to)), var(--tw-gradient-to) !important;
+}
+html[data-theme="persona5"] .config-tabs-root [class*="to-fuchsia"],
+html[data-theme="persona5"] .config-tabs-root [class*="to-orange"],
+html[data-theme="persona5"] .config-tabs-root [class*="to-cyan"],
+html[data-theme="persona5"] .config-tabs-root [class*="to-teal"],
+html[data-theme="persona5"] .config-tabs-root [class*="to-pink"],
+html[data-theme="persona5"] .config-tabs-root [class*="to-violet"] {
+  --tw-gradient-to: rgba(255, 64, 96, 0.10) var(--tw-gradient-to-position) !important;
+}
+html[data-theme="persona5"] .config-tabs-root .bg-gradient-to-r[class*="from-amber"],
+html[data-theme="persona5"] .config-tabs-root .bg-gradient-to-r[class*="from-violet"],
+html[data-theme="persona5"] .config-tabs-root .bg-gradient-to-r[class*="from-sky"],
+html[data-theme="persona5"] .config-tabs-root .bg-gradient-to-r[class*="from-emerald"],
+html[data-theme="persona5"] .config-tabs-root .bg-gradient-to-r[class*="from-rose"],
+html[data-theme="persona5"] .config-tabs-root .bg-gradient-to-r[class*="from-indigo"] {
+  background: linear-gradient(90deg, var(--accent) 0%, var(--accent-bright) 50%, var(--accent) 100%) !important;
+}
+html[data-theme="persona5"] .config-tabs-root .blur-3xl {
+  background-color: rgba(232, 18, 56, 0.06) !important;
+}
+
+html[data-theme="persona5"] .my-profile-card {
+  background: linear-gradient(180deg,
+    rgba(28, 8, 14, 0.95) 0%, rgba(20, 6, 10, 0.97) 50%, rgba(14, 4, 8, 0.98) 100%) !important;
+  border: 2px solid var(--border) !important;
+  box-shadow:
+    8px 8px 0 rgba(232, 18, 56, 0.22),
+    0 18px 50px rgba(0, 0, 0, 0.65) !important;
+}
+html[data-theme="persona5"] .my-profile-card .border-white\/8 {
+  border-color: rgba(232, 18, 56, 0.16) !important;
+}
+
+
+/* ── 9. MICRO-DETALLES + REVEAL ─────────────────────────────────────── */
+html[data-theme="persona5"] .glass-surface::after,
+html[data-theme="persona5"] .glass-2::after,
+html[data-theme="persona5"] .glass-3::after,
+html[data-theme="persona5"] .glass-4::after {
+  content: ""; position: absolute; top: 0; left: 0; right: 0;
+  height: 3px; pointer-events: none; z-index: 2;
+  background: linear-gradient(90deg, var(--accent) 0%, var(--accent-bright) 50%, var(--accent) 100%);
+  background-size: 260% 100%; background-position: 100% 0;
+  animation: p5-shimmer 6s ease-in-out infinite;
+}
+@keyframes p5-shimmer {
+  0%   { background-position: 130% 0; }
+  100% { background-position: -30% 0; }
+}
+
+html[data-theme="persona5"] h2,
+html[data-theme="persona5"] h3 { position: relative; }
+html[data-theme="persona5"] h2::after,
+html[data-theme="persona5"] h3::after {
+  content: ""; display: block; width: 60px; height: 4px;
+  margin-top: 8px;
+  background: var(--accent);
+  box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.65);
+}
+html[data-theme="persona5"] h3::after { width: 36px; height: 3px; margin-top: 6px; box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.55); }
+
+html[data-theme="persona5"] .glass-surface,
+html[data-theme="persona5"] .glass-2,
+html[data-theme="persona5"] .glass-3,
+html[data-theme="persona5"] .glass-4 {
+  animation: p5-card-reveal 0.55s cubic-bezier(0.22, 0.61, 0.36, 1) backwards;
+}
+html[data-theme="persona5"] .glass-surface:nth-child(1),
+html[data-theme="persona5"] .glass-2:nth-child(1),
+html[data-theme="persona5"] .glass-3:nth-child(1),
+html[data-theme="persona5"] .glass-4:nth-child(1) { animation-delay: 0.04s; }
+html[data-theme="persona5"] .glass-surface:nth-child(2),
+html[data-theme="persona5"] .glass-2:nth-child(2),
+html[data-theme="persona5"] .glass-3:nth-child(2),
+html[data-theme="persona5"] .glass-4:nth-child(2) { animation-delay: 0.08s; }
+html[data-theme="persona5"] .glass-surface:nth-child(3),
+html[data-theme="persona5"] .glass-2:nth-child(3),
+html[data-theme="persona5"] .glass-3:nth-child(3),
+html[data-theme="persona5"] .glass-4:nth-child(3) { animation-delay: 0.12s; }
+html[data-theme="persona5"] .glass-surface:nth-child(4),
+html[data-theme="persona5"] .glass-2:nth-child(4),
+html[data-theme="persona5"] .glass-3:nth-child(4),
+html[data-theme="persona5"] .glass-4:nth-child(4) { animation-delay: 0.16s; }
+html[data-theme="persona5"] .glass-surface:nth-child(5),
+html[data-theme="persona5"] .glass-2:nth-child(5),
+html[data-theme="persona5"] .glass-3:nth-child(5),
+html[data-theme="persona5"] .glass-4:nth-child(5) { animation-delay: 0.20s; }
+
+@keyframes p5-card-reveal {
+  0%   { opacity: 0; transform: translate(8px, 8px) rotate(-0.5deg); }
+  100% { opacity: 1; transform: translate(0, 0) rotate(0); }
+}
+
+
+/* ── 10. REDUCED MOTION ─────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  html[data-theme="persona5"] .p5-bg .p5-triangle,
+  html[data-theme="persona5"] .p5-bg .p5-mark,
+  html[data-theme="persona5"] .p5-bg .p5-speed-lines,
+  html[data-theme="persona5"] .p5-bg .p5-splash,
+  html[data-theme="persona5"] .p5-bg .p5-joker-mask,
+  html[data-theme="persona5"] .p5-bg .p5-text-line-1,
+  html[data-theme="persona5"] .p5-bg .p5-text-line-2,
+  html[data-theme="persona5"] .p5-bg .p5-text-line-3,
+  html[data-theme="persona5"] .glass-surface::after,
+  html[data-theme="persona5"] .glass-2::after,
+  html[data-theme="persona5"] .glass-3::after,
+  html[data-theme="persona5"] .glass-4::after,
+  html[data-theme="persona5"] .glass-surface,
+  html[data-theme="persona5"] .glass-2,
+  html[data-theme="persona5"] .glass-3,
+  html[data-theme="persona5"] .glass-4 {
+    animation: none !important;
+  }
+}

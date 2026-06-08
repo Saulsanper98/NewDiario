@@ -114,6 +114,31 @@
 
   /* Legacy — se mantiene para compatibilidad */
   --transition-ui: var(--duration-normal) ease;
+
+  /* ── Profile menu (dropdown del avatar en el Sidebar) ─────────────────────
+     El menú de perfil (`components/layout/SidebarProfileMenu.tsx`) lee estas
+     variables para tematizar su fondo, borde, sombra, ring del avatar y
+     "card" interior con los items. Los valores aquí (en `:root`) son los del
+     tema base oscuro (Aurora/Dark, color azul-noche `#0d1427`). Cada tema en
+     `app/theme-*.css` sobreescribe estas variables para que el desplegable
+     combine con su paleta (violeta para Cristal/Prisma, púrpura cálido
+     para Ocaso, negro phosfor para Terminal...).
+
+     - `--profile-menu-bg`     : color del panel principal (con `backdrop-blur`
+                                  → admite alpha 0.95-0.98).
+     - `--profile-menu-solid`  : versión sólida (HEX, sin alpha) usada para el
+                                  ring del avatar y el blend del banner sin
+                                  imagen — ambos necesitan color opaco.
+     - `--profile-menu-border` : color del border del panel.
+     - `--profile-menu-shadow` : sombra del panel.
+     - `--profile-menu-section`: fondo del "card" interior (donde están los
+                                  items "Configuración", "Cambiar fondo del
+                                  perfil", "Marco", "Cerrar sesión"). */
+  --profile-menu-bg: rgba(13, 20, 39, 0.98);
+  --profile-menu-solid: #0d1427;
+  --profile-menu-border: rgba(255, 255, 255, 0.10);
+  --profile-menu-shadow: 0 16px 48px rgba(0, 0, 0, 0.55);
+  --profile-menu-section: rgba(0, 0, 0, 0.20);
 }
 
 /* ── Theme-driven surfaces (refactor — capa base) ──────────────────────────
@@ -3237,6 +3262,45 @@ textarea::placeholder {
 }
 .chat-messages-scroll:not(:hover)::-webkit-scrollbar-thumb {
   background: transparent;
+}
+
+/* ── Scroll del dropdown del ThemeSelector ─────────────────────────────────
+   El selector de temas usa un panel `fixed` con buscador sticky arriba y una
+   lista scrolleable abajo. Como la app crece a 15-20 temas, dejamos el
+   scrollbar SIEMPRE visible (no solo en hover) para que el usuario perciba
+   inmediatamente que hay más temas debajo del fold del panel. Es delgado,
+   sutil y se adapta tanto al fondo oscuro como al claro vía `currentColor`
+   con alpha sobre la opacidad del thumb. */
+.theme-selector-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+}
+.theme-selector-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+.theme-selector-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.theme-selector-scroll::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.18);
+  border-radius: 6px;
+  border: 1px solid transparent;
+  background-clip: padding-box;
+}
+.theme-selector-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.32);
+  background-clip: padding-box;
+}
+html[data-theme="light"] .theme-selector-scroll {
+  scrollbar-color: rgba(15, 23, 42, 0.18) transparent;
+}
+html[data-theme="light"] .theme-selector-scroll::-webkit-scrollbar-thumb {
+  background: rgba(15, 23, 42, 0.18);
+  background-clip: padding-box;
+}
+html[data-theme="light"] .theme-selector-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(15, 23, 42, 0.34);
+  background-clip: padding-box;
 }
 
 /* Tres puntos animados del indicador "X esta escribiendo...". */

@@ -1,0 +1,1528 @@
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║          TEMA  "CCMGC"  ·  Centro de Control de la Movilidad GC          ║
+ * ║                                                                          ║
+ * ║   Inspiración: salas SCADA del Centro de Control de la Movilidad de      ║
+ * ║   Gran Canaria. Tablero institucional, branding corporativo limpio,      ║
+ * ║   amarillo CCMGC oficial como acento ÚNICO de marca.                     ║
+ * ║                                                                          ║
+ * ║   Identidad visual:                                                      ║
+ * ║     · Fondo: azul institucional profundo + cuadrícula SCADA sutil.       ║
+ * ║     · Silueta SVG de Gran Canaria con la red de carreteras principales   ║
+ * ║       (GC-1, GC-2, GC-3) y pulsos de tráfico viajando por las arterias.  ║
+ * ║     · Nodos pulsantes en cabeceras municipales (Las Palmas, Telde,       ║
+ * ║       Maspalomas, Mogán, Tejeda). Estilo radar/operaciones.              ║
+ * ║     · Cards: cristal azul-institucional con borde amarillo CCMGC tenue.  ║
+ * ║     · Acentos: amarillo CCMGC #FFEB66, verde tráfico, ámbar alerta,      ║
+ * ║       rojo incidencia. Disponibles vía variables --ccmgc-*.              ║
+ * ║                                                                          ║
+ * ║   AISLAMIENTO TOTAL bajo `html[data-theme="ccmgc"]`.                     ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                         1.  PALETA Y TOKENS                              ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="ccmgc"] {
+  --bg-deep: #050a18;
+  --accent: #FFEB66;
+
+  --text: #e8f0ff;
+  --text-dim: #a8b8cc;
+  --text-faint: #5a6a82;
+
+  /* Paleta institucional CCMGC */
+  --ccmgc-night: #050a18;
+  --ccmgc-deep: #0a1428;
+  --ccmgc-blue-deep: #0a1e3a;
+  --ccmgc-blue: #1a4a8a;
+  --ccmgc-blue-light: #4d8fd9;
+  --ccmgc-yellow: #FFEB66;
+  --ccmgc-yellow-dim: #cbb84a;
+  --ccmgc-green: #2bbf6f;
+  --ccmgc-amber: #ffb84d;
+  --ccmgc-red: #ff4d6d;
+  --ccmgc-grid: rgba(168, 200, 255, 0.06);
+
+  /* Cristal azul institucional */
+  --glass-bg: rgba(168, 200, 255, 0.05);
+  --glass-bg-2: rgba(168, 200, 255, 0.10);
+  --glass-border: rgba(168, 200, 255, 0.16);
+  --glass-border-glow: rgba(255, 235, 102, 0.65);
+  --glass-blur: 22px;
+  --glass-shadow: 0 14px 50px rgba(5, 10, 24, 0.62);
+  --glass-highlight:
+    inset 0 1px 0 rgba(232, 240, 255, 0.16),
+    inset 1px 0 0 rgba(232, 240, 255, 0.05);
+
+  --glow-yellow: rgba(255, 235, 102, 0.32);
+  --glow-blue:   rgba(77, 143, 217, 0.28);
+
+  --stat-purple: #c89bff;
+  --stat-blue:   var(--ccmgc-blue-light);
+  --stat-cyan:   #5be0ff;
+  --stat-green:  var(--ccmgc-green);
+
+  --app-canvas-color: transparent;
+  --app-canvas-image: none;
+  --card-isolation: auto;
+
+  --ccmgc-radius: 16px;
+  --ccmgc-radius-shell: 22px;
+
+  /* Profile menu — azul institucional sólido con borde amarillo tenue. */
+  --profile-menu-bg: rgba(10, 20, 40, 0.96);
+  --profile-menu-solid: #0a1428;
+  --profile-menu-border: rgba(255, 235, 102, 0.20);
+  --profile-menu-shadow: 0 16px 48px rgba(5, 10, 24, 0.65);
+  --profile-menu-section: rgba(168, 200, 255, 0.04);
+
+  color-scheme: dark;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║              2.  FIX DE CAPAS OPACAS                                     ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="ccmgc"] body {
+  color: var(--text);
+  font-weight: 400;
+  min-height: 100vh;
+}
+
+html[data-theme="ccmgc"] .app-sidebar-shell,
+html[data-theme="ccmgc"] .app-top-header {
+  isolation: auto !important;
+}
+
+/* ── Marco con borde amarillo CCMGC discreto ─────────────────────────── */
+html[data-theme="ccmgc"] .glass-shell-frame {
+  margin: 18px;
+  padding: 1.5px;
+  border-radius: var(--ccmgc-radius-shell);
+  background: linear-gradient(
+    135deg,
+    rgba(255, 235, 102, 0.40),
+    rgba(77, 143, 217, 0.32) 35%,
+    rgba(255, 235, 102, 0.30) 65%,
+    rgba(26, 74, 138, 0.30)
+  );
+  box-shadow:
+    0 0 60px rgba(77, 143, 217, 0.16),
+    0 0 120px rgba(255, 235, 102, 0.08);
+}
+
+html[data-theme="ccmgc"] .glass-shell-inner {
+  border-radius: calc(var(--ccmgc-radius-shell) - 2px);
+  background: rgba(10, 20, 40, 0.34);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  overflow: hidden;
+  padding: 20px;
+}
+
+@media (max-width: 768px) {
+  html[data-theme="ccmgc"] .glass-shell-inner { padding: 6px; }
+  html[data-theme="ccmgc"] .app-dashboard-root { gap: 8px; }
+}
+@media (max-width: 640px) {
+  html[data-theme="ccmgc"] .glass-shell-frame {
+    margin: 4px;
+    border-radius: 16px;
+  }
+  html[data-theme="ccmgc"] .glass-shell-inner {
+    border-radius: 14px;
+  }
+}
+@media (max-width: 480px) {
+  html[data-theme="ccmgc"] .glass-shell-frame {
+    margin: 0;
+    padding: 0;
+    border-radius: 0;
+    box-shadow: none;
+    background: rgba(77, 143, 217, 0.24);
+  }
+  html[data-theme="ccmgc"] .glass-shell-inner {
+    padding: 0;
+    border-radius: 0;
+  }
+  html[data-theme="ccmgc"] .app-dashboard-root { gap: 0; }
+}
+
+html[data-theme="ccmgc"] .glass-shell-frame::before,
+html[data-theme="ccmgc"] .glass-shell-frame::after,
+html[data-theme="ccmgc"] .glass-shell-inner::before,
+html[data-theme="ccmgc"] .glass-shell-inner::after {
+  display: none !important;
+}
+
+html[data-theme="ccmgc"] .app-dashboard-root {
+  background: transparent !important;
+  gap: 16px;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║              3.  FONDO  ·  <CCMGCBackground />                           ║
+ * ║                                                                          ║
+ * ║   Capas (todas dentro de `.ccmgc-bg`, position:fixed; z-index:-10):      ║
+ * ║     1. Cielo: gradiente vertical azul institucional profundo.            ║
+ * ║     2. Cuadrícula SCADA muy sutil (líneas horizontales + verticales).    ║
+ * ║     3. Halo radial central (sutil tinte azul cobalto).                   ║
+ * ║     4. Silueta SVG de Gran Canaria centrada con la red de carreteras     ║
+ * ║        (GC-1, GC-2, GC-3) + nodos pulsantes en cabeceras municipales.    ║
+ * ║     5. Pulsos de tráfico viajando por las arterias (CSS dash animation). ║
+ * ║     6. Ruido sutil para evitar banding.                                  ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="ccmgc"] .ccmgc-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -10;
+  overflow: hidden;
+  background:
+    linear-gradient(
+      180deg,
+      #050a18 0%,
+      #08111f 30%,
+      #0a1428 60%,
+      #0c1a36 100%
+    );
+  pointer-events: none;
+}
+
+/* ── Capa 2: cuadrícula SCADA — líneas muy tenues que evocan una sala
+   de control. No interfiere con el contenido. Tamaño 40px para que se
+   alinee bien con cualquier resolución. */
+html[data-theme="ccmgc"] .ccmgc-bg .ccmgc-grid {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(to right,  var(--ccmgc-grid) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--ccmgc-grid) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(ellipse at center, black 30%, transparent 85%);
+  -webkit-mask-image: radial-gradient(ellipse at center, black 30%, transparent 85%);
+  opacity: 0.7;
+}
+
+/* ── Capa 3: halo central azul cobalto, muy difuso, da profundidad al
+   tablero SCADA sin distraer del mapa. */
+html[data-theme="ccmgc"] .ccmgc-bg .ccmgc-halo {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 120vmin;
+  height: 120vmin;
+  border-radius: 50%;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(77, 143, 217, 0.32) 0%,
+    rgba(77, 143, 217, 0.18) 22%,
+    rgba(77, 143, 217, 0.08) 48%,
+    rgba(255, 235, 102, 0.05) 65%,
+    transparent 82%
+  );
+  filter: blur(28px);
+  pointer-events: none;
+}
+
+/* (Capas 5 y 6 — RADAR SWEEP y SCANLINE — eliminadas.
+ *  El radar (cuadrante verde rotante en el centro) y la línea de
+ *  escaneo que recorría la pantalla de arriba a abajo distraían del
+ *  contenido principal y no aportaban valor corporativo real.) */
+
+/* ── Capa 4: mapa de Gran Canaria. El SVG ocupa una región central
+   (max 720px de lado, escalable a viewport). Definimos aquí los estilos
+   de cada subelemento del SVG (isla, carreteras, nodos). */
+html[data-theme="ccmgc"] .ccmgc-bg .ccmgc-map {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(78vmin, 720px);
+  height: min(78vmin, 720px);
+  pointer-events: none;
+  opacity: 0.88;
+  /* Máscara tipo viñeta: centro totalmente visible, bordes se desvanecen
+     suavemente. El mapa aparece "flotando" en el espacio institucional. */
+  -webkit-mask-image: radial-gradient(
+    ellipse 78% 78% at 50% 52%,
+    black 38%,
+    rgba(0, 0, 0, 0.92) 58%,
+    rgba(0, 0, 0, 0.60) 76%,
+    transparent 100%
+  );
+  mask-image: radial-gradient(
+    ellipse 78% 78% at 50% 52%,
+    black 38%,
+    rgba(0, 0, 0, 0.92) 58%,
+    rgba(0, 0, 0, 0.60) 76%,
+    transparent 100%
+  );
+}
+
+html[data-theme="ccmgc"] .ccmgc-bg .ccmgc-map svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  overflow: visible;
+}
+
+/*
+   ──────────────────────────────────────────────────────────────────
+   MAPA con viewBox real de Gran Canaria (380..488 × 285..400)
+   ──────────────────────────────────────────────────────────────────
+   El SVG mide ~108×115 unidades, así que TODOS los `stroke-width`,
+   `r`, `font-size`, `stroke-dasharray`, etc. están en unidades del
+   viewBox (mucho más pequeñas que el antiguo 720×720). Lo escalamos
+   visualmente con `width` del contenedor (`min(78vmin, 720px)`).
+*/
+
+/* Halo exterior de la isla — drop-shadow azul + amarillo para que la silueta
+   "flote" luminosamente sobre el fondo SCADA. */
+html[data-theme="ccmgc"] .ccmgc-bg .ccmgc-map .gc-island-glow {
+  fill: none;
+  stroke: rgba(77, 143, 217, 0.65);
+  stroke-width: 2.0;
+  filter: blur(2.5px) drop-shadow(0 0 8px rgba(77, 143, 217, 0.55)) drop-shadow(0 0 18px rgba(255, 235, 102, 0.28));
+}
+
+/* Silueta principal — relleno azul institucional + borde nítido amarillo CCMGC */
+html[data-theme="ccmgc"] .ccmgc-bg .ccmgc-map .gc-island {
+  fill: rgba(77, 143, 217, 0.22);
+  stroke: rgba(255, 235, 102, 0.90);
+  stroke-width: 0.42;
+  stroke-linejoin: round;
+}
+
+/* Cuadrícula interior — relleno con pattern, MUY tenue, recortado por
+   la silueta porque se renderiza con el mismo path como mask visual. */
+html[data-theme="ccmgc"] .ccmgc-bg .ccmgc-map .gc-island-grid {
+  stroke: none;
+  pointer-events: none;
+}
+
+/* Realce de cumbres centrales — relleno con radial-gradient (definido
+   en el SVG) sobre el mismo path. */
+html[data-theme="ccmgc"] .ccmgc-bg .ccmgc-map .gc-island-relief {
+  stroke: none;
+  pointer-events: none;
+  mix-blend-mode: screen;
+}
+
+/* Carreteras: TRES capas para dar volumen y aspecto realista.
+   1. `.gc-road-shadow` → trazo grueso oscuro debajo (sombra).
+   2. `.gc-road`        → la vía propiamente dicha (gris azulado claro).
+   3. `.gc-road-pulse`  → pulsos de tráfico animados encima.
+   Las carreteras secundarias usan estilo "doble línea" (dashed) que
+   recuerda al simbolismo cartográfico real. */
+html[data-theme="ccmgc"] .ccmgc-bg .ccmgc-map .gc-road-shadow {
+  fill: none;
+  stroke: rgba(0, 8, 20, 0.65);
+  stroke-width: 1.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+html[data-theme="ccmgc"] .ccmgc-bg .ccmgc-map .gc-road {
+  fill: none;
+  stroke: rgba(196, 220, 255, 0.55);
+  stroke-width: 0.65;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 0 0.6px rgba(168, 200, 255, 0.6));
+}
+
+/* Carretera secundaria — línea fina punteada (estilo carretera local) */
+html[data-theme="ccmgc"] .ccmgc-bg .ccmgc-map .gc-road-secondary {
+  stroke: rgba(168, 200, 255, 0.42);
+  stroke-width: 0.45;
+  stroke-dasharray: 0.8 1.2;
+  filter: none;
+}
+
+html[data-theme="ccmgc"] .ccmgc-bg .ccmgc-map .gc-road-pulse {
+  fill: none;
+  stroke: var(--ccmgc-yellow);
+  stroke-width: 0.70;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 2 38;
+  stroke-dashoffset: 0;
+  filter:
+    drop-shadow(0 0 1.5px rgba(255, 235, 102, 1))
+    drop-shadow(0 0 4px rgba(255, 235, 102, 0.55));
+  animation: ccmgc-pulse-flow 5s linear infinite;
+}
+
+/* Pulso tenue para carreteras secundarias (más fino, menos brillo) */
+html[data-theme="ccmgc"] .ccmgc-bg .ccmgc-map .gc-road-pulse-soft {
+  fill: none;
+  stroke: rgba(255, 235, 102, 0.75);
+  stroke-width: 0.50;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 1.2 32;
+  filter: drop-shadow(0 0 1px rgba(255, 235, 102, 0.85));
+  animation: ccmgc-pulse-flow 8s linear infinite;
+  animation-delay: -3.5s;
+}
+
+html[data-theme="ccmgc"] .ccmgc-bg .ccmgc-map .gc-road-pulse.delay-2 {
+  stroke: var(--ccmgc-green);
+  filter:
+    drop-shadow(0 0 1.5px rgba(43, 191, 111, 1))
+    drop-shadow(0 0 4px rgba(43, 191, 111, 0.55));
+  animation-duration: 6.2s;
+  animation-delay: -1.8s;
+}
+html[data-theme="ccmgc"] .ccmgc-bg .ccmgc-map .gc-road-pulse.delay-3 {
+  stroke: var(--ccmgc-blue-light);
+  filter:
+    drop-shadow(0 0 1.5px rgba(77, 143, 217, 1))
+    drop-shadow(0 0 4px rgba(77, 143, 217, 0.55));
+  animation-duration: 7s;
+  animation-delay: -3.2s;
+}
+html[data-theme="ccmgc"] .ccmgc-bg .ccmgc-map .gc-road-pulse.delay-4 {
+  stroke: rgba(255, 178, 102, 1);
+  filter:
+    drop-shadow(0 0 1.5px rgba(255, 178, 102, 1))
+    drop-shadow(0 0 4px rgba(255, 178, 102, 0.55));
+  animation-duration: 5.6s;
+  animation-delay: -2.4s;
+}
+
+@keyframes ccmgc-pulse-flow {
+  to { stroke-dashoffset: -40; }
+}
+
+/* ── Badges de carretera (placas GC-1, GC-2…) ── */
+html[data-theme="ccmgc"] .ccmgc-bg .ccmgc-map .gc-road-badge .gc-road-badge-bg {
+  fill: var(--ccmgc-yellow);
+  stroke: rgba(0, 8, 20, 0.85);
+  stroke-width: 0.18;
+  filter: drop-shadow(0 0 1.5px rgba(255, 235, 102, 0.45));
+}
+html[data-theme="ccmgc"] .ccmgc-bg .ccmgc-map .gc-road-badge .gc-road-badge-text {
+  fill: #0a1428;
+  font-family: ui-monospace, "JetBrains Mono", "Cascadia Code", "Consolas", monospace;
+  font-size: 2.4px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-anchor: middle;
+  paint-order: stroke;
+  stroke: none;
+}
+
+/* Nodos: cabeceras municipales. Anillo exterior fino + centro pulsante + halo. */
+html[data-theme="ccmgc"] .ccmgc-bg .ccmgc-map .gc-node {
+  fill: var(--ccmgc-yellow);
+  filter: drop-shadow(0 0 1.5px rgba(255, 235, 102, 1));
+}
+
+html[data-theme="ccmgc"] .ccmgc-bg .ccmgc-map .gc-node.gc-node-main {
+  fill: #ffffff;
+  stroke: var(--ccmgc-yellow);
+  stroke-width: 0.4;
+  filter:
+    drop-shadow(0 0 1.5px rgba(255, 235, 102, 1))
+    drop-shadow(0 0 4px rgba(255, 235, 102, 0.55));
+}
+
+/* Anillo exterior estático para destacar la importancia del nodo */
+html[data-theme="ccmgc"] .ccmgc-bg .ccmgc-map .gc-node-outer {
+  fill: none;
+  stroke: rgba(255, 235, 102, 0.55);
+  stroke-width: 0.20;
+}
+html[data-theme="ccmgc"] .ccmgc-bg .ccmgc-map .gc-node-outer.gc-node-outer-main {
+  stroke: rgba(255, 235, 102, 0.85);
+  stroke-width: 0.30;
+}
+
+html[data-theme="ccmgc"] .ccmgc-bg .ccmgc-map .gc-node-ring {
+  fill: none;
+  stroke: var(--ccmgc-yellow);
+  stroke-width: 0.30;
+  opacity: 0.7;
+  transform-origin: var(--cx) var(--cy);
+  transform-box: fill-box;
+  animation: ccmgc-ring-pulse 3.2s ease-out infinite;
+}
+
+html[data-theme="ccmgc"] .ccmgc-bg .ccmgc-map .gc-node-ring.delay-1 { animation-delay: -1s; }
+html[data-theme="ccmgc"] .ccmgc-bg .ccmgc-map .gc-node-ring.delay-2 { animation-delay: -2s; }
+html[data-theme="ccmgc"] .ccmgc-bg .ccmgc-map .gc-node-ring.delay-3 { animation-delay: -0.5s; }
+html[data-theme="ccmgc"] .ccmgc-bg .ccmgc-map .gc-node-ring.delay-4 { animation-delay: -2.6s; }
+
+@keyframes ccmgc-ring-pulse {
+  0%   { r: 1.5; opacity: 0.85; }
+  100% { r: 6;   opacity: 0;    }
+}
+
+/* Línea fina conectora nodo → label */
+html[data-theme="ccmgc"] .ccmgc-bg .ccmgc-map .gc-label-leader {
+  stroke: rgba(255, 235, 102, 0.30);
+  stroke-width: 0.16;
+  stroke-dasharray: 0.5 0.6;
+}
+
+/* "Pill" de fondo del label — más sutil ahora que el mapa va con máscara
+   radial; los labels ya no necesitan tanto énfasis. */
+html[data-theme="ccmgc"] .ccmgc-bg .ccmgc-map .gc-label-bg {
+  fill: rgba(5, 12, 28, 0.55);
+  stroke: rgba(255, 235, 102, 0.18);
+  stroke-width: 0.10;
+}
+html[data-theme="ccmgc"] .ccmgc-bg .ccmgc-map .gc-label-bg-main {
+  fill: rgba(8, 18, 38, 0.65);
+  stroke: rgba(255, 235, 102, 0.40);
+  stroke-width: 0.14;
+}
+
+/* Etiquetas — más discretas. Fuente blanca muy tenue para secundarias,
+   amarillo apagado para principales. */
+html[data-theme="ccmgc"] .ccmgc-bg .ccmgc-map .gc-label {
+  fill: rgba(220, 232, 250, 0.72);
+  font-family: ui-monospace, "JetBrains Mono", "Cascadia Code", "Consolas", monospace;
+  font-size: 2.1px;
+  font-weight: 500;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+html[data-theme="ccmgc"] .ccmgc-bg .ccmgc-map .gc-label-main {
+  fill: rgba(255, 235, 102, 0.78);
+  font-size: 2.4px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+}
+
+html[data-theme="ccmgc"] .ccmgc-bg .ccmgc-map .gc-sublabel {
+  fill: rgba(255, 235, 102, 0.42);
+  font-family: ui-monospace, "JetBrains Mono", "Cascadia Code", "Consolas", monospace;
+  font-size: 1.4px;
+  font-weight: 600;
+  letter-spacing: 0.30em;
+  text-transform: uppercase;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║      HUD CORPORATIVO  ·  Sello, coordenadas, SCADA, brújula              ║
+ * ║                                                                          ║
+ * ║   4 paneles `position:absolute` en las esquinas, todos detrás del shell  ║
+ * ║   (`z-index:-9` para ir por encima del mapa pero debajo del UI),         ║
+ * ║   `pointer-events:none` para no interferir, y `opacity` reducida en      ║
+ * ║   móvil (<768px) o directamente ocultos en muy pequeño (<640px).         ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="ccmgc"] .ccmgc-bg .ccmgc-hud {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: -9;
+  font-family: ui-monospace, "JetBrains Mono", "Cascadia Code", "Consolas", monospace;
+  color: rgba(168, 200, 255, 0.7);
+}
+
+/* ── Coordenadas GPS (esquina sup. derecha) ── */
+html[data-theme="ccmgc"] .ccmgc-bg .ccmgc-hud .hud-coords {
+  position: absolute;
+  top: 24px;
+  right: 28px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  padding: 8px 12px;
+  background: rgba(8, 18, 38, 0.45);
+  border: 1px solid rgba(168, 200, 255, 0.22);
+  border-radius: 4px;
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  color: rgba(168, 200, 255, 0.85);
+}
+
+html[data-theme="ccmgc"] .ccmgc-bg .ccmgc-hud .hud-coords-row {
+  font-weight: 600;
+}
+
+html[data-theme="ccmgc"] .ccmgc-bg .ccmgc-hud .hud-coords-sep {
+  display: block;
+  width: 100%;
+  height: 1px;
+  background: rgba(168, 200, 255, 0.18);
+  margin: 4px 0 2px;
+}
+
+html[data-theme="ccmgc"] .ccmgc-bg .ccmgc-hud .hud-coords-dim {
+  font-size: 8.5px;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  color: rgba(168, 200, 255, 0.55);
+}
+
+/* (El panel SCADA inferior izquierdo fue eliminado por petición del usuario;
+   sus indicadores principales se integraron dentro del sello CCMGC.) */
+@keyframes ccmgc-dot-blink {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.35; }
+}
+
+/* ── Brújula (esquina inf. derecha) ── */
+html[data-theme="ccmgc"] .ccmgc-bg .ccmgc-hud .hud-compass {
+  position: absolute;
+  bottom: 28px;
+  right: 28px;
+  width: 72px;
+  height: 72px;
+  background: rgba(8, 18, 38, 0.55);
+  border: 1px solid rgba(255, 235, 102, 0.30);
+  border-radius: 50%;
+  padding: 6px;
+  box-shadow: 0 0 14px rgba(77, 143, 217, 0.20);
+}
+
+html[data-theme="ccmgc"] .ccmgc-bg .ccmgc-hud .hud-compass svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+html[data-theme="ccmgc"] .ccmgc-bg .ccmgc-hud .hud-compass .comp-outer {
+  fill: none;
+  stroke: rgba(168, 200, 255, 0.35);
+  stroke-width: 0.6;
+  stroke-dasharray: 1.5 2.5;
+}
+html[data-theme="ccmgc"] .ccmgc-bg .ccmgc-hud .hud-compass .comp-inner {
+  fill: none;
+  stroke: rgba(168, 200, 255, 0.18);
+  stroke-width: 0.4;
+}
+html[data-theme="ccmgc"] .ccmgc-bg .ccmgc-hud .hud-compass .comp-rose polygon {
+  fill: var(--ccmgc-yellow);
+  opacity: 0.85;
+}
+html[data-theme="ccmgc"] .ccmgc-bg .ccmgc-hud .hud-compass .comp-letter {
+  fill: rgba(232, 240, 255, 0.85);
+  font-size: 6px;
+  font-weight: 800;
+  font-family: ui-monospace, monospace;
+  text-anchor: middle;
+  letter-spacing: 0.1em;
+}
+
+/* En tablet ocultamos brújula y atenuamos el resto */
+@media (max-width: 1100px) {
+  html[data-theme="ccmgc"] .ccmgc-bg .ccmgc-hud .hud-compass {
+    display: none;
+  }
+  html[data-theme="ccmgc"] .ccmgc-bg .ccmgc-hud { opacity: 0.85; }
+}
+
+/* En tablet pequeña ocultamos también las coordenadas */
+@media (max-width: 900px) {
+  html[data-theme="ccmgc"] .ccmgc-bg .ccmgc-hud .hud-coords {
+    display: none;
+  }
+}
+
+/* En móvil ocultamos también el sello (queda solo el mapa) */
+@media (max-width: 640px) {
+  html[data-theme="ccmgc"] .ccmgc-bg .ccmgc-hud {
+    display: none;
+  }
+}
+
+/* ── Capa 6: ruido ────────────────────────────────────────────────── */
+html[data-theme="ccmgc"] .ccmgc-bg .ccmgc-noise {
+  position: absolute;
+  inset: 0;
+  opacity: 0.04;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  pointer-events: none;
+  mix-blend-mode: overlay;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                4.  CLASE DE CRISTAL  ·  .glass-surface                   ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="ccmgc"] .glass-surface {
+  position: relative;
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur)) saturate(150%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(150%);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow), var(--glass-highlight);
+  border-radius: var(--ccmgc-radius);
+  transition:
+    border-color 0.3s ease,
+    transform 0.3s ease,
+    background 0.3s ease,
+    box-shadow 0.3s ease;
+  overflow: hidden;
+}
+
+html[data-theme="ccmgc"] .glass-surface::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background: linear-gradient(
+    135deg,
+    rgba(232, 240, 255, 0.20) 0%,
+    rgba(232, 240, 255, 0.05) 22%,
+    transparent 46%
+  );
+  border-radius: inherit;
+}
+
+html[data-theme="ccmgc"] .glass-surface > * {
+  position: relative;
+  z-index: 1;
+}
+
+html[data-theme="ccmgc"] .glass-surface:hover {
+  border-color: var(--glass-border-glow);
+  transform: translateY(-2px);
+  background: var(--glass-bg-2);
+  box-shadow:
+    0 18px 58px rgba(5, 10, 24, 0.62),
+    0 0 32px var(--glow-yellow),
+    0 0 56px var(--glow-blue),
+    var(--glass-highlight);
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║              5.  ALIAS  ·  Cards del sistema                             ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="ccmgc"] .glass,
+html[data-theme="ccmgc"] .glass-1,
+html[data-theme="ccmgc"] .glass-2,
+html[data-theme="ccmgc"] .glass-3,
+html[data-theme="ccmgc"] .glass-4 {
+  isolation: var(--card-isolation);
+  position: relative;
+  border-radius: var(--ccmgc-radius);
+  transition:
+    background 0.3s ease,
+    border-color 0.3s ease,
+    box-shadow 0.3s ease,
+    transform 0.3s ease;
+}
+
+html[data-theme="ccmgc"] .glass {
+  background: rgba(168, 200, 255, 0.020);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  border: 1px solid rgba(168, 200, 255, 0.05);
+  box-shadow: none;
+}
+
+html[data-theme="ccmgc"] .glass-1 {
+  background: rgba(168, 200, 255, 0.10);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  border: 1px solid rgba(168, 200, 255, 0.18);
+  box-shadow: var(--glass-shadow), var(--glass-highlight);
+}
+
+html[data-theme="ccmgc"] .glass-2 {
+  background: rgba(168, 200, 255, 0.12);
+  backdrop-filter: blur(20px) saturate(150%);
+  -webkit-backdrop-filter: blur(20px) saturate(150%);
+  border: 1px solid rgba(168, 200, 255, 0.20);
+  box-shadow: var(--glass-shadow), var(--glass-highlight);
+}
+
+html[data-theme="ccmgc"] .glass-3,
+html[data-theme="ccmgc"] .glass-4 {
+  background: linear-gradient(
+    155deg,
+    rgba(15, 26, 46, 0.48) 0%,
+    rgba(168, 200, 255, 0.12) 45%,
+    rgba(168, 200, 255, 0.06) 100%
+  );
+  backdrop-filter: blur(var(--glass-blur)) saturate(155%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(155%);
+  border: 1px solid rgba(168, 200, 255, 0.24);
+  box-shadow: var(--glass-shadow), var(--glass-highlight);
+}
+
+html[data-theme="ccmgc"] .glass::before,
+html[data-theme="ccmgc"] .glass-1::before,
+html[data-theme="ccmgc"] .glass-2::before,
+html[data-theme="ccmgc"] .glass-3::before,
+html[data-theme="ccmgc"] .glass-4::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background: linear-gradient(
+    135deg,
+    rgba(232, 240, 255, 0.18) 0%,
+    rgba(232, 240, 255, 0.04) 22%,
+    transparent 46%
+  );
+  border-radius: inherit;
+}
+
+html[data-theme="ccmgc"] .glass > *,
+html[data-theme="ccmgc"] .glass-1 > *,
+html[data-theme="ccmgc"] .glass-2 > *,
+html[data-theme="ccmgc"] .glass-3 > *,
+html[data-theme="ccmgc"] .glass-4 > * {
+  position: relative;
+  z-index: 1;
+}
+
+html[data-theme="ccmgc"] .glass-1:hover,
+html[data-theme="ccmgc"] .glass-2:hover,
+html[data-theme="ccmgc"] .glass-3:hover,
+html[data-theme="ccmgc"] .glass-4:hover {
+  border-color: var(--glass-border-glow);
+}
+
+html[data-theme="ccmgc"] .glass-hover:hover {
+  background: var(--glass-bg-2);
+  border-color: var(--glass-border-glow);
+  transform: translateY(-2px);
+  box-shadow:
+    0 18px 58px rgba(5, 10, 24, 0.62),
+    0 0 32px var(--glow-yellow),
+    0 0 56px var(--glow-blue),
+    var(--glass-highlight);
+}
+
+html[data-theme="ccmgc"] .glass .glass-hover:hover,
+html[data-theme="ccmgc"] .glass-1 .glass-hover:hover,
+html[data-theme="ccmgc"] .glass-2 .glass-hover:hover,
+html[data-theme="ccmgc"] .glass-3 .glass-hover:hover,
+html[data-theme="ccmgc"] .glass-4 .glass-hover:hover {
+  transform: none !important;
+  box-shadow: var(--glass-highlight) !important;
+}
+
+html[data-theme="ccmgc"] .glass:has(.glass-hover) {
+  overflow: hidden;
+}
+
+html[data-theme="ccmgc"] .dashboard-quick-action.glass-hover:hover {
+  transform: translateY(-1px);
+  box-shadow:
+    0 1px 4px rgba(5, 10, 24, 0.36),
+    0 0 4px rgba(255, 235, 102, 0.40),
+    var(--glass-highlight);
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║          6.  BORDE ANIMADO  ·  .glow-border                              ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+@property --ccmgc-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+html[data-theme="ccmgc"] .glow-border {
+  position: relative;
+}
+
+html[data-theme="ccmgc"] .glow-border::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1.5px;
+  background: conic-gradient(
+    from var(--ccmgc-angle),
+    transparent 0%,
+    transparent 65%,
+    var(--ccmgc-yellow) 75%,
+    var(--ccmgc-yellow-dim) 82%,
+    var(--ccmgc-yellow) 90%,
+    transparent 98%
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+          mask-composite: exclude;
+  animation: ccmgc-border-run 10s linear infinite;
+  pointer-events: none;
+  z-index: 2;
+}
+
+@keyframes ccmgc-border-run {
+  to { --ccmgc-angle: 360deg; }
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                  7.  APARICIÓN ESCALONADA                                ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="ccmgc"] .reveal {
+  opacity: 0;
+  transform: translateY(14px);
+  animation: ccmgc-reveal-up 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes ccmgc-reveal-up {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                  8.  CHROME  ·  Sidebar + Header                         ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="ccmgc"] .app-sidebar-shell {
+  background: transparent !important;
+  background-image: none !important;
+  border-right: 1px solid rgba(168, 200, 255, 0.10);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  box-shadow: none;
+}
+
+html[data-theme="ccmgc"] .app-sidebar-shell.sidebar-expanded-solid {
+  /* Azul institucional CCMGC armonizado con la paleta corporativa */
+  background: linear-gradient(
+    180deg,
+    rgba(8, 18, 38, 0.95) 0%,
+    rgba(4, 10, 24, 0.98) 100%
+  ) !important;
+  border-right: 1px solid rgba(255, 235, 102, 0.22) !important;
+  box-shadow: 4px 0 18px rgba(255, 235, 102, 0.06) !important;
+  backdrop-filter: blur(32px) saturate(160%) !important;
+  -webkit-backdrop-filter: blur(32px) saturate(160%) !important;
+  border-right: 1px solid var(--glass-border) !important;
+  box-shadow:
+    var(--glass-highlight),
+    8px 0 32px rgba(5, 10, 24, 0.55),
+    0 0 60px rgba(255, 235, 102, 0.10) !important;
+  border-radius: 0 !important;
+}
+
+html[data-theme="ccmgc"] .sidebar-nav-link-active {
+  position: relative;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 235, 102, 0.20) 0%,
+    rgba(255, 184, 77, 0.08) 100%
+  ) !important;
+  color: var(--text) !important;
+  border-color: transparent !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 235, 102, 0.38),
+    0 0 22px rgba(255, 235, 102, 0.24) !important;
+  overflow: hidden;
+}
+
+html[data-theme="ccmgc"] .sidebar-nav-link-active::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 6px;
+  bottom: 6px;
+  width: 3px;
+  border-radius: 2px;
+  background: linear-gradient(
+    180deg,
+    var(--ccmgc-yellow) 0%,
+    var(--ccmgc-yellow-dim) 35%,
+    var(--ccmgc-yellow) 70%,
+    var(--ccmgc-amber) 100%
+  );
+  box-shadow: 0 0 8px var(--ccmgc-yellow);
+  pointer-events: none;
+}
+
+html[data-theme="ccmgc"] .sidebar-nav-link:not(.sidebar-nav-link-active):hover {
+  background: rgba(255, 235, 102, 0.08);
+  color: var(--text);
+  box-shadow: inset 0 0 0 1px rgba(255, 235, 102, 0.22);
+}
+
+html[data-theme="ccmgc"] .app-top-header {
+  background: transparent !important;
+  background-image: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: none !important;
+  border-bottom: none !important;
+  box-shadow: none !important;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                  9.  TIPOGRAFÍA                                          ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="ccmgc"] h1,
+html[data-theme="ccmgc"] h2,
+html[data-theme="ccmgc"] h3,
+html[data-theme="ccmgc"] .text-2xl,
+html[data-theme="ccmgc"] .text-3xl,
+html[data-theme="ccmgc"] .text-4xl {
+  font-weight: 300;
+  letter-spacing: -0.01em;
+}
+
+html[data-theme="ccmgc"] [data-stat-value],
+html[data-theme="ccmgc"] .stat-value,
+html[data-theme="ccmgc"] .text-4xl.font-bold,
+html[data-theme="ccmgc"] .text-3xl.font-bold {
+  font-weight: 300 !important;
+  letter-spacing: -0.02em;
+}
+
+html[data-theme="ccmgc"] button[data-variant="primary"],
+html[data-theme="ccmgc"] .btn-primary,
+html[data-theme="ccmgc"] [data-cta="primary"] {
+  font-weight: 600;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                10.  CTA AMARILLO                                         ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="ccmgc"] button[data-variant="primary"]:not(:disabled),
+html[data-theme="ccmgc"] .btn-primary:not(:disabled),
+html[data-theme="ccmgc"] [data-cta="primary"]:not(:disabled) {
+  background: var(--accent) !important;
+  color: #0a0d18 !important;
+  border: none !important;
+  box-shadow:
+    0 8px 24px rgba(255, 235, 102, 0.32),
+    0 0 24px rgba(255, 235, 102, 0.22);
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+html[data-theme="ccmgc"] button[data-variant="primary"]:hover:not(:disabled),
+html[data-theme="ccmgc"] .btn-primary:hover:not(:disabled),
+html[data-theme="ccmgc"] [data-cta="primary"]:hover:not(:disabled) {
+  background: #FFE94D !important;
+  box-shadow:
+    0 10px 32px rgba(255, 235, 102, 0.42),
+    0 0 32px rgba(255, 235, 102, 0.32);
+  transform: translateY(-1px);
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║      11.  PARCHE Tailwind arbitrary hex                                  ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="ccmgc"] .bg-\[\#060a14\],
+html[data-theme="ccmgc"] .bg-\[\#060a12\],
+html[data-theme="ccmgc"] .bg-\[\#060b18\],
+html[data-theme="ccmgc"] .bg-\[\#020308\]\/85,
+html[data-theme="ccmgc"] .bg-\[\#020408\]\/80 {
+  background-color: rgba(10, 18, 36, 0.85) !important;
+}
+
+html[data-theme="ccmgc"] .bg-\[\#0a0f1e\],
+html[data-theme="ccmgc"] .bg-\[\#0a0f1e\]\/95,
+html[data-theme="ccmgc"] .bg-\[\#0a0f1e\]\/88,
+html[data-theme="ccmgc"] .bg-\[\#0a0f1e\]\/85,
+html[data-theme="ccmgc"] .bg-\[\#0a0f1e\]\/72,
+html[data-theme="ccmgc"] .bg-\[\#0a0f1e\]\/40,
+html[data-theme="ccmgc"] .bg-\[\#0a0f1e\]\/15,
+html[data-theme="ccmgc"] .bg-\[\#0a1020\] {
+  background-color: rgba(10, 20, 40, 0.86) !important;
+}
+
+html[data-theme="ccmgc"] .bg-\[\#0c1224\]\/95,
+html[data-theme="ccmgc"] .bg-\[\#0c1325\],
+html[data-theme="ccmgc"] .bg-\[\#0d1324\]\/96,
+html[data-theme="ccmgc"] .bg-\[\#0d1324\]\/92,
+html[data-theme="ccmgc"] .bg-\[\#0d1325\],
+html[data-theme="ccmgc"] .bg-\[\#0d1427\]\/95,
+html[data-theme="ccmgc"] .bg-\[\#0d1428\],
+html[data-theme="ccmgc"] .bg-\[\#0d1428\]\/95,
+html[data-theme="ccmgc"] .bg-\[\#0f1424\],
+html[data-theme="ccmgc"] .bg-\[\#0f1524\] {
+  background-color: rgba(10, 20, 40, 0.88) !important;
+  backdrop-filter: blur(18px) saturate(150%);
+  -webkit-backdrop-filter: blur(18px) saturate(150%);
+}
+
+html[data-theme="ccmgc"] .bg-\[\#121a2e\],
+html[data-theme="ccmgc"] .bg-\[\#161f36\],
+html[data-theme="ccmgc"] .bg-\[\#1a2238\] {
+  background-color: rgba(168, 200, 255, 0.10) !important;
+  border-color: rgba(168, 200, 255, 0.14) !important;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║               12.  DROPDOWNS                                             ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="ccmgc"] .app-dropdown-panel {
+  background: linear-gradient(
+    155deg,
+    rgba(20, 36, 60, 0.84) 0%,
+    rgba(8, 16, 32, 0.92) 100%
+  ) !important;
+  backdrop-filter: blur(22px) saturate(155%) !important;
+  -webkit-backdrop-filter: blur(22px) saturate(155%) !important;
+  border-color: var(--glass-border) !important;
+  box-shadow:
+    var(--glass-highlight),
+    0 22px 52px rgba(5, 10, 24, 0.58),
+    0 0 36px rgba(255, 235, 102, 0.16) !important;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║         13.  KANBAN                                                      ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="ccmgc"] .kanban-column-well {
+  background: transparent !important;
+}
+html[data-theme="ccmgc"] .kanban-column-well::after,
+html[data-theme="ccmgc"] .kanban-column-well::before {
+  background: transparent !important;
+  display: none !important;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║         14.  EDITOR  ·  ProseMirror                                      ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="ccmgc"] .ProseMirror pre {
+  background: rgba(8, 16, 32, 0.78) !important;
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║         15.  DETAIL FULL-SCREEN                                          ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="ccmgc"]
+  .detail-fullscreen-bg.detail-fullscreen-bg.detail-fullscreen-bg {
+  background: transparent !important;
+  background-image: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+html[data-theme="ccmgc"] .detail-fullscreen-bg::before {
+  content: none;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                16.  INPUTS                                               ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="ccmgc"] input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]),
+html[data-theme="ccmgc"] textarea,
+html[data-theme="ccmgc"] select {
+  background: rgba(168, 200, 255, 0.05);
+  border: 1px solid var(--glass-border);
+  color: var(--text);
+}
+
+html[data-theme="ccmgc"] input:focus,
+html[data-theme="ccmgc"] textarea:focus,
+html[data-theme="ccmgc"] select:focus {
+  outline: none;
+  border-color: var(--glass-border-glow);
+  box-shadow: 0 0 0 3px rgba(255, 235, 102, 0.30);
+}
+
+html[data-theme="ccmgc"] #cmd-palette-trigger {
+  background: rgba(255, 235, 102, 0.08) !important;
+  border-color: rgba(255, 235, 102, 0.30) !important;
+  color: var(--text-dim) !important;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+html[data-theme="ccmgc"] #cmd-palette-trigger:hover {
+  background: rgba(255, 235, 102, 0.16) !important;
+  border-color: var(--glass-border-glow) !important;
+  color: var(--text) !important;
+  box-shadow: 0 0 24px rgba(255, 235, 102, 0.28);
+}
+html[data-theme="ccmgc"] #cmd-palette-trigger kbd {
+  background: rgba(255, 235, 102, 0.18) !important;
+  border-color: rgba(255, 235, 102, 0.36) !important;
+  color: var(--text);
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                  17.  SCROLLBARS                                         ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="ccmgc"] ::-webkit-scrollbar-thumb {
+  background: rgba(168, 200, 255, 0.12);
+  border-radius: 6px;
+}
+html[data-theme="ccmgc"] ::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 235, 102, 0.50);
+}
+html[data-theme="ccmgc"] .overflow-y-auto:hover::-webkit-scrollbar-thumb,
+html[data-theme="ccmgc"] .overflow-x-auto:hover::-webkit-scrollbar-thumb,
+html[data-theme="ccmgc"] .overflow-auto:hover::-webkit-scrollbar-thumb,
+html[data-theme="ccmgc"] *:hover::-webkit-scrollbar-thumb {
+  background: rgba(255, 235, 102, 0.40);
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║              18.  STATS / DASHBOARD                                      ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="ccmgc"] [data-stat-color="purple"] { color: var(--stat-purple); }
+html[data-theme="ccmgc"] [data-stat-color="blue"]   { color: var(--stat-blue); }
+html[data-theme="ccmgc"] [data-stat-color="cyan"]   { color: var(--stat-cyan); }
+html[data-theme="ccmgc"] [data-stat-color="green"]  { color: var(--stat-green); }
+
+html[data-theme="ccmgc"] .dashboard-shift-track {
+  background: rgba(168, 200, 255, 0.08) !important;
+  border: 1px solid var(--glass-border);
+  overflow: hidden;
+}
+html[data-theme="ccmgc"] .dashboard-shift-fill {
+  background: linear-gradient(90deg, var(--ccmgc-yellow) 0%, var(--ccmgc-yellow) 100%) !important;
+  box-shadow: 0 0 14px rgba(255, 235, 102, 0.60);
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║      19-32. RESTO DE OVERRIDES                                           ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="ccmgc"] .presence-online,
+html[data-theme="ccmgc"] [data-online="true"] .presence-dot {
+  box-shadow:
+    0 0 0 2px var(--bg-deep),
+    0 0 14px rgba(184, 228, 160, 0.65);
+}
+
+html[data-theme="ccmgc"] .user-avatar-ring {
+  box-shadow:
+    0 0 0 2px var(--bg-deep),
+    0 0 0 3px var(--glass-border-glow);
+}
+
+html[data-theme="ccmgc"] .glass-opaque-bitacora {
+  isolation: auto;
+  background: rgba(168, 200, 255, 0.10);
+  backdrop-filter: blur(22px) saturate(155%);
+  -webkit-backdrop-filter: blur(22px) saturate(155%);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-highlight), 0 6px 26px rgba(5, 10, 24, 0.38);
+}
+
+html[data-theme="ccmgc"] .app-modal-dialog[data-modal-surface="dark"] {
+  position: relative;
+  background: linear-gradient(
+    155deg,
+    rgba(20, 36, 60, 0.64) 0%,
+    rgba(8, 16, 32, 0.82) 100%
+  ) !important;
+  backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+  border-color: var(--glass-border) !important;
+  box-shadow:
+    0 24px 68px rgba(5, 10, 24, 0.58),
+    0 0 52px rgba(255, 235, 102, 0.22),
+    0 0 80px rgba(255, 184, 77, 0.14),
+    var(--glass-highlight) !important;
+  overflow: hidden;
+}
+
+html[data-theme="ccmgc"] .app-modal-dialog[data-modal-surface="dark"]::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    135deg,
+    rgba(232, 240, 255, 0.12) 0%,
+    rgba(232, 240, 255, 0.04) 18%,
+    transparent 32%
+  );
+  border-radius: inherit;
+  z-index: 0;
+}
+html[data-theme="ccmgc"] .app-modal-dialog[data-modal-surface="dark"] > *:not(button[aria-label="Cerrar"]) {
+  position: relative;
+  z-index: 1;
+}
+
+html[data-theme="ccmgc"] .modal-backdrop {
+  background: rgba(6, 10, 22, 0.55);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+html[data-theme="ccmgc"] .mobile-bottom-nav {
+  background: linear-gradient(
+    180deg,
+    rgba(10, 20, 40, 0.64) 0%,
+    rgba(10, 18, 36, 0.84) 100%
+  ) !important;
+  border-top-color: var(--glass-border) !important;
+  backdrop-filter: blur(22px) saturate(155%);
+  -webkit-backdrop-filter: blur(22px) saturate(155%);
+  box-shadow:
+    inset 0 1px 0 rgba(232, 240, 255, 0.10),
+    0 -8px 30px rgba(5, 10, 24, 0.55);
+}
+
+html[data-theme="ccmgc"] [data-tooltip-content],
+html[data-theme="ccmgc"] [role="tooltip"] {
+  background: linear-gradient(
+    155deg,
+    rgba(20, 36, 60, 0.84) 0%,
+    rgba(8, 16, 32, 0.92) 100%
+  ) !important;
+  border: 1px solid var(--glass-border) !important;
+  color: var(--text) !important;
+  backdrop-filter: blur(14px) saturate(155%);
+  -webkit-backdrop-filter: blur(14px) saturate(155%);
+  box-shadow: var(--glass-shadow), var(--glass-highlight);
+}
+
+html[data-theme="ccmgc"] .toast-glass {
+  background: linear-gradient(
+    155deg,
+    rgba(20, 36, 60, 0.84) 0%,
+    rgba(8, 16, 32, 0.92) 100%
+  ) !important;
+  border: 1px solid var(--glass-border) !important;
+  color: var(--text) !important;
+  backdrop-filter: blur(22px) saturate(160%);
+  -webkit-backdrop-filter: blur(22px) saturate(160%);
+  box-shadow:
+    var(--glass-highlight),
+    0 18px 44px rgba(5, 10, 24, 0.58),
+    0 0 32px rgba(255, 235, 102, 0.20);
+}
+
+html[data-theme="ccmgc"] .loading-card {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+html[data-theme="ccmgc"] .dashboard-allgood-banner {
+  background: linear-gradient(
+    135deg,
+    rgba(184, 228, 160, 0.12) 0%,
+    rgba(255, 184, 77, 0.08) 100%
+  ) !important;
+  border-color: rgba(232, 240, 255, 0.14) !important;
+  backdrop-filter: blur(14px) saturate(145%);
+  -webkit-backdrop-filter: blur(14px) saturate(145%);
+  box-shadow:
+    inset 0 1px 0 rgba(232, 240, 255, 0.10),
+    0 0 28px rgba(184, 228, 160, 0.12);
+}
+
+html[data-theme="ccmgc"] .dashboard-allgood-icon {
+  background: rgba(184, 228, 160, 0.22) !important;
+  box-shadow: inset 0 0 0 1px rgba(184, 228, 160, 0.40);
+}
+
+html[data-theme="ccmgc"] .bg-sky-400\/10,
+html[data-theme="ccmgc"] .bg-emerald-400\/10,
+html[data-theme="ccmgc"] .bg-orange-400\/10,
+html[data-theme="ccmgc"] .bg-red-400\/10,
+html[data-theme="ccmgc"] .bg-red-500\/10,
+html[data-theme="ccmgc"] .bg-violet-400\/10,
+html[data-theme="ccmgc"] .bg-yellow-400\/10,
+html[data-theme="ccmgc"] .bg-green-400\/10,
+html[data-theme="ccmgc"] .bg-blue-400\/10,
+html[data-theme="ccmgc"] .bg-amber-400\/10,
+html[data-theme="ccmgc"] .bg-indigo-400\/10,
+html[data-theme="ccmgc"] .bg-emerald-500\/6,
+html[data-theme="ccmgc"] .bg-emerald-500\/8,
+html[data-theme="ccmgc"] .bg-emerald-400\/8,
+html[data-theme="ccmgc"] .bg-emerald-400\/\[0\.06\],
+html[data-theme="ccmgc"] .bg-emerald-400\/5,
+html[data-theme="ccmgc"] .bg-amber-400\/8,
+html[data-theme="ccmgc"] .bg-emerald-500\/12,
+html[data-theme="ccmgc"] .bg-emerald-500\/15,
+html[data-theme="ccmgc"] .bg-rose-400\/10,
+html[data-theme="ccmgc"] .bg-rose-500\/10,
+html[data-theme="ccmgc"] .hover\:bg-rose-500\/10:hover,
+html[data-theme="ccmgc"] .hover\:bg-rose-50:hover {
+  background-image: linear-gradient(
+    rgba(255, 235, 102, 0.06),
+    rgba(255, 184, 77, 0.04)
+  );
+}
+
+html[data-theme="ccmgc"] .bg-slate-900\/45,
+html[data-theme="ccmgc"] .bg-black\/75,
+html[data-theme="ccmgc"] .bg-black\/65,
+html[data-theme="ccmgc"] .bg-black\/60,
+html[data-theme="ccmgc"] .bg-black\/55,
+html[data-theme="ccmgc"] .bg-black\/45,
+html[data-theme="ccmgc"] .bg-black\/40,
+html[data-theme="ccmgc"] .bg-black\/35 {
+  background-color: rgba(10, 18, 36, 0.55) !important;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+html[data-theme="ccmgc"] .bg-black\/30,
+html[data-theme="ccmgc"] .bg-black\/25,
+html[data-theme="ccmgc"] .bg-black\/20,
+html[data-theme="ccmgc"] .bg-black\/15,
+html[data-theme="ccmgc"] .bg-black\/10 {
+  background-color: rgba(10, 20, 40, 0.32) !important;
+}
+
+html[data-theme="ccmgc"] .bg-black\/\[0\.05\],
+html[data-theme="ccmgc"] .bg-black\/\[0\.04\],
+html[data-theme="ccmgc"] .bg-black\/\[0\.06\] {
+  background-color: rgba(168, 200, 255, 0.05) !important;
+}
+
+html[data-theme="ccmgc"] .bg-zinc-900,
+html[data-theme="ccmgc"] .bg-zinc-800,
+html[data-theme="ccmgc"] .hover\:bg-zinc-800:hover {
+  background-color: rgba(10, 20, 40, 0.92) !important;
+  border-color: rgba(168, 200, 255, 0.22) !important;
+}
+
+html[data-theme="ccmgc"] .text-\[\#0a0f1e\] {
+  color: rgba(10, 18, 36, 1) !important;
+}
+
+html[data-theme="ccmgc"] img.rounded-full.object-cover {
+  box-shadow: inset 0 0 0 1px rgba(255, 235, 102, 0.34);
+}
+
+html[data-theme="ccmgc"] .border-\[\#0a0f1e\] {
+  border-color: rgba(10, 18, 36, 0.92) !important;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║      33.  AUTO-STAGE-IN + SHINE                                          ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes ccmgc-stage-in {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  html[data-theme="ccmgc"] .app-dashboard-root > main,
+  html[data-theme="ccmgc"] .app-dashboard-root > section {
+    animation: ccmgc-stage-in 380ms cubic-bezier(0.2, 0.6, 0.2, 1) both;
+  }
+}
+
+html[data-theme="ccmgc"] .glass-hover {
+  overflow: hidden;
+}
+
+html[data-theme="ccmgc"] .glass-hover::after,
+html[data-theme="ccmgc"] .glass-surface::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    115deg,
+    transparent 30%,
+    rgba(255, 184, 77, 0.20) 50%,
+    transparent 70%
+  );
+  transform: translateX(-110%);
+  transition: transform 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+  border-radius: inherit;
+  z-index: 0;
+}
+
+html[data-theme="ccmgc"] .glass-hover > * {
+  position: relative;
+  z-index: 1;
+}
+
+html[data-theme="ccmgc"] .glass-hover:hover::after,
+html[data-theme="ccmgc"] .glass-surface:hover::after {
+  transform: translateX(110%);
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║      34.  ACCESIBILIDAD  ·  prefers-reduced-motion                       ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-theme="ccmgc"] .ccmgc-bg .gc-road-pulse,
+  html[data-theme="ccmgc"] .ccmgc-bg .gc-node-ring {
+    animation: none !important;
+  }
+  html[data-theme="ccmgc"] .ccmgc-bg .gc-road-pulse {
+    opacity: 0 !important;
+  }
+  html[data-theme="ccmgc"] .ccmgc-bg .gc-node-ring {
+    display: none !important;
+  }
+  html[data-theme="ccmgc"] .glow-border::after {
+    animation: none !important;
+  }
+  html[data-theme="ccmgc"] .reveal {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+  html[data-theme="ccmgc"] .app-dashboard-root > main,
+  html[data-theme="ccmgc"] .app-dashboard-root > section {
+    animation: none !important;
+  }
+  html[data-theme="ccmgc"] .glass-hover::after,
+  html[data-theme="ccmgc"] .glass-surface::after {
+    display: none !important;
+  }
+  html[data-theme="ccmgc"] .glass-surface,
+  html[data-theme="ccmgc"] .glass,
+  html[data-theme="ccmgc"] .glass-1,
+  html[data-theme="ccmgc"] .glass-2,
+  html[data-theme="ccmgc"] .glass-3,
+  html[data-theme="ccmgc"] .glass-4 {
+    transition: none !important;
+  }
+}

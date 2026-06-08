@@ -1,50 +1,74 @@
 export const THEME_STORAGE_KEY = "cc-ops-theme";
 
 /**
- * Modos de tema disponibles:
+ * Modos de tema disponibles (clasificados por categoría):
+ *   ── ESENCIALES ─────────────────────────────────────────────────────
  *   - `aurora`: oscuro base con orbes animados (predeterminado).
  *   - `light` : claro (overrides en `app/theme-light.css`).
  *   - `dark`  : oscuro plano sin orbes.
- *   - `glass` : cristal esmerilado violeta + parallax (overrides en
- *               `app/theme-glass.css`, fondo propio en `<GlassBackground />`).
- *   - `slate` : cristal neutro grafito sin marco — pensado para uso diario
- *               (overrides en `app/theme-slate.css`, fondo propio en
- *               `<SlateBackground />`). Misma arquitectura que Glass pero
- *               paleta totalmente desaturada (slate/zinc) y sin glow.
- *   - `prisma`: tema "joya cinética" — violeta espacial profundo con grid
- *               en perspectiva, líneas de plasma SVG, polvo estelar y
- *               borde iridiscente animado (cyan→magenta→amarillo). Fondo
- *               propio en `<PrismaBackground />`. Pensado para uso puntual:
- *               cada visita es un pequeño espectáculo (overrides en
- *               `app/theme-prisma.css`).
- *   - `minimal`: tema "Minimal Future" — opuesto a Prisma. Casi negro puro
- *                + hairlines blancos + acento cyan ártico en focus.
- *                Superficies mate sin sombras grandes. Tipografía aireada.
- *                Lo "futurista" lo da la proporción y el detalle quirúrgico,
- *                no los efectos. Fondo propio en
- *                `<MinimalFutureBackground />` (un único halo cyan inmóvil
- *                arriba-izquierda). Overrides en `app/theme-minimal.css`.
- *   - `borealis`: tema "Aurora Borealis" — cinta de aurora SVG serpenteando
- *                 sobre noche ártica + ~80 constelaciones. Verde menta →
- *                 cyan → violeta → rosa salmón. Cards con borde superior
- *                 iridiscente. Fondo propio en `<BorealisBackground />`.
- *                 Overrides en `app/theme-borealis.css`.
- *   - `ocaso`   : tema "Ocaso" — atardecer cinematográfico cálido. Banda
- *                 horizontal del crepúsculo (violeta noche → coral →
- *                 naranja → crema dorada) con sol radial pulsante y
- *                 silueta de montañas. Cards cristal cálido. Fondo propio
- *                 en `<OcasoBackground />`. Overrides en `app/theme-ocaso.css`.
- *   - `terminal`: tema "Terminal Operations" — mil-spec / NORAD. Tipografía
- *                 monoespaciada global, verde fósforo `#00ff7f`, esquinas
- *                 marcadas ASCII en cards, scanlines CRT sutiles, barrido
- *                 radar. Encaja con el branding "Centro de Control de la
- *                 Movilidad". Fondo propio en `<TerminalBackground />`.
- *                 Overrides en `app/theme-terminal.css`.
- *   - `neon`    : tema "Neon City" — cyberpunk Blade Runner. Noche violeta
- *                 + skyline SVG con ventanas iluminadas parpadeando rosa/
- *                 cyan/amarillo. Cards con doble borde rosa+cyan. Fondo
- *                 propio en `<NeonBackground />`. Overrides en
- *                 `app/theme-neon.css`.
+ *
+ *   ── CRISTAL ────────────────────────────────────────────────────────
+ *   - `glass` : cristal esmerilado violeta + parallax.
+ *   - `slate` : cristal neutro grafito sin marco.
+ *
+ *   ── CINEMÁTICOS ────────────────────────────────────────────────────
+ *   - `ocaso`   : atardecer cinematográfico cálido (sol + montañas).
+ *   - `neon`    : Cyberpunk Blade Runner — skyline neon rosa+cyan.
+ *   - `volcano` : volcán en erupción al fondo.
+ *   - `abyss`   : océano profundo con medusas bioluminiscentes.
+ *   - `cosmos`  : nebulosa espacial (blobs magenta/violeta).
+ *   - `storm`   : noche eléctrica con relámpagos y lluvia.
+ *
+ *   ── INSTITUCIONAL ──────────────────────────────────────────────────
+ *   - `ccmgc`   : branding del CCMGC (mapa de Gran Canaria + GC-1/2/3).
+ *
+ *   ── NATURALEZA CANARIA ─────────────────────────────────────────────
+ *   - `dunas`   : Dunas de Maspalomas al atardecer.
+ *
+ *   ── CÓSMICOS ───────────────────────────────────────────────────────
+ *   - `meteor`  : lluvia de meteoros.
+ *
+ *   ── TRIBUTO ────────────────────────────────────────────────────────
+ *   Todos los temas tributo aíslan totalmente sus estilos bajo
+ *   `html[data-theme="<id>"]` y nunca afectan a Aurora ni al resto.
+ *
+ *   - `akatsuki`   : Naruto / Akatsuki — negro carbón + rojo sangre,
+ *                    nubes akagumo, kanji 暁 y Sharingan.
+ *   - `evangelion` : NGE — terminal NERV / MAGI, AT-Field hexagonal,
+ *                    paleta naranja + cyan + violeta sobre negro.
+ *   - `sith`       : Star Wars (lado oscuro) — hyperspace negro,
+ *                    sable rojo vertical pulsante, halo de la Death
+ *                    Star.
+ *   - `matrix`     : Matrix — lluvia de código katakana verde
+ *                    fosfórico cayendo.
+ *   - `stranger`   : Stranger Things — Upside Down con tendrils,
+ *                    bombillas parpadeantes y fuente neón roja.
+ *   - `cyberpunk`  : Cyberpunk 2077 — Night City glitch amarillo
+ *                    Arasaka + cyan, scanlines y RAM-flash.
+ *   - `sheikah`    : Zelda BOTW/TOTK — runas Sheikah cian sobre
+ *                    piedra antigua, hojas doradas.
+ *   - `mordor`     : LOTR Mordor — Ojo de Sauron en una torre lejana
+ *                    + lava + runas tengwar.
+ *   - `tron`       : Tron — grid neón cyan en perspectiva,
+ *                    lightcycle trail, paleta azul-cyan.
+ *   - `persona5`   : P5 — collage rojo-negro estilo cómic con
+ *                    "ALL-OUT ATTACK" y máscaras.
+ *   - `midgar`     : FF7 Midgar — mako verde fluyendo, meteoro rojo
+ *                    y silueta de la ciudad-pizza.
+ *   - `interstellar`: Gargantua — agujero negro con disco de
+ *                     acreción + maizal sepia y polvo.
+ *   - `synthwave` : Outrun retro 80s — sol partido magenta-naranja
+ *                   + grid violeta en perspectiva.
+ *   - `hollow`     : Hollow Knight — Hallownest azul abismal,
+ *                    spores blancos cayendo, melancolía bichesca.
+ *   - `demonslayer`: Kimetsu no Yaiba — patrón checkered Tanjiro
+ *                    verde-negro + llamas Hinokami Kagura naranja.
+ *   - `ghibli`     : Studio Ghibli — pradera Totoro pastel, lluvia
+ *                    tenue y susuwatari (motas negras flotando).
+ *   - `deathnote`  : Death Note — kanji L gigante en hueso sobre
+ *                    fondo gótico, manzana roja como acento.
+ *   - `onepiece`   : One Piece — mar Grand Line al atardecer,
+ *                    Jolly Roger ondeando, sol naranja pirata.
  */
 export type ThemeMode =
   | "dark"
@@ -52,12 +76,33 @@ export type ThemeMode =
   | "aurora"
   | "glass"
   | "slate"
-  | "prisma"
-  | "minimal"
-  | "borealis"
   | "ocaso"
-  | "terminal"
-  | "neon";
+  | "neon"
+  | "volcano"
+  | "abyss"
+  | "cosmos"
+  | "storm"
+  | "ccmgc"
+  | "dunas"
+  | "meteor"
+  | "akatsuki"
+  | "evangelion"
+  | "sith"
+  | "matrix"
+  | "stranger"
+  | "cyberpunk"
+  | "sheikah"
+  | "mordor"
+  | "tron"
+  | "persona5"
+  | "midgar"
+  | "interstellar"
+  | "synthwave"
+  | "hollow"
+  | "demonslayer"
+  | "ghibli"
+  | "deathnote"
+  | "onepiece";
 
 export const THEME_MODES: ThemeMode[] = [
   "aurora",
@@ -65,19 +110,77 @@ export const THEME_MODES: ThemeMode[] = [
   "dark",
   "glass",
   "slate",
-  "prisma",
-  "minimal",
-  "borealis",
   "ocaso",
-  "terminal",
   "neon",
+  "volcano",
+  "abyss",
+  "cosmos",
+  "storm",
+  "ccmgc",
+  "dunas",
+  "meteor",
+  "akatsuki",
+  "evangelion",
+  "sith",
+  "matrix",
+  "stranger",
+  "cyberpunk",
+  "sheikah",
+  "mordor",
+  "tron",
+  "persona5",
+  "midgar",
+  "interstellar",
+  "synthwave",
+  "hollow",
+  "demonslayer",
+  "ghibli",
+  "deathnote",
+  "onepiece",
 ];
+
+/**
+ * Temas TEMPORALMENTE deshabilitados (Work In Progress).
+ *
+ *  Estos temas siguen existiendo en el código (CSS, componentes, registro)
+ *  pero NO se pueden activar desde la UI ni quedarse aplicados si están
+ *  guardados en localStorage. El selector los oculta y `getStoredTheme` /
+ *  `applyThemeToDocument` hacen fallback a "aurora".
+ *
+ *  Para reactivar uno: simplemente elimínalo de este Set.
+ *
+ *  Fecha de marca: 2026-06-07 — pendientes de pulido visual:
+ *    - interstellar : Gargantua aún no se parece lo suficiente al de la peli
+ *    - mordor       : torre/volcán necesitan más detalle
+ *    - synthwave    : iteración visual pendiente
+ *    - demonslayer  : no transmite el universo de la serie
+ *    - ghibli       : legibilidad + calidad de fondo Miyazaki-style
+ *    - onepiece     : barco/cielo Grand Line aún por refinar
+ */
+export const WIP_THEMES: ReadonlySet<ThemeMode> = new Set<ThemeMode>([
+  "interstellar",
+  "mordor",
+  "synthwave",
+  "demonslayer",
+  "ghibli",
+  "onepiece",
+]);
+
+/** Devuelve true si el tema está disponible para el usuario (no es WIP). */
+export function isThemeAvailable(mode: ThemeMode): boolean {
+  return !WIP_THEMES.has(mode);
+}
 
 export function getStoredTheme(): ThemeMode {
   if (typeof window === "undefined") return "aurora";
   try {
     const v = localStorage.getItem(THEME_STORAGE_KEY);
-    if (v && (THEME_MODES as readonly string[]).includes(v)) return v as ThemeMode;
+    if (v && (THEME_MODES as readonly string[]).includes(v)) {
+      // Si el tema guardado está marcado como WIP, ignorarlo y caer a aurora
+      // para que el usuario nunca quede atrapado en un tema en construcción.
+      if (WIP_THEMES.has(v as ThemeMode)) return "aurora";
+      return v as ThemeMode;
+    }
     return "aurora";
   } catch {
     return "aurora";
@@ -85,68 +188,66 @@ export function getStoredTheme(): ThemeMode {
 }
 
 /**
+ * Lista de modos que se aplican al `<html>` mediante `data-theme="<id>"`.
+ * Todos excepto:
+ *   - `dark`: estado base del CSS (sin atributos).
+ *   - `aurora`: usa `data-aurora="true"` en su lugar (legado).
+ */
+const DATA_THEME_MODES: ReadonlySet<ThemeMode> = new Set<ThemeMode>([
+  "light",
+  "glass",
+  "slate",
+  "ocaso",
+  "neon",
+  "volcano",
+  "abyss",
+  "cosmos",
+  "storm",
+  "ccmgc",
+  "dunas",
+  "meteor",
+  "akatsuki",
+  "evangelion",
+  "sith",
+  "matrix",
+  "stranger",
+  "cyberpunk",
+  "sheikah",
+  "mordor",
+  "tron",
+  "persona5",
+  "midgar",
+  "interstellar",
+  "synthwave",
+  "hollow",
+  "demonslayer",
+  "ghibli",
+  "deathnote",
+  "onepiece",
+]);
+
+/**
  * Sincroniza los atributos del `<html>`:
- *   - `data-theme="light"` para el tema claro.
- *   - `data-theme="glass"` para el tema Cristal (sin `data-aurora` — los orbes
- *     los gestiona `<GlassBackground />`, no se reusan los de Aurora).
- *   - `data-theme="slate"` para el tema Slate (fondo grafito; orbes
- *     gestionados por `<SlateBackground />`).
- *   - `data-theme="prisma"` para el tema Prisma (fondo cinético; capas
- *     gestionadas por `<PrismaBackground />`).
- *   - `data-theme="minimal"` para el tema Minimal Future (un único halo
- *     inmóvil; gestionado por `<MinimalFutureBackground />`).
- *   - `data-aurora="true"` para Aurora.
- *   - Sin atributos para el oscuro plano (estado base del CSS).
+ *   - `data-theme="<id>"` para todos los modos con CSS scopeado.
+ *   - `data-aurora="true"` para Aurora (sin `data-theme`).
+ *   - Sin atributos para `dark` (estado base del CSS).
+ *
+ * Garantiza limpiar siempre el atributo opuesto antes de aplicar.
  */
 export function applyThemeToDocument(mode: ThemeMode): void {
   if (typeof document === "undefined") return;
   const root = document.documentElement;
-  if (mode === "light") {
-    root.dataset.theme = "light";
-    root.removeAttribute("data-aurora");
-    return;
-  }
-  if (mode === "glass") {
-    root.dataset.theme = "glass";
-    root.removeAttribute("data-aurora");
-    return;
-  }
-  if (mode === "slate") {
-    root.dataset.theme = "slate";
-    root.removeAttribute("data-aurora");
-    return;
-  }
-  if (mode === "prisma") {
-    root.dataset.theme = "prisma";
-    root.removeAttribute("data-aurora");
-    return;
-  }
-  if (mode === "minimal") {
-    root.dataset.theme = "minimal";
-    root.removeAttribute("data-aurora");
-    return;
-  }
-  if (mode === "borealis") {
-    root.dataset.theme = "borealis";
-    root.removeAttribute("data-aurora");
-    return;
-  }
-  if (mode === "ocaso") {
-    root.dataset.theme = "ocaso";
-    root.removeAttribute("data-aurora");
-    return;
-  }
-  if (mode === "terminal") {
-    root.dataset.theme = "terminal";
-    root.removeAttribute("data-aurora");
-    return;
-  }
-  if (mode === "neon") {
-    root.dataset.theme = "neon";
+
+  // GUARDIA WIP: si alguien intenta forzar un tema en construcción
+  // (por URL, devtools, llamada directa, etc.) lo redirigimos a aurora.
+  const safeMode: ThemeMode = WIP_THEMES.has(mode) ? "aurora" : mode;
+
+  if (DATA_THEME_MODES.has(safeMode)) {
+    root.dataset.theme = safeMode;
     root.removeAttribute("data-aurora");
     return;
   }
   root.removeAttribute("data-theme");
-  if (mode === "aurora") root.setAttribute("data-aurora", "true");
+  if (safeMode === "aurora") root.setAttribute("data-aurora", "true");
   else root.removeAttribute("data-aurora");
 }

@@ -11,6 +11,7 @@ import {
 } from "react";
 import {
   THEME_STORAGE_KEY,
+  WIP_THEMES,
   type ThemeMode,
   applyThemeToDocument,
   getStoredTheme,
@@ -33,10 +34,14 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const setTheme = useCallback((mode: ThemeMode) => {
-    setThemeState(mode);
-    applyThemeToDocument(mode);
+    // Si alguien intenta aplicar un tema WIP (URL, devtools, fallback raro),
+    // lo redirigimos a "aurora" para que el usuario no quede atrapado en un
+    // tema en construcción.
+    const safe: ThemeMode = WIP_THEMES.has(mode) ? "aurora" : mode;
+    setThemeState(safe);
+    applyThemeToDocument(safe);
     try {
-      localStorage.setItem(THEME_STORAGE_KEY, mode);
+      localStorage.setItem(THEME_STORAGE_KEY, safe);
     } catch {
       /* ignore quota / private mode */
     }

@@ -7,8 +7,6 @@ import toast from "react-hot-toast";
 import { Bell, ChevronDown, ChevronRight, Check, X, Loader2, WifiOff, Sun, Sunset, Moon } from "lucide-react";
 import { ReportBugHeaderButton } from "@/components/bugs/ReportBugHeaderButton";
 import Link from "next/link";
-import { ClickableAvatar } from "@/components/ui/ClickableAvatar";
-import { useAvatarFrameEffect } from "@/lib/hooks/useAvatarFrameEffect";
 import { CommandPalette } from "@/components/layout/CommandPalette";
 import { ThemeSelector } from "@/components/layout/ThemeSelector";
 import { useTheme } from "@/components/layout/ThemeProvider";
@@ -86,7 +84,6 @@ export function Header({ user, breadcrumb }: HeaderProps) {
   const shift = getCurrentShift();
   const ShiftIcon = shift.Icon;
   const { update } = useSession();
-  const avatarEffect = useAvatarFrameEffect();
   const [notifOpen, setNotifOpen] = useState(false);
   const [deptOpen, setDeptOpen] = useState(false);
   const [deptLoading, setDeptLoading] = useState(false);
@@ -643,15 +640,16 @@ export function Header({ user, breadcrumb }: HeaderProps) {
         )}
       </div>
 
-      {/* Avatar */}
-      <ClickableAvatar
-        name={user.name}
-        image={user.image}
-        focusX={user.imageFocusX}
-        focusY={user.imageFocusY}
-        size="sm"
-        effect={avatarEffect}
-      />
+      {/*
+       * Avatar del usuario en la esquina superior derecha eliminado por
+       * decisión de UX: la foto de perfil ya está disponible (y más
+       * destacada) en el `SidebarProfileMenu` de la izquierda, donde
+       * además abre el dropdown completo con cambiar avatar, marco,
+       * configuración y cerrar sesión. Mantenerla aquí solo duplicaba
+       * el affordance y ocupaba espacio crítico en el header,
+       * especialmente en móvil. Se retira también el hook
+       * `useAvatarFrameEffect` y el `import` de `ClickableAvatar`.
+       */}
       </div>
     </header>
     </>

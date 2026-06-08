@@ -1,0 +1,606 @@
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║   TEMA "MIDGAR" · TRIBUTO · Final Fantasy VII (mako verde + meteoro)     ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="midgar"] {
+  --bg-0: #050810;
+  --bg-1: #08101a;
+  --bg-2: #0e1c28;
+
+  --card: linear-gradient(180deg, #0e1c28 0%, #08101a 60%, #050810 100%);
+  --surface:   rgba(20, 36, 50, 0.92);
+  --surface-2: rgba(60, 255, 160, 0.04);
+  --border:        rgba(60, 255, 160, 0.22);
+  --border-strong: rgba(60, 255, 160, 0.55);
+
+  --accent:        #3cffa0;        /* mako verde */
+  --accent-bright: #80ffc8;
+  --accent-glow:   rgba(60, 255, 160, 0.45);
+  --accent-2:      #ff5028;        /* meteoro */
+  --accent-3:      #ffd84a;        /* dorado materia */
+
+  --text:      #e0f4e8;
+  --text-soft: #a8c8b4;
+  --muted:     #586b66;
+
+  --ok:         #80ffc8;
+  --gold-relic: #ffd84a;
+
+  --font-display: ui-monospace, "Cascadia Code", "Eurostile", "JetBrains Mono", Consolas, monospace;
+  --font-ui:      "Sora", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+
+  --app-canvas-color: transparent;
+  --app-canvas-image: none;
+  --card-isolation: auto;
+
+  color-scheme: dark;
+}
+
+html[data-theme="midgar"] body { min-height: 100vh; }
+html[data-theme="midgar"] .app-sidebar-shell,
+html[data-theme="midgar"] .app-top-header { isolation: auto !important; }
+
+
+/* ── 1. FONDO + ATMÓSFERA ────────────────────────────────────────────── */
+html[data-theme="midgar"] .midgar-bg {
+  position: fixed; inset: 0; z-index: -10; overflow: hidden; pointer-events: none;
+  background:
+    radial-gradient(ellipse 60% 50% at 80% 25%, rgba(255, 80, 40, 0.25) 0%, transparent 55%),
+    radial-gradient(ellipse 80% 60% at 20% 80%, rgba(60, 255, 160, 0.20) 0%, transparent 65%),
+    linear-gradient(180deg, var(--bg-0) 0%, var(--bg-1) 50%, var(--bg-0) 100%);
+}
+
+/* ── 1.1 Logo Shinra estilizado (cuadrado con barras) en sup. derecha ── */
+html[data-theme="midgar"] .midgar-bg .midgar-shinra {
+  position: absolute; top: 4%; right: 4%;
+  width: clamp(80px, 9vw, 120px);
+  height: clamp(80px, 9vw, 120px);
+  pointer-events: none;
+  opacity: 0.55;
+  filter: drop-shadow(0 0 12px rgba(220, 80, 60, 0.35));
+  animation: midgar-shinra-flicker 9s ease-in-out infinite;
+}
+@keyframes midgar-shinra-flicker {
+  0%, 100% { opacity: 0.50; }
+  50%      { opacity: 0.78; }
+  92%      { opacity: 0.50; }
+  93%      { opacity: 0.15; }
+  94%      { opacity: 0.70; }
+}
+
+/* ── 1.2 Luna pálida detrás del meteoro ───────────────────────────────── */
+html[data-theme="midgar"] .midgar-bg .midgar-moon {
+  position: absolute;
+  right: 14%; top: 22%;
+  width: clamp(120px, 16vmin, 220px);
+  height: clamp(120px, 16vmin, 220px);
+  border-radius: 50%;
+  background: radial-gradient(circle at 40% 35%,
+    rgba(240, 220, 180, 0.65) 0%,
+    rgba(180, 160, 130, 0.45) 50%,
+    rgba(80, 60, 40, 0.20) 100%);
+  filter: blur(4px);
+  opacity: 0.40;
+  pointer-events: none;
+}
+
+/* ── 1.3 Meteoro rojo gigante con cola ────────────────────────────────── */
+html[data-theme="midgar"] .midgar-bg .midgar-meteor {
+  position: absolute;
+  right: 8%; top: 8%;
+  width: clamp(220px, 30vmin, 380px);
+  height: clamp(220px, 30vmin, 380px);
+  pointer-events: none;
+  filter: drop-shadow(0 0 60px rgba(255, 80, 40, 0.55)) drop-shadow(0 0 120px rgba(220, 40, 20, 0.35));
+  animation: midgar-meteor-pulse 6s ease-in-out infinite;
+}
+@keyframes midgar-meteor-pulse {
+  0%, 100% { transform: scale(1.00); filter: drop-shadow(0 0 60px rgba(255, 80, 40, 0.55)) drop-shadow(0 0 120px rgba(220, 40, 20, 0.35)); }
+  50%      { transform: scale(1.05); filter: drop-shadow(0 0 80px rgba(255, 120, 60, 0.75)) drop-shadow(0 0 150px rgba(255, 60, 40, 0.55)); }
+}
+
+/* ── 1.4 Smog/humo subiendo entre sectores ────────────────────────────── */
+html[data-theme="midgar"] .midgar-bg .midgar-smog {
+  position: absolute;
+  bottom: 24%;
+  width: clamp(160px, 20vw, 280px);
+  height: clamp(160px, 20vw, 280px);
+  border-radius: 50%;
+  background: radial-gradient(circle,
+    rgba(70, 60, 50, 0.45) 0%,
+    rgba(50, 45, 40, 0.30) 40%,
+    transparent 75%);
+  filter: blur(20px);
+  pointer-events: none;
+  animation: midgar-smog-rise 18s ease-in-out infinite;
+}
+html[data-theme="midgar"] .midgar-bg .midgar-smog-1 { left: 18%; animation-delay: 0s;   }
+html[data-theme="midgar"] .midgar-bg .midgar-smog-2 { left: 50%; animation-delay: 6s;   }
+html[data-theme="midgar"] .midgar-bg .midgar-smog-3 { left: 78%; animation-delay: 12s;  }
+@keyframes midgar-smog-rise {
+  0%   { transform: translateY(0)      scale(0.8); opacity: 0; }
+  10%  { opacity: 0.55; }
+  50%  { transform: translateY(-25vh)  scale(1.1); opacity: 0.55; }
+  90%  { opacity: 0.35; }
+  100% { transform: translateY(-55vh)  scale(1.4); opacity: 0; }
+}
+
+/* ── 1.5 Columnas de luz Mako verde desde reactores ──────────────────── */
+html[data-theme="midgar"] .midgar-bg .midgar-mako-pillars {
+  position: absolute; inset: 0; pointer-events: none;
+}
+html[data-theme="midgar"] .midgar-bg .midgar-mako-pillar {
+  position: absolute; bottom: 14%;
+  width: clamp(20px, 2.5vw, 40px);
+  height: 28vh;
+  transform: translateX(-50%);
+  background: linear-gradient(180deg,
+    rgba(60, 255, 160, 0) 0%,
+    rgba(60, 255, 160, 0.06) 20%,
+    rgba(80, 255, 180, 0.18) 60%,
+    rgba(120, 255, 200, 0.30) 100%);
+  filter: blur(6px);
+  mix-blend-mode: screen;
+  animation: midgar-pillar-breath 4s ease-in-out infinite;
+}
+@keyframes midgar-pillar-breath {
+  0%, 100% { opacity: 0.65; }
+  50%      { opacity: 1.00; }
+}
+
+/* ── 1.6 Partículas mako verdes flotando ──────────────────────────────── */
+html[data-theme="midgar"] .midgar-bg .midgar-mako {
+  position: absolute;
+  width: 24px; height: 24px;
+  border-radius: 50%;
+  background: radial-gradient(circle at center, rgba(180, 255, 220, 0.85) 0%, rgba(60, 255, 160, 0.45) 35%, transparent 75%);
+  filter: blur(2px);
+  pointer-events: none;
+  animation: midgar-mako-rise var(--dur, 16s) linear infinite;
+  animation-delay: var(--delay, 0s);
+}
+@keyframes midgar-mako-rise {
+  0%   { transform: translate(0, 0) scale(0.85); opacity: 0; }
+  10%  { opacity: 0.85; }
+  90%  { opacity: 0.85; }
+  100% { transform: translate(var(--dx, 30px), -110vh) scale(1.10); opacity: 0; }
+}
+
+/* ── 1.7 Silueta de Midgar (pizza con Shinra HQ central) ─────────────── */
+html[data-theme="midgar"] .midgar-bg .midgar-city {
+  position: absolute; left: 0; right: 0; bottom: 0;
+  width: 100%; height: 36%;
+  pointer-events: none;
+  filter: drop-shadow(0 -2px 18px rgba(60, 255, 160, 0.30));
+  z-index: 2;
+}
+
+/* ── 1.5 Veil + grain + vignette ─────────────────────────────────────── */
+html[data-theme="midgar"] .midgar-bg .midgar-veil {
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse 75% 55% at 50% 50%,
+    rgba(5, 10, 16, 0.45) 0%, rgba(5, 10, 16, 0.20) 38%, transparent 78%);
+  pointer-events: none;
+}
+html[data-theme="midgar"] .midgar-bg .midgar-grain {
+  position: absolute; inset: 0; opacity: 0.04;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.78' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  mix-blend-mode: overlay; pointer-events: none;
+}
+html[data-theme="midgar"] .midgar-bg .midgar-vignette {
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse 100% 80% at 50% 50%,
+    transparent 50%, rgba(0, 0, 0, 0.40) 82%, rgba(0, 0, 0, 0.65) 100%);
+  pointer-events: none;
+}
+
+
+/* ── 2-10: TIPOGRAFÍA, SHELL, SUPERFICIES, SIDEBAR, TEXTO, INPUTS,
+   PORTALES, CONFIGTABS, REVEAL, REDUCED-MOTION ────────────────────────── */
+html[data-theme="midgar"] body {
+  color: var(--text); font-family: var(--font-ui); font-weight: 400;
+}
+html[data-theme="midgar"] h1,
+html[data-theme="midgar"] h2,
+html[data-theme="midgar"] h3,
+html[data-theme="midgar"] h4,
+html[data-theme="midgar"] h5,
+html[data-theme="midgar"] h6 {
+  font-family: var(--font-display);
+  font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;
+  color: var(--accent-bright);
+  text-shadow: 0 0 8px rgba(60, 255, 160, 0.45);
+}
+html[data-theme="midgar"] h1,
+html[data-theme="midgar"] h2 { font-weight: 800; color: #ffffff; }
+
+html[data-theme="midgar"] .glass-shell-frame {
+  margin: 18px; padding: 0; border-radius: 18px;
+  background: transparent; box-shadow: none; isolation: auto !important;
+}
+html[data-theme="midgar"] .glass-shell-inner {
+  border-radius: 17px; background: transparent;
+  backdrop-filter: none; -webkit-backdrop-filter: none;
+  isolation: auto !important; overflow: visible; padding: 20px;
+}
+@media (max-width: 768px) {
+  html[data-theme="midgar"] .glass-shell-inner { padding: 6px; }
+  html[data-theme="midgar"] .app-dashboard-root { gap: 8px; }
+}
+@media (max-width: 640px) {
+  html[data-theme="midgar"] .glass-shell-frame { margin: 4px; border-radius: 12px; }
+  html[data-theme="midgar"] .glass-shell-inner { border-radius: 11px; }
+}
+@media (max-width: 480px) {
+  html[data-theme="midgar"] .glass-shell-frame { margin: 0; padding: 0; border-radius: 0; background: none; }
+  html[data-theme="midgar"] .glass-shell-inner { padding: 0; border-radius: 0; }
+  html[data-theme="midgar"] .app-dashboard-root { gap: 0; }
+}
+html[data-theme="midgar"] .glass-shell-frame::before,
+html[data-theme="midgar"] .glass-shell-frame::after,
+html[data-theme="midgar"] .glass-shell-inner::before,
+html[data-theme="midgar"] .glass-shell-inner::after { display: none !important; }
+html[data-theme="midgar"] .app-dashboard-root { background: transparent !important; gap: 16px; }
+
+html[data-theme="midgar"] .glass-surface {
+  position: relative; isolation: auto;
+  background: var(--card);
+  backdrop-filter: none; -webkit-backdrop-filter: none;
+  border: 1px solid var(--border); border-radius: 14px;
+  box-shadow:
+    inset 0 1px 0 rgba(60, 255, 160, 0.06),
+    0 1px 0 rgba(0, 0, 0, 0.55),
+    0 18px 40px rgba(0, 0, 0, 0.55),
+    0 0 24px rgba(60, 255, 160, 0.06);
+  transition: border-color 0.2s ease, transform 0.2s ease;
+  overflow: hidden;
+}
+html[data-theme="midgar"] .glass-surface::before { display: none; }
+html[data-theme="midgar"] .glass-surface > * { position: relative; z-index: 1; }
+html[data-theme="midgar"] .glass-surface:hover { border-color: var(--border-strong); }
+html[data-theme="midgar"] .glass,
+html[data-theme="midgar"] .glass-1,
+html[data-theme="midgar"] .glass-2,
+html[data-theme="midgar"] .glass-3,
+html[data-theme="midgar"] .glass-4 {
+  isolation: auto !important; position: relative; border-radius: 14px;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+html[data-theme="midgar"] .glass,
+html[data-theme="midgar"] .glass-1 {
+  background: var(--card); border: 1px solid var(--border);
+  backdrop-filter: none; -webkit-backdrop-filter: none;
+  box-shadow: inset 0 1px 0 rgba(60, 255, 160, 0.04), 0 12px 30px rgba(0, 0, 0, 0.50);
+}
+html[data-theme="midgar"] .glass-2 {
+  background: linear-gradient(180deg, rgba(60, 255, 160, 0.025), rgba(60, 255, 160, 0)), var(--card);
+  border: 1px solid var(--border);
+  backdrop-filter: none; -webkit-backdrop-filter: none;
+  box-shadow: inset 0 1px 0 rgba(60, 255, 160, 0.05), 0 16px 36px rgba(0, 0, 0, 0.55);
+}
+html[data-theme="midgar"] .glass-3 {
+  background: linear-gradient(180deg, rgba(60, 255, 160, 0.04), rgba(60, 255, 160, 0)), var(--card);
+  border: 1px solid var(--border-strong);
+  backdrop-filter: none; -webkit-backdrop-filter: none;
+  box-shadow: inset 0 1px 0 rgba(60, 255, 160, 0.06), 0 20px 44px rgba(0, 0, 0, 0.60);
+}
+html[data-theme="midgar"] .glass-4 {
+  background: linear-gradient(180deg, rgba(60, 255, 160, 0.05), rgba(60, 255, 160, 0)), var(--card);
+  border: 1px solid var(--border-strong);
+  backdrop-filter: none; -webkit-backdrop-filter: none;
+  box-shadow: inset 0 1px 0 rgba(60, 255, 160, 0.07), 0 28px 56px rgba(0, 0, 0, 0.70);
+}
+
+html[data-theme="midgar"] .app-sidebar-shell {
+  background: linear-gradient(180deg,
+    rgba(14, 28, 40, 0.55) 0%, rgba(10, 20, 30, 0.62) 60%, rgba(6, 14, 22, 0.65) 100%);
+  border-right: none;
+  backdrop-filter: blur(22px) saturate(125%);
+  -webkit-backdrop-filter: blur(22px) saturate(125%);
+  box-shadow: inset -1px 0 0 rgba(60, 255, 160, 0.14), 4px 0 22px rgba(0, 0, 0, 0.45);
+}
+html[data-theme="midgar"] .app-top-header {
+  background: linear-gradient(180deg, rgba(10, 20, 30, 0.55) 0%, rgba(10, 20, 30, 0.45) 100%);
+  border-bottom: none;
+  backdrop-filter: blur(22px) saturate(125%);
+  -webkit-backdrop-filter: blur(22px) saturate(125%);
+  box-shadow: inset 0 -1px 0 rgba(60, 255, 160, 0.14), 0 4px 22px rgba(0, 0, 0, 0.35);
+}
+html[data-theme="midgar"] .sidebar-nav-link-active {
+  background: linear-gradient(180deg, rgba(60, 255, 160, 0.18) 0%, rgba(60, 255, 160, 0.10) 100%) !important;
+  color: #ffffff !important;
+  border-color: rgba(60, 255, 160, 0.42) !important;
+  box-shadow: inset 0 0 0 1px rgba(60, 255, 160, 0.22), 0 0 14px rgba(60, 255, 160, 0.30) !important;
+}
+html[data-theme="midgar"] .sidebar-nav-link-active.ring-2 {
+  --tw-ring-color: rgba(128, 255, 200, 0.55) !important;
+}
+html[data-theme="midgar"] .sidebar-nav-link:hover:not(.sidebar-nav-link-active) {
+  background: rgba(60, 255, 160, 0.08) !important; color: var(--text) !important;
+}
+html[data-theme="midgar"] .sidebar-active-bar {
+  background: linear-gradient(180deg, var(--accent-bright) 0%, var(--accent) 100%) !important;
+  box-shadow: 0 0 12px rgba(60, 255, 160, 0.65) !important;
+}
+html[data-theme="midgar"] nav .text-white\/40,
+html[data-theme="midgar"] nav [class*="text-white"][class*="uppercase"] {
+  color: rgba(168, 200, 180, 0.55) !important; letter-spacing: 0.10em;
+}
+html[data-theme="midgar"] .app-sidebar-shell .border-t {
+  border-top-color: rgba(60, 255, 160, 0.16) !important;
+}
+html[data-theme="midgar"] .app-sidebar-shell .bg-white\/5 {
+  background-color: rgba(60, 255, 160, 0.04) !important;
+}
+
+html[data-theme="midgar"] [data-bitacora-html-body],
+html[data-theme="midgar"] [data-bitacora-prose].prose,
+html[data-theme="midgar"] [data-bitacora-prose] .ProseMirror {
+  color: var(--text); font-family: var(--font-ui);
+  font-size: 16.5px; line-height: 1.85;
+}
+html[data-theme="midgar"] [data-bitacora-html-body] > p:first-child,
+html[data-theme="midgar"] [data-bitacora-prose].prose > p:first-child {
+  color: #ffffff; font-weight: 600;
+}
+html[data-theme="midgar"] [data-bitacora-html-body] a,
+html[data-theme="midgar"] [data-bitacora-prose] .ProseMirror a {
+  color: var(--accent-bright); text-decoration: none;
+  border-bottom: 1px solid rgba(60, 255, 160, 0.30);
+}
+html[data-theme="midgar"] [data-bitacora-html-body] a:hover,
+html[data-theme="midgar"] [data-bitacora-prose] .ProseMirror a:hover {
+  color: #b0ffd0; border-bottom-color: rgba(60, 255, 160, 0.65);
+}
+
+html[data-theme="midgar"] mark,
+html[data-theme="midgar"] .ProseMirror mark,
+html[data-theme="midgar"] [data-bitacora-html-body] mark {
+  background: linear-gradient(180deg, var(--accent) 0%, #1ec472 100%);
+  color: #06140e; font-weight: 700;
+  border-radius: 3px; padding: 0 5px;
+  box-shadow:
+    inset 0 0 0 1px rgba(0, 0, 0, 0.40),
+    inset 0 1px 0 rgba(255, 255, 255, 0.30);
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.30);
+}
+
+html[data-theme="midgar"] input,
+html[data-theme="midgar"] textarea,
+html[data-theme="midgar"] select {
+  background-color: rgba(60, 255, 160, 0.025);
+  color: var(--text); border-color: var(--border);
+}
+html[data-theme="midgar"] input::placeholder,
+html[data-theme="midgar"] textarea::placeholder { color: var(--muted); }
+html[data-theme="midgar"] input:focus,
+html[data-theme="midgar"] textarea:focus,
+html[data-theme="midgar"] select:focus {
+  border-color: var(--border-strong); outline: none;
+  box-shadow: 0 0 0 2px rgba(60, 255, 160, 0.22);
+}
+html[data-theme="midgar"] [data-bitacora-prose] input[type="text"],
+html[data-theme="midgar"] form input[type="text"] {
+  background-color: rgba(60, 255, 160, 0.025);
+}
+html[data-theme="midgar"] .btn-primary,
+html[data-theme="midgar"] button[data-variant="primary"] {
+  background: linear-gradient(180deg, var(--accent-bright) 0%, var(--accent) 100%);
+  color: #06140e; border: 1px solid rgba(60, 255, 160, 0.55);
+  font-weight: 700;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25), 0 1px 0 rgba(0, 0, 0, 0.45);
+}
+html[data-theme="midgar"] .btn-primary:hover,
+html[data-theme="midgar"] button[data-variant="primary"]:hover {
+  background: linear-gradient(180deg, #b0ffd0 0%, var(--accent-bright) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.30),
+    0 0 0 1px rgba(60, 255, 160, 0.55),
+    0 0 18px rgba(60, 255, 160, 0.55);
+}
+
+html[data-theme="midgar"] #theme-selector-panel {
+  background: linear-gradient(155deg, #0e1c28 0%, #08101a 60%, #050810 100%) !important;
+  border-color: var(--border) !important;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.78), 0 0 0 1px rgba(60, 255, 160, 0.14), 0 0 32px rgba(60, 255, 160, 0.10) !important;
+}
+html[data-theme="midgar"] #theme-selector-panel input[type="text"] {
+  background-color: rgba(60, 255, 160, 0.05) !important; color: var(--text) !important;
+}
+html[data-theme="midgar"] #theme-selector-panel .border-b { border-color: var(--border) !important; }
+html[data-theme="midgar"] .cmd-palette-backdrop { background-color: rgba(5, 10, 16, 0.92) !important; }
+html[data-theme="midgar"] #cmd-palette-panel [cmdk-root],
+html[data-theme="midgar"] #cmd-palette-panel [cmdk-list] {
+  background-color: #08101a !important; border-color: var(--border) !important;
+}
+html[data-theme="midgar"] #cmd-palette-panel [cmdk-input-wrapper],
+html[data-theme="midgar"] #cmd-palette-panel > div > div:first-child {
+  background-color: #08101a !important; border-color: var(--border) !important;
+}
+html[data-theme="midgar"] #cmd-palette-panel [class*="bg-\[\#060912\]"],
+html[data-theme="midgar"] #cmd-palette-panel input[cmdk-input] {
+  background-color: rgba(60, 255, 160, 0.04) !important;
+  color: var(--text) !important; border-color: var(--border) !important;
+}
+html[data-theme="midgar"] #cmd-palette-panel [cmdk-input-wrapper] > div:focus-within {
+  border-color: rgba(128, 255, 200, 0.65) !important;
+}
+html[data-theme="midgar"] #cmd-palette-panel [cmdk-item][data-selected="true"] {
+  background-color: rgba(60, 255, 160, 0.16) !important; color: var(--text) !important;
+}
+
+html[data-theme="midgar"] .config-tabs-root [class*="text-violet-"],
+html[data-theme="midgar"] .config-tabs-root [class*="text-amber-"],
+html[data-theme="midgar"] .config-tabs-root [class*="text-sky-"],
+html[data-theme="midgar"] .config-tabs-root [class*="text-emerald-"],
+html[data-theme="midgar"] .config-tabs-root [class*="text-rose-"],
+html[data-theme="midgar"] .config-tabs-root [class*="text-indigo-"],
+html[data-theme="midgar"] .config-tabs-root [class*="text-fuchsia-"],
+html[data-theme="midgar"] .config-tabs-root [class*="text-cyan-"],
+html[data-theme="midgar"] .config-tabs-root [class*="text-pink-"],
+html[data-theme="midgar"] .config-tabs-root [class*="text-teal-"],
+html[data-theme="midgar"] .config-tabs-root [class*="text-orange-"] {
+  color: var(--accent-bright) !important;
+}
+html[data-theme="midgar"] .config-tabs-root [class*="bg-violet-"],
+html[data-theme="midgar"] .config-tabs-root [class*="bg-amber-"],
+html[data-theme="midgar"] .config-tabs-root [class*="bg-sky-"],
+html[data-theme="midgar"] .config-tabs-root [class*="bg-emerald-"],
+html[data-theme="midgar"] .config-tabs-root [class*="bg-rose-"],
+html[data-theme="midgar"] .config-tabs-root [class*="bg-indigo-"],
+html[data-theme="midgar"] .config-tabs-root [class*="bg-fuchsia-"],
+html[data-theme="midgar"] .config-tabs-root [class*="bg-cyan-"],
+html[data-theme="midgar"] .config-tabs-root [class*="bg-pink-"],
+html[data-theme="midgar"] .config-tabs-root [class*="bg-teal-"],
+html[data-theme="midgar"] .config-tabs-root [class*="bg-orange-"] {
+  background-color: rgba(60, 255, 160, 0.10) !important;
+}
+html[data-theme="midgar"] .config-tabs-root [class*="border-violet-"],
+html[data-theme="midgar"] .config-tabs-root [class*="border-amber-"],
+html[data-theme="midgar"] .config-tabs-root [class*="border-sky-"],
+html[data-theme="midgar"] .config-tabs-root [class*="border-emerald-"],
+html[data-theme="midgar"] .config-tabs-root [class*="border-rose-"],
+html[data-theme="midgar"] .config-tabs-root [class*="border-indigo-"],
+html[data-theme="midgar"] .config-tabs-root [class*="border-fuchsia-"],
+html[data-theme="midgar"] .config-tabs-root [class*="border-cyan-"],
+html[data-theme="midgar"] .config-tabs-root [class*="border-pink-"],
+html[data-theme="midgar"] .config-tabs-root [class*="border-teal-"],
+html[data-theme="midgar"] .config-tabs-root [class*="border-orange-"] {
+  border-color: rgba(60, 255, 160, 0.22) !important;
+}
+html[data-theme="midgar"] .config-tabs-root [class*="ring-violet-"],
+html[data-theme="midgar"] .config-tabs-root [class*="ring-amber-"],
+html[data-theme="midgar"] .config-tabs-root [class*="ring-sky-"],
+html[data-theme="midgar"] .config-tabs-root [class*="ring-emerald-"],
+html[data-theme="midgar"] .config-tabs-root [class*="ring-rose-"],
+html[data-theme="midgar"] .config-tabs-root [class*="ring-indigo-"],
+html[data-theme="midgar"] .config-tabs-root [class*="ring-fuchsia-"],
+html[data-theme="midgar"] .config-tabs-root [class*="ring-cyan-"],
+html[data-theme="midgar"] .config-tabs-root [class*="ring-pink-"],
+html[data-theme="midgar"] .config-tabs-root [class*="ring-teal-"],
+html[data-theme="midgar"] .config-tabs-root [class*="ring-orange-"] {
+  --tw-ring-color: rgba(60, 255, 160, 0.32) !important;
+}
+html[data-theme="midgar"] .config-tabs-root [class*="from-violet"],
+html[data-theme="midgar"] .config-tabs-root [class*="from-amber"],
+html[data-theme="midgar"] .config-tabs-root [class*="from-sky"],
+html[data-theme="midgar"] .config-tabs-root [class*="from-emerald"],
+html[data-theme="midgar"] .config-tabs-root [class*="from-rose"],
+html[data-theme="midgar"] .config-tabs-root [class*="from-indigo"] {
+  --tw-gradient-from: rgba(60, 255, 160, 0.10) var(--tw-gradient-from-position) !important;
+  --tw-gradient-to: rgba(60, 255, 160, 0) var(--tw-gradient-to-position) !important;
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-via, var(--tw-gradient-to)), var(--tw-gradient-to) !important;
+}
+html[data-theme="midgar"] .config-tabs-root [class*="to-fuchsia"],
+html[data-theme="midgar"] .config-tabs-root [class*="to-orange"],
+html[data-theme="midgar"] .config-tabs-root [class*="to-cyan"],
+html[data-theme="midgar"] .config-tabs-root [class*="to-teal"],
+html[data-theme="midgar"] .config-tabs-root [class*="to-pink"],
+html[data-theme="midgar"] .config-tabs-root [class*="to-violet"] {
+  --tw-gradient-to: rgba(255, 80, 40, 0.10) var(--tw-gradient-to-position) !important;
+}
+html[data-theme="midgar"] .config-tabs-root .bg-gradient-to-r[class*="from-amber"],
+html[data-theme="midgar"] .config-tabs-root .bg-gradient-to-r[class*="from-violet"],
+html[data-theme="midgar"] .config-tabs-root .bg-gradient-to-r[class*="from-sky"],
+html[data-theme="midgar"] .config-tabs-root .bg-gradient-to-r[class*="from-emerald"],
+html[data-theme="midgar"] .config-tabs-root .bg-gradient-to-r[class*="from-rose"],
+html[data-theme="midgar"] .config-tabs-root .bg-gradient-to-r[class*="from-indigo"] {
+  background: linear-gradient(90deg, var(--accent) 0%, var(--accent-bright) 50%, var(--accent-2) 100%) !important;
+}
+html[data-theme="midgar"] .config-tabs-root .blur-3xl {
+  background-color: rgba(60, 255, 160, 0.06) !important;
+}
+
+html[data-theme="midgar"] .my-profile-card {
+  background: linear-gradient(180deg,
+    rgba(20, 36, 50, 0.95) 0%, rgba(14, 28, 40, 0.97) 50%, rgba(10, 20, 30, 0.98) 100%) !important;
+  border-color: var(--border) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(60, 255, 160, 0.05),
+    0 18px 50px rgba(0, 0, 0, 0.65) !important;
+}
+html[data-theme="midgar"] .my-profile-card .border-white\/8 {
+  border-color: rgba(60, 255, 160, 0.16) !important;
+}
+
+html[data-theme="midgar"] .glass-surface::after,
+html[data-theme="midgar"] .glass-2::after,
+html[data-theme="midgar"] .glass-3::after,
+html[data-theme="midgar"] .glass-4::after {
+  content: ""; position: absolute; top: 0; left: 0; right: 0;
+  height: 2px; pointer-events: none; z-index: 2;
+  background: linear-gradient(90deg,
+    transparent 0%, transparent 22%,
+    rgba(60, 255, 160, 0.55) 38%,
+    rgba(180, 255, 220, 1.00) 50%,
+    rgba(255, 80, 40, 0.55) 62%,
+    transparent 78%, transparent 100%);
+  background-size: 280% 100%; background-position: 100% 0;
+  animation: midgar-shimmer 6s ease-in-out infinite;
+  border-top-left-radius: inherit; border-top-right-radius: inherit;
+}
+@keyframes midgar-shimmer {
+  0%   { background-position: 130% 0; }
+  100% { background-position: -30% 0; }
+}
+
+html[data-theme="midgar"] h2,
+html[data-theme="midgar"] h3 { position: relative; }
+html[data-theme="midgar"] h2::after,
+html[data-theme="midgar"] h3::after {
+  content: ""; display: block; width: 48px; height: 2px;
+  margin-top: 8px;
+  background: linear-gradient(90deg, var(--accent) 0%, var(--accent-bright) 60%, transparent 100%);
+  box-shadow: 0 0 8px rgba(60, 255, 160, 0.55); border-radius: 999px;
+}
+html[data-theme="midgar"] h3::after { width: 32px; height: 1.5px; margin-top: 6px; }
+
+html[data-theme="midgar"] .glass-surface,
+html[data-theme="midgar"] .glass-2,
+html[data-theme="midgar"] .glass-3,
+html[data-theme="midgar"] .glass-4 {
+  animation: midgar-card-reveal 0.55s cubic-bezier(0.22, 0.61, 0.36, 1) backwards;
+}
+html[data-theme="midgar"] .glass-surface:nth-child(1),
+html[data-theme="midgar"] .glass-2:nth-child(1),
+html[data-theme="midgar"] .glass-3:nth-child(1),
+html[data-theme="midgar"] .glass-4:nth-child(1) { animation-delay: 0.04s; }
+html[data-theme="midgar"] .glass-surface:nth-child(2),
+html[data-theme="midgar"] .glass-2:nth-child(2),
+html[data-theme="midgar"] .glass-3:nth-child(2),
+html[data-theme="midgar"] .glass-4:nth-child(2) { animation-delay: 0.08s; }
+html[data-theme="midgar"] .glass-surface:nth-child(3),
+html[data-theme="midgar"] .glass-2:nth-child(3),
+html[data-theme="midgar"] .glass-3:nth-child(3),
+html[data-theme="midgar"] .glass-4:nth-child(3) { animation-delay: 0.12s; }
+html[data-theme="midgar"] .glass-surface:nth-child(4),
+html[data-theme="midgar"] .glass-2:nth-child(4),
+html[data-theme="midgar"] .glass-3:nth-child(4),
+html[data-theme="midgar"] .glass-4:nth-child(4) { animation-delay: 0.16s; }
+html[data-theme="midgar"] .glass-surface:nth-child(5),
+html[data-theme="midgar"] .glass-2:nth-child(5),
+html[data-theme="midgar"] .glass-3:nth-child(5),
+html[data-theme="midgar"] .glass-4:nth-child(5) { animation-delay: 0.20s; }
+
+@keyframes midgar-card-reveal {
+  0%   { opacity: 0; transform: translateY(8px); }
+  100% { opacity: 1; transform: translateY(0);    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-theme="midgar"] .midgar-bg .midgar-meteor,
+  html[data-theme="midgar"] .midgar-bg .midgar-mako,
+  html[data-theme="midgar"] .midgar-bg .midgar-shinra,
+  html[data-theme="midgar"] .midgar-bg .midgar-smog,
+  html[data-theme="midgar"] .midgar-bg .midgar-mako-pillar,
+  html[data-theme="midgar"] .glass-surface::after,
+  html[data-theme="midgar"] .glass-2::after,
+  html[data-theme="midgar"] .glass-3::after,
+  html[data-theme="midgar"] .glass-4::after,
+  html[data-theme="midgar"] .glass-surface,
+  html[data-theme="midgar"] .glass-2,
+  html[data-theme="midgar"] .glass-3,
+  html[data-theme="midgar"] .glass-4 {
+    animation: none !important;
+  }
+}

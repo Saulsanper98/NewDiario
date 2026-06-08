@@ -104,6 +104,14 @@ html[data-theme="light"] {
    * a través del cristal (los gradientes del body no se ven bajo la card).
    * Lo equivalente que hacen Cristal y Slate en su sitio: `auto`. */
   --card-isolation: auto;
+
+  /* Profile menu — paleta clara (zinc-100 sobre crema, borde índigo sutil).
+   * Ver bloque de comentarios sobre `--profile-menu-*` en `globals.css`. */
+  --profile-menu-bg: #f4f4f5;
+  --profile-menu-solid: #f4f4f5;
+  --profile-menu-border: rgba(15, 23, 42, 0.10);
+  --profile-menu-shadow: 0 12px 40px rgba(15, 23, 42, 0.15);
+  --profile-menu-section: rgba(255, 255, 255, 0.80);
 }
 
 /* `html[data-theme="light"] body` se define más abajo en una única regla

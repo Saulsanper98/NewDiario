@@ -1,10 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
-import { Calendar, ChevronUp, ChevronDown, Minus } from "lucide-react";
-import { Avatar } from "@/components/ui/Avatar";
+import {
+  Calendar,
+  ChevronUp,
+  ChevronDown,
+  Minus,
+  Plus,
+  Loader2,
+  X,
+} from "lucide-react";
 import { UserProfilePopover } from "@/components/user/UserProfilePopover";
 import { Badge } from "@/components/ui/Badge";
 import { getPriorityColor, PRIORITY_LABELS } from "@/lib/utils";
@@ -23,11 +30,13 @@ const PRIORITY_CYCLE: Priority[] = ["LOW", "MEDIUM", "HIGH"];
 
 interface TaskListViewProps {
   columns: KanbanColumnShape[];
+  /** Proyecto activo. Necesario para POSTear nuevas tareas a la API. */
+  projectId: string;
 }
 
 type SortKey = "title" | "priority" | "dueDate" | "assignee" | "status";
 
-export function TaskListView({ columns }: TaskListViewProps) {
+export function TaskListView({ columns, projectId }: TaskListViewProps) {
   const { theme } = useTheme();
   const L = theme === "light";
   const router = useRouter();
@@ -42,6 +51,83 @@ export function TaskListView({ columns }: TaskListViewProps) {
     }
     return m;
   });
+
+  /* ────────────────────────────────────────────────────────────────────
+   *  Crear tarea: mini-formulario inline al estilo del flujo Kanban.
+   *  El usuario elige columna y prioridad, escribe el título y se hace
+   *  POST a /api/projects/[id]/tasks. No replica todo lo del KanbanBoard
+   *  porque para esta vista basta un quick-add: detalles posteriores se
+   *  editan en el panel de tarea como siempre.
+   * ──────────────────────────────────────────────────────────────────── */
+  const [creatorOpen, setCreatorOpen] = useState(false);
+  const [draftTitle, setDraftTitle] = useState("");
+  const [draftPriority, setDraftPriority] = useState<Priority>("MEDIUM");
+  const [draftColumnId, setDraftColumnId] = useState<string>(
+    () => columns[0]?.id ?? "",
+  );
+  const [creating, setCreating] = useState(false);
+  const titleInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!draftColumnId && columns[0]) setDraftColumnId(columns[0].id);
+  }, [columns, draftColumnId]);
+
+  useEffect(() => {
+    if (creatorOpen) {
+      const id = setTimeout(() => titleInputRef.current?.focus(), 30);
+      return () => clearTimeout(id);
+    }
+  }, [creatorOpen]);
+
+  function openCreator() {
+    setDraftTitle("");
+    setDraftPriority("MEDIUM");
+    setDraftColumnId((prev) => prev || columns[0]?.id || "");
+    setCreatorOpen(true);
+  }
+
+  function closeCreator() {
+    if (creating) return;
+    setCreatorOpen(false);
+  }
+
+  async function submitNewTask() {
+    const title = draftTitle.trim();
+    if (!title) {
+      toast.error("Escribe un título para la tarea");
+      return;
+    }
+    if (!draftColumnId) {
+      toast.error("Selecciona una columna de destino");
+      return;
+    }
+    setCreating(true);
+    try {
+      const res = await fetch(`/api/projects/${projectId}/tasks`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          columnId: draftColumnId,
+          title,
+          priority: draftPriority,
+        }),
+      });
+      if (!res.ok) {
+        const err = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(
+          typeof err.error === "string" ? err.error : "No se pudo crear la tarea",
+        );
+      }
+      toast.success("Tarea creada");
+      setCreatorOpen(false);
+      setDraftTitle("");
+      router.refresh();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Error al crear la tarea");
+    } finally {
+      setCreating(false);
+    }
+  }
 
   const allTasks: TaskWithColumn[] = columns.flatMap((col) =>
     col.tasks.map((t) => ({ ...t, columnName: col.name }))
@@ -127,6 +213,162 @@ export function TaskListView({ columns }: TaskListViewProps) {
   return (
     <div className="flex-1 min-h-0 relative">
       <div className="absolute inset-0 overflow-auto p-4">
+      {/* ── Toolbar: botón "Nueva tarea" + mini formulario inline.
+            Se muestra por encima tanto de la vista cards (mobile) como
+            de la tabla (sm+) para que el alta funcione en cualquier
+            tamaño de pantalla. ─────────────────────────────────────── */}
+      <div className="mb-3 flex flex-col gap-2">
+        <div className="flex items-center justify-between gap-2">
+          <h2
+            className={cn(
+              "text-xs font-medium uppercase tracking-wide",
+              L ? "text-zinc-500" : "text-white/40",
+            )}
+          >
+            {sorted.length} tarea{sorted.length === 1 ? "" : "s"}
+          </h2>
+          {!creatorOpen && (
+            <button
+              type="button"
+              onClick={openCreator}
+              disabled={columns.length === 0}
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-50",
+                L
+                  ? "border-amber-300 bg-amber-100 text-amber-800 hover:bg-amber-200"
+                  : "border-[#ffeb66]/25 bg-[#ffeb66]/12 text-[#ffeb66] hover:bg-[#ffeb66]/20",
+              )}
+            >
+              <Plus className="h-3.5 w-3.5" />
+              Nueva tarea
+            </button>
+          )}
+        </div>
+        {creatorOpen && (
+          <div
+            className={cn(
+              "rounded-xl border p-3",
+              L
+                ? "border-amber-300/70 bg-amber-50/60"
+                : "border-[#ffeb66]/25 bg-[#ffeb66]/[0.05]",
+            )}
+          >
+            <div className="flex items-center justify-between gap-2 mb-2">
+              <p
+                className={cn(
+                  "text-[11px] font-semibold uppercase tracking-wider",
+                  L ? "text-amber-800" : "text-[#ffeb66]/80",
+                )}
+              >
+                Nueva tarea
+              </p>
+              <button
+                type="button"
+                onClick={closeCreator}
+                disabled={creating}
+                aria-label="Cancelar"
+                className={cn(
+                  "p-1 rounded transition-colors",
+                  L
+                    ? "text-amber-700 hover:bg-amber-200/60"
+                    : "text-[#ffeb66]/70 hover:bg-[#ffeb66]/15",
+                )}
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+            <input
+              ref={titleInputRef}
+              type="text"
+              value={draftTitle}
+              onChange={(e) => setDraftTitle(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  void submitNewTask();
+                }
+                if (e.key === "Escape") closeCreator();
+              }}
+              maxLength={500}
+              placeholder="Título de la tarea…"
+              disabled={creating}
+              className={cn(
+                "w-full rounded-md border px-3 py-2 text-sm focus:outline-none disabled:opacity-50",
+                L
+                  ? "border-amber-300 bg-white text-zinc-900 focus:border-amber-500"
+                  : "border-[#ffeb66]/30 bg-white/[0.04] text-white focus:border-[#ffeb66]/55",
+              )}
+            />
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <label
+                className={cn(
+                  "text-[11px] font-medium uppercase tracking-wide",
+                  L ? "text-zinc-500" : "text-white/40",
+                )}
+              >
+                Columna
+              </label>
+              <select
+                value={draftColumnId}
+                onChange={(e) => setDraftColumnId(e.target.value)}
+                disabled={creating || columns.length === 0}
+                className={cn(
+                  "rounded-md border px-2 py-1.5 text-xs min-h-[32px] disabled:opacity-50",
+                  L
+                    ? "border-zinc-200 bg-white text-zinc-800"
+                    : "border-white/10 bg-white/[0.04] text-white/85",
+                )}
+              >
+                {columns.map((c) => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+              <label
+                className={cn(
+                  "text-[11px] font-medium uppercase tracking-wide ml-2",
+                  L ? "text-zinc-500" : "text-white/40",
+                )}
+              >
+                Prioridad
+              </label>
+              <select
+                value={draftPriority}
+                onChange={(e) => setDraftPriority(e.target.value as Priority)}
+                disabled={creating}
+                className={cn(
+                  "rounded-md border px-2 py-1.5 text-xs min-h-[32px] disabled:opacity-50",
+                  L
+                    ? "border-zinc-200 bg-white text-zinc-800"
+                    : "border-white/10 bg-white/[0.04] text-white/85",
+                )}
+              >
+                {PRIORITY_CYCLE.map((p) => (
+                  <option key={p} value={p}>{PRIORITY_LABELS[p]}</option>
+                ))}
+              </select>
+              <button
+                type="button"
+                onClick={() => void submitNewTask()}
+                disabled={creating || !draftTitle.trim() || !draftColumnId}
+                className={cn(
+                  "ml-auto inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold border disabled:opacity-50",
+                  L
+                    ? "border-amber-400 bg-amber-200 text-amber-900 hover:bg-amber-300"
+                    : "border-[#ffeb66]/40 bg-[#ffeb66]/20 text-[#ffeb66] hover:bg-[#ffeb66]/30",
+                )}
+              >
+                {creating ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Plus className="h-3.5 w-3.5" />
+                )}
+                {creating ? "Creando…" : "Crear"}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
       {/* ── Vista cards en mobile (<sm). La tabla queda demasiado
             apretada con 5 columnas en 360px; aquí cada tarea es un
             card apilado con la misma informacion. ─────────────────── */}
@@ -232,16 +474,14 @@ export function TaskListView({ columns }: TaskListViewProps) {
               </div>
               {task.assignee && (
                 <div className="flex items-center gap-2 pt-1">
-                  <Avatar
-                    name={task.assignee.name}
-                    image={task.assignee.image}
-                    size="xs"
-                  />
                   <UserProfilePopover
                     userId={task.assignee.id}
                     name={task.assignee.name}
                     image={task.assignee.image}
-                    nameClassName={cn("text-xs", L ? "text-zinc-700" : "text-white/55")}
+                    nameClassName={cn(
+                      "text-xs font-medium",
+                      L ? "text-zinc-700" : "text-white/65",
+                    )}
                   />
                 </div>
               )}
@@ -331,19 +571,15 @@ export function TaskListView({ columns }: TaskListViewProps) {
                   </td>
                   <td className="px-4 py-3">
                     {task.assignee ? (
-                      <div className="flex items-center gap-1.5">
-                        <Avatar
-                          name={task.assignee.name}
-                          image={task.assignee.image}
-                          size="xs"
-                        />
-                        <UserProfilePopover
-                          userId={task.assignee.id}
-                          name={task.assignee.name}
-                          image={task.assignee.image}
-                          nameClassName={cn("text-xs", L ? "text-zinc-700" : "text-white/50")}
-                        />
-                      </div>
+                      <UserProfilePopover
+                        userId={task.assignee.id}
+                        name={task.assignee.name}
+                        image={task.assignee.image}
+                        nameClassName={cn(
+                          "text-sm font-medium",
+                          L ? "text-zinc-800" : "text-white/75",
+                        )}
+                      />
                     ) : (
                       <span className={cn("text-xs", L ? "text-zinc-400" : "text-white/20")}>—</span>
                     )}

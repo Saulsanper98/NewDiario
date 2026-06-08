@@ -41,6 +41,7 @@ interface MiddlewareRateLimitRule {
 function chooseRateLimitRule(pathname: string): MiddlewareRateLimitRule | null {
   // SSE: una conexión persistente; medirla no aporta nada (se mantiene abierta).
   if (pathname.startsWith("/api/chat/stream")) return null;
+  if (pathname.startsWith("/api/presence/nav/stream")) return null;
 
   // Login y descubrimiento de cuentas: muy estricto para frenar fuerza bruta.
   // No incluimos `/api/auth/session` aquí porque es polling legítimo (NextAuth

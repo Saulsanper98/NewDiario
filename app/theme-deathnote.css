@@ -1,0 +1,608 @@
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║   TEMA "DEATH NOTE" · TRIBUTO · Cuaderno gótico + manzanas + Shinigami  ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="deathnote"] {
+  --bg-0: #050505;
+  --bg-1: #0a0a0a;
+  --bg-2: #121010;
+
+  --card: linear-gradient(180deg, #1a1818 0%, #0f0e0e 60%, #080606 100%);
+  --surface:   rgba(26, 24, 24, 0.95);
+  --surface-2: rgba(220, 30, 50, 0.04);
+  --border:        rgba(220, 30, 50, 0.20);
+  --border-strong: rgba(220, 30, 50, 0.55);
+
+  --accent:        #dc1e32;        /* rojo manzana / sangre */
+  --accent-bright: #ff3850;
+  --accent-glow:   rgba(220, 30, 50, 0.55);
+  --accent-2:      #f0eee0;        /* beige cuaderno */
+  --accent-3:      #ff5060;
+  --accent-cream:  #f0eee0;        /* color del Death Note */
+
+  --text:      #e8e6e0;
+  --text-soft: #b0a8a4;
+  --muted:     #6a605a;
+
+  --ok:         #4dffaa;
+
+  --font-display: "Cinzel", "UnifrakturMaguntia", Georgia, serif;
+  --font-ui:      "Sora", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-handwritten: "Yuji Mai", "Special Elite", monospace;
+
+  --app-canvas-color: transparent;
+  --app-canvas-image: none;
+  --card-isolation: auto;
+
+  color-scheme: dark;
+}
+
+html[data-theme="deathnote"] body { min-height: 100vh; }
+html[data-theme="deathnote"] .app-sidebar-shell,
+html[data-theme="deathnote"] .app-top-header { isolation: auto !important; }
+
+
+/* ── 1. FONDO + ATMÓSFERA ─────────────────────────────────────────────── */
+html[data-theme="deathnote"] .dn-bg {
+  position: fixed; inset: 0; z-index: -10; overflow: hidden; pointer-events: none;
+  background:
+    /* Halo carmesí tenue arriba */
+    radial-gradient(ellipse 80% 50% at 50% 0%, rgba(140, 14, 30, 0.18) 0%, transparent 60%),
+    linear-gradient(180deg, var(--bg-0) 0%, var(--bg-1) 50%, var(--bg-2) 100%);
+}
+
+/* ── 1.0 SPOTLIGHT (luz de lámpara de escritorio sobre el cuaderno) ──── */
+html[data-theme="deathnote"] .dn-bg .dn-spotlight {
+  position: absolute;
+  left: 50%; top: 50%;
+  width: clamp(400px, 60vmin, 800px);
+  height: clamp(400px, 60vmin, 800px);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  background: radial-gradient(circle,
+    rgba(255, 200, 130, 0.22) 0%,
+    rgba(220, 130, 70, 0.12) 30%,
+    rgba(180, 30, 50, 0.06) 60%,
+    transparent 85%);
+  filter: blur(20px);
+  animation: dn-spotlight-flicker 11s ease-in-out infinite;
+}
+@keyframes dn-spotlight-flicker {
+  0%, 100% { opacity: 0.85; }
+  50%      { opacity: 1.00; }
+  92%      { opacity: 0.85; }
+  93%      { opacity: 0.40; }
+  94%      { opacity: 0.85; }
+}
+
+/* ── 1.1 Ryuk Shinigami silueta (detrás del cuaderno, lateral) ───────── */
+html[data-theme="deathnote"] .dn-bg .dn-ryuk {
+  position: absolute;
+  left: 50%; top: 50%;
+  width: clamp(180px, 24vmin, 340px);
+  height: auto;
+  transform: translate(-180%, -55%);
+  pointer-events: none;
+  opacity: 0.78;
+  filter: drop-shadow(0 0 22px rgba(140, 14, 30, 0.45)) drop-shadow(0 10px 20px rgba(0, 0, 0, 0.85));
+  animation: dn-ryuk-breath 7s ease-in-out infinite;
+  z-index: 1;
+}
+@keyframes dn-ryuk-breath {
+  0%, 100% { transform: translate(-180%, -55%) translateY(0)     scale(1.00); opacity: 0.78; }
+  50%      { transform: translate(-180%, -55%) translateY(-4px)  scale(1.02); opacity: 0.88; }
+}
+
+/* ── 1.2 Cuaderno Death Note (CENTRAL, prominente) ───────────────────── */
+html[data-theme="deathnote"] .dn-bg .dn-notebook {
+  position: absolute;
+  left: 50%; top: 50%;
+  width: clamp(260px, 36vmin, 460px);
+  height: auto;
+  transform: translate(-50%, -50%) rotate(-4deg);
+  pointer-events: none;
+  opacity: 0.92;
+  filter: drop-shadow(0 18px 40px rgba(0, 0, 0, 0.92)) drop-shadow(0 0 26px rgba(180, 30, 50, 0.30));
+  animation: dn-notebook-breath 9s ease-in-out infinite;
+  z-index: 2;
+}
+@keyframes dn-notebook-breath {
+  0%, 100% { transform: translate(-50%, -50%) rotate(-4deg) scale(1.00); }
+  50%      { transform: translate(-50%, -50%) rotate(-4deg) scale(1.015); }
+}
+
+/* ── 1.3 Manzana (sobre el cuaderno, esquina sup. der.) ──────────────── */
+html[data-theme="deathnote"] .dn-bg .dn-apple {
+  position: absolute;
+  left: 50%; top: 50%;
+  width: clamp(80px, 11vmin, 130px);
+  height: auto;
+  transform: translate(70%, -28%) rotate(8deg);
+  pointer-events: none;
+  opacity: 0.88;
+  filter: drop-shadow(0 6px 18px rgba(220, 30, 50, 0.55)) drop-shadow(0 0 14px rgba(255, 60, 80, 0.35));
+  animation: dn-apple-bob 6s ease-in-out infinite;
+  z-index: 3;
+}
+@keyframes dn-apple-bob {
+  0%, 100% { transform: translate(70%, -28%) rotate(8deg)  translateY(0); }
+  50%      { transform: translate(70%, -28%) rotate(11deg) translateY(-4px); }
+}
+
+/* ── 1.4 Reglas del cuaderno (texto manuscrito tipo subtítulo) ─────── */
+html[data-theme="deathnote"] .dn-bg .dn-rule {
+  position: absolute;
+  font-family: "Special Elite", "Yuji Mai", "Courier New", monospace;
+  font-size: clamp(11px, 1vw, 14px);
+  letter-spacing: 0.04em;
+  color: rgba(240, 238, 224, 0.38);
+  text-shadow: 0 0 6px rgba(220, 30, 50, 0.25);
+  max-width: 38vw;
+  pointer-events: none; user-select: none;
+  animation: dn-rule-fade ease-in-out infinite;
+}
+@keyframes dn-rule-fade {
+  0%, 100% { opacity: 0.20; }
+  50%      { opacity: 0.55; }
+}
+
+/* ── 1.5 Plumas SVG cayendo (Shinigami) ──────────────────────────────── */
+html[data-theme="deathnote"] .dn-bg .dn-feather {
+  position: absolute;
+  top: -8%;
+  width: 16px; height: 40px;
+  pointer-events: none;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.85));
+  animation: dn-feather-fall linear infinite;
+  opacity: 0;
+}
+@keyframes dn-feather-fall {
+  0%   { transform: translate(0, 0)                       rotate(0deg);                            opacity: 0; }
+  8%   { opacity: 0.78; }
+  100% { transform: translate(var(--dx, 80px), 115vh)     rotate(calc(var(--rot, 20deg) * 18));    opacity: 0.10; }
+}
+
+/* ── 1.6 Logo "L" gótico tenue ─────────────────────────────────────── */
+html[data-theme="deathnote"] .dn-bg .dn-logo {
+  position: absolute; right: 5%; bottom: 5%;
+  font-family: "Cinzel", "UnifrakturMaguntia", serif;
+  font-size: clamp(8rem, 18vw, 22rem); font-weight: 900;
+  color: rgba(240, 238, 224, 0.06);
+  text-shadow: 0 0 36px rgba(220, 30, 50, 0.10);
+  user-select: none; pointer-events: none;
+  letter-spacing: -0.05em;
+  line-height: 0.85;
+}
+
+/* ── 1.7 Veil + grain + vignette (más suaves para no oscurecer detalles) */
+html[data-theme="deathnote"] .dn-bg .dn-veil {
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse 90% 70% at 50% 50%,
+    transparent 0%, rgba(5, 5, 5, 0.20) 60%, rgba(5, 5, 5, 0.35) 100%);
+  pointer-events: none;
+}
+html[data-theme="deathnote"] .dn-bg .dn-grain {
+  position: absolute; inset: 0; opacity: 0.05;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  mix-blend-mode: overlay; pointer-events: none;
+}
+html[data-theme="deathnote"] .dn-bg .dn-vignette {
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse 100% 85% at 50% 50%,
+    transparent 55%, rgba(0, 0, 0, 0.40) 85%, rgba(0, 0, 0, 0.65) 100%);
+  pointer-events: none;
+}
+
+
+/* ── 2. TIPOGRAFÍA + SHELL ──────────────────────────────────────────── */
+html[data-theme="deathnote"] body {
+  color: var(--text); font-family: var(--font-ui); font-weight: 400;
+}
+html[data-theme="deathnote"] h1,
+html[data-theme="deathnote"] h2,
+html[data-theme="deathnote"] h3,
+html[data-theme="deathnote"] h4,
+html[data-theme="deathnote"] h5,
+html[data-theme="deathnote"] h6 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: var(--accent-cream);
+  letter-spacing: 0.02em;
+}
+html[data-theme="deathnote"] h1, html[data-theme="deathnote"] h2 {
+  font-weight: 900; color: var(--accent-bright);
+  text-shadow: 0 0 12px rgba(220, 30, 50, 0.45);
+}
+
+html[data-theme="deathnote"] .glass-shell-frame {
+  margin: 18px; padding: 0; border-radius: 16px;
+  background: transparent; box-shadow: none; isolation: auto !important;
+}
+html[data-theme="deathnote"] .glass-shell-inner {
+  border-radius: 15px; background: transparent;
+  backdrop-filter: none; -webkit-backdrop-filter: none;
+  isolation: auto !important; overflow: visible; padding: 20px;
+}
+@media (max-width: 768px) {
+  html[data-theme="deathnote"] .glass-shell-inner { padding: 6px; }
+  html[data-theme="deathnote"] .app-dashboard-root { gap: 8px; }
+}
+@media (max-width: 640px) {
+  html[data-theme="deathnote"] .glass-shell-frame { margin: 4px; border-radius: 10px; }
+  html[data-theme="deathnote"] .glass-shell-inner { border-radius: 9px; }
+}
+@media (max-width: 480px) {
+  html[data-theme="deathnote"] .glass-shell-frame { margin: 0; padding: 0; border-radius: 0; background: none; }
+  html[data-theme="deathnote"] .glass-shell-inner { padding: 0; border-radius: 0; }
+  html[data-theme="deathnote"] .app-dashboard-root { gap: 0; }
+}
+html[data-theme="deathnote"] .glass-shell-frame::before,
+html[data-theme="deathnote"] .glass-shell-frame::after,
+html[data-theme="deathnote"] .glass-shell-inner::before,
+html[data-theme="deathnote"] .glass-shell-inner::after { display: none !important; }
+html[data-theme="deathnote"] .app-dashboard-root { background: transparent !important; gap: 16px; }
+
+
+/* ── 3-10: SUPERFICIES, SIDEBAR, TEXTO, INPUTS, PORTALES, CONFIGTABS ───── */
+html[data-theme="deathnote"] .glass-surface {
+  position: relative; isolation: auto;
+  background: var(--card);
+  backdrop-filter: none; -webkit-backdrop-filter: none;
+  border: 1px solid var(--border); border-radius: 12px;
+  box-shadow:
+    inset 0 1px 0 rgba(240, 238, 224, 0.05),
+    0 1px 0 rgba(0, 0, 0, 0.85),
+    0 18px 40px rgba(0, 0, 0, 0.85),
+    0 0 24px rgba(220, 30, 50, 0.10);
+  transition: border-color 0.2s ease, transform 0.2s ease;
+  overflow: hidden;
+}
+html[data-theme="deathnote"] .glass-surface::before { display: none; }
+html[data-theme="deathnote"] .glass-surface > * { position: relative; z-index: 1; }
+html[data-theme="deathnote"] .glass-surface:hover { border-color: var(--border-strong); }
+
+html[data-theme="deathnote"] .glass,
+html[data-theme="deathnote"] .glass-1,
+html[data-theme="deathnote"] .glass-2,
+html[data-theme="deathnote"] .glass-3,
+html[data-theme="deathnote"] .glass-4 {
+  isolation: auto !important; position: relative; border-radius: 12px;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+html[data-theme="deathnote"] .glass,
+html[data-theme="deathnote"] .glass-1 {
+  background: var(--card); border: 1px solid var(--border);
+  backdrop-filter: none; -webkit-backdrop-filter: none;
+  box-shadow: inset 0 1px 0 rgba(240, 238, 224, 0.04), 0 12px 28px rgba(0, 0, 0, 0.85);
+}
+html[data-theme="deathnote"] .glass-2 {
+  background: linear-gradient(180deg, rgba(220, 30, 50, 0.025), rgba(220, 30, 50, 0)), var(--card);
+  border: 1px solid var(--border);
+  backdrop-filter: none; -webkit-backdrop-filter: none;
+  box-shadow: inset 0 1px 0 rgba(240, 238, 224, 0.05), 0 14px 32px rgba(0, 0, 0, 0.85);
+}
+html[data-theme="deathnote"] .glass-3 {
+  background: linear-gradient(180deg, rgba(220, 30, 50, 0.04), rgba(220, 30, 50, 0)), var(--card);
+  border: 1px solid var(--border-strong);
+  backdrop-filter: none; -webkit-backdrop-filter: none;
+  box-shadow: inset 0 1px 0 rgba(240, 238, 224, 0.06), 0 18px 40px rgba(0, 0, 0, 0.90);
+}
+html[data-theme="deathnote"] .glass-4 {
+  background: linear-gradient(180deg, rgba(220, 30, 50, 0.05), rgba(220, 30, 50, 0)), var(--card);
+  border: 1px solid var(--border-strong);
+  backdrop-filter: none; -webkit-backdrop-filter: none;
+  box-shadow: inset 0 1px 0 rgba(240, 238, 224, 0.07), 0 24px 50px rgba(0, 0, 0, 0.95);
+}
+
+html[data-theme="deathnote"] .app-sidebar-shell {
+  background: linear-gradient(180deg,
+    rgba(26, 24, 24, 0.65) 0%, rgba(15, 14, 14, 0.72) 60%, rgba(8, 6, 6, 0.75) 100%);
+  border-right: none;
+  backdrop-filter: blur(22px) saturate(110%);
+  -webkit-backdrop-filter: blur(22px) saturate(110%);
+  box-shadow: inset -1px 0 0 rgba(220, 30, 50, 0.16), 4px 0 22px rgba(0, 0, 0, 0.65);
+}
+html[data-theme="deathnote"] .app-top-header {
+  background: linear-gradient(180deg, rgba(15, 14, 14, 0.65) 0%, rgba(15, 14, 14, 0.55) 100%);
+  border-bottom: none;
+  backdrop-filter: blur(22px) saturate(110%);
+  -webkit-backdrop-filter: blur(22px) saturate(110%);
+  box-shadow: inset 0 -1px 0 rgba(220, 30, 50, 0.16), 0 4px 22px rgba(0, 0, 0, 0.50);
+}
+html[data-theme="deathnote"] .sidebar-nav-link-active {
+  background: linear-gradient(180deg, rgba(220, 30, 50, 0.20) 0%, rgba(220, 30, 50, 0.10) 100%) !important;
+  color: var(--accent-cream) !important;
+  border-color: rgba(220, 30, 50, 0.45) !important;
+  box-shadow: inset 0 0 0 1px rgba(220, 30, 50, 0.22), 0 0 14px rgba(220, 30, 50, 0.30) !important;
+}
+html[data-theme="deathnote"] .sidebar-nav-link-active.ring-2 {
+  --tw-ring-color: rgba(255, 56, 80, 0.55) !important;
+}
+html[data-theme="deathnote"] .sidebar-nav-link:hover:not(.sidebar-nav-link-active) {
+  background: rgba(220, 30, 50, 0.06) !important; color: var(--text) !important;
+}
+html[data-theme="deathnote"] .sidebar-active-bar {
+  background: linear-gradient(180deg, var(--accent-bright) 0%, var(--accent) 100%) !important;
+  box-shadow: 0 0 12px rgba(220, 30, 50, 0.65) !important;
+}
+html[data-theme="deathnote"] nav .text-white\/40,
+html[data-theme="deathnote"] nav [class*="text-white"][class*="uppercase"] {
+  color: rgba(176, 168, 164, 0.55) !important; letter-spacing: 0.10em;
+}
+html[data-theme="deathnote"] .app-sidebar-shell .border-t {
+  border-top-color: rgba(220, 30, 50, 0.16) !important;
+}
+html[data-theme="deathnote"] .app-sidebar-shell .bg-white\/5 {
+  background-color: rgba(220, 30, 50, 0.04) !important;
+}
+
+html[data-theme="deathnote"] [data-bitacora-html-body],
+html[data-theme="deathnote"] [data-bitacora-prose].prose,
+html[data-theme="deathnote"] [data-bitacora-prose] .ProseMirror {
+  color: var(--text); font-family: var(--font-ui);
+  font-size: 16.5px; line-height: 1.85;
+}
+html[data-theme="deathnote"] [data-bitacora-html-body] > p:first-child,
+html[data-theme="deathnote"] [data-bitacora-prose].prose > p:first-child {
+  color: var(--accent-cream); font-weight: 600;
+}
+html[data-theme="deathnote"] [data-bitacora-html-body] a,
+html[data-theme="deathnote"] [data-bitacora-prose] .ProseMirror a {
+  color: var(--accent-bright); text-decoration: none;
+  border-bottom: 1px solid rgba(220, 30, 50, 0.30);
+}
+html[data-theme="deathnote"] [data-bitacora-html-body] a:hover,
+html[data-theme="deathnote"] [data-bitacora-prose] .ProseMirror a:hover {
+  color: #ff6070; border-bottom-color: rgba(220, 30, 50, 0.65);
+}
+
+html[data-theme="deathnote"] mark,
+html[data-theme="deathnote"] .ProseMirror mark,
+html[data-theme="deathnote"] [data-bitacora-html-body] mark {
+  background: linear-gradient(180deg, var(--accent-bright) 0%, var(--accent) 100%);
+  color: #f0eee0; font-weight: 700;
+  border-radius: 2px; padding: 0 5px;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.55);
+}
+
+html[data-theme="deathnote"] input,
+html[data-theme="deathnote"] textarea,
+html[data-theme="deathnote"] select {
+  background-color: rgba(220, 30, 50, 0.025);
+  color: var(--text); border-color: var(--border);
+}
+html[data-theme="deathnote"] input::placeholder,
+html[data-theme="deathnote"] textarea::placeholder { color: var(--muted); }
+html[data-theme="deathnote"] input:focus,
+html[data-theme="deathnote"] textarea:focus,
+html[data-theme="deathnote"] select:focus {
+  border-color: var(--border-strong); outline: none;
+  box-shadow: 0 0 0 2px rgba(220, 30, 50, 0.22);
+}
+html[data-theme="deathnote"] [data-bitacora-prose] input[type="text"],
+html[data-theme="deathnote"] form input[type="text"] {
+  background-color: rgba(220, 30, 50, 0.025);
+}
+html[data-theme="deathnote"] .btn-primary,
+html[data-theme="deathnote"] button[data-variant="primary"] {
+  background: linear-gradient(180deg, var(--accent-bright) 0%, var(--accent) 100%);
+  color: #f0eee0; border: 1px solid rgba(220, 30, 50, 0.65);
+  font-weight: 700;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 1px 0 rgba(0, 0, 0, 0.65);
+}
+html[data-theme="deathnote"] .btn-primary:hover,
+html[data-theme="deathnote"] button[data-variant="primary"]:hover {
+  background: linear-gradient(180deg, #ff5060 0%, var(--accent-bright) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.25),
+    0 0 0 1px rgba(220, 30, 50, 0.65),
+    0 0 18px rgba(220, 30, 50, 0.65);
+}
+
+html[data-theme="deathnote"] #theme-selector-panel {
+  background: linear-gradient(155deg, #1a1818 0%, #0f0e0e 60%, #080606 100%) !important;
+  border-color: var(--border) !important;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.95), 0 0 0 1px rgba(220, 30, 50, 0.14), 0 0 32px rgba(220, 30, 50, 0.08) !important;
+}
+html[data-theme="deathnote"] #theme-selector-panel input[type="text"] {
+  background-color: rgba(220, 30, 50, 0.05) !important; color: var(--text) !important;
+}
+html[data-theme="deathnote"] #theme-selector-panel .border-b { border-color: var(--border) !important; }
+html[data-theme="deathnote"] .cmd-palette-backdrop { background-color: rgba(5, 5, 5, 0.96) !important; }
+html[data-theme="deathnote"] #cmd-palette-panel [cmdk-root],
+html[data-theme="deathnote"] #cmd-palette-panel [cmdk-list] {
+  background-color: #0f0e0e !important; border-color: var(--border) !important;
+}
+html[data-theme="deathnote"] #cmd-palette-panel [cmdk-input-wrapper],
+html[data-theme="deathnote"] #cmd-palette-panel > div > div:first-child {
+  background-color: #0f0e0e !important; border-color: var(--border) !important;
+}
+html[data-theme="deathnote"] #cmd-palette-panel [class*="bg-\[\#060912\]"],
+html[data-theme="deathnote"] #cmd-palette-panel input[cmdk-input] {
+  background-color: rgba(220, 30, 50, 0.04) !important;
+  color: var(--text) !important; border-color: var(--border) !important;
+}
+html[data-theme="deathnote"] #cmd-palette-panel [cmdk-input-wrapper] > div:focus-within {
+  border-color: rgba(255, 56, 80, 0.65) !important;
+}
+html[data-theme="deathnote"] #cmd-palette-panel [cmdk-item][data-selected="true"] {
+  background-color: rgba(220, 30, 50, 0.18) !important; color: var(--text) !important;
+}
+
+html[data-theme="deathnote"] .config-tabs-root [class*="text-violet-"],
+html[data-theme="deathnote"] .config-tabs-root [class*="text-amber-"],
+html[data-theme="deathnote"] .config-tabs-root [class*="text-sky-"],
+html[data-theme="deathnote"] .config-tabs-root [class*="text-emerald-"],
+html[data-theme="deathnote"] .config-tabs-root [class*="text-rose-"],
+html[data-theme="deathnote"] .config-tabs-root [class*="text-indigo-"],
+html[data-theme="deathnote"] .config-tabs-root [class*="text-fuchsia-"],
+html[data-theme="deathnote"] .config-tabs-root [class*="text-cyan-"],
+html[data-theme="deathnote"] .config-tabs-root [class*="text-pink-"],
+html[data-theme="deathnote"] .config-tabs-root [class*="text-teal-"],
+html[data-theme="deathnote"] .config-tabs-root [class*="text-orange-"] {
+  color: var(--accent-bright) !important;
+}
+html[data-theme="deathnote"] .config-tabs-root [class*="bg-violet-"],
+html[data-theme="deathnote"] .config-tabs-root [class*="bg-amber-"],
+html[data-theme="deathnote"] .config-tabs-root [class*="bg-sky-"],
+html[data-theme="deathnote"] .config-tabs-root [class*="bg-emerald-"],
+html[data-theme="deathnote"] .config-tabs-root [class*="bg-rose-"],
+html[data-theme="deathnote"] .config-tabs-root [class*="bg-indigo-"],
+html[data-theme="deathnote"] .config-tabs-root [class*="bg-fuchsia-"],
+html[data-theme="deathnote"] .config-tabs-root [class*="bg-cyan-"],
+html[data-theme="deathnote"] .config-tabs-root [class*="bg-pink-"],
+html[data-theme="deathnote"] .config-tabs-root [class*="bg-teal-"],
+html[data-theme="deathnote"] .config-tabs-root [class*="bg-orange-"] {
+  background-color: rgba(220, 30, 50, 0.10) !important;
+}
+html[data-theme="deathnote"] .config-tabs-root [class*="border-violet-"],
+html[data-theme="deathnote"] .config-tabs-root [class*="border-amber-"],
+html[data-theme="deathnote"] .config-tabs-root [class*="border-sky-"],
+html[data-theme="deathnote"] .config-tabs-root [class*="border-emerald-"],
+html[data-theme="deathnote"] .config-tabs-root [class*="border-rose-"],
+html[data-theme="deathnote"] .config-tabs-root [class*="border-indigo-"],
+html[data-theme="deathnote"] .config-tabs-root [class*="border-fuchsia-"],
+html[data-theme="deathnote"] .config-tabs-root [class*="border-cyan-"],
+html[data-theme="deathnote"] .config-tabs-root [class*="border-pink-"],
+html[data-theme="deathnote"] .config-tabs-root [class*="border-teal-"],
+html[data-theme="deathnote"] .config-tabs-root [class*="border-orange-"] {
+  border-color: rgba(220, 30, 50, 0.22) !important;
+}
+html[data-theme="deathnote"] .config-tabs-root [class*="ring-violet-"],
+html[data-theme="deathnote"] .config-tabs-root [class*="ring-amber-"],
+html[data-theme="deathnote"] .config-tabs-root [class*="ring-sky-"],
+html[data-theme="deathnote"] .config-tabs-root [class*="ring-emerald-"],
+html[data-theme="deathnote"] .config-tabs-root [class*="ring-rose-"],
+html[data-theme="deathnote"] .config-tabs-root [class*="ring-indigo-"],
+html[data-theme="deathnote"] .config-tabs-root [class*="ring-fuchsia-"],
+html[data-theme="deathnote"] .config-tabs-root [class*="ring-cyan-"],
+html[data-theme="deathnote"] .config-tabs-root [class*="ring-pink-"],
+html[data-theme="deathnote"] .config-tabs-root [class*="ring-teal-"],
+html[data-theme="deathnote"] .config-tabs-root [class*="ring-orange-"] {
+  --tw-ring-color: rgba(220, 30, 50, 0.32) !important;
+}
+html[data-theme="deathnote"] .config-tabs-root [class*="from-violet"],
+html[data-theme="deathnote"] .config-tabs-root [class*="from-amber"],
+html[data-theme="deathnote"] .config-tabs-root [class*="from-sky"],
+html[data-theme="deathnote"] .config-tabs-root [class*="from-emerald"],
+html[data-theme="deathnote"] .config-tabs-root [class*="from-rose"],
+html[data-theme="deathnote"] .config-tabs-root [class*="from-indigo"] {
+  --tw-gradient-from: rgba(220, 30, 50, 0.10) var(--tw-gradient-from-position) !important;
+  --tw-gradient-to: rgba(220, 30, 50, 0) var(--tw-gradient-to-position) !important;
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-via, var(--tw-gradient-to)), var(--tw-gradient-to) !important;
+}
+html[data-theme="deathnote"] .config-tabs-root [class*="to-fuchsia"],
+html[data-theme="deathnote"] .config-tabs-root [class*="to-orange"],
+html[data-theme="deathnote"] .config-tabs-root [class*="to-cyan"],
+html[data-theme="deathnote"] .config-tabs-root [class*="to-teal"],
+html[data-theme="deathnote"] .config-tabs-root [class*="to-pink"],
+html[data-theme="deathnote"] .config-tabs-root [class*="to-violet"] {
+  --tw-gradient-to: rgba(255, 56, 80, 0.18) var(--tw-gradient-to-position) !important;
+}
+html[data-theme="deathnote"] .config-tabs-root .bg-gradient-to-r[class*="from-amber"],
+html[data-theme="deathnote"] .config-tabs-root .bg-gradient-to-r[class*="from-violet"],
+html[data-theme="deathnote"] .config-tabs-root .bg-gradient-to-r[class*="from-sky"],
+html[data-theme="deathnote"] .config-tabs-root .bg-gradient-to-r[class*="from-emerald"],
+html[data-theme="deathnote"] .config-tabs-root .bg-gradient-to-r[class*="from-rose"],
+html[data-theme="deathnote"] .config-tabs-root .bg-gradient-to-r[class*="from-indigo"] {
+  background: linear-gradient(90deg, var(--accent) 0%, var(--accent-bright) 100%) !important;
+}
+html[data-theme="deathnote"] .config-tabs-root .blur-3xl {
+  background-color: rgba(220, 30, 50, 0.06) !important;
+}
+
+html[data-theme="deathnote"] .my-profile-card {
+  background: linear-gradient(180deg,
+    rgba(26, 24, 24, 0.97) 0%, rgba(15, 14, 14, 0.97) 50%, rgba(8, 6, 6, 0.98) 100%) !important;
+  border-color: var(--border) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(240, 238, 224, 0.05),
+    0 18px 50px rgba(0, 0, 0, 0.85) !important;
+}
+html[data-theme="deathnote"] .my-profile-card .border-white\/8 {
+  border-color: rgba(220, 30, 50, 0.16) !important;
+}
+
+html[data-theme="deathnote"] .glass-surface::after,
+html[data-theme="deathnote"] .glass-2::after,
+html[data-theme="deathnote"] .glass-3::after,
+html[data-theme="deathnote"] .glass-4::after {
+  content: ""; position: absolute; top: 0; left: 0; right: 0;
+  height: 2px; pointer-events: none; z-index: 2;
+  background: linear-gradient(90deg,
+    transparent 0%, transparent 28%,
+    rgba(220, 30, 50, 0.55) 44%,
+    rgba(255, 56, 80, 1.00) 50%,
+    rgba(220, 30, 50, 0.55) 56%,
+    transparent 72%, transparent 100%);
+  background-size: 260% 100%; background-position: 100% 0;
+  animation: dn-shimmer 6s ease-in-out infinite;
+  border-top-left-radius: inherit; border-top-right-radius: inherit;
+}
+@keyframes dn-shimmer {
+  0%   { background-position: 130% 0; }
+  100% { background-position: -30% 0; }
+}
+
+html[data-theme="deathnote"] h2,
+html[data-theme="deathnote"] h3 { position: relative; }
+html[data-theme="deathnote"] h2::after,
+html[data-theme="deathnote"] h3::after {
+  content: ""; display: block; width: 48px; height: 2px;
+  margin-top: 8px;
+  background: linear-gradient(90deg, var(--accent) 0%, var(--accent-bright) 60%, transparent 100%);
+  box-shadow: 0 0 8px rgba(220, 30, 50, 0.55); border-radius: 999px;
+}
+html[data-theme="deathnote"] h3::after { width: 32px; height: 1.5px; margin-top: 6px; }
+
+html[data-theme="deathnote"] .glass-surface,
+html[data-theme="deathnote"] .glass-2,
+html[data-theme="deathnote"] .glass-3,
+html[data-theme="deathnote"] .glass-4 {
+  animation: dn-card-reveal 0.50s cubic-bezier(0.22, 0.61, 0.36, 1) backwards;
+}
+html[data-theme="deathnote"] .glass-surface:nth-child(1),
+html[data-theme="deathnote"] .glass-2:nth-child(1),
+html[data-theme="deathnote"] .glass-3:nth-child(1),
+html[data-theme="deathnote"] .glass-4:nth-child(1) { animation-delay: 0.04s; }
+html[data-theme="deathnote"] .glass-surface:nth-child(2),
+html[data-theme="deathnote"] .glass-2:nth-child(2),
+html[data-theme="deathnote"] .glass-3:nth-child(2),
+html[data-theme="deathnote"] .glass-4:nth-child(2) { animation-delay: 0.08s; }
+html[data-theme="deathnote"] .glass-surface:nth-child(3),
+html[data-theme="deathnote"] .glass-2:nth-child(3),
+html[data-theme="deathnote"] .glass-3:nth-child(3),
+html[data-theme="deathnote"] .glass-4:nth-child(3) { animation-delay: 0.12s; }
+html[data-theme="deathnote"] .glass-surface:nth-child(4),
+html[data-theme="deathnote"] .glass-2:nth-child(4),
+html[data-theme="deathnote"] .glass-3:nth-child(4),
+html[data-theme="deathnote"] .glass-4:nth-child(4) { animation-delay: 0.16s; }
+html[data-theme="deathnote"] .glass-surface:nth-child(5),
+html[data-theme="deathnote"] .glass-2:nth-child(5),
+html[data-theme="deathnote"] .glass-3:nth-child(5),
+html[data-theme="deathnote"] .glass-4:nth-child(5) { animation-delay: 0.20s; }
+
+@keyframes dn-card-reveal {
+  0%   { opacity: 0; transform: translateY(8px); }
+  100% { opacity: 1; transform: translateY(0);    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-theme="deathnote"] .dn-bg .dn-apple,
+  html[data-theme="deathnote"] .dn-bg .dn-ryuk,
+  html[data-theme="deathnote"] .dn-bg .dn-notebook,
+  html[data-theme="deathnote"] .dn-bg .dn-spotlight,
+  html[data-theme="deathnote"] .dn-bg .dn-rule,
+  html[data-theme="deathnote"] .dn-bg .dn-feather,
+  html[data-theme="deathnote"] .glass-surface::after,
+  html[data-theme="deathnote"] .glass-2::after,
+  html[data-theme="deathnote"] .glass-3::after,
+  html[data-theme="deathnote"] .glass-4::after,
+  html[data-theme="deathnote"] .glass-surface,
+  html[data-theme="deathnote"] .glass-2,
+  html[data-theme="deathnote"] .glass-3,
+  html[data-theme="deathnote"] .glass-4 {
+    animation: none !important;
+  }
+}

@@ -1,0 +1,612 @@
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║   TEMA "STUDIO GHIBLI" · TRIBUTO · Cielo acuarela + nubes + Totoro       ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="ghibli"] {
+  --bg-0: #c8dee4;
+  --bg-1: #b8d4dc;
+  --bg-2: #a8c8d4;
+
+  /* Cards más opacos y blancos cremosos para garantizar legibilidad
+     sobre el cielo acuarela. Versión sólida, no translúcida. */
+  --card: linear-gradient(180deg, #fffef8 0%, #faf7e8 60%, #f0ead4 100%);
+  --surface:   rgba(255, 254, 248, 0.98);
+  --surface-2: rgba(74, 110, 80, 0.06);
+  --border:        rgba(74, 110, 80, 0.32);
+  --border-strong: rgba(74, 110, 80, 0.55);
+
+  --accent:        #4a8d6a;        /* verde bosque Totoro */
+  --accent-bright: #c47030;        /* terracota */
+  --accent-glow:   rgba(74, 141, 106, 0.45);
+  --accent-2:      #5a98c8;        /* azul cielo */
+  --accent-3:      #d4b860;        /* dorado anochecer */
+  --accent-pink:   #e89090;        /* rosa atardecer */
+
+  --text:      #2c3826;
+  --text-soft: #5a6850;
+  --muted:     #8a9580;
+
+  --ok:         #4a8d6a;
+
+  --font-display: "Yuji Mai", "Cinzel", Georgia, serif;
+  --font-ui:      "Sora", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+
+  --app-canvas-color: transparent;
+  --app-canvas-image: none;
+  --card-isolation: auto;
+
+  color-scheme: light;
+}
+
+html[data-theme="ghibli"] body { min-height: 100vh; }
+html[data-theme="ghibli"] .app-sidebar-shell,
+html[data-theme="ghibli"] .app-top-header { isolation: auto !important; }
+
+
+/* ── 1. FONDO + ATMÓSFERA ─────────────────────────────────────────────── */
+html[data-theme="ghibli"] .ghibli-bg {
+  position: fixed; inset: 0; z-index: -10; overflow: hidden; pointer-events: none;
+  background:
+    /* Cielo acuarela Miyazaki — azul saturado arriba, cálido en horizonte */
+    radial-gradient(ellipse 120% 70% at 50% 0%,
+      #4a92b8 0%,
+      #6ab0d0 18%,
+      #98c8d8 38%,
+      #d8d8c0 65%,
+      #b8c8a8 100%);
+}
+
+/* ── 1.1 Sol (cálido, difuso) ────────────────────────────────────────── */
+html[data-theme="ghibli"] .ghibli-bg .ghibli-sun {
+  position: absolute;
+  right: 18%; top: 12%;
+  width: 220px; height: 220px;
+  border-radius: 50%;
+  background: radial-gradient(circle at center,
+    rgba(255, 240, 180, 0.85) 0%,
+    rgba(255, 220, 140, 0.45) 30%,
+    rgba(255, 200, 120, 0.20) 60%,
+    transparent 90%);
+  pointer-events: none;
+  filter: blur(8px);
+  animation: ghibli-sun-pulse 10s ease-in-out infinite;
+}
+@keyframes ghibli-sun-pulse {
+  0%, 100% { transform: scale(1.00); opacity: 0.85; }
+  50%      { transform: scale(1.05); opacity: 1.00; }
+}
+
+/* ── 1.2 Nubes esponjosas estilo Miyazaki (cumulus con SVG) ──────────── */
+html[data-theme="ghibli"] .ghibli-bg .ghibli-cloud {
+  position: absolute;
+  left: -20vw;
+  pointer-events: none;
+  animation: ghibli-cloud-drift linear infinite;
+  filter: drop-shadow(0 4px 8px rgba(120, 140, 150, 0.20));
+}
+html[data-theme="ghibli"] .ghibli-bg .ghibli-cloud svg {
+  width: 100%; height: 100%; display: block;
+}
+@keyframes ghibli-cloud-drift {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(140vw); }
+}
+
+/* ── 1.2.b Pájaros pequeños volando (estela en V) ────────────────────── */
+html[data-theme="ghibli"] .ghibli-bg .ghibli-bird {
+  position: absolute;
+  left: -10vw;
+  width: 28px; height: 12px;
+  pointer-events: none;
+  animation: ghibli-bird-cross linear infinite;
+}
+@keyframes ghibli-bird-cross {
+  0%   { transform: translateX(0) translateY(0);       opacity: 0; }
+  6%   { opacity: 1; }
+  50%  { transform: translateX(60vw) translateY(-12px); }
+  92%  { opacity: 1; }
+  100% { transform: translateX(120vw) translateY(0);   opacity: 0; }
+}
+
+/* ── 1.3 Totoro silhouette (esquina inferior DERECHA, más visible) ───── */
+html[data-theme="ghibli"] .ghibli-bg .ghibli-totoro {
+  position: absolute;
+  right: 6%; bottom: 14%;
+  width: clamp(110px, 14vmin, 180px);
+  height: auto;
+  pointer-events: none;
+  opacity: 0.78;
+  filter: drop-shadow(0 6px 14px rgba(44, 56, 38, 0.35));
+  animation: ghibli-totoro-bob 4s ease-in-out infinite;
+  z-index: 3;
+}
+@keyframes ghibli-totoro-bob {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50%      { transform: translateY(-6px) rotate(-2deg); }
+}
+
+/* ── 1.4 Colina verde con árboles + ciclista ─────────────────────────── */
+html[data-theme="ghibli"] .ghibli-bg .ghibli-hill {
+  position: absolute; left: 0; right: 0; bottom: 0;
+  width: 100%; height: 32%;
+  pointer-events: none;
+  filter: drop-shadow(0 -4px 12px rgba(44, 56, 38, 0.20));
+  z-index: 2;
+}
+
+/* ── 1.4.b Girasoles en primer plano ──────────────────────────────────── */
+html[data-theme="ghibli"] .ghibli-bg .ghibli-sunflowers {
+  position: absolute; inset: 0; pointer-events: none; z-index: 3;
+}
+html[data-theme="ghibli"] .ghibli-bg .ghibli-sunflower {
+  position: absolute;
+  transform-origin: 50% 90%;
+  filter: drop-shadow(0 4px 6px rgba(44, 56, 38, 0.30));
+  animation: ghibli-sunflower-sway 7s ease-in-out infinite;
+}
+@keyframes ghibli-sunflower-sway {
+  0%, 100% { transform: rotate(var(--tilt, 0deg))                          translateY(0); }
+  50%      { transform: rotate(calc(var(--tilt, 0deg) + 3deg))             translateY(-2px); }
+}
+
+/* ── 1.5 Hojas/pétalos cayendo ───────────────────────────────────────── */
+html[data-theme="ghibli"] .ghibli-bg .ghibli-leaf {
+  position: absolute;
+  top: -5%;
+  width: 14px; height: 10px;
+  background: linear-gradient(135deg, #4a8d6a 0%, #2c5a3a 100%);
+  border-radius: 0 100% 0 100%;
+  pointer-events: none;
+  box-shadow: 0 1px 2px rgba(44, 56, 38, 0.25);
+  animation: ghibli-leaf-fall linear infinite;
+  opacity: 0;
+}
+@keyframes ghibli-leaf-fall {
+  0%   { transform: translate(0, 0)                        rotate(0deg);   opacity: 0; }
+  10%  { opacity: 0.85; }
+  100% { transform: translate(var(--dx, 80px), 110vh)       rotate(720deg); opacity: 0.30; }
+}
+
+/* ── 1.6 Logo "ジブリ" tenue ────────────────────────────────────────── */
+html[data-theme="ghibli"] .ghibli-bg .ghibli-logo {
+  position: absolute; right: 4%; top: 4%;
+  font-family: "Yuji Mai", serif;
+  font-size: clamp(2.4rem, 5vw, 5rem); font-weight: 800;
+  color: rgba(74, 141, 106, 0.10);
+  user-select: none; pointer-events: none;
+}
+
+/* ── 1.7 Veil + grain (acuarela) ─────────────────────────────────────── */
+html[data-theme="ghibli"] .ghibli-bg .ghibli-grain {
+  position: absolute; inset: 0; opacity: 0.10;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.55' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.7'/%3E%3C/svg%3E");
+  mix-blend-mode: multiply; pointer-events: none;
+}
+html[data-theme="ghibli"] .ghibli-bg .ghibli-vignette {
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse 95% 80% at 50% 50%,
+    transparent 60%, rgba(74, 110, 80, 0.18) 88%, rgba(74, 110, 80, 0.30) 100%);
+  pointer-events: none;
+}
+
+
+/* ── 2. TIPOGRAFÍA + SHELL ──────────────────────────────────────────── */
+html[data-theme="ghibli"] body {
+  color: var(--text); font-family: var(--font-ui); font-weight: 400;
+}
+html[data-theme="ghibli"] h1,
+html[data-theme="ghibli"] h2,
+html[data-theme="ghibli"] h3,
+html[data-theme="ghibli"] h4,
+html[data-theme="ghibli"] h5,
+html[data-theme="ghibli"] h6 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  color: var(--accent);
+  letter-spacing: 0.02em;
+}
+html[data-theme="ghibli"] h1, html[data-theme="ghibli"] h2 {
+  font-weight: 700; color: #2c5a3a;
+}
+
+html[data-theme="ghibli"] .glass-shell-frame {
+  margin: 18px; padding: 0; border-radius: 18px;
+  background: transparent; box-shadow: none; isolation: auto !important;
+}
+html[data-theme="ghibli"] .glass-shell-inner {
+  border-radius: 17px; background: transparent;
+  backdrop-filter: none; -webkit-backdrop-filter: none;
+  isolation: auto !important; overflow: visible; padding: 20px;
+}
+@media (max-width: 768px) {
+  html[data-theme="ghibli"] .glass-shell-inner { padding: 6px; }
+  html[data-theme="ghibli"] .app-dashboard-root { gap: 8px; }
+}
+@media (max-width: 640px) {
+  html[data-theme="ghibli"] .glass-shell-frame { margin: 4px; border-radius: 12px; }
+  html[data-theme="ghibli"] .glass-shell-inner { border-radius: 11px; }
+}
+@media (max-width: 480px) {
+  html[data-theme="ghibli"] .glass-shell-frame { margin: 0; padding: 0; border-radius: 0; background: none; }
+  html[data-theme="ghibli"] .glass-shell-inner { padding: 0; border-radius: 0; }
+  html[data-theme="ghibli"] .app-dashboard-root { gap: 0; }
+}
+html[data-theme="ghibli"] .glass-shell-frame::before,
+html[data-theme="ghibli"] .glass-shell-frame::after,
+html[data-theme="ghibli"] .glass-shell-inner::before,
+html[data-theme="ghibli"] .glass-shell-inner::after { display: none !important; }
+html[data-theme="ghibli"] .app-dashboard-root { background: transparent !important; gap: 16px; }
+
+
+/* ── 3-10: SUPERFICIES, SIDEBAR, TEXTO, INPUTS, PORTALES, CONFIGTABS ───── */
+html[data-theme="ghibli"] .glass-surface {
+  position: relative; isolation: auto;
+  background: var(--card);
+  backdrop-filter: none; -webkit-backdrop-filter: none;
+  border: 1px solid var(--border); border-radius: 14px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.85),
+    0 1px 0 rgba(74, 110, 80, 0.18),
+    0 18px 36px rgba(44, 70, 90, 0.28),
+    0 0 0 1px rgba(74, 110, 80, 0.12);
+  transition: border-color 0.2s ease, transform 0.2s ease;
+  overflow: hidden;
+}
+html[data-theme="ghibli"] .glass-surface::before { display: none; }
+html[data-theme="ghibli"] .glass-surface > * { position: relative; z-index: 1; }
+html[data-theme="ghibli"] .glass-surface:hover { border-color: var(--border-strong); }
+
+html[data-theme="ghibli"] .glass,
+html[data-theme="ghibli"] .glass-1,
+html[data-theme="ghibli"] .glass-2,
+html[data-theme="ghibli"] .glass-3,
+html[data-theme="ghibli"] .glass-4 {
+  isolation: auto !important; position: relative; border-radius: 14px;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+html[data-theme="ghibli"] .glass,
+html[data-theme="ghibli"] .glass-1 {
+  background: var(--card); border: 1px solid var(--border);
+  backdrop-filter: none; -webkit-backdrop-filter: none;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.85),
+    0 12px 26px rgba(44, 70, 90, 0.25),
+    0 0 0 1px rgba(74, 110, 80, 0.10);
+}
+html[data-theme="ghibli"] .glass-2 {
+  background: var(--card);
+  border: 1px solid var(--border);
+  backdrop-filter: none; -webkit-backdrop-filter: none;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.92),
+    0 16px 32px rgba(44, 70, 90, 0.28),
+    0 0 0 1px rgba(74, 110, 80, 0.12);
+}
+html[data-theme="ghibli"] .glass-3 {
+  background: var(--card);
+  border: 1px solid var(--border-strong);
+  backdrop-filter: none; -webkit-backdrop-filter: none;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    0 20px 40px rgba(44, 70, 90, 0.32),
+    0 0 0 1px rgba(74, 110, 80, 0.16);
+}
+html[data-theme="ghibli"] .glass-4 {
+  background: var(--card);
+  border: 1px solid var(--border-strong);
+  backdrop-filter: none; -webkit-backdrop-filter: none;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.98),
+    0 24px 48px rgba(44, 70, 90, 0.38),
+    0 0 0 1px rgba(74, 110, 80, 0.20);
+}
+
+html[data-theme="ghibli"] .app-sidebar-shell {
+  background: linear-gradient(180deg,
+    rgba(255, 254, 248, 0.94) 0%, rgba(250, 247, 232, 0.96) 60%, rgba(240, 234, 212, 0.96) 100%);
+  border-right: 1px solid rgba(74, 110, 80, 0.20);
+  backdrop-filter: blur(18px) saturate(112%);
+  -webkit-backdrop-filter: blur(18px) saturate(112%);
+  box-shadow: inset -1px 0 0 rgba(74, 110, 80, 0.18), 4px 0 22px rgba(44, 70, 90, 0.15);
+}
+html[data-theme="ghibli"] .app-top-header {
+  background: linear-gradient(180deg, rgba(255, 254, 248, 0.92) 0%, rgba(250, 247, 232, 0.86) 100%);
+  border-bottom: 1px solid rgba(74, 110, 80, 0.20);
+  backdrop-filter: blur(18px) saturate(112%);
+  -webkit-backdrop-filter: blur(18px) saturate(112%);
+  box-shadow: inset 0 -1px 0 rgba(74, 110, 80, 0.18), 0 4px 18px rgba(44, 70, 90, 0.12);
+}
+html[data-theme="ghibli"] .sidebar-nav-link-active {
+  background: linear-gradient(180deg, rgba(74, 141, 106, 0.18) 0%, rgba(74, 141, 106, 0.10) 100%) !important;
+  color: #2c5a3a !important;
+  border-color: rgba(74, 141, 106, 0.42) !important;
+  box-shadow: inset 0 0 0 1px rgba(74, 141, 106, 0.22), 0 2px 8px rgba(74, 141, 106, 0.18) !important;
+}
+html[data-theme="ghibli"] .sidebar-nav-link-active.ring-2 {
+  --tw-ring-color: rgba(74, 141, 106, 0.55) !important;
+}
+html[data-theme="ghibli"] .sidebar-nav-link:hover:not(.sidebar-nav-link-active) {
+  background: rgba(74, 141, 106, 0.08) !important; color: var(--text) !important;
+}
+html[data-theme="ghibli"] .sidebar-active-bar {
+  background: linear-gradient(180deg, var(--accent-bright) 0%, var(--accent) 100%) !important;
+  box-shadow: 0 0 12px rgba(196, 112, 48, 0.55) !important;
+}
+html[data-theme="ghibli"] nav .text-white\/40,
+html[data-theme="ghibli"] nav [class*="text-white"][class*="uppercase"] {
+  color: rgba(90, 104, 80, 0.65) !important; letter-spacing: 0.10em;
+}
+html[data-theme="ghibli"] .app-sidebar-shell .border-t {
+  border-top-color: rgba(74, 110, 80, 0.20) !important;
+}
+html[data-theme="ghibli"] .app-sidebar-shell .bg-white\/5 {
+  background-color: rgba(74, 141, 106, 0.06) !important;
+}
+
+html[data-theme="ghibli"] [data-bitacora-html-body],
+html[data-theme="ghibli"] [data-bitacora-prose].prose,
+html[data-theme="ghibli"] [data-bitacora-prose] .ProseMirror {
+  color: var(--text); font-family: var(--font-ui);
+  font-size: 16.5px; line-height: 1.85;
+}
+html[data-theme="ghibli"] [data-bitacora-html-body] > p:first-child,
+html[data-theme="ghibli"] [data-bitacora-prose].prose > p:first-child {
+  color: var(--accent); font-weight: 600;
+}
+html[data-theme="ghibli"] [data-bitacora-html-body] a,
+html[data-theme="ghibli"] [data-bitacora-prose] .ProseMirror a {
+  color: var(--accent-bright); text-decoration: none;
+  border-bottom: 1px solid rgba(196, 112, 48, 0.30);
+}
+html[data-theme="ghibli"] [data-bitacora-html-body] a:hover,
+html[data-theme="ghibli"] [data-bitacora-prose] .ProseMirror a:hover {
+  color: #a85820; border-bottom-color: rgba(196, 112, 48, 0.65);
+}
+
+html[data-theme="ghibli"] mark,
+html[data-theme="ghibli"] .ProseMirror mark,
+html[data-theme="ghibli"] [data-bitacora-html-body] mark {
+  background: linear-gradient(180deg, #ffe680 0%, #ffd040 100%);
+  color: #2c3826; font-weight: 600;
+  border-radius: 3px; padding: 0 4px;
+  box-shadow: inset 0 0 0 1px rgba(196, 112, 48, 0.30);
+}
+
+html[data-theme="ghibli"] input,
+html[data-theme="ghibli"] textarea,
+html[data-theme="ghibli"] select {
+  background-color: rgba(255, 255, 255, 0.65);
+  color: var(--text); border-color: var(--border);
+}
+html[data-theme="ghibli"] input::placeholder,
+html[data-theme="ghibli"] textarea::placeholder { color: var(--muted); }
+html[data-theme="ghibli"] input:focus,
+html[data-theme="ghibli"] textarea:focus,
+html[data-theme="ghibli"] select:focus {
+  border-color: var(--border-strong); outline: none;
+  box-shadow: 0 0 0 2px rgba(74, 141, 106, 0.20);
+}
+html[data-theme="ghibli"] [data-bitacora-prose] input[type="text"],
+html[data-theme="ghibli"] form input[type="text"] {
+  background-color: rgba(255, 255, 255, 0.65);
+}
+html[data-theme="ghibli"] .btn-primary,
+html[data-theme="ghibli"] button[data-variant="primary"] {
+  background: linear-gradient(180deg, var(--accent) 0%, #2c5a3a 100%);
+  color: #fafaf3; border: 1px solid rgba(74, 141, 106, 0.55);
+  font-weight: 600;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.20), 0 1px 0 rgba(0, 0, 0, 0.10);
+}
+html[data-theme="ghibli"] .btn-primary:hover,
+html[data-theme="ghibli"] button[data-variant="primary"]:hover {
+  background: linear-gradient(180deg, #5a9d7a 0%, var(--accent) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.25),
+    0 0 0 1px rgba(74, 141, 106, 0.55),
+    0 4px 16px rgba(74, 141, 106, 0.35);
+}
+
+html[data-theme="ghibli"] #theme-selector-panel {
+  background: linear-gradient(155deg, #fafaf3 0%, #f0eee0 60%, #e0dcc8 100%) !important;
+  border-color: var(--border) !important;
+  box-shadow: 0 16px 48px rgba(74, 110, 80, 0.30), 0 0 0 1px rgba(74, 110, 80, 0.16) !important;
+}
+html[data-theme="ghibli"] #theme-selector-panel input[type="text"] {
+  background-color: rgba(255, 255, 255, 0.85) !important; color: var(--text) !important;
+}
+html[data-theme="ghibli"] #theme-selector-panel .border-b { border-color: var(--border) !important; }
+html[data-theme="ghibli"] .cmd-palette-backdrop { background-color: rgba(74, 110, 80, 0.55) !important; }
+html[data-theme="ghibli"] #cmd-palette-panel [cmdk-root],
+html[data-theme="ghibli"] #cmd-palette-panel [cmdk-list] {
+  background-color: #fafaf3 !important; border-color: var(--border) !important;
+}
+html[data-theme="ghibli"] #cmd-palette-panel [cmdk-input-wrapper],
+html[data-theme="ghibli"] #cmd-palette-panel > div > div:first-child {
+  background-color: #fafaf3 !important; border-color: var(--border) !important;
+}
+html[data-theme="ghibli"] #cmd-palette-panel [class*="bg-\[\#060912\]"],
+html[data-theme="ghibli"] #cmd-palette-panel input[cmdk-input] {
+  background-color: rgba(255, 255, 255, 0.85) !important;
+  color: var(--text) !important; border-color: var(--border) !important;
+}
+html[data-theme="ghibli"] #cmd-palette-panel [cmdk-input-wrapper] > div:focus-within {
+  border-color: rgba(74, 141, 106, 0.65) !important;
+}
+html[data-theme="ghibli"] #cmd-palette-panel [cmdk-item][data-selected="true"] {
+  background-color: rgba(74, 141, 106, 0.16) !important; color: var(--text) !important;
+}
+
+html[data-theme="ghibli"] .config-tabs-root [class*="text-violet-"],
+html[data-theme="ghibli"] .config-tabs-root [class*="text-amber-"],
+html[data-theme="ghibli"] .config-tabs-root [class*="text-sky-"],
+html[data-theme="ghibli"] .config-tabs-root [class*="text-emerald-"],
+html[data-theme="ghibli"] .config-tabs-root [class*="text-rose-"],
+html[data-theme="ghibli"] .config-tabs-root [class*="text-indigo-"],
+html[data-theme="ghibli"] .config-tabs-root [class*="text-fuchsia-"],
+html[data-theme="ghibli"] .config-tabs-root [class*="text-cyan-"],
+html[data-theme="ghibli"] .config-tabs-root [class*="text-pink-"],
+html[data-theme="ghibli"] .config-tabs-root [class*="text-teal-"],
+html[data-theme="ghibli"] .config-tabs-root [class*="text-orange-"] {
+  color: var(--accent) !important;
+}
+html[data-theme="ghibli"] .config-tabs-root [class*="bg-violet-"],
+html[data-theme="ghibli"] .config-tabs-root [class*="bg-amber-"],
+html[data-theme="ghibli"] .config-tabs-root [class*="bg-sky-"],
+html[data-theme="ghibli"] .config-tabs-root [class*="bg-emerald-"],
+html[data-theme="ghibli"] .config-tabs-root [class*="bg-rose-"],
+html[data-theme="ghibli"] .config-tabs-root [class*="bg-indigo-"],
+html[data-theme="ghibli"] .config-tabs-root [class*="bg-fuchsia-"],
+html[data-theme="ghibli"] .config-tabs-root [class*="bg-cyan-"],
+html[data-theme="ghibli"] .config-tabs-root [class*="bg-pink-"],
+html[data-theme="ghibli"] .config-tabs-root [class*="bg-teal-"],
+html[data-theme="ghibli"] .config-tabs-root [class*="bg-orange-"] {
+  background-color: rgba(74, 141, 106, 0.10) !important;
+}
+html[data-theme="ghibli"] .config-tabs-root [class*="border-violet-"],
+html[data-theme="ghibli"] .config-tabs-root [class*="border-amber-"],
+html[data-theme="ghibli"] .config-tabs-root [class*="border-sky-"],
+html[data-theme="ghibli"] .config-tabs-root [class*="border-emerald-"],
+html[data-theme="ghibli"] .config-tabs-root [class*="border-rose-"],
+html[data-theme="ghibli"] .config-tabs-root [class*="border-indigo-"],
+html[data-theme="ghibli"] .config-tabs-root [class*="border-fuchsia-"],
+html[data-theme="ghibli"] .config-tabs-root [class*="border-cyan-"],
+html[data-theme="ghibli"] .config-tabs-root [class*="border-pink-"],
+html[data-theme="ghibli"] .config-tabs-root [class*="border-teal-"],
+html[data-theme="ghibli"] .config-tabs-root [class*="border-orange-"] {
+  border-color: rgba(74, 141, 106, 0.22) !important;
+}
+html[data-theme="ghibli"] .config-tabs-root [class*="ring-violet-"],
+html[data-theme="ghibli"] .config-tabs-root [class*="ring-amber-"],
+html[data-theme="ghibli"] .config-tabs-root [class*="ring-sky-"],
+html[data-theme="ghibli"] .config-tabs-root [class*="ring-emerald-"],
+html[data-theme="ghibli"] .config-tabs-root [class*="ring-rose-"],
+html[data-theme="ghibli"] .config-tabs-root [class*="ring-indigo-"],
+html[data-theme="ghibli"] .config-tabs-root [class*="ring-fuchsia-"],
+html[data-theme="ghibli"] .config-tabs-root [class*="ring-cyan-"],
+html[data-theme="ghibli"] .config-tabs-root [class*="ring-pink-"],
+html[data-theme="ghibli"] .config-tabs-root [class*="ring-teal-"],
+html[data-theme="ghibli"] .config-tabs-root [class*="ring-orange-"] {
+  --tw-ring-color: rgba(74, 141, 106, 0.32) !important;
+}
+html[data-theme="ghibli"] .config-tabs-root [class*="from-violet"],
+html[data-theme="ghibli"] .config-tabs-root [class*="from-amber"],
+html[data-theme="ghibli"] .config-tabs-root [class*="from-sky"],
+html[data-theme="ghibli"] .config-tabs-root [class*="from-emerald"],
+html[data-theme="ghibli"] .config-tabs-root [class*="from-rose"],
+html[data-theme="ghibli"] .config-tabs-root [class*="from-indigo"] {
+  --tw-gradient-from: rgba(74, 141, 106, 0.10) var(--tw-gradient-from-position) !important;
+  --tw-gradient-to: rgba(74, 141, 106, 0) var(--tw-gradient-to-position) !important;
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-via, var(--tw-gradient-to)), var(--tw-gradient-to) !important;
+}
+html[data-theme="ghibli"] .config-tabs-root [class*="to-fuchsia"],
+html[data-theme="ghibli"] .config-tabs-root [class*="to-orange"],
+html[data-theme="ghibli"] .config-tabs-root [class*="to-cyan"],
+html[data-theme="ghibli"] .config-tabs-root [class*="to-teal"],
+html[data-theme="ghibli"] .config-tabs-root [class*="to-pink"],
+html[data-theme="ghibli"] .config-tabs-root [class*="to-violet"] {
+  --tw-gradient-to: rgba(196, 112, 48, 0.20) var(--tw-gradient-to-position) !important;
+}
+html[data-theme="ghibli"] .config-tabs-root .bg-gradient-to-r[class*="from-amber"],
+html[data-theme="ghibli"] .config-tabs-root .bg-gradient-to-r[class*="from-violet"],
+html[data-theme="ghibli"] .config-tabs-root .bg-gradient-to-r[class*="from-sky"],
+html[data-theme="ghibli"] .config-tabs-root .bg-gradient-to-r[class*="from-emerald"],
+html[data-theme="ghibli"] .config-tabs-root .bg-gradient-to-r[class*="from-rose"],
+html[data-theme="ghibli"] .config-tabs-root .bg-gradient-to-r[class*="from-indigo"] {
+  background: linear-gradient(90deg, var(--accent-2) 0%, var(--accent) 50%, var(--accent-3) 100%) !important;
+}
+html[data-theme="ghibli"] .config-tabs-root .blur-3xl {
+  background-color: rgba(74, 141, 106, 0.10) !important;
+}
+
+html[data-theme="ghibli"] .my-profile-card {
+  background: linear-gradient(180deg,
+    rgba(250, 250, 243, 0.95) 0%, rgba(240, 238, 224, 0.95) 50%, rgba(224, 220, 200, 0.95) 100%) !important;
+  border-color: var(--border) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.65),
+    0 18px 50px rgba(74, 110, 80, 0.25) !important;
+}
+html[data-theme="ghibli"] .my-profile-card .border-white\/8 {
+  border-color: rgba(74, 110, 80, 0.18) !important;
+}
+
+html[data-theme="ghibli"] .glass-surface::after,
+html[data-theme="ghibli"] .glass-2::after,
+html[data-theme="ghibli"] .glass-3::after,
+html[data-theme="ghibli"] .glass-4::after {
+  content: ""; position: absolute; top: 0; left: 0; right: 0;
+  height: 2px; pointer-events: none; z-index: 2;
+  background: linear-gradient(90deg,
+    transparent 0%, transparent 28%,
+    rgba(74, 141, 106, 0.45) 44%,
+    rgba(196, 112, 48, 0.85) 50%,
+    rgba(74, 141, 106, 0.45) 56%,
+    transparent 72%, transparent 100%);
+  background-size: 260% 100%; background-position: 100% 0;
+  animation: ghibli-shimmer 8s ease-in-out infinite;
+  border-top-left-radius: inherit; border-top-right-radius: inherit;
+}
+@keyframes ghibli-shimmer {
+  0%   { background-position: 130% 0; }
+  100% { background-position: -30% 0; }
+}
+
+html[data-theme="ghibli"] h2,
+html[data-theme="ghibli"] h3 { position: relative; }
+html[data-theme="ghibli"] h2::after,
+html[data-theme="ghibli"] h3::after {
+  content: ""; display: block; width: 40px; height: 2px;
+  margin-top: 8px;
+  background: linear-gradient(90deg, var(--accent) 0%, var(--accent-bright) 60%, transparent 100%);
+  border-radius: 999px;
+}
+html[data-theme="ghibli"] h3::after { width: 28px; height: 1.5px; margin-top: 6px; }
+
+html[data-theme="ghibli"] .glass-surface,
+html[data-theme="ghibli"] .glass-2,
+html[data-theme="ghibli"] .glass-3,
+html[data-theme="ghibli"] .glass-4 {
+  animation: ghibli-card-reveal 0.55s cubic-bezier(0.22, 0.61, 0.36, 1) backwards;
+}
+html[data-theme="ghibli"] .glass-surface:nth-child(1),
+html[data-theme="ghibli"] .glass-2:nth-child(1),
+html[data-theme="ghibli"] .glass-3:nth-child(1),
+html[data-theme="ghibli"] .glass-4:nth-child(1) { animation-delay: 0.04s; }
+html[data-theme="ghibli"] .glass-surface:nth-child(2),
+html[data-theme="ghibli"] .glass-2:nth-child(2),
+html[data-theme="ghibli"] .glass-3:nth-child(2),
+html[data-theme="ghibli"] .glass-4:nth-child(2) { animation-delay: 0.08s; }
+html[data-theme="ghibli"] .glass-surface:nth-child(3),
+html[data-theme="ghibli"] .glass-2:nth-child(3),
+html[data-theme="ghibli"] .glass-3:nth-child(3),
+html[data-theme="ghibli"] .glass-4:nth-child(3) { animation-delay: 0.12s; }
+html[data-theme="ghibli"] .glass-surface:nth-child(4),
+html[data-theme="ghibli"] .glass-2:nth-child(4),
+html[data-theme="ghibli"] .glass-3:nth-child(4),
+html[data-theme="ghibli"] .glass-4:nth-child(4) { animation-delay: 0.16s; }
+html[data-theme="ghibli"] .glass-surface:nth-child(5),
+html[data-theme="ghibli"] .glass-2:nth-child(5),
+html[data-theme="ghibli"] .glass-3:nth-child(5),
+html[data-theme="ghibli"] .glass-4:nth-child(5) { animation-delay: 0.20s; }
+
+@keyframes ghibli-card-reveal {
+  0%   { opacity: 0; transform: translateY(8px); }
+  100% { opacity: 1; transform: translateY(0);    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-theme="ghibli"] .ghibli-bg .ghibli-sun,
+  html[data-theme="ghibli"] .ghibli-bg .ghibli-cloud,
+  html[data-theme="ghibli"] .ghibli-bg .ghibli-totoro,
+  html[data-theme="ghibli"] .ghibli-bg .ghibli-leaf,
+  html[data-theme="ghibli"] .glass-surface::after,
+  html[data-theme="ghibli"] .glass-2::after,
+  html[data-theme="ghibli"] .glass-3::after,
+  html[data-theme="ghibli"] .glass-4::after,
+  html[data-theme="ghibli"] .glass-surface,
+  html[data-theme="ghibli"] .glass-2,
+  html[data-theme="ghibli"] .glass-3,
+  html[data-theme="ghibli"] .glass-4 {
+    animation: none !important;
+  }
+}

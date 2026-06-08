@@ -1,0 +1,583 @@
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║   TEMA "SITH" · TRIBUTO · Star Wars (lado oscuro)                        ║
+ * ║   Hyperspace + sable rojo vertical + halo Death Star. Aislado.          ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="sith"] {
+  --bg-0: #000000;
+  --bg-1: #060006;
+  --bg-2: #18000c;
+
+  --card: linear-gradient(180deg, #18000a 0%, #0c0006 60%, #060003 100%);
+  --surface:   rgba(28, 4, 14, 0.92);
+  --surface-2: rgba(255, 28, 40, 0.04);
+  --border:        rgba(255, 28, 40, 0.22);
+  --border-strong: rgba(255, 28, 40, 0.55);
+
+  --accent:        #ff1c28;        /* rojo sable Sith */
+  --accent-bright: #ff5566;
+  --accent-glow:   rgba(255, 28, 40, 0.45);
+
+  --text:      #f5e8e8;
+  --text-soft: #d8b8b8;
+  --muted:     #8a6a6a;
+
+  --ok:         #4dffaa;
+  --gold-relic: #d4a544;
+
+  --font-display: "Roboto Condensed", "Sora", -apple-system, sans-serif;
+  --font-ui:      "Sora", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+
+  --app-canvas-color: transparent;
+  --app-canvas-image: none;
+  --card-isolation: auto;
+
+  color-scheme: dark;
+}
+
+html[data-theme="sith"] body { min-height: 100vh; }
+html[data-theme="sith"] .app-sidebar-shell,
+html[data-theme="sith"] .app-top-header { isolation: auto !important; }
+
+
+/* ── 1. FONDO + ATMÓSFERA ─────────────────────────────────────────────── */
+html[data-theme="sith"] .sith-bg {
+  position: fixed; inset: 0; z-index: -10; overflow: hidden; pointer-events: none;
+  background:
+    radial-gradient(ellipse 100% 90% at 50% 50%, rgba(60, 4, 12, 0.55) 0%, transparent 70%),
+    linear-gradient(180deg, #000000 0%, #060003 50%, #000000 100%);
+}
+
+/* ── 1.1 Hyperspace — líneas radiales blancas hacia el centro ─────────── */
+html[data-theme="sith"] .sith-bg .sith-hyperspace {
+  position: absolute; inset: 0;
+  background-image:
+    /* Líneas blancas estiradas que evocan hyperspace */
+    radial-gradient(ellipse 1px 80px at 18% 12%, rgba(255,255,255,0.55) 0%, transparent 100%),
+    radial-gradient(ellipse 1px 60px at 28% 38%, rgba(255,255,255,0.40) 0%, transparent 100%),
+    radial-gradient(ellipse 1px 100px at 42% 18%, rgba(255,255,255,0.50) 0%, transparent 100%),
+    radial-gradient(ellipse 1px 70px at 58% 24%, rgba(255,255,255,0.45) 0%, transparent 100%),
+    radial-gradient(ellipse 1px 120px at 72% 14%, rgba(255,255,255,0.55) 0%, transparent 100%),
+    radial-gradient(ellipse 1px 50px at 88% 32%, rgba(255,255,255,0.40) 0%, transparent 100%),
+    radial-gradient(ellipse 1px 90px at 12% 70%, rgba(255,255,255,0.45) 0%, transparent 100%),
+    radial-gradient(ellipse 1px 75px at 32% 78%, rgba(255,255,255,0.40) 0%, transparent 100%),
+    radial-gradient(ellipse 1px 110px at 56% 82%, rgba(255,255,255,0.55) 0%, transparent 100%),
+    radial-gradient(ellipse 1px 60px at 78% 68%, rgba(255,255,255,0.40) 0%, transparent 100%),
+    radial-gradient(ellipse 1px 100px at 92% 88%, rgba(255,255,255,0.45) 0%, transparent 100%);
+  pointer-events: none;
+  animation: sith-hyperspace-zoom 6s linear infinite;
+  will-change: transform;
+}
+@keyframes sith-hyperspace-zoom {
+  0%   { transform: scale(1);    opacity: 0.75; }
+  50%  {                          opacity: 1.00; }
+  100% { transform: scale(1.15); opacity: 0.75; }
+}
+
+/* ── 1.2 Death Star — halo radial lejano ─────────────────────────────── */
+html[data-theme="sith"] .sith-bg .sith-death-star {
+  position: absolute; right: 8%; top: 12%;
+  width: 240px; height: 240px;
+  pointer-events: none;
+  filter: drop-shadow(0 0 24px rgba(120, 30, 40, 0.55));
+  animation: sith-death-star-rotate 240s linear infinite;
+}
+
+/* ── 1.3 Sable láser rojo (legacy) — OCULTO ahora que el blade va dentro
+ *       del SVG del Sith para empuñarlo correctamente. */
+html[data-theme="sith"] .sith-bg .sith-saber {
+  display: none;
+}
+@keyframes sith-saber-pulse { 0%,100%{} 50%{} }
+@keyframes sith-saber-tilt { 0%,100%{} 50%{} }
+
+/* ── 1.3.b SITH LORD encapuchado con sable empuñado ─────────────────── */
+html[data-theme="sith"] .sith-bg .sith-figure {
+  position: absolute;
+  left: 50%; bottom: 0;
+  width: clamp(280px, 36vmin, 480px);
+  height: auto;
+  aspect-ratio: 320 / 520;
+  transform: translateX(-50%);
+  pointer-events: none;
+  opacity: 0.95;
+  filter:
+    drop-shadow(0 0 32px rgba(255, 28, 40, 0.55))
+    drop-shadow(0 18px 36px rgba(0, 0, 0, 0.85));
+  animation: sith-figure-breath 8s ease-in-out infinite;
+  z-index: 1;
+}
+@keyframes sith-figure-breath {
+  0%, 100% { transform: translateX(-50%) translateY(0)    scale(1.00); }
+  50%      { transform: translateX(-50%) translateY(-3px) scale(1.01); }
+}
+html[data-theme="sith"] .sith-bg .sith-figure .sith-blade-glow {
+  animation: sith-blade-glow-pulse 3.5s ease-in-out infinite;
+}
+@keyframes sith-blade-glow-pulse {
+  0%, 100% { opacity: 0.50; }
+  50%      { opacity: 0.85; }
+}
+html[data-theme="sith"] .sith-bg .sith-figure .sith-blade-core {
+  filter: drop-shadow(0 0 4px rgba(255, 28, 40, 1));
+}
+html[data-theme="sith"] .sith-bg .sith-figure .sith-eye-glow {
+  filter: drop-shadow(0 0 3px rgba(255, 60, 80, 1));
+  animation: sith-eye-blink 5s ease-in-out infinite;
+}
+@keyframes sith-eye-blink {
+  0%, 92%, 100% { opacity: 1; }
+  94%, 96%      { opacity: 0.2; }
+}
+
+@keyframes sith-death-star-rotate {
+  0%   { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* ── 1.4 Veil + grain + vignette ─────────────────────────────────────── */
+html[data-theme="sith"] .sith-bg .sith-veil {
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse 70% 50% at 50% 50%,
+    rgba(0, 0, 0, 0.55) 0%, rgba(0, 0, 0, 0.30) 38%, transparent 78%);
+  pointer-events: none;
+}
+html[data-theme="sith"] .sith-bg .sith-grain {
+  position: absolute; inset: 0; opacity: 0.04;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.78' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  mix-blend-mode: overlay; pointer-events: none;
+}
+html[data-theme="sith"] .sith-bg .sith-vignette {
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse 100% 80% at 50% 50%,
+    transparent 50%, rgba(0, 0, 0, 0.45) 82%, rgba(0, 0, 0, 0.75) 100%);
+  pointer-events: none;
+}
+
+
+/* ── 2. TIPOGRAFÍA + SHELL ──────────────────────────────────────────── */
+html[data-theme="sith"] body {
+  color: var(--text); font-family: var(--font-ui); font-weight: 400;
+}
+html[data-theme="sith"] h1,
+html[data-theme="sith"] h2,
+html[data-theme="sith"] h3,
+html[data-theme="sith"] h4,
+html[data-theme="sith"] h5,
+html[data-theme="sith"] h6 {
+  font-family: var(--font-display);
+  font-weight: 700; letter-spacing: 0.04em;
+  color: var(--accent-bright);
+  text-shadow: 0 0 8px rgba(255, 28, 40, 0.40);
+}
+html[data-theme="sith"] h1,
+html[data-theme="sith"] h2 { font-weight: 800; color: #ffffff; text-transform: uppercase; }
+
+html[data-theme="sith"] .glass-shell-frame {
+  margin: 18px; padding: 0; border-radius: 18px;
+  background: transparent; box-shadow: none; isolation: auto !important;
+}
+html[data-theme="sith"] .glass-shell-inner {
+  border-radius: 17px; background: transparent;
+  backdrop-filter: none; -webkit-backdrop-filter: none;
+  isolation: auto !important; overflow: visible; padding: 20px;
+}
+@media (max-width: 768px) {
+  html[data-theme="sith"] .glass-shell-inner { padding: 6px; }
+  html[data-theme="sith"] .app-dashboard-root { gap: 8px; }
+}
+@media (max-width: 640px) {
+  html[data-theme="sith"] .glass-shell-frame { margin: 4px; border-radius: 12px; }
+  html[data-theme="sith"] .glass-shell-inner { border-radius: 11px; }
+}
+@media (max-width: 480px) {
+  html[data-theme="sith"] .glass-shell-frame { margin: 0; padding: 0; border-radius: 0; background: none; }
+  html[data-theme="sith"] .glass-shell-inner { padding: 0; border-radius: 0; }
+  html[data-theme="sith"] .app-dashboard-root { gap: 0; }
+}
+html[data-theme="sith"] .glass-shell-frame::before,
+html[data-theme="sith"] .glass-shell-frame::after,
+html[data-theme="sith"] .glass-shell-inner::before,
+html[data-theme="sith"] .glass-shell-inner::after { display: none !important; }
+html[data-theme="sith"] .app-dashboard-root { background: transparent !important; gap: 16px; }
+
+
+/* ── 3. SUPERFICIES ──────────────────────────────────────────────────── */
+html[data-theme="sith"] .glass-surface {
+  position: relative; isolation: auto;
+  background: var(--card);
+  backdrop-filter: none; -webkit-backdrop-filter: none;
+  border: 1px solid var(--border); border-radius: 14px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 28, 40, 0.06),
+    0 1px 0 rgba(0, 0, 0, 0.65),
+    0 18px 40px rgba(0, 0, 0, 0.65),
+    0 0 24px rgba(255, 28, 40, 0.04);
+  transition: border-color 0.2s ease, transform 0.2s ease;
+  overflow: hidden;
+}
+html[data-theme="sith"] .glass-surface::before { display: none; }
+html[data-theme="sith"] .glass-surface > * { position: relative; z-index: 1; }
+html[data-theme="sith"] .glass-surface:hover { border-color: var(--border-strong); }
+
+html[data-theme="sith"] .glass,
+html[data-theme="sith"] .glass-1,
+html[data-theme="sith"] .glass-2,
+html[data-theme="sith"] .glass-3,
+html[data-theme="sith"] .glass-4 {
+  isolation: auto !important; position: relative; border-radius: 14px;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+html[data-theme="sith"] .glass,
+html[data-theme="sith"] .glass-1 {
+  background: var(--card); border: 1px solid var(--border);
+  backdrop-filter: none; -webkit-backdrop-filter: none;
+  box-shadow: inset 0 1px 0 rgba(255, 28, 40, 0.04), 0 12px 30px rgba(0, 0, 0, 0.55);
+}
+html[data-theme="sith"] .glass-2 {
+  background: linear-gradient(180deg, rgba(255, 28, 40, 0.025), rgba(255, 28, 40, 0)), var(--card);
+  border: 1px solid var(--border);
+  backdrop-filter: none; -webkit-backdrop-filter: none;
+  box-shadow: inset 0 1px 0 rgba(255, 28, 40, 0.05), 0 16px 36px rgba(0, 0, 0, 0.60);
+}
+html[data-theme="sith"] .glass-3 {
+  background: linear-gradient(180deg, rgba(255, 28, 40, 0.04), rgba(255, 28, 40, 0)), var(--card);
+  border: 1px solid var(--border-strong);
+  backdrop-filter: none; -webkit-backdrop-filter: none;
+  box-shadow: inset 0 1px 0 rgba(255, 28, 40, 0.06), 0 20px 44px rgba(0, 0, 0, 0.65);
+}
+html[data-theme="sith"] .glass-4 {
+  background: linear-gradient(180deg, rgba(255, 28, 40, 0.05), rgba(255, 28, 40, 0)), var(--card);
+  border: 1px solid var(--border-strong);
+  backdrop-filter: none; -webkit-backdrop-filter: none;
+  box-shadow: inset 0 1px 0 rgba(255, 28, 40, 0.07), 0 28px 56px rgba(0, 0, 0, 0.75);
+}
+
+
+/* ── 4. SIDEBAR + HEADER ─────────────────────────────────────────────── */
+html[data-theme="sith"] .app-sidebar-shell {
+  background: linear-gradient(180deg,
+    rgba(20, 4, 10, 0.55) 0%, rgba(14, 2, 6, 0.62) 60%, rgba(10, 0, 4, 0.65) 100%);
+  border-right: none;
+  backdrop-filter: blur(22px) saturate(125%);
+  -webkit-backdrop-filter: blur(22px) saturate(125%);
+  box-shadow: inset -1px 0 0 rgba(255, 28, 40, 0.14), 4px 0 22px rgba(0, 0, 0, 0.55);
+}
+html[data-theme="sith"] .app-top-header {
+  background: linear-gradient(180deg, rgba(14, 2, 6, 0.55) 0%, rgba(14, 2, 6, 0.45) 100%);
+  border-bottom: none;
+  backdrop-filter: blur(22px) saturate(125%);
+  -webkit-backdrop-filter: blur(22px) saturate(125%);
+  box-shadow: inset 0 -1px 0 rgba(255, 28, 40, 0.14), 0 4px 22px rgba(0, 0, 0, 0.45);
+}
+
+html[data-theme="sith"] .sidebar-nav-link-active {
+  background: linear-gradient(180deg, rgba(255, 28, 40, 0.18) 0%, rgba(255, 28, 40, 0.10) 100%) !important;
+  color: #ffffff !important;
+  border-color: rgba(255, 28, 40, 0.40) !important;
+  box-shadow: inset 0 0 0 1px rgba(255, 28, 40, 0.22), 0 0 14px rgba(255, 28, 40, 0.30) !important;
+}
+html[data-theme="sith"] .sidebar-nav-link-active.ring-2 {
+  --tw-ring-color: rgba(255, 85, 102, 0.55) !important;
+}
+html[data-theme="sith"] .sidebar-nav-link:hover:not(.sidebar-nav-link-active) {
+  background: rgba(255, 28, 40, 0.08) !important; color: var(--text) !important;
+}
+html[data-theme="sith"] .sidebar-active-bar {
+  background: linear-gradient(180deg, var(--accent-bright) 0%, var(--accent) 100%) !important;
+  box-shadow: 0 0 12px rgba(255, 28, 40, 0.65) !important;
+}
+html[data-theme="sith"] nav .text-white\/40,
+html[data-theme="sith"] nav [class*="text-white"][class*="uppercase"] {
+  color: rgba(216, 184, 184, 0.55) !important; letter-spacing: 0.10em;
+}
+html[data-theme="sith"] .app-sidebar-shell .border-t {
+  border-top-color: rgba(255, 28, 40, 0.16) !important;
+}
+html[data-theme="sith"] .app-sidebar-shell .bg-white\/5 {
+  background-color: rgba(255, 28, 40, 0.04) !important;
+}
+
+
+/* ── 5. TEXTO + LINKS + MARK ─────────────────────────────────────────── */
+html[data-theme="sith"] [data-bitacora-html-body],
+html[data-theme="sith"] [data-bitacora-prose].prose,
+html[data-theme="sith"] [data-bitacora-prose] .ProseMirror {
+  color: var(--text); font-family: var(--font-ui);
+  font-size: 16.5px; line-height: 1.85;
+}
+html[data-theme="sith"] [data-bitacora-html-body] > p:first-child,
+html[data-theme="sith"] [data-bitacora-prose].prose > p:first-child {
+  color: #ffffff; font-weight: 600;
+}
+html[data-theme="sith"] [data-bitacora-html-body] a,
+html[data-theme="sith"] [data-bitacora-prose] .ProseMirror a {
+  color: var(--accent-bright); text-decoration: none;
+  border-bottom: 1px solid rgba(255, 28, 40, 0.30);
+}
+html[data-theme="sith"] [data-bitacora-html-body] a:hover,
+html[data-theme="sith"] [data-bitacora-prose] .ProseMirror a:hover {
+  color: #ff8090; border-bottom-color: rgba(255, 28, 40, 0.65);
+}
+
+html[data-theme="sith"] mark,
+html[data-theme="sith"] .ProseMirror mark,
+html[data-theme="sith"] [data-bitacora-html-body] mark {
+  background: linear-gradient(180deg, #ff1c28 0%, #b00010 100%);
+  color: #ffffff; font-weight: 700;
+  border-radius: 3px; padding: 0 5px;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 200, 200, 0.40),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22);
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.45);
+}
+
+
+/* ── 6. INPUTS + BOTONES ─────────────────────────────────────────────── */
+html[data-theme="sith"] input,
+html[data-theme="sith"] textarea,
+html[data-theme="sith"] select {
+  background-color: rgba(255, 28, 40, 0.025);
+  color: var(--text); border-color: var(--border);
+}
+html[data-theme="sith"] input::placeholder,
+html[data-theme="sith"] textarea::placeholder { color: var(--muted); }
+html[data-theme="sith"] input:focus,
+html[data-theme="sith"] textarea:focus,
+html[data-theme="sith"] select:focus {
+  border-color: var(--border-strong); outline: none;
+  box-shadow: 0 0 0 2px rgba(255, 28, 40, 0.22);
+}
+html[data-theme="sith"] [data-bitacora-prose] input[type="text"],
+html[data-theme="sith"] form input[type="text"] {
+  background-color: rgba(255, 28, 40, 0.025);
+}
+
+html[data-theme="sith"] .btn-primary,
+html[data-theme="sith"] button[data-variant="primary"] {
+  background: linear-gradient(180deg, var(--accent-bright) 0%, var(--accent) 100%);
+  color: #ffffff; border: 1px solid rgba(255, 28, 40, 0.55);
+  font-weight: 700;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.20), 0 1px 0 rgba(0, 0, 0, 0.55);
+}
+html[data-theme="sith"] .btn-primary:hover,
+html[data-theme="sith"] button[data-variant="primary"]:hover {
+  background: linear-gradient(180deg, #ff8090 0%, var(--accent-bright) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.25),
+    0 0 0 1px rgba(255, 28, 40, 0.55),
+    0 0 18px rgba(255, 28, 40, 0.55);
+}
+
+
+/* ── 7. PORTALES ──────────────────────────────────────────────────────── */
+html[data-theme="sith"] #theme-selector-panel {
+  background: linear-gradient(155deg, #18000a 0%, #0c0006 60%, #050003 100%) !important;
+  border-color: var(--border) !important;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.85), 0 0 0 1px rgba(255, 28, 40, 0.12), 0 0 32px rgba(255, 28, 40, 0.10) !important;
+}
+html[data-theme="sith"] #theme-selector-panel input[type="text"] {
+  background-color: rgba(255, 28, 40, 0.04) !important; color: var(--text) !important;
+}
+html[data-theme="sith"] #theme-selector-panel .border-b { border-color: var(--border) !important; }
+
+html[data-theme="sith"] .cmd-palette-backdrop { background-color: rgba(0, 0, 0, 0.92) !important; }
+html[data-theme="sith"] #cmd-palette-panel [cmdk-root],
+html[data-theme="sith"] #cmd-palette-panel [cmdk-list] {
+  background-color: #0c0006 !important; border-color: var(--border) !important;
+}
+html[data-theme="sith"] #cmd-palette-panel [cmdk-input-wrapper],
+html[data-theme="sith"] #cmd-palette-panel > div > div:first-child {
+  background-color: #0c0006 !important; border-color: var(--border) !important;
+}
+html[data-theme="sith"] #cmd-palette-panel [class*="bg-\[\#060912\]"],
+html[data-theme="sith"] #cmd-palette-panel input[cmdk-input] {
+  background-color: rgba(255, 28, 40, 0.04) !important;
+  color: var(--text) !important; border-color: var(--border) !important;
+}
+html[data-theme="sith"] #cmd-palette-panel [cmdk-input-wrapper] > div:focus-within {
+  border-color: rgba(255, 85, 102, 0.65) !important;
+}
+html[data-theme="sith"] #cmd-palette-panel [cmdk-item][data-selected="true"] {
+  background-color: rgba(255, 28, 40, 0.16) !important; color: var(--text) !important;
+}
+
+
+/* ── 8. CONFIG TABS ──────────────────────────────────────────────────── */
+html[data-theme="sith"] .config-tabs-root [class*="text-violet-"],
+html[data-theme="sith"] .config-tabs-root [class*="text-amber-"],
+html[data-theme="sith"] .config-tabs-root [class*="text-sky-"],
+html[data-theme="sith"] .config-tabs-root [class*="text-emerald-"],
+html[data-theme="sith"] .config-tabs-root [class*="text-rose-"],
+html[data-theme="sith"] .config-tabs-root [class*="text-indigo-"],
+html[data-theme="sith"] .config-tabs-root [class*="text-fuchsia-"],
+html[data-theme="sith"] .config-tabs-root [class*="text-cyan-"],
+html[data-theme="sith"] .config-tabs-root [class*="text-pink-"],
+html[data-theme="sith"] .config-tabs-root [class*="text-teal-"],
+html[data-theme="sith"] .config-tabs-root [class*="text-orange-"] {
+  color: var(--accent-bright) !important;
+}
+html[data-theme="sith"] .config-tabs-root [class*="bg-violet-"],
+html[data-theme="sith"] .config-tabs-root [class*="bg-amber-"],
+html[data-theme="sith"] .config-tabs-root [class*="bg-sky-"],
+html[data-theme="sith"] .config-tabs-root [class*="bg-emerald-"],
+html[data-theme="sith"] .config-tabs-root [class*="bg-rose-"],
+html[data-theme="sith"] .config-tabs-root [class*="bg-indigo-"],
+html[data-theme="sith"] .config-tabs-root [class*="bg-fuchsia-"],
+html[data-theme="sith"] .config-tabs-root [class*="bg-cyan-"],
+html[data-theme="sith"] .config-tabs-root [class*="bg-pink-"],
+html[data-theme="sith"] .config-tabs-root [class*="bg-teal-"],
+html[data-theme="sith"] .config-tabs-root [class*="bg-orange-"] {
+  background-color: rgba(255, 28, 40, 0.10) !important;
+}
+html[data-theme="sith"] .config-tabs-root [class*="border-violet-"],
+html[data-theme="sith"] .config-tabs-root [class*="border-amber-"],
+html[data-theme="sith"] .config-tabs-root [class*="border-sky-"],
+html[data-theme="sith"] .config-tabs-root [class*="border-emerald-"],
+html[data-theme="sith"] .config-tabs-root [class*="border-rose-"],
+html[data-theme="sith"] .config-tabs-root [class*="border-indigo-"],
+html[data-theme="sith"] .config-tabs-root [class*="border-fuchsia-"],
+html[data-theme="sith"] .config-tabs-root [class*="border-cyan-"],
+html[data-theme="sith"] .config-tabs-root [class*="border-pink-"],
+html[data-theme="sith"] .config-tabs-root [class*="border-teal-"],
+html[data-theme="sith"] .config-tabs-root [class*="border-orange-"] {
+  border-color: rgba(255, 28, 40, 0.22) !important;
+}
+html[data-theme="sith"] .config-tabs-root [class*="ring-violet-"],
+html[data-theme="sith"] .config-tabs-root [class*="ring-amber-"],
+html[data-theme="sith"] .config-tabs-root [class*="ring-sky-"],
+html[data-theme="sith"] .config-tabs-root [class*="ring-emerald-"],
+html[data-theme="sith"] .config-tabs-root [class*="ring-rose-"],
+html[data-theme="sith"] .config-tabs-root [class*="ring-indigo-"],
+html[data-theme="sith"] .config-tabs-root [class*="ring-fuchsia-"],
+html[data-theme="sith"] .config-tabs-root [class*="ring-cyan-"],
+html[data-theme="sith"] .config-tabs-root [class*="ring-pink-"],
+html[data-theme="sith"] .config-tabs-root [class*="ring-teal-"],
+html[data-theme="sith"] .config-tabs-root [class*="ring-orange-"] {
+  --tw-ring-color: rgba(255, 28, 40, 0.32) !important;
+}
+html[data-theme="sith"] .config-tabs-root [class*="from-violet"],
+html[data-theme="sith"] .config-tabs-root [class*="from-amber"],
+html[data-theme="sith"] .config-tabs-root [class*="from-sky"],
+html[data-theme="sith"] .config-tabs-root [class*="from-emerald"],
+html[data-theme="sith"] .config-tabs-root [class*="from-rose"],
+html[data-theme="sith"] .config-tabs-root [class*="from-indigo"] {
+  --tw-gradient-from: rgba(255, 28, 40, 0.10) var(--tw-gradient-from-position) !important;
+  --tw-gradient-to: rgba(255, 28, 40, 0) var(--tw-gradient-to-position) !important;
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-via, var(--tw-gradient-to)), var(--tw-gradient-to) !important;
+}
+html[data-theme="sith"] .config-tabs-root [class*="to-fuchsia"],
+html[data-theme="sith"] .config-tabs-root [class*="to-orange"],
+html[data-theme="sith"] .config-tabs-root [class*="to-cyan"],
+html[data-theme="sith"] .config-tabs-root [class*="to-teal"],
+html[data-theme="sith"] .config-tabs-root [class*="to-pink"],
+html[data-theme="sith"] .config-tabs-root [class*="to-violet"] {
+  --tw-gradient-to: rgba(255, 85, 102, 0.10) var(--tw-gradient-to-position) !important;
+}
+html[data-theme="sith"] .config-tabs-root .bg-gradient-to-r[class*="from-amber"],
+html[data-theme="sith"] .config-tabs-root .bg-gradient-to-r[class*="from-violet"],
+html[data-theme="sith"] .config-tabs-root .bg-gradient-to-r[class*="from-sky"],
+html[data-theme="sith"] .config-tabs-root .bg-gradient-to-r[class*="from-emerald"],
+html[data-theme="sith"] .config-tabs-root .bg-gradient-to-r[class*="from-rose"],
+html[data-theme="sith"] .config-tabs-root .bg-gradient-to-r[class*="from-indigo"] {
+  background: linear-gradient(90deg, var(--accent) 0%, var(--accent-bright) 50%, var(--accent) 100%) !important;
+}
+html[data-theme="sith"] .config-tabs-root .blur-3xl {
+  background-color: rgba(255, 28, 40, 0.06) !important;
+}
+
+html[data-theme="sith"] .my-profile-card {
+  background: linear-gradient(180deg,
+    rgba(20, 4, 10, 0.95) 0%, rgba(14, 2, 6, 0.97) 50%, rgba(8, 0, 4, 0.98) 100%) !important;
+  border-color: var(--border) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 28, 40, 0.05),
+    0 18px 50px rgba(0, 0, 0, 0.75) !important;
+}
+html[data-theme="sith"] .my-profile-card .border-white\/8 {
+  border-color: rgba(255, 28, 40, 0.16) !important;
+}
+
+
+/* ── 9. MICRO-DETALLES + REVEAL ─────────────────────────────────────── */
+html[data-theme="sith"] .glass-surface::after,
+html[data-theme="sith"] .glass-2::after,
+html[data-theme="sith"] .glass-3::after,
+html[data-theme="sith"] .glass-4::after {
+  content: ""; position: absolute; top: 0; left: 0; right: 0;
+  height: 2px; pointer-events: none; z-index: 2;
+  background: linear-gradient(90deg,
+    transparent 0%, transparent 28%,
+    rgba(255, 28, 40, 0.55) 44%,
+    rgba(255, 200, 200, 1.00) 50%,
+    rgba(255, 28, 40, 0.55) 56%,
+    transparent 72%, transparent 100%);
+  background-size: 260% 100%; background-position: 100% 0;
+  animation: sith-shimmer 6s ease-in-out infinite;
+  border-top-left-radius: inherit; border-top-right-radius: inherit;
+}
+@keyframes sith-shimmer {
+  0%   { background-position: 130% 0; }
+  100% { background-position: -30% 0; }
+}
+
+html[data-theme="sith"] h2,
+html[data-theme="sith"] h3 { position: relative; }
+html[data-theme="sith"] h2::after,
+html[data-theme="sith"] h3::after {
+  content: ""; display: block; width: 48px; height: 2px;
+  margin-top: 8px;
+  background: linear-gradient(90deg, var(--accent) 0%, var(--accent-bright) 60%, transparent 100%);
+  box-shadow: 0 0 8px rgba(255, 28, 40, 0.55); border-radius: 999px;
+}
+html[data-theme="sith"] h3::after { width: 32px; height: 1.5px; margin-top: 6px; }
+
+html[data-theme="sith"] .glass-surface,
+html[data-theme="sith"] .glass-2,
+html[data-theme="sith"] .glass-3,
+html[data-theme="sith"] .glass-4 {
+  animation: sith-card-reveal 0.55s cubic-bezier(0.22, 0.61, 0.36, 1) backwards;
+}
+html[data-theme="sith"] .glass-surface:nth-child(1),
+html[data-theme="sith"] .glass-2:nth-child(1),
+html[data-theme="sith"] .glass-3:nth-child(1),
+html[data-theme="sith"] .glass-4:nth-child(1) { animation-delay: 0.04s; }
+html[data-theme="sith"] .glass-surface:nth-child(2),
+html[data-theme="sith"] .glass-2:nth-child(2),
+html[data-theme="sith"] .glass-3:nth-child(2),
+html[data-theme="sith"] .glass-4:nth-child(2) { animation-delay: 0.08s; }
+html[data-theme="sith"] .glass-surface:nth-child(3),
+html[data-theme="sith"] .glass-2:nth-child(3),
+html[data-theme="sith"] .glass-3:nth-child(3),
+html[data-theme="sith"] .glass-4:nth-child(3) { animation-delay: 0.12s; }
+html[data-theme="sith"] .glass-surface:nth-child(4),
+html[data-theme="sith"] .glass-2:nth-child(4),
+html[data-theme="sith"] .glass-3:nth-child(4),
+html[data-theme="sith"] .glass-4:nth-child(4) { animation-delay: 0.16s; }
+html[data-theme="sith"] .glass-surface:nth-child(5),
+html[data-theme="sith"] .glass-2:nth-child(5),
+html[data-theme="sith"] .glass-3:nth-child(5),
+html[data-theme="sith"] .glass-4:nth-child(5) { animation-delay: 0.20s; }
+
+@keyframes sith-card-reveal {
+  0%   { opacity: 0; transform: translateY(8px); }
+  100% { opacity: 1; transform: translateY(0);    }
+}
+
+
+/* ── 10. REDUCED MOTION ─────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  html[data-theme="sith"] .sith-bg .sith-hyperspace,
+  html[data-theme="sith"] .sith-bg .sith-saber,
+  html[data-theme="sith"] .sith-bg .sith-death-star,
+  html[data-theme="sith"] .glass-surface::after,
+  html[data-theme="sith"] .glass-2::after,
+  html[data-theme="sith"] .glass-3::after,
+  html[data-theme="sith"] .glass-4::after,
+  html[data-theme="sith"] .glass-surface,
+  html[data-theme="sith"] .glass-2,
+  html[data-theme="sith"] .glass-3,
+  html[data-theme="sith"] .glass-4 {
+    animation: none !important;
+  }
+}

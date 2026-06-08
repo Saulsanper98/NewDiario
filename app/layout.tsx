@@ -1,15 +1,36 @@
 import type { Metadata, Viewport } from "next";
-import { Sora } from "next/font/google";
+import { Sora, Shippori_Mincho, Zen_Kaku_Gothic_New } from "next/font/google";
 import { Toaster } from "react-hot-toast";
 import { BackgroundOrbs } from "@/components/layout/BackgroundOrbs";
 import { GlassBackground } from "@/components/layout/GlassBackground";
 import { SlateBackground } from "@/components/layout/SlateBackground";
-import { PrismaBackground } from "@/components/layout/PrismaBackground";
-import { MinimalFutureBackground } from "@/components/layout/MinimalFutureBackground";
-import { BorealisBackground } from "@/components/layout/BorealisBackground";
 import { OcasoBackground } from "@/components/layout/OcasoBackground";
-import { TerminalBackground } from "@/components/layout/TerminalBackground";
 import { NeonBackground } from "@/components/layout/NeonBackground";
+import { VolcanoBackground } from "@/components/layout/VolcanoBackground";
+import { AbyssBackground } from "@/components/layout/AbyssBackground";
+import { CosmosBackground } from "@/components/layout/CosmosBackground";
+import { StormBackground } from "@/components/layout/StormBackground";
+import { CCMGCBackground } from "@/components/layout/CCMGCBackground";
+import { DunasBackground } from "@/components/layout/DunasBackground";
+import { MeteorBackground } from "@/components/layout/MeteorBackground";
+import { AkatsukiBackground } from "@/components/layout/AkatsukiBackground";
+import { EvangelionBackground } from "@/components/layout/EvangelionBackground";
+import { SithBackground } from "@/components/layout/SithBackground";
+import { MatrixBackground } from "@/components/layout/MatrixBackground";
+import { StrangerBackground } from "@/components/layout/StrangerBackground";
+import { CyberpunkBackground } from "@/components/layout/CyberpunkBackground";
+import { SheikahBackground } from "@/components/layout/SheikahBackground";
+import { MordorBackground } from "@/components/layout/MordorBackground";
+import { TronBackground } from "@/components/layout/TronBackground";
+import { Persona5Background } from "@/components/layout/Persona5Background";
+import { MidgarBackground } from "@/components/layout/MidgarBackground";
+import { InterstellarBackground } from "@/components/layout/InterstellarBackground";
+import { SynthwaveBackground } from "@/components/layout/SynthwaveBackground";
+import { HollowBackground } from "@/components/layout/HollowBackground";
+import { DemonSlayerBackground } from "@/components/layout/DemonSlayerBackground";
+import { GhibliBackground } from "@/components/layout/GhibliBackground";
+import { DeathNoteBackground } from "@/components/layout/DeathNoteBackground";
+import { OnePieceBackground } from "@/components/layout/OnePieceBackground";
 import { SessionProvider } from "@/components/layout/SessionProvider";
 import { ThemeProvider } from "@/components/layout/ThemeProvider";
 import { defaultMetadata } from "@/lib/app-brand";
@@ -17,16 +38,62 @@ import "./globals.css";
 import "./theme-light.css";
 import "./theme-glass.css";
 import "./theme-slate.css";
-import "./theme-prisma.css";
-import "./theme-minimal.css";
-import "./theme-borealis.css";
 import "./theme-ocaso.css";
-import "./theme-terminal.css";
 import "./theme-neon.css";
+import "./theme-volcano.css";
+import "./theme-abyss.css";
+import "./theme-cosmos.css";
+import "./theme-storm.css";
+import "./theme-ccmgc.css";
+import "./theme-dunas.css";
+import "./theme-meteor.css";
+import "./theme-akatsuki.css";
+import "./theme-evangelion.css";
+import "./theme-sith.css";
+import "./theme-matrix.css";
+import "./theme-stranger.css";
+import "./theme-cyberpunk.css";
+import "./theme-sheikah.css";
+import "./theme-mordor.css";
+import "./theme-tron.css";
+import "./theme-persona5.css";
+import "./theme-midgar.css";
+import "./theme-interstellar.css";
+import "./theme-synthwave.css";
+import "./theme-hollow.css";
+import "./theme-demonslayer.css";
+import "./theme-ghibli.css";
+import "./theme-deathnote.css";
+import "./theme-onepiece.css";
 
 const sora = Sora({
   subsets: ["latin"],
   variable: "--font-sora",
+  display: "swap",
+});
+
+/**
+ * Fuentes específicas del tema "akatsuki". Se cargan vía next/font para
+ * que Google Fonts no se sirva desde una URL externa (queda self-hosted
+ * en `.next/static/media`) y para respetar la CSP `style-src 'self'`.
+ *
+ * IMPORTANTE: ambas fuentes se inyectan SOLO como CSS variables
+ * (`variable: "--font-akatsuki-*"`). NO se aplica `className` al body
+ * ni al html, así NINGÚN otro tema ve un cambio en su tipografía. Las
+ * variables están disponibles globalmente, pero solo el CSS scopeado
+ * a `html[data-theme="akatsuki"]` las usa vía `var(--font-display)` /
+ * `var(--font-ui)`.
+ */
+const shipporiMincho = Shippori_Mincho({
+  subsets: ["latin"],
+  weight: ["600", "700", "800"],
+  variable: "--font-akatsuki-display",
+  display: "swap",
+});
+const zenKaku = Zen_Kaku_Gothic_New({
+  subsets: ["latin"],
+  weight: ["400", "500", "700"],
+  variable: "--font-akatsuki-ui",
   display: "swap",
 });
 
@@ -57,31 +124,98 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
+/**
+ * Conjunto de IDs de tema que se aplican al `<html>` mediante
+ * `data-theme="<id>"`. Mantener sincronizado con `DATA_THEME_MODES`
+ * de `lib/theme.ts`.
+ *
+ * El bootstrap (script inline en <head>) lo recorre con `indexOf` para
+ * decidir si pintar el atributo o caer al estado base / aurora. Es la
+ * única forma de evitar el flash de tema incorrecto (FOUC) en SSR.
+ */
+const DATA_THEME_BOOTSTRAP = [
+  "light",
+  "glass",
+  "slate",
+  "ocaso",
+  "neon",
+  "volcano",
+  "abyss",
+  "cosmos",
+  "storm",
+  "ccmgc",
+  "dunas",
+  "meteor",
+  "akatsuki",
+  "evangelion",
+  "sith",
+  "matrix",
+  "stranger",
+  "cyberpunk",
+  "sheikah",
+  "mordor",
+  "tron",
+  "persona5",
+  "midgar",
+  "interstellar",
+  "synthwave",
+  "hollow",
+  "demonslayer",
+  "ghibli",
+  "deathnote",
+  "onepiece",
+];
+
+const BOOTSTRAP_SCRIPT = `(function(){try{var k='cc-ops-theme',r=document.documentElement,t=localStorage.getItem(k),L=${JSON.stringify(
+  DATA_THEME_BOOTSTRAP,
+)};r.removeAttribute('data-theme');r.removeAttribute('data-aurora');if(t&&L.indexOf(t)>-1){r.setAttribute('data-theme',t);}else if(t==='dark'){}else{r.setAttribute('data-aurora','true');}}catch(e){}})();`;
+
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   return (
-    <html lang="es" className={`${sora.variable} h-full`} suppressHydrationWarning>
+    <html
+      lang="es"
+      className={`${sora.variable} ${shipporiMincho.variable} ${zenKaku.variable} h-full`}
+      suppressHydrationWarning
+    >
       <head>
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `(function(){try{var k='cc-ops-theme',r=document.documentElement,t=localStorage.getItem(k);r.removeAttribute('data-theme');r.removeAttribute('data-aurora');if(t==='light')r.setAttribute('data-theme','light');else if(t==='glass')r.setAttribute('data-theme','glass');else if(t==='slate')r.setAttribute('data-theme','slate');else if(t==='prisma')r.setAttribute('data-theme','prisma');else if(t==='minimal')r.setAttribute('data-theme','minimal');else if(t==='borealis')r.setAttribute('data-theme','borealis');else if(t==='ocaso')r.setAttribute('data-theme','ocaso');else if(t==='terminal')r.setAttribute('data-theme','terminal');else if(t==='neon')r.setAttribute('data-theme','neon');else if(t==='dark'){}else r.setAttribute('data-aurora','true');}catch(e){}})();`,
-          }}
-        />
+        <script dangerouslySetInnerHTML={{ __html: BOOTSTRAP_SCRIPT }} />
       </head>
       <body className="h-full font-sans antialiased">
         <ThemeProvider>
           <BackgroundOrbs />
           <GlassBackground />
           <SlateBackground />
-          <PrismaBackground />
-          <MinimalFutureBackground />
-          <BorealisBackground />
           <OcasoBackground />
-          <TerminalBackground />
           <NeonBackground />
+          <VolcanoBackground />
+          <AbyssBackground />
+          <CosmosBackground />
+          <StormBackground />
+          <CCMGCBackground />
+          <DunasBackground />
+          <MeteorBackground />
+          <AkatsukiBackground />
+          <EvangelionBackground />
+          <SithBackground />
+          <MatrixBackground />
+          <StrangerBackground />
+          <CyberpunkBackground />
+          <SheikahBackground />
+          <MordorBackground />
+          <TronBackground />
+          <Persona5Background />
+          <MidgarBackground />
+          <InterstellarBackground />
+          <SynthwaveBackground />
+          <HollowBackground />
+          <DemonSlayerBackground />
+          <GhibliBackground />
+          <DeathNoteBackground />
+          <OnePieceBackground />
           <SessionProvider>{children}</SessionProvider>
         </ThemeProvider>
         <Toaster

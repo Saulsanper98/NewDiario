@@ -20,6 +20,8 @@ import toast from "react-hot-toast";
 import { Avatar } from "@/components/ui/Avatar";
 import { AvatarImagePreview } from "@/components/ui/AvatarImagePreview";
 import { KioskSettingsCard } from "@/components/configuracion/KioskSettingsCard";
+import { MirrorModeCard } from "@/components/configuracion/MirrorModeCard";
+import { isMirroringEnabledForEmail } from "@/lib/presence/linked-account";
 import { ProfileBannerFields } from "@/components/profile/ProfileBannerFields";
 import { FocusPicker } from "@/components/profile/FocusPicker";
 import { ProfileMenuBanner } from "@/components/ui/ProfileMenuBanner";
@@ -727,6 +729,19 @@ export function MyProfileTab({ currentUser }: MyProfileTabProps) {
           isLight={L}
         />
       )}
+
+      {/* Tarjeta "Espejado de pantalla": solo para las cuentas del par
+          tareas@/abian@ que comparten linkedAccountEmail. Cada navegador
+          puede marcarse como Operador (publica URL+scroll) o Datawall
+          (sigue al operador en vivo via SSE). */}
+      {isMirroringEnabledForEmail(currentUser.email) &&
+        currentUser.linkedAccountEmail && (
+          <MirrorModeCard
+            isLight={L}
+            userEmail={currentUser.email}
+            linkedAccountEmail={currentUser.linkedAccountEmail}
+          />
+        )}
 
       <AvatarImagePreview
         open={previewOpen}

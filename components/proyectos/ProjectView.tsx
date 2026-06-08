@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useMemo, forwardRef } from "react";
 import { createPortal } from "react-dom";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import {
   Kanban, List, GitGraph, Activity, FolderTree, ArrowRight,
@@ -63,6 +63,7 @@ export function ProjectView({ project, allUsers }: ProjectViewProps) {
   const isLight = theme === "light";
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { data: session } = useSession();
   const sessionUser = session?.user as SessionUser | undefined;
 
@@ -75,6 +76,15 @@ export function ProjectView({ project, allUsers }: ProjectViewProps) {
           d.id === project.departmentId &&
           (d.role === "ADMIN" || d.role === "SUPERADMIN")
       ));
+
+  /* Cuenta `tareas@movilidadgc.org`: por decisión de producto su vista
+   * de proyecto NO muestra el bloque de avatares de miembros en la
+   * cabecera (queda demasiado denso visualmente en el datawall y se
+   * solapaba con la barra de progreso). El resto de cuentas siguen
+   * viendo los avatares con normalidad. */
+  const hideHeaderMemberAvatars =
+    (sessionUser?.email ?? "").trim().toLowerCase() ===
+    "tareas@movilidadgc.org";
 
   const tabStorageKey = useMemo(
     () => `cc-project-tab-${project.id}`,
@@ -156,25 +166,67 @@ export function ProjectView({ project, allUsers }: ProjectViewProps) {
     if (editingDesc) descTextareaRef.current?.focus();
   }, [editingDesc]);
 
-  /* Pestaña: ?tab= en URL (compartir enlace) + localStorage por proyecto */
+  /* ──────────────────────────────────────────────────────────────
+   *  Sincronización con el prop `project`.
+   *
+   *  Este componente cachea los campos editables (nombre, descripción,
+   *  estado, prioridad, fecha) en `useState` para tener UI optimista al
+   *  hacer PATCH. Pero cuando alguien edita desde OTRA pestaña/PC, el
+   *  Server Component se re-renderiza (DatawallAutoRefresh / mirroring
+   *  hacen `router.refresh()` o `router.replace()`) y `project` llega
+   *  con datos nuevos, mientras que nuestros `useState` locales aún
+   *  tienen el valor viejo.
+   *
+   *  Solución: si NO estamos en modo edición, espejamos los campos del
+   *  prop. Si SÍ estamos editando, no tocamos el draft del usuario.
+   * ────────────────────────────────────────────────────────────── */
+  useEffect(() => {
+    if (!editingName) {
+      setProjectName(project.name);
+      setNameDraft(project.name);
+    }
+  }, [project.name, editingName]);
+
+  useEffect(() => {
+    if (!editingDesc) {
+      const next = project.description
+        ? project.description.replace(/<[^>]+>/g, "").trim()
+        : "";
+      setDescription(next);
+      setDescDraft(next);
+    }
+  }, [project.description, editingDesc]);
+
+  useEffect(() => {
+    setStatus(project.status);
+    setPriority(project.priority);
+    setProjectEndDate(project.endDate ?? null);
+  }, [project.status, project.priority, project.endDate]);
+
+  /* Pestaña activa: la determinamos a partir del query param `?tab=`
+   *  cuando existe (nos llega tanto en navegaciones normales como vía
+   *  el mirroring del datawall) y, en su defecto, del localStorage
+   *  por proyecto. Es REACTIVO al search param para que cuando el
+   *  operador cambie de tab en su PC el datawall lo siga sin recargar
+   *  toda la página. */
+  const tabFromUrl = searchParams.get("tab");
   useEffect(() => {
     const valid = (t: string | null): t is Tab =>
       !!t && TABS.some((x) => x.id === t);
 
-    let next: Tab = "kanban";
-    try {
-      const params = new URLSearchParams(window.location.search);
-      const q = params.get("tab");
-      if (valid(q)) next = q;
-      else {
+    let next: Tab;
+    if (valid(tabFromUrl)) {
+      next = tabFromUrl;
+    } else {
+      try {
         const stored = localStorage.getItem(tabStorageKey);
-        if (valid(stored)) next = stored;
+        next = valid(stored) ? stored : "kanban";
+      } catch {
+        next = "kanban";
       }
-    } catch {
-      /* ignore */
     }
-    setActiveTab(next);
-  }, [tabStorageKey]);
+    setActiveTab((prev) => (prev === next ? prev : next));
+  }, [tabFromUrl, tabStorageKey]);
 
   useEffect(() => {
     function onPopState() {
@@ -615,36 +667,39 @@ export function ProjectView({ project, allUsers }: ProjectViewProps) {
               )}>{completedTasks}/{totalTasks} tareas</p>
             </div>
 
-            {/* Members: avatares solapados; +N fuera del grupo para no tapar al último */}
-            <div className="flex items-center shrink-0 gap-1">
-              <div className="flex -space-x-2">
-                {project.members.slice(0, 4).map((m: ProjectMemberRow) => (
-                  <Avatar
-                    key={m.id}
-                    name={m.user.name}
-                    image={m.user.image}
-                    size="sm"
-                    className={cn(
-                      "project-member-avatar border-2 ring-0",
-                      isLight ? "border-white" : "border-[#0a0f1e]"
-                    )}
-                  />
-                ))}
-              </div>
-              {project.members.length > 4 && (
-                <div
-                  className={cn(
-                    "project-member-more ml-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 text-xs",
-                    isLight
-                      ? "border-white bg-zinc-100 text-zinc-700"
-                      : "border-[#0a0f1e] bg-white/10 text-white/70"
-                  )}
-                  title={`${project.members.length - 4} miembro(s) más`}
-                >
-                  +{project.members.length - 4}
+            {/* Members: avatares solapados; +N fuera del grupo para no tapar al último.
+                Oculto SOLO para `tareas@movilidadgc.org` por decisión de producto. */}
+            {!hideHeaderMemberAvatars && (
+              <div className="flex items-center shrink-0 gap-1">
+                <div className="flex -space-x-2">
+                  {project.members.slice(0, 4).map((m: ProjectMemberRow) => (
+                    <Avatar
+                      key={m.id}
+                      name={m.user.name}
+                      image={m.user.image}
+                      size="sm"
+                      className={cn(
+                        "project-member-avatar border-2 ring-0",
+                        isLight ? "border-white" : "border-[#0a0f1e]"
+                      )}
+                    />
+                  ))}
                 </div>
-              )}
-            </div>
+                {project.members.length > 4 && (
+                  <div
+                    className={cn(
+                      "project-member-more ml-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 text-xs",
+                      isLight
+                        ? "border-white bg-zinc-100 text-zinc-700"
+                        : "border-[#0a0f1e] bg-white/10 text-white/70"
+                    )}
+                    title={`${project.members.length - 4} miembro(s) más`}
+                  >
+                    +{project.members.length - 4}
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* End date */}
             {projectEndDate && (
@@ -840,7 +895,12 @@ export function ProjectView({ project, allUsers }: ProjectViewProps) {
             </div>
           </div>
         )}
-        {activeTab === "list"        && <TaskListView columns={project.kanbanColumns} />}
+        {activeTab === "list"        && (
+          <TaskListView
+            columns={project.kanbanColumns}
+            projectId={project.id}
+          />
+        )}
         {activeTab === "timeline"    && <ProjectTimeline columns={project.kanbanColumns} />}
         {activeTab === "activity"    && <ProjectActivity activities={project.activityFeed} projectId={project.id} />}
         {activeTab === "docs"        && <ProjectDocs projectId={project.id} />}

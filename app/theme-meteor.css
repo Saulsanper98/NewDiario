@@ -1,0 +1,1476 @@
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║          TEMA  "METEOR"  ·  Lluvia de meteoros sobre cielo profundo      ║
+ * ║                                                                          ║
+ * ║   Inspiración: La Palma (Cumbre Vieja 2021), Teide al atardecer,         ║
+ * ║   Stromboli nocturno, Anak Krakatoa. Atardecer dramático con un          ║
+ * ║   Meteor en erupción al fondo. El usuario lee la app mientras la         ║
+ * ║   naturaleza arde silenciosa lejos.                                      ║
+ * ║                                                                          ║
+ * ║   Identidad visual:                                                      ║
+ * ║     · Fondo: noche violeta profundo arriba → rojo brasa en el horizonte. ║
+ * ║     · Silueta de Meteor SVG con cráter dentado (en el componente).       ║
+ * ║     · Resplandor radial sobre el cráter pulsando lento (8s).             ║
+ * ║     · Chispas/cenizas subiendo desde el cráter (partículas CSS).         ║
+ * ║     · Cards: cristal cálido con tinte coral/lava + borde rojo apagado.   ║
+ * ║     · Acentos: coral lava, oro encendido, amarillo CCMGC.                ║
+ * ║                                                                          ║
+ * ║   AISLAMIENTO TOTAL bajo `html[data-theme="meteor"]`.                   ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                         1.  PALETA Y TOKENS                              ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="meteor"] {
+  --bg-deep: #020410;
+  --accent: #FFEB66;
+
+  --text: #eaf4ff;
+  --text-dim: #a0b4c8;
+  --text-faint: #5a6e84;
+
+  /* Paleta meteor */
+  --meteor-night: #020410;
+  --meteor-deep: #060a18;
+  --meteor-violet: #1a0a3a;
+  --meteor-blue: #0a1e3a;
+  --meteor-trail: #67e8f9;
+  --meteor-trail-warm: #ffd07a;
+  --meteor-star: #ffffff;
+  --meteor-star-dim: #b0c8e0;
+  --meteor-gold: #ffe680;
+
+  /* Cristal cyan-noche */
+  --glass-bg: rgba(180, 220, 255, 0.05);
+  --glass-bg-2: rgba(180, 220, 255, 0.10);
+  --glass-border: rgba(180, 220, 255, 0.18);
+  --glass-border-glow: rgba(103, 232, 249, 0.62);
+  --glass-blur: 22px;
+  --glass-shadow: 0 14px 50px rgba(2, 4, 16, 0.62);
+  --glass-highlight:
+    inset 0 1px 0 rgba(232, 245, 255, 0.20),
+    inset 1px 0 0 rgba(232, 245, 255, 0.06);
+
+  --glow-cyan:   rgba(103, 232, 249, 0.36);
+  --glow-white:  rgba(255, 255, 255, 0.20);
+
+  --stat-purple: #d29bff;
+  --stat-blue:   #9dc6ff;
+  --stat-cyan:   #ffaa88;
+  --stat-green:  #b8e4a0;
+
+  --app-canvas-color: transparent;
+  --app-canvas-image: none;
+  --card-isolation: auto;
+
+  --meteor-radius: 18px;
+  --meteor-radius-shell: 24px;
+
+  /* Profile menu — azul espacio con borde cyan tenue. */
+  --profile-menu-bg: rgba(6, 12, 28, 0.96);
+  --profile-menu-solid: #060c1c;
+  --profile-menu-border: rgba(103, 232, 249, 0.24);
+  --profile-menu-shadow: 0 16px 48px rgba(2, 4, 16, 0.65);
+  --profile-menu-section: rgba(180, 220, 255, 0.04);
+
+  color-scheme: dark;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║              2.  FIX DE CAPAS OPACAS                                     ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="meteor"] body {
+  color: var(--text);
+  font-weight: 400;
+  min-height: 100vh;
+}
+
+html[data-theme="meteor"] .app-sidebar-shell,
+html[data-theme="meteor"] .app-top-header {
+  isolation: auto !important;
+}
+
+/* ── Marco con gradient lava ─────────────────────────────────────────── */
+html[data-theme="meteor"] .glass-shell-frame {
+  margin: 18px;
+  padding: 1.5px;
+  border-radius: var(--meteor-radius-shell);
+  background: linear-gradient(
+    135deg,
+    rgba(103, 232, 249, 0.55),
+    rgba(103, 232, 249, 0.40) 35%,
+    rgba(176, 200, 224, 0.45) 65%,
+    rgba(40, 80, 140, 0.32)
+  );
+  box-shadow:
+    0 0 60px rgba(176, 200, 224, 0.20),
+    0 0 120px rgba(103, 232, 249, 0.10);
+}
+
+html[data-theme="meteor"] .glass-shell-inner {
+  border-radius: calc(var(--meteor-radius-shell) - 2px);
+  background: rgba(6, 10, 24, 0.34);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  overflow: hidden;
+  padding: 20px;
+}
+
+@media (max-width: 768px) {
+  html[data-theme="meteor"] .glass-shell-inner { padding: 6px; }
+  html[data-theme="meteor"] .app-dashboard-root { gap: 8px; }
+}
+@media (max-width: 640px) {
+  html[data-theme="meteor"] .glass-shell-frame {
+    margin: 4px;
+    border-radius: 16px;
+  }
+  html[data-theme="meteor"] .glass-shell-inner {
+    border-radius: 14px;
+  }
+}
+@media (max-width: 480px) {
+  html[data-theme="meteor"] .glass-shell-frame {
+    margin: 0;
+    padding: 0;
+    border-radius: 0;
+    box-shadow: none;
+    background: rgba(103, 232, 249, 0.30);
+  }
+  html[data-theme="meteor"] .glass-shell-inner {
+    padding: 0;
+    border-radius: 0;
+  }
+  html[data-theme="meteor"] .app-dashboard-root { gap: 0; }
+}
+
+html[data-theme="meteor"] .glass-shell-frame::before,
+html[data-theme="meteor"] .glass-shell-frame::after,
+html[data-theme="meteor"] .glass-shell-inner::before,
+html[data-theme="meteor"] .glass-shell-inner::after {
+  display: none !important;
+}
+
+html[data-theme="meteor"] .app-dashboard-root {
+  background: transparent !important;
+  gap: 16px;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║              3.  FONDO  ·  <MeteorBackground />                          ║
+ * ║                                                                          ║
+ * ║   Capas (todas dentro de `.meteor-bg`, position:fixed; z-index:-10):     ║
+ * ║     1. Cielo: gradiente vertical (negro espacio → violeta cósmico).      ║
+ * ║     2. `.meteor-stars`     ← campo de estrellas fijas (3 tamaños CSS).   ║
+ * ║     3. `.meteor-milkyway`  ← banda diagonal de la Vía Láctea (radial).   ║
+ * ║     4. `.meteor-bright`    ← 6 estrellas brillantes pulsantes.           ║
+ * ║     5. `.meteor-streaks`   ← N meteoros con estela cruzando la pantalla. ║
+ * ║     6. `.meteor-noise`     ← ruido sutil.                                ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="meteor"] .meteor-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -10;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse at 20% 0%, rgba(26, 10, 58, 0.55) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 100%, rgba(10, 30, 58, 0.45) 0%, transparent 50%),
+    linear-gradient(
+      180deg,
+      #020410 0%,
+      #050816 30%,
+      #060a18 60%,
+      #04081a 100%
+    );
+  pointer-events: none;
+}
+
+/* ── Capa 2: campo de estrellas. Mezcla 3 tamaños (1px/1.5px/2px) y 3
+   intensidades. Cubre toda la pantalla. */
+html[data-theme="meteor"] .meteor-bg .meteor-stars {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    radial-gradient(1px 1px at 8% 14%,  rgba(255,255,255,0.85), transparent 60%),
+    radial-gradient(1px 1px at 22% 8%,  rgba(255,255,255,0.55), transparent 60%),
+    radial-gradient(1px 1px at 36% 22%, rgba(255,255,255,0.90), transparent 60%),
+    radial-gradient(1px 1px at 49% 6%,  rgba(255,255,255,0.55), transparent 60%),
+    radial-gradient(1px 1px at 61% 18%, rgba(255,255,255,0.75), transparent 60%),
+    radial-gradient(1px 1px at 73% 9%,  rgba(255,255,255,0.50), transparent 60%),
+    radial-gradient(1px 1px at 88% 24%, rgba(255,255,255,0.85), transparent 60%),
+    radial-gradient(1px 1px at 12% 38%, rgba(176,200,224,0.65), transparent 60%),
+    radial-gradient(1px 1px at 28% 52%, rgba(255,255,255,0.70), transparent 60%),
+    radial-gradient(1px 1px at 41% 44%, rgba(176,200,224,0.50), transparent 60%),
+    radial-gradient(1px 1px at 56% 58%, rgba(255,255,255,0.80), transparent 60%),
+    radial-gradient(1px 1px at 69% 49%, rgba(176,200,224,0.60), transparent 60%),
+    radial-gradient(1px 1px at 82% 62%, rgba(255,255,255,0.70), transparent 60%),
+    radial-gradient(1.5px 1.5px at 18% 72%, rgba(255,255,255,0.80), transparent 65%),
+    radial-gradient(1.5px 1.5px at 47% 78%, rgba(255,255,255,0.70), transparent 65%),
+    radial-gradient(1.5px 1.5px at 76% 84%, rgba(255,255,255,0.85), transparent 65%),
+    radial-gradient(1px 1px at 35% 88%, rgba(176,200,224,0.55), transparent 60%),
+    radial-gradient(1px 1px at 64% 94%, rgba(255,255,255,0.65), transparent 60%);
+  animation: meteor-twinkle 6s ease-in-out infinite;
+}
+
+@keyframes meteor-twinkle {
+  0%, 100% { opacity: 0.85; }
+  50%      { opacity: 1.0;  }
+}
+
+/* ── Capa 3: Vía Láctea — banda diagonal con linear-gradient + blur */
+html[data-theme="meteor"] .meteor-bg .meteor-milkyway {
+  position: absolute;
+  inset: -10% -10% -10% -10%;
+  background: linear-gradient(
+    35deg,
+    transparent 22%,
+    rgba(160, 200, 255, 0.07) 36%,
+    rgba(200, 225, 255, 0.16) 48%,
+    rgba(190, 215, 255, 0.12) 56%,
+    rgba(140, 180, 240, 0.06) 66%,
+    transparent 78%
+  );
+  filter: blur(22px);
+  pointer-events: none;
+  mix-blend-mode: screen;
+}
+
+/* ── Capa 2b: segunda capa de estrellas con OFFSET para densidad ── */
+html[data-theme="meteor"] .meteor-bg .meteor-stars2 {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    radial-gradient(1.5px 1.5px at 12% 22%, rgba(180, 220, 255, 0.7), transparent 60%),
+    radial-gradient(1.5px 1.5px at 36% 8%,  rgba(220, 240, 255, 0.65), transparent 60%),
+    radial-gradient(1.5px 1.5px at 84% 32%, rgba(200, 230, 255, 0.6), transparent 60%),
+    radial-gradient(1px 1px at 22% 16%,     rgba(180, 220, 255, 0.55), transparent 60%),
+    radial-gradient(1px 1px at 58% 12%,     rgba(255, 240, 200, 0.55), transparent 60%),
+    radial-gradient(1px 1px at 6%  62%,     rgba(180, 220, 255, 0.50), transparent 60%),
+    radial-gradient(1px 1px at 46% 28%,     rgba(220, 240, 255, 0.55), transparent 60%),
+    radial-gradient(1px 1px at 76% 48%,     rgba(180, 220, 255, 0.50), transparent 60%),
+    radial-gradient(1px 1px at 30% 56%,     rgba(220, 240, 255, 0.48), transparent 60%),
+    radial-gradient(1px 1px at 64% 22%,     rgba(255, 240, 200, 0.52), transparent 60%),
+    radial-gradient(1px 1px at 86% 16%,     rgba(180, 220, 255, 0.55), transparent 60%),
+    radial-gradient(1px 1px at 48% 38%,     rgba(220, 240, 255, 0.50), transparent 60%),
+    radial-gradient(1px 1px at 2%  18%,     rgba(255, 240, 200, 0.45), transparent 60%),
+    radial-gradient(1px 1px at 96% 56%,     rgba(180, 220, 255, 0.48), transparent 60%);
+  animation: meteor-twinkle2 9s ease-in-out infinite;
+}
+
+@keyframes meteor-twinkle2 {
+  0%, 100% { opacity: 0.65; }
+  50%      { opacity: 1; }
+}
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║   CAPA 4 — CONSTELACIONES                                                ║
+ * ║   3 SVGs con líneas conectando estrellas (azul tenue) y estrellas       ║
+ * ║   nítidas en los vértices con pulso desincronizado.                     ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+html[data-theme="meteor"] .meteor-bg .meteor-constellations {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+}
+html[data-theme="meteor"] .meteor-bg .meteor-constellations .constellation {
+  position: absolute;
+  transform-origin: 50% 50%;
+  opacity: 0.85;
+}
+/* Twinkle de estrellas de las constelaciones — ahora con rango de
+ *  opacity más amplio (0.6 → 1, antes 0.85 → 1) para que el parpadeo
+ *  sea más notable. Delays escalonados por :nth-child para que cada
+ *  estrella parpadee en su propio tiempo, no todas al unísono. */
+html[data-theme="meteor"] .meteor-bg .meteor-constellations .const-star {
+  animation: meteor-const-pulse 3s ease-in-out infinite;
+  transform-origin: center;
+  will-change: opacity;
+}
+html[data-theme="meteor"] .meteor-bg .meteor-constellations .const-star:nth-child(2n)   { animation-delay: 0.4s; }
+html[data-theme="meteor"] .meteor-bg .meteor-constellations .const-star:nth-child(3n)   { animation-delay: 0.9s; }
+html[data-theme="meteor"] .meteor-bg .meteor-constellations .const-star:nth-child(5n)   { animation-delay: 1.5s; }
+html[data-theme="meteor"] .meteor-bg .meteor-constellations .const-star:nth-child(7n)   { animation-delay: 2.1s; }
+@keyframes meteor-const-pulse {
+  0%, 100% { opacity: 0.6; }
+  50%      { opacity: 1; }
+}
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║   CAPA 5 — COMETA GRANDE con cola larga (cruza el cielo cada ~22s)      ║
+ * ║                                                                          ║
+ * ║   El SVG entero se traslada en diagonal de NE a SW con rotate. Sale     ║
+ * ║   completamente de la pantalla entre apariciones.                       ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+html[data-theme="meteor"] .meteor-bg .meteor-comet {
+  position: absolute;
+  top: 20%;
+  left: 0;
+  width: 60vw;
+  max-width: 800px;
+  height: 80px;
+  pointer-events: none;
+  z-index: 2;
+  transform: translate(-100vw, 0) rotate(20deg);
+  transform-origin: right center;
+  animation: meteor-comet-cross 22s linear infinite;
+  filter: drop-shadow(0 0 8px rgba(180, 220, 255, 0.85));
+  will-change: transform, opacity;
+}
+html[data-theme="meteor"] .meteor-bg .meteor-comet svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* Segundo cometa: 60% del tamaño, top más bajo (35%), ángulo 35°
+   (más inclinado que el principal pero en el mismo sentido NE→SW),
+   delay 9s para no coincidir con el cometa principal. Reutiliza el
+   keyframe pero con su propio @keyframes con rotate distinto. */
+html[data-theme="meteor"] .meteor-bg .meteor-comet-2 {
+  top: 35%;
+  width: 36vw;
+  max-width: 480px;
+  height: 50px;
+  transform: translate(-100vw, 0) rotate(35deg);
+  animation: meteor-comet-cross-2 22s linear infinite;
+  animation-delay: 9s;
+  filter: drop-shadow(0 0 6px rgba(180, 220, 255, 0.75));
+}
+@keyframes meteor-comet-cross {
+  0%   { transform: translate(-80vw, 0)     rotate(20deg); opacity: 0; }
+  5%   {                                                    opacity: 1; }
+  50%  { transform: translate( 30vw, 50vh)  rotate(20deg); opacity: 1; }
+  95%  {                                                    opacity: 0.6; }
+  100% { transform: translate(120vw, 100vh) rotate(20deg); opacity: 0; }
+}
+@keyframes meteor-comet-cross-2 {
+  0%   { transform: translate(-80vw, 0)     rotate(35deg); opacity: 0; }
+  5%   {                                                    opacity: 1; }
+  50%  { transform: translate( 35vw, 60vh)  rotate(35deg); opacity: 0.95; }
+  95%  {                                                    opacity: 0.55; }
+  100% { transform: translate(120vw, 110vh) rotate(35deg); opacity: 0; }
+}
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║   CAPA 6 — ASTEROIDES (5 SVGs flotando con rotación lenta)              ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+html[data-theme="meteor"] .meteor-bg .meteor-asteroids {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+}
+html[data-theme="meteor"] .meteor-bg .meteor-asteroids .asteroid {
+  position: absolute;
+  transform-origin: 50% 50%;
+  animation: meteor-asteroid-drift var(--d, 38s) linear infinite;
+  filter: drop-shadow(0 0 4px rgba(20, 30, 60, 0.85));
+  opacity: 0.85;
+  will-change: transform;
+}
+@keyframes meteor-asteroid-drift {
+  0%   { transform: translate(0, 0)             rotate(0deg); }
+  50%  { transform: translate(2vw, 1vh)         rotate(180deg); }
+  100% { transform: translate(0, 0)             rotate(360deg); }
+}
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║   CAPA 7 — ESTRELLAS BRILLANTES con rayos de difracción                 ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+html[data-theme="meteor"] .meteor-bg .meteor-bright {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 3;
+}
+
+html[data-theme="meteor"] .meteor-bg .meteor-bright .bright {
+  position: absolute;
+  width: 0;
+  height: 0;
+  animation: meteor-bright-pulse 4s ease-in-out infinite;
+}
+
+html[data-theme="meteor"] .meteor-bg .meteor-bright .bright .bright-core {
+  position: absolute;
+  width: var(--bs, 4px);
+  height: var(--bs, 4px);
+  top: calc(var(--bs, 4px) / -2);
+  left: calc(var(--bs, 4px) / -2);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow:
+    0 0 4px rgba(255, 255, 255, 0.95),
+    0 0 12px hsla(var(--hue, 200), 90%, 75%, 0.65),
+    0 0 24px hsla(var(--hue, 200), 90%, 65%, 0.45);
+}
+
+html[data-theme="meteor"] .meteor-bg .meteor-bright .bright .bright-ray {
+  position: absolute;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    hsla(var(--hue, 200), 90%, 80%, 0.85) 48%,
+    hsla(var(--hue, 200), 90%, 80%, 1) 50%,
+    hsla(var(--hue, 200), 90%, 80%, 0.85) 52%,
+    transparent 100%
+  );
+  filter: blur(0.5px);
+}
+html[data-theme="meteor"] .meteor-bg .meteor-bright .bright .bright-ray-h {
+  width: calc(var(--bs, 4px) * 14);
+  height: 1px;
+  top: -0.5px;
+  left: calc(var(--bs, 4px) * -7);
+}
+html[data-theme="meteor"] .meteor-bg .meteor-bright .bright .bright-ray-v {
+  width: 1px;
+  height: calc(var(--bs, 4px) * 14);
+  top: calc(var(--bs, 4px) * -7);
+  left: -0.5px;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    hsla(var(--hue, 200), 90%, 80%, 0.85) 48%,
+    hsla(var(--hue, 200), 90%, 80%, 1) 50%,
+    hsla(var(--hue, 200), 90%, 80%, 0.85) 52%,
+    transparent 100%
+  );
+}
+
+@keyframes meteor-bright-pulse {
+  0%, 100% { opacity: 0.55; transform: scale(0.9); }
+  50%      { opacity: 1.0;  transform: scale(1.15); }
+}
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║   CAPA 10 — HORIZONTE: cordillera oscura (3 capas)                      ║
+ * ║   Perspectiva terrestre — la mirada está desde el suelo hacia el cielo. ║
+ * ║   Esto es lo que diferencia este tema de Cosmos/Abismo.                 ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+html[data-theme="meteor"] .meteor-bg .meteor-horizon {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 28%;
+  pointer-events: none;
+  z-index: 4;
+}
+html[data-theme="meteor"] .meteor-bg .meteor-horizon svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║   CAPA 11 — HALO atmosférico sobre el horizonte                         ║
+ * ║   Banda azulada que simula la dispersión atmosférica.                   ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+html[data-theme="meteor"] .meteor-bg .meteor-haze-horizon {
+  position: absolute;
+  bottom: 26%;
+  left: 0;
+  width: 100%;
+  height: 14%;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    rgba(80, 120, 200, 0.18) 50%,
+    rgba(40, 60, 140, 0.30) 100%
+  );
+  filter: blur(8px);
+  pointer-events: none;
+  z-index: 3;
+}
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║   CAPA 9 — METEOROS (lluvia activa con trail largo y cabeza realista)   ║
+ * ║                                                                          ║
+ * ║   Cada `.streak` es un contenedor con un trail (rectángulo finísimo     ║
+ * ║   con gradient cálido — los meteoros reales tienen cola amarilla/rojiza ║
+ * ║   por la fricción atmosférica) y una "cabeza" (círculo blanco con halo  ║
+ * ║   en múltiples capas).                                                   ║
+ * ║                                                                          ║
+ * ║   La animación usa cubic-bezier para que el meteoro "acelere" al        ║
+ * ║   entrar y "ralentice" al final (más natural).                          ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+html[data-theme="meteor"] .meteor-bg .meteor-streaks {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  /* z-index 2: por DEBAJO del horizonte (z=4) y de la haze (z=3) para que
+     los meteoros no traspasen visualmente las montañas. */
+  z-index: 2;
+}
+
+html[data-theme="meteor"] .meteor-bg .meteor-streaks .streak {
+  position: absolute;
+  width: var(--len, 220px);
+  height: 3px;
+  /* Trail: blanco intenso al frente → amarillo cálido → naranja tenue → transparent.
+     Refleja la realidad: los meteoros tienen cola dorada por la ionización
+     del aire al impactar la atmósfera. */
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 175, 90, 0.18) 15%,
+    rgba(255, 200, 135, 0.52) 38%,
+    rgba(255, 235, 185, 0.90) 68%,
+    rgba(255, 252, 225, 1) 90%,
+    rgba(255, 255, 255, 1) 100%
+  );
+  border-radius: 99px;
+  transform-origin: right center;
+  filter:
+    drop-shadow(0 0 4px rgba(255, 235, 185, 1))
+    drop-shadow(0 0 12px rgba(255, 190, 110, 0.70));
+  opacity: 0;
+  /* Cubic-bezier: rápido al entrar, ligeramente ralentizado al final */
+  animation: meteor-streak-fly var(--dur, 6s) cubic-bezier(.18,.6,.42,1) infinite;
+}
+
+/* CABEZA del meteoro — círculo blanco con halo multi-capa */
+html[data-theme="meteor"] .meteor-bg .meteor-streaks .streak::after {
+  content: "";
+  position: absolute;
+  right: -6px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(255, 255, 255, 1) 0%,
+    rgba(255, 245, 210, 0.97) 25%,
+    rgba(255, 195, 110, 0.65) 60%,
+    transparent 100%
+  );
+  box-shadow:
+    0 0 8px rgba(255, 255, 255, 1),
+    0 0 20px rgba(255, 225, 165, 0.90),
+    0 0 40px rgba(255, 170, 85, 0.60);
+}
+
+/* Halo cálido detrás del trail (apenas visible, da volumen) */
+html[data-theme="meteor"] .meteor-bg .meteor-streaks .streak::before {
+  content: "";
+  position: absolute;
+  inset: -3px -2px -3px 30%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 180, 80, 0.18) 60%,
+    rgba(255, 220, 140, 0.32) 100%
+  );
+  border-radius: 99px;
+  filter: blur(4px);
+  z-index: -1;
+}
+
+@keyframes meteor-streak-fly {
+  0%   { transform: translate(var(--from-x, -10vw), var(--from-y, -10vh)) rotate(var(--angle, 30deg)); opacity: 0; }
+  2%   { opacity: 0; }
+  4%   { opacity: 1; }
+  20%  { opacity: 1; }
+  25%  { transform: translate(var(--to-x, 50vw), var(--to-y, 70vh)) rotate(var(--angle, 30deg));      opacity: 0; }
+  100% { transform: translate(var(--to-x, 50vw), var(--to-y, 70vh)) rotate(var(--angle, 30deg));      opacity: 0; }
+}
+
+/* ── Capa 6: ruido ────────────────────────────────────────────────── */
+html[data-theme="meteor"] .meteor-bg .meteor-noise {
+  position: absolute;
+  inset: 0;
+  opacity: 0.05;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  pointer-events: none;
+  mix-blend-mode: overlay;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                4.  CLASE DE CRISTAL  ·  .glass-surface                   ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="meteor"] .glass-surface {
+  position: relative;
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur)) saturate(150%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(150%);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow), var(--glass-highlight);
+  border-radius: var(--meteor-radius);
+  transition:
+    border-color 0.3s ease,
+    transform 0.3s ease,
+    background 0.3s ease,
+    box-shadow 0.3s ease;
+  overflow: hidden;
+}
+
+html[data-theme="meteor"] .glass-surface::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background: linear-gradient(
+    135deg,
+    rgba(232, 245, 255, 0.20) 0%,
+    rgba(232, 245, 255, 0.05) 22%,
+    transparent 46%
+  );
+  border-radius: inherit;
+}
+
+html[data-theme="meteor"] .glass-surface > * {
+  position: relative;
+  z-index: 1;
+}
+
+html[data-theme="meteor"] .glass-surface:hover {
+  border-color: var(--glass-border-glow);
+  transform: translateY(-2px);
+  background: var(--glass-bg-2);
+  box-shadow:
+    0 18px 58px rgba(2, 4, 16, 0.62),
+    0 0 32px var(--glow-cyan),
+    0 0 56px var(--glow-white),
+    var(--glass-highlight);
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║              5.  ALIAS  ·  Cards del sistema                             ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="meteor"] .glass,
+html[data-theme="meteor"] .glass-1,
+html[data-theme="meteor"] .glass-2,
+html[data-theme="meteor"] .glass-3,
+html[data-theme="meteor"] .glass-4 {
+  isolation: var(--card-isolation);
+  position: relative;
+  border-radius: var(--meteor-radius);
+  transition:
+    background 0.3s ease,
+    border-color 0.3s ease,
+    box-shadow 0.3s ease,
+    transform 0.3s ease;
+}
+
+html[data-theme="meteor"] .glass {
+  background: rgba(180, 220, 255, 0.020);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  border: 1px solid rgba(180, 220, 255, 0.05);
+  box-shadow: none;
+}
+
+html[data-theme="meteor"] .glass-1 {
+  background: rgba(180, 220, 255, 0.10);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  border: 1px solid rgba(180, 220, 255, 0.18);
+  box-shadow: var(--glass-shadow), var(--glass-highlight);
+}
+
+html[data-theme="meteor"] .glass-2 {
+  background: rgba(180, 220, 255, 0.12);
+  backdrop-filter: blur(20px) saturate(150%);
+  -webkit-backdrop-filter: blur(20px) saturate(150%);
+  border: 1px solid rgba(180, 220, 255, 0.20);
+  box-shadow: var(--glass-shadow), var(--glass-highlight);
+}
+
+html[data-theme="meteor"] .glass-3,
+html[data-theme="meteor"] .glass-4 {
+  background: linear-gradient(
+    155deg,
+    rgba(10, 20, 44, 0.48) 0%,
+    rgba(180, 220, 255, 0.12) 45%,
+    rgba(180, 220, 255, 0.06) 100%
+  );
+  backdrop-filter: blur(var(--glass-blur)) saturate(155%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(155%);
+  border: 1px solid rgba(180, 220, 255, 0.24);
+  box-shadow: var(--glass-shadow), var(--glass-highlight);
+}
+
+html[data-theme="meteor"] .glass::before,
+html[data-theme="meteor"] .glass-1::before,
+html[data-theme="meteor"] .glass-2::before,
+html[data-theme="meteor"] .glass-3::before,
+html[data-theme="meteor"] .glass-4::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background: linear-gradient(
+    135deg,
+    rgba(232, 245, 255, 0.18) 0%,
+    rgba(232, 245, 255, 0.04) 22%,
+    transparent 46%
+  );
+  border-radius: inherit;
+}
+
+html[data-theme="meteor"] .glass > *,
+html[data-theme="meteor"] .glass-1 > *,
+html[data-theme="meteor"] .glass-2 > *,
+html[data-theme="meteor"] .glass-3 > *,
+html[data-theme="meteor"] .glass-4 > * {
+  position: relative;
+  z-index: 1;
+}
+
+html[data-theme="meteor"] .glass-1:hover,
+html[data-theme="meteor"] .glass-2:hover,
+html[data-theme="meteor"] .glass-3:hover,
+html[data-theme="meteor"] .glass-4:hover {
+  border-color: var(--glass-border-glow);
+}
+
+html[data-theme="meteor"] .glass-hover:hover {
+  background: var(--glass-bg-2);
+  border-color: var(--glass-border-glow);
+  transform: translateY(-2px);
+  box-shadow:
+    0 18px 58px rgba(2, 4, 16, 0.62),
+    0 0 32px var(--glow-cyan),
+    0 0 56px var(--glow-white),
+    var(--glass-highlight);
+}
+
+html[data-theme="meteor"] .glass .glass-hover:hover,
+html[data-theme="meteor"] .glass-1 .glass-hover:hover,
+html[data-theme="meteor"] .glass-2 .glass-hover:hover,
+html[data-theme="meteor"] .glass-3 .glass-hover:hover,
+html[data-theme="meteor"] .glass-4 .glass-hover:hover {
+  transform: none !important;
+  box-shadow: var(--glass-highlight) !important;
+}
+
+html[data-theme="meteor"] .glass:has(.glass-hover) {
+  overflow: hidden;
+}
+
+html[data-theme="meteor"] .dashboard-quick-action.glass-hover:hover {
+  transform: translateY(-1px);
+  box-shadow:
+    0 1px 4px rgba(2, 4, 16, 0.36),
+    0 0 4px rgba(103, 232, 249, 0.40),
+    var(--glass-highlight);
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║          6.  BORDE ANIMADO  ·  .glow-border                              ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+@property --meteor-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+html[data-theme="meteor"] .glow-border {
+  position: relative;
+}
+
+html[data-theme="meteor"] .glow-border::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1.5px;
+  background: conic-gradient(
+    from var(--meteor-angle),
+    transparent 0%,
+    transparent 65%,
+    var(--meteor-trail) 75%,
+    var(--meteor-trail) 82%,
+    var(--meteor-trail-warm) 90%,
+    transparent 98%
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+          mask-composite: exclude;
+  animation: meteor-border-run 10s linear infinite;
+  pointer-events: none;
+  z-index: 2;
+}
+
+@keyframes meteor-border-run {
+  to { --meteor-angle: 360deg; }
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                  7.  APARICIÓN ESCALONADA                                ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="meteor"] .reveal {
+  opacity: 0;
+  transform: translateY(14px);
+  animation: meteor-reveal-up 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes meteor-reveal-up {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                  8.  CHROME  ·  Sidebar + Header                         ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="meteor"] .app-sidebar-shell {
+  background: transparent !important;
+  background-image: none !important;
+  border-right: 1px solid rgba(180, 220, 255, 0.10);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  box-shadow: none;
+}
+
+html[data-theme="meteor"] .app-sidebar-shell.sidebar-expanded-solid {
+  /* Índigo nocturno armonizando con el cielo de la lluvia de meteoros */
+  background: linear-gradient(
+    180deg,
+    rgba(6, 12, 30, 0.94) 0%,
+    rgba(3, 6, 18, 0.97) 100%
+  ) !important;
+  border-right: 1px solid rgba(103, 232, 249, 0.18) !important;
+  box-shadow: 4px 0 18px rgba(103, 232, 249, 0.08) !important;
+  backdrop-filter: blur(32px) saturate(160%) !important;
+  -webkit-backdrop-filter: blur(32px) saturate(160%) !important;
+  border-right: 1px solid var(--glass-border) !important;
+  box-shadow:
+    var(--glass-highlight),
+    8px 0 32px rgba(2, 4, 16, 0.55),
+    0 0 60px rgba(103, 232, 249, 0.10) !important;
+  border-radius: 0 !important;
+}
+
+html[data-theme="meteor"] .sidebar-nav-link-active {
+  position: relative;
+  background: linear-gradient(
+    90deg,
+    rgba(103, 232, 249, 0.20) 0%,
+    rgba(103, 232, 249, 0.08) 100%
+  ) !important;
+  color: var(--text) !important;
+  border-color: transparent !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(103, 232, 249, 0.38),
+    0 0 22px rgba(103, 232, 249, 0.24) !important;
+  overflow: hidden;
+}
+
+html[data-theme="meteor"] .sidebar-nav-link-active::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 6px;
+  bottom: 6px;
+  width: 3px;
+  border-radius: 2px;
+  background: linear-gradient(
+    180deg,
+    var(--meteor-trail-warm) 0%,
+    var(--meteor-trail) 35%,
+    var(--meteor-trail) 70%,
+    var(--meteor-trail-warm) 100%
+  );
+  box-shadow: 0 0 8px var(--meteor-trail);
+  pointer-events: none;
+}
+
+html[data-theme="meteor"] .sidebar-nav-link:not(.sidebar-nav-link-active):hover {
+  background: rgba(103, 232, 249, 0.08);
+  color: var(--text);
+  box-shadow: inset 0 0 0 1px rgba(103, 232, 249, 0.22);
+}
+
+html[data-theme="meteor"] .app-top-header {
+  background: transparent !important;
+  background-image: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: none !important;
+  border-bottom: none !important;
+  box-shadow: none !important;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                  9.  TIPOGRAFÍA                                          ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="meteor"] h1,
+html[data-theme="meteor"] h2,
+html[data-theme="meteor"] h3,
+html[data-theme="meteor"] .text-2xl,
+html[data-theme="meteor"] .text-3xl,
+html[data-theme="meteor"] .text-4xl {
+  font-weight: 300;
+  letter-spacing: -0.01em;
+}
+
+html[data-theme="meteor"] [data-stat-value],
+html[data-theme="meteor"] .stat-value,
+html[data-theme="meteor"] .text-4xl.font-bold,
+html[data-theme="meteor"] .text-3xl.font-bold {
+  font-weight: 300 !important;
+  letter-spacing: -0.02em;
+}
+
+html[data-theme="meteor"] button[data-variant="primary"],
+html[data-theme="meteor"] .btn-primary,
+html[data-theme="meteor"] [data-cta="primary"] {
+  font-weight: 600;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                10.  CTA AMARILLO                                         ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="meteor"] button[data-variant="primary"]:not(:disabled),
+html[data-theme="meteor"] .btn-primary:not(:disabled),
+html[data-theme="meteor"] [data-cta="primary"]:not(:disabled) {
+  background: var(--accent) !important;
+  color: #020410 !important;
+  border: none !important;
+  box-shadow:
+    0 8px 24px rgba(255, 235, 102, 0.32),
+    0 0 24px rgba(103, 232, 249, 0.22);
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+html[data-theme="meteor"] button[data-variant="primary"]:hover:not(:disabled),
+html[data-theme="meteor"] .btn-primary:hover:not(:disabled),
+html[data-theme="meteor"] [data-cta="primary"]:hover:not(:disabled) {
+  background: #FFE94D !important;
+  box-shadow:
+    0 10px 32px rgba(255, 235, 102, 0.42),
+    0 0 32px rgba(103, 232, 249, 0.32);
+  transform: translateY(-1px);
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║      11.  PARCHE Tailwind arbitrary hex                                  ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="meteor"] .bg-\[\#060a14\],
+html[data-theme="meteor"] .bg-\[\#060a12\],
+html[data-theme="meteor"] .bg-\[\#060b18\],
+html[data-theme="meteor"] .bg-\[\#020308\]\/85,
+html[data-theme="meteor"] .bg-\[\#020408\]\/80 {
+  background-color: rgba(6, 12, 28, 0.85) !important;
+}
+
+html[data-theme="meteor"] .bg-\[\#0a0f1e\],
+html[data-theme="meteor"] .bg-\[\#0a0f1e\]\/95,
+html[data-theme="meteor"] .bg-\[\#0a0f1e\]\/88,
+html[data-theme="meteor"] .bg-\[\#0a0f1e\]\/85,
+html[data-theme="meteor"] .bg-\[\#0a0f1e\]\/72,
+html[data-theme="meteor"] .bg-\[\#0a0f1e\]\/40,
+html[data-theme="meteor"] .bg-\[\#0a0f1e\]\/15,
+html[data-theme="meteor"] .bg-\[\#0a1020\] {
+  background-color: rgba(8, 14, 32, 0.86) !important;
+}
+
+html[data-theme="meteor"] .bg-\[\#0c1224\]\/95,
+html[data-theme="meteor"] .bg-\[\#0c1325\],
+html[data-theme="meteor"] .bg-\[\#0d1324\]\/96,
+html[data-theme="meteor"] .bg-\[\#0d1324\]\/92,
+html[data-theme="meteor"] .bg-\[\#0d1325\],
+html[data-theme="meteor"] .bg-\[\#0d1427\]\/95,
+html[data-theme="meteor"] .bg-\[\#0d1428\],
+html[data-theme="meteor"] .bg-\[\#0d1428\]\/95,
+html[data-theme="meteor"] .bg-\[\#0f1424\],
+html[data-theme="meteor"] .bg-\[\#0f1524\] {
+  background-color: rgba(8, 14, 32, 0.88) !important;
+  backdrop-filter: blur(18px) saturate(150%);
+  -webkit-backdrop-filter: blur(18px) saturate(150%);
+}
+
+html[data-theme="meteor"] .bg-\[\#121a2e\],
+html[data-theme="meteor"] .bg-\[\#161f36\],
+html[data-theme="meteor"] .bg-\[\#1a2238\] {
+  background-color: rgba(180, 220, 255, 0.10) !important;
+  border-color: rgba(180, 220, 255, 0.14) !important;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║               12.  DROPDOWNS                                             ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="meteor"] .app-dropdown-panel {
+  background: linear-gradient(
+    155deg,
+    rgba(14, 22, 48, 0.84) 0%,
+    rgba(6, 10, 24, 0.92) 100%
+  ) !important;
+  backdrop-filter: blur(22px) saturate(155%) !important;
+  -webkit-backdrop-filter: blur(22px) saturate(155%) !important;
+  border-color: var(--glass-border) !important;
+  box-shadow:
+    var(--glass-highlight),
+    0 22px 52px rgba(2, 4, 16, 0.58),
+    0 0 36px rgba(103, 232, 249, 0.16) !important;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║         13.  KANBAN                                                      ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="meteor"] .kanban-column-well {
+  background: transparent !important;
+}
+html[data-theme="meteor"] .kanban-column-well::after,
+html[data-theme="meteor"] .kanban-column-well::before {
+  background: transparent !important;
+  display: none !important;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║         14.  EDITOR  ·  ProseMirror                                      ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="meteor"] .ProseMirror pre {
+  background: rgba(6, 10, 24, 0.78) !important;
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║         15.  DETAIL FULL-SCREEN                                          ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="meteor"]
+  .detail-fullscreen-bg.detail-fullscreen-bg.detail-fullscreen-bg {
+  background: transparent !important;
+  background-image: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+html[data-theme="meteor"] .detail-fullscreen-bg::before {
+  content: none;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                16.  INPUTS                                               ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="meteor"] input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]),
+html[data-theme="meteor"] textarea,
+html[data-theme="meteor"] select {
+  background: rgba(180, 220, 255, 0.05);
+  border: 1px solid var(--glass-border);
+  color: var(--text);
+}
+
+html[data-theme="meteor"] input:focus,
+html[data-theme="meteor"] textarea:focus,
+html[data-theme="meteor"] select:focus {
+  outline: none;
+  border-color: var(--glass-border-glow);
+  box-shadow: 0 0 0 3px rgba(103, 232, 249, 0.30);
+}
+
+html[data-theme="meteor"] #cmd-palette-trigger {
+  background: rgba(103, 232, 249, 0.08) !important;
+  border-color: rgba(103, 232, 249, 0.30) !important;
+  color: var(--text-dim) !important;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+html[data-theme="meteor"] #cmd-palette-trigger:hover {
+  background: rgba(103, 232, 249, 0.16) !important;
+  border-color: var(--glass-border-glow) !important;
+  color: var(--text) !important;
+  box-shadow: 0 0 24px rgba(103, 232, 249, 0.28);
+}
+html[data-theme="meteor"] #cmd-palette-trigger kbd {
+  background: rgba(103, 232, 249, 0.18) !important;
+  border-color: rgba(103, 232, 249, 0.36) !important;
+  color: var(--text);
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                  17.  SCROLLBARS                                         ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="meteor"] ::-webkit-scrollbar-thumb {
+  background: rgba(180, 220, 255, 0.12);
+  border-radius: 6px;
+}
+html[data-theme="meteor"] ::-webkit-scrollbar-thumb:hover {
+  background: rgba(103, 232, 249, 0.50);
+}
+html[data-theme="meteor"] .overflow-y-auto:hover::-webkit-scrollbar-thumb,
+html[data-theme="meteor"] .overflow-x-auto:hover::-webkit-scrollbar-thumb,
+html[data-theme="meteor"] .overflow-auto:hover::-webkit-scrollbar-thumb,
+html[data-theme="meteor"] *:hover::-webkit-scrollbar-thumb {
+  background: rgba(103, 232, 249, 0.40);
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║              18.  STATS / DASHBOARD                                      ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="meteor"] [data-stat-color="purple"] { color: var(--stat-purple); }
+html[data-theme="meteor"] [data-stat-color="blue"]   { color: var(--stat-blue); }
+html[data-theme="meteor"] [data-stat-color="cyan"]   { color: var(--stat-cyan); }
+html[data-theme="meteor"] [data-stat-color="green"]  { color: var(--stat-green); }
+
+html[data-theme="meteor"] .dashboard-shift-track {
+  background: rgba(180, 220, 255, 0.08) !important;
+  border: 1px solid var(--glass-border);
+  overflow: hidden;
+}
+html[data-theme="meteor"] .dashboard-shift-fill {
+  background: linear-gradient(90deg, var(--meteor-trail) 0%, var(--meteor-trail-warm) 100%) !important;
+  box-shadow: 0 0 14px rgba(103, 232, 249, 0.60);
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║      19-32. RESTO DE OVERRIDES                                           ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="meteor"] .presence-online,
+html[data-theme="meteor"] [data-online="true"] .presence-dot {
+  box-shadow:
+    0 0 0 2px var(--bg-deep),
+    0 0 14px rgba(184, 228, 160, 0.65);
+}
+
+html[data-theme="meteor"] .user-avatar-ring {
+  box-shadow:
+    0 0 0 2px var(--bg-deep),
+    0 0 0 3px var(--glass-border-glow);
+}
+
+html[data-theme="meteor"] .glass-opaque-bitacora {
+  isolation: auto;
+  background: rgba(180, 220, 255, 0.10);
+  backdrop-filter: blur(22px) saturate(155%);
+  -webkit-backdrop-filter: blur(22px) saturate(155%);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-highlight), 0 6px 26px rgba(2, 4, 16, 0.38);
+}
+
+html[data-theme="meteor"] .app-modal-dialog[data-modal-surface="dark"] {
+  position: relative;
+  background: linear-gradient(
+    155deg,
+    rgba(14, 22, 48, 0.64) 0%,
+    rgba(6, 10, 24, 0.82) 100%
+  ) !important;
+  backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+  border-color: var(--glass-border) !important;
+  box-shadow:
+    0 24px 68px rgba(2, 4, 16, 0.58),
+    0 0 52px rgba(103, 232, 249, 0.22),
+    0 0 80px rgba(103, 232, 249, 0.14),
+    var(--glass-highlight) !important;
+  overflow: hidden;
+}
+
+html[data-theme="meteor"] .app-modal-dialog[data-modal-surface="dark"]::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    135deg,
+    rgba(232, 245, 255, 0.12) 0%,
+    rgba(232, 245, 255, 0.04) 18%,
+    transparent 32%
+  );
+  border-radius: inherit;
+  z-index: 0;
+}
+html[data-theme="meteor"] .app-modal-dialog[data-modal-surface="dark"] > *:not(button[aria-label="Cerrar"]) {
+  position: relative;
+  z-index: 1;
+}
+
+html[data-theme="meteor"] .modal-backdrop {
+  background: rgba(4, 8, 18, 0.55);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+html[data-theme="meteor"] .mobile-bottom-nav {
+  background: linear-gradient(
+    180deg,
+    rgba(8, 14, 32, 0.64) 0%,
+    rgba(6, 12, 28, 0.84) 100%
+  ) !important;
+  border-top-color: var(--glass-border) !important;
+  backdrop-filter: blur(22px) saturate(155%);
+  -webkit-backdrop-filter: blur(22px) saturate(155%);
+  box-shadow:
+    inset 0 1px 0 rgba(232, 245, 255, 0.10),
+    0 -8px 30px rgba(2, 4, 16, 0.55);
+}
+
+html[data-theme="meteor"] [data-tooltip-content],
+html[data-theme="meteor"] [role="tooltip"] {
+  background: linear-gradient(
+    155deg,
+    rgba(14, 22, 48, 0.84) 0%,
+    rgba(6, 10, 24, 0.92) 100%
+  ) !important;
+  border: 1px solid var(--glass-border) !important;
+  color: var(--text) !important;
+  backdrop-filter: blur(14px) saturate(155%);
+  -webkit-backdrop-filter: blur(14px) saturate(155%);
+  box-shadow: var(--glass-shadow), var(--glass-highlight);
+}
+
+html[data-theme="meteor"] .toast-glass {
+  background: linear-gradient(
+    155deg,
+    rgba(14, 22, 48, 0.84) 0%,
+    rgba(6, 10, 24, 0.92) 100%
+  ) !important;
+  border: 1px solid var(--glass-border) !important;
+  color: var(--text) !important;
+  backdrop-filter: blur(22px) saturate(160%);
+  -webkit-backdrop-filter: blur(22px) saturate(160%);
+  box-shadow:
+    var(--glass-highlight),
+    0 18px 44px rgba(2, 4, 16, 0.58),
+    0 0 32px rgba(103, 232, 249, 0.20);
+}
+
+html[data-theme="meteor"] .loading-card {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+html[data-theme="meteor"] .dashboard-allgood-banner {
+  background: linear-gradient(
+    135deg,
+    rgba(184, 228, 160, 0.12) 0%,
+    rgba(103, 232, 249, 0.08) 100%
+  ) !important;
+  border-color: rgba(232, 245, 255, 0.14) !important;
+  backdrop-filter: blur(14px) saturate(145%);
+  -webkit-backdrop-filter: blur(14px) saturate(145%);
+  box-shadow:
+    inset 0 1px 0 rgba(232, 245, 255, 0.10),
+    0 0 28px rgba(184, 228, 160, 0.12);
+}
+
+html[data-theme="meteor"] .dashboard-allgood-icon {
+  background: rgba(184, 228, 160, 0.22) !important;
+  box-shadow: inset 0 0 0 1px rgba(184, 228, 160, 0.40);
+}
+
+html[data-theme="meteor"] .bg-sky-400\/10,
+html[data-theme="meteor"] .bg-emerald-400\/10,
+html[data-theme="meteor"] .bg-orange-400\/10,
+html[data-theme="meteor"] .bg-red-400\/10,
+html[data-theme="meteor"] .bg-red-500\/10,
+html[data-theme="meteor"] .bg-violet-400\/10,
+html[data-theme="meteor"] .bg-yellow-400\/10,
+html[data-theme="meteor"] .bg-green-400\/10,
+html[data-theme="meteor"] .bg-blue-400\/10,
+html[data-theme="meteor"] .bg-amber-400\/10,
+html[data-theme="meteor"] .bg-indigo-400\/10,
+html[data-theme="meteor"] .bg-emerald-500\/6,
+html[data-theme="meteor"] .bg-emerald-500\/8,
+html[data-theme="meteor"] .bg-emerald-400\/8,
+html[data-theme="meteor"] .bg-emerald-400\/\[0\.06\],
+html[data-theme="meteor"] .bg-emerald-400\/5,
+html[data-theme="meteor"] .bg-amber-400\/8,
+html[data-theme="meteor"] .bg-emerald-500\/12,
+html[data-theme="meteor"] .bg-emerald-500\/15,
+html[data-theme="meteor"] .bg-rose-400\/10,
+html[data-theme="meteor"] .bg-rose-500\/10,
+html[data-theme="meteor"] .hover\:bg-rose-500\/10:hover,
+html[data-theme="meteor"] .hover\:bg-rose-50:hover {
+  background-image: linear-gradient(
+    rgba(103, 232, 249, 0.06),
+    rgba(103, 232, 249, 0.04)
+  );
+}
+
+html[data-theme="meteor"] .bg-slate-900\/45,
+html[data-theme="meteor"] .bg-black\/75,
+html[data-theme="meteor"] .bg-black\/65,
+html[data-theme="meteor"] .bg-black\/60,
+html[data-theme="meteor"] .bg-black\/55,
+html[data-theme="meteor"] .bg-black\/45,
+html[data-theme="meteor"] .bg-black\/40,
+html[data-theme="meteor"] .bg-black\/35 {
+  background-color: rgba(6, 12, 28, 0.55) !important;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+html[data-theme="meteor"] .bg-black\/30,
+html[data-theme="meteor"] .bg-black\/25,
+html[data-theme="meteor"] .bg-black\/20,
+html[data-theme="meteor"] .bg-black\/15,
+html[data-theme="meteor"] .bg-black\/10 {
+  background-color: rgba(8, 14, 32, 0.32) !important;
+}
+
+html[data-theme="meteor"] .bg-black\/\[0\.05\],
+html[data-theme="meteor"] .bg-black\/\[0\.04\],
+html[data-theme="meteor"] .bg-black\/\[0\.06\] {
+  background-color: rgba(180, 220, 255, 0.05) !important;
+}
+
+html[data-theme="meteor"] .bg-zinc-900,
+html[data-theme="meteor"] .bg-zinc-800,
+html[data-theme="meteor"] .hover\:bg-zinc-800:hover {
+  background-color: rgba(8, 14, 32, 0.92) !important;
+  border-color: rgba(180, 220, 255, 0.22) !important;
+}
+
+html[data-theme="meteor"] .text-\[\#0a0f1e\] {
+  color: rgba(6, 12, 28, 1) !important;
+}
+
+html[data-theme="meteor"] img.rounded-full.object-cover {
+  box-shadow: inset 0 0 0 1px rgba(103, 232, 249, 0.34);
+}
+
+html[data-theme="meteor"] .border-\[\#0a0f1e\] {
+  border-color: rgba(6, 12, 28, 0.92) !important;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║      33.  AUTO-STAGE-IN + SHINE                                          ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes meteor-stage-in {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  html[data-theme="meteor"] .app-dashboard-root > main,
+  html[data-theme="meteor"] .app-dashboard-root > section {
+    animation: meteor-stage-in 380ms cubic-bezier(0.2, 0.6, 0.2, 1) both;
+  }
+}
+
+html[data-theme="meteor"] .glass-hover {
+  overflow: hidden;
+}
+
+html[data-theme="meteor"] .glass-hover::after,
+html[data-theme="meteor"] .glass-surface::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    115deg,
+    transparent 30%,
+    rgba(103, 232, 249, 0.20) 50%,
+    transparent 70%
+  );
+  transform: translateX(-110%);
+  transition: transform 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+  border-radius: inherit;
+  z-index: 0;
+}
+
+html[data-theme="meteor"] .glass-hover > * {
+  position: relative;
+  z-index: 1;
+}
+
+html[data-theme="meteor"] .glass-hover:hover::after,
+html[data-theme="meteor"] .glass-surface:hover::after {
+  transform: translateX(110%);
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║      34.  ACCESIBILIDAD  ·  prefers-reduced-motion                       ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-theme="meteor"] .meteor-bg .meteor-stars,
+  html[data-theme="meteor"] .meteor-bg .meteor-stars2,
+  html[data-theme="meteor"] .meteor-bg .meteor-bright .bright,
+  html[data-theme="meteor"] .meteor-bg .meteor-streaks .streak,
+  html[data-theme="meteor"] .meteor-bg .meteor-comet,
+  html[data-theme="meteor"] .meteor-bg .meteor-asteroids .asteroid,
+  html[data-theme="meteor"] .meteor-bg .meteor-constellations .const-star {
+    animation: none !important;
+  }
+  html[data-theme="meteor"] .meteor-bg .meteor-streaks .streak {
+    display: none !important;
+  }
+  html[data-theme="meteor"] .glow-border::after {
+    animation: none !important;
+  }
+  html[data-theme="meteor"] .reveal {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+  html[data-theme="meteor"] .app-dashboard-root > main,
+  html[data-theme="meteor"] .app-dashboard-root > section {
+    animation: none !important;
+  }
+  html[data-theme="meteor"] .glass-hover::after,
+  html[data-theme="meteor"] .glass-surface::after {
+    display: none !important;
+  }
+  html[data-theme="meteor"] .glass-surface,
+  html[data-theme="meteor"] .glass,
+  html[data-theme="meteor"] .glass-1,
+  html[data-theme="meteor"] .glass-2,
+  html[data-theme="meteor"] .glass-3,
+  html[data-theme="meteor"] .glass-4 {
+    transition: none !important;
+  }
+}

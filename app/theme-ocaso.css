@@ -67,6 +67,17 @@ html[data-theme="ocaso"] {
   --ocaso-radius: 18px;
   --ocaso-radius-shell: 24px;
 
+  /* Profile menu — púrpura noche Ocaso con borde coral cálido. Cambia el
+   * azul-noche del default por el tono violeta-vino que combina con el
+   * gradiente del atardecer del fondo (la sección anterior usaba `#0d1427`
+   * y descomponía visualmente sobre el cielo coral/dorado del tema). Ver
+   * bloque de comentarios sobre `--profile-menu-*` en `globals.css`. */
+  --profile-menu-bg: rgba(28, 14, 26, 0.96);
+  --profile-menu-solid: #1c0e1a;
+  --profile-menu-border: rgba(255, 159, 110, 0.24);
+  --profile-menu-shadow: 0 16px 48px rgba(50, 16, 8, 0.55);
+  --profile-menu-section: rgba(255, 220, 195, 0.05);
+
   color-scheme: dark;
 }
 
@@ -170,14 +181,20 @@ html[data-theme="ocaso"] .ocaso-bg {
   z-index: -10;
   overflow: hidden;
   background:
+    radial-gradient(
+      ellipse 55% 30% at 65% 62%,
+      rgba(255, 160, 80, 0.25) 0%,
+      transparent 70%
+    ),
     linear-gradient(
       180deg,
-      #1b1133 0%,
-      #2c1b40 18%,
-      #4a2552 38%,
-      #b25a55 60%,
-      #ff9d5e 78%,
-      #ffcf85 92%,
+      #140d28 0%,
+      #22143a 14%,
+      #3e1c4e 32%,
+      #8e3d52 54%,
+      #d97040 70%,
+      #f0b860 84%,
+      #f8d898 95%,
       #ffe2bc 100%
     );
   pointer-events: none;
@@ -188,27 +205,104 @@ html[data-theme="ocaso"] .ocaso-bg .ocaso-sun {
   position: absolute;
   top: 58%;
   left: 65%;
-  width: 36vw;
-  height: 36vw;
-  max-width: 540px;
-  max-height: 540px;
+  width: 40vw;
+  height: 40vw;
+  max-width: 580px;
+  max-height: 580px;
   border-radius: 50%;
   background: radial-gradient(
     circle,
-    rgba(255, 255, 235, 0.92) 0%,
-    rgba(255, 220, 150, 0.7) 20%,
-    rgba(255, 165, 100, 0.45) 40%,
-    rgba(255, 120, 80, 0.18) 60%,
-    transparent 80%
+    rgba(255, 255, 240, 0.96) 0%,
+    rgba(255, 230, 160, 0.80) 16%,
+    rgba(255, 180, 100, 0.55) 36%,
+    rgba(255, 135, 70, 0.28) 56%,
+    rgba(230, 100, 55, 0.10) 72%,
+    transparent 86%
   );
-  filter: blur(2px);
+  filter: blur(2.5px);
+  box-shadow:
+    0 0 80px rgba(255, 200, 100, 0.40),
+    0 0 160px rgba(255, 150, 70, 0.22);
   animation: ocaso-sun-pulse 14s ease-in-out infinite;
   pointer-events: none;
+  will-change: transform, opacity;
 }
 
 @keyframes ocaso-sun-pulse {
   0%, 100% { opacity: 0.85; transform: scale(1); }
   50%      { opacity: 0.96; transform: scale(1.04); }
+}
+
+/* ── 2b: Rayos solares — 8 radios SVG dentro de .ocaso-sun ────────────
+ *  El SVG está centrado dentro del .ocaso-sun (top:50% + left:50% +
+ *  translate(-50%,-50%)). Su tamaño es 140% del sol (antes 220%, daba
+ *  sensación de "rejilla cruzada") → los rayos salen sólo un poco más
+ *  allá del disco, sin invadir media pantalla.
+ *
+ *  Rotación 240s linear (antes 120s — el usuario percibía el giro como
+ *  rápido y los rayos demasiado prominentes). Opacity 0.55 (antes 0.85)
+ *  para que sean un acento sutil, no la estrella visual del tema.
+ *
+ *  mix-blend: screen para integrarse con los colores cálidos del cielo
+ *  crepuscular sin "pintar" encima. */
+html[data-theme="ocaso"] .ocaso-bg .ocaso-sun .ocaso-sun-rays {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 140%;
+  height: 140%;
+  transform: translate(-50%, -50%);
+  transform-origin: center;
+  pointer-events: none;
+  mix-blend-mode: screen;
+  opacity: 0.55;
+  filter: blur(1.5px);
+  will-change: transform;
+  animation: ocaso-sun-rays-spin 240s linear infinite;
+}
+
+@keyframes ocaso-sun-rays-spin {
+  0%   { transform: translate(-50%, -50%) rotate(0deg); }
+  100% { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+/* ── Rayos crepusculares del sol al atardecer ─────────────────────
+   Cono de luz desde la posición del sol (top:58% left:65%).
+   mix-blend-mode screen para integrarse con el cielo degradado. */
+html[data-theme="ocaso"] .ocaso-bg .ocaso-godrays {
+  position: absolute;
+  top: 58%;
+  left: 65%;
+  transform: translateX(-50%);
+  width: 280vw;
+  height: 280vw;
+  background: repeating-conic-gradient(
+    from 0deg at 50% 0%,
+    rgba(255, 200, 110, 0.10) 0deg,
+    transparent 4.5deg,
+    rgba(255, 185, 90, 0.07) 7deg,
+    transparent 11.5deg
+  );
+  mask-image: radial-gradient(
+    ellipse 55% 55% at 50% 0%,
+    black 0%,
+    black 25%,
+    transparent 65%
+  );
+  -webkit-mask-image: radial-gradient(
+    ellipse 55% 55% at 50% 0%,
+    black 0%,
+    black 25%,
+    transparent 65%
+  );
+  mix-blend-mode: screen;
+  pointer-events: none;
+  z-index: 1;
+  animation: ocaso-rays-breathe 16s ease-in-out infinite;
+}
+@keyframes ocaso-rays-breathe {
+  0%, 100% { opacity: 0.55; }
+  50%      { opacity: 0.90; }
 }
 
 /* ── Capa 3: bruma cálida flotando ────────────────────────────────── */
@@ -217,21 +311,65 @@ html[data-theme="ocaso"] .ocaso-bg .ocaso-mist {
   bottom: 0;
   left: 0;
   width: 100%;
-  height: 35%;
+  height: 40%;
   background: linear-gradient(
     180deg,
     transparent 0%,
-    rgba(255, 200, 160, 0.18) 50%,
-    rgba(255, 220, 180, 0.28) 100%
+    rgba(255, 185, 140, 0.14) 30%,
+    rgba(255, 210, 165, 0.28) 60%,
+    rgba(255, 225, 180, 0.38) 100%
   );
-  filter: blur(20px);
+  filter: blur(22px);
   animation: ocaso-mist-drift 22s ease-in-out infinite;
   pointer-events: none;
+  will-change: transform, opacity;
 }
 
 @keyframes ocaso-mist-drift {
-  0%, 100% { transform: translateX(0); opacity: 0.7; }
-  50%      { transform: translateX(30px); opacity: 0.9; }
+  0%   { transform: translateX(-3%); opacity: 0.7; }
+  50%  { transform: translateX(3%);  opacity: 0.9; }
+  100% { transform: translateX(-3%); opacity: 0.7; }
+}
+
+/* ── Capa 4: PÁJAROS silueta cruzando el cielo ────────────────────────
+ *  4 siluetas SVG en forma de "~" desplazándose izquierda → derecha.
+ *  Top inicial fijo por pájaro, drift sutil vertical durante el cruce
+ *  para que parezcan planeando.
+ *
+ *  z-index entre el cielo (default) y el horizonte (z-index 2 implícito
+ *  por orden en el DOM) — al estar antes del .ocaso-horizon en el JSX,
+ *  los pájaros quedan detrás de las montañas, que es lo natural.
+ */
+html[data-theme="ocaso"] .ocaso-bg .ocaso-birds {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 1;
+}
+
+html[data-theme="ocaso"] .ocaso-bg .ocaso-birds .ocaso-bird {
+  position: absolute;
+  left: 0;
+  /* viewBox 40×16 (2.5:1) → 50×20 mantiene la silueta sin distorsión. */
+  width: 50px;
+  height: 20px;
+  transform: translate(-10vw, 0) scale(var(--bird-scale, 1));
+  transform-origin: center;
+  opacity: 0.82;
+  filter: drop-shadow(0 1px 1px rgba(20, 8, 16, 0.45));
+  will-change: transform;
+  animation: ocaso-bird-cross linear infinite;
+}
+
+@keyframes ocaso-bird-cross {
+  0%   { transform: translate(-10vw, 0)   scale(var(--bird-scale, 1)); opacity: 0; }
+  6%   {                                                                opacity: 0.78; }
+  50%  { transform: translate( 50vw, -6px) scale(var(--bird-scale, 1)); opacity: 0.85; }
+  94%  {                                                                opacity: 0.78; }
+  100% { transform: translate(115vw, 4px)  scale(var(--bird-scale, 1)); opacity: 0; }
 }
 
 /* ── Capa 4: silueta de montañas SVG (en el componente) ───────────── */
@@ -240,7 +378,7 @@ html[data-theme="ocaso"] .ocaso-bg .ocaso-horizon {
   bottom: 0;
   left: 0;
   width: 100%;
-  height: 22%;
+  height: 28%;
   pointer-events: none;
 }
 
@@ -250,15 +388,12 @@ html[data-theme="ocaso"] .ocaso-bg .ocaso-horizon svg {
   display: block;
 }
 
-html[data-theme="ocaso"] .ocaso-bg .ocaso-horizon .h-back {
-  fill: rgba(80, 30, 50, 0.55);
-}
-html[data-theme="ocaso"] .ocaso-bg .ocaso-horizon .h-mid {
-  fill: rgba(50, 18, 38, 0.78);
-}
-html[data-theme="ocaso"] .ocaso-bg .ocaso-horizon .h-front {
-  fill: rgba(28, 10, 24, 0.92);
-}
+/* Las clases h-back / h-mid / h-front fueron sustituidas por gradients
+   inline en el SVG (urls #ocaso-mt-grad-*) que dan volumen real a las
+   colinas. Se conservan vacías por compatibilidad histórica. */
+html[data-theme="ocaso"] .ocaso-bg .ocaso-horizon .h-back,
+html[data-theme="ocaso"] .ocaso-bg .ocaso-horizon .h-mid,
+html[data-theme="ocaso"] .ocaso-bg .ocaso-horizon .h-front {}
 
 /* ── Capa 5: ruido ────────────────────────────────────────────────── */
 html[data-theme="ocaso"] .ocaso-bg .ocaso-noise {
@@ -522,11 +657,14 @@ html[data-theme="ocaso"] .app-sidebar-shell {
 }
 
 html[data-theme="ocaso"] .app-sidebar-shell.sidebar-expanded-solid {
+  /* Violeta crepuscular armonizando con el atardecer del fondo */
   background: linear-gradient(
     180deg,
-    rgba(58, 28, 48, 0.78) 0%,
-    rgba(34, 16, 32, 0.86) 100%
+    rgba(58, 28, 48, 0.92) 0%,
+    rgba(28, 12, 28, 0.96) 100%
   ) !important;
+  border-right: 1px solid rgba(217, 106, 62, 0.22) !important;
+  box-shadow: 4px 0 18px rgba(217, 106, 62, 0.08) !important;
   backdrop-filter: blur(32px) saturate(160%) !important;
   -webkit-backdrop-filter: blur(32px) saturate(160%) !important;
   border-right: 1px solid var(--glass-border) !important;
@@ -1108,8 +1246,15 @@ html[data-theme="ocaso"] .glass-surface:hover::after {
 
 @media (prefers-reduced-motion: reduce) {
   html[data-theme="ocaso"] .ocaso-bg .ocaso-sun,
-  html[data-theme="ocaso"] .ocaso-bg .ocaso-mist {
+  html[data-theme="ocaso"] .ocaso-bg .ocaso-sun .ocaso-sun-rays,
+  html[data-theme="ocaso"] .ocaso-bg .ocaso-mist,
+  html[data-theme="ocaso"] .ocaso-bg .ocaso-godrays,
+  html[data-theme="ocaso"] .ocaso-bg .ocaso-birds .ocaso-bird {
     animation: none !important;
+  }
+  /* Mantener los pájaros fuera de cuadro si motion-reduced */
+  html[data-theme="ocaso"] .ocaso-bg .ocaso-birds .ocaso-bird {
+    opacity: 0 !important;
   }
   html[data-theme="ocaso"] .glow-border::after {
     animation: none !important;

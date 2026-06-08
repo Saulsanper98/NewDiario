@@ -18,7 +18,7 @@ import { useTheme } from "@/components/layout/ThemeProvider";
  * fija para que el render del servidor y cliente coincidan
  * (hydration-safe).
  *
- * Detección dual del tema (igual patrón que PrismaBackground): combina
+ * Detección dual del tema (igual patrón que el resto de Backgrounds): combina
  * `useTheme()` con `useSyncExternalStore` mirando `<html data-theme>` para
  * reaccionar al script anti-flash y evitar parpadeos en el primer paint.
  */

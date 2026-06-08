@@ -1,0 +1,1462 @@
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║          TEMA  "COSMOS"  ·  Nebulosa espacial profunda                   ║
+ * ║                                                                          ║
+ * ║   Inspiración: imágenes del James Webb Space Telescope (Pillars of       ║
+ * ║   Creation, Carina Nebula), portadas de "Interstellar", planos de        ║
+ * ║   "2001: A Space Odyssey". Sensación de profundidad espacial real.       ║
+ * ║                                                                          ║
+ * ║   Identidad visual:                                                      ║
+ * ║     · Fondo: espacio profundo gradiente vertical (negro azulado →       ║
+ * ║       violeta cósmico → púrpura nebulosa).                              ║
+ * ║     · Nebulosa principal: gran blob SVG con manchas magenta/violeta/    ║
+ * ║       azul, girando muy lentamente (90s).                                ║
+ * ║     · Estrellas tenues (CSS) + 6 estrellas brillantes parpadeando.       ║
+ * ║     · Vía láctea oblicua sutil cruzando el viewport.                     ║
+ * ║     · Cards: cristal violeta espacial + borde magenta/púrpura.           ║
+ * ║     · Acentos: magenta cósmico, azul cobalto, púrpura nebulosa.          ║
+ * ║                                                                          ║
+ * ║   AISLAMIENTO TOTAL bajo `html[data-theme="cosmos"]`.                    ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                         1.  PALETA Y TOKENS                              ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="cosmos"] {
+  --bg-deep: #0a0418;
+  --accent: #FFEB66;
+
+  --text: #f0eaff;
+  --text-dim: #c8b8e8;
+  --text-faint: #8474a8;
+
+  /* Paleta cósmica */
+  --cosmos-void: #0a0418;
+  --cosmos-space: #100828;
+  --cosmos-deep: #1a1340;
+  --cosmos-edge: #2a1850;
+  --cosmos-magenta: #ff5af7;
+  --cosmos-nebula: #a866ff;
+  --cosmos-electric: #5a8bff;
+  --cosmos-stardust: #e0d4ff;
+  --cosmos-pulsar: #ffeed2;
+  --cosmos-gold: #ffe680;
+
+  /* Cristal violeta espacial */
+  --glass-bg: rgba(180, 150, 230, 0.06);
+  --glass-bg-2: rgba(180, 150, 230, 0.12);
+  --glass-border: rgba(168, 102, 255, 0.20);
+  --glass-border-glow: rgba(168, 102, 255, 0.62);
+  --glass-blur: 22px;
+  --glass-shadow: 0 14px 50px rgba(6, 2, 22, 0.62);
+  --glass-highlight:
+    inset 0 1px 0 rgba(224, 212, 255, 0.20),
+    inset 1px 0 0 rgba(224, 212, 255, 0.06);
+
+  --glow-nebula: rgba(168, 102, 255, 0.36);
+  --glow-magenta: rgba(255, 90, 247, 0.28);
+
+  --stat-purple: var(--cosmos-nebula);
+  --stat-blue:   var(--cosmos-electric);
+  --stat-cyan:   #5be0ff;
+  --stat-green:  #b0e8a0;
+
+  --app-canvas-color: transparent;
+  --app-canvas-image: none;
+  --card-isolation: auto;
+
+  --cosmos-radius: 18px;
+  --cosmos-radius-shell: 24px;
+
+  /* Profile menu — espacio profundo con borde nebulosa púrpura. */
+  --profile-menu-bg: rgba(16, 8, 40, 0.96);
+  --profile-menu-solid: #100828;
+  --profile-menu-border: rgba(168, 102, 255, 0.26);
+  --profile-menu-shadow: 0 16px 48px rgba(6, 2, 22, 0.62);
+  --profile-menu-section: rgba(168, 102, 255, 0.05);
+
+  color-scheme: dark;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║              2.  FIX DE CAPAS OPACAS                                     ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="cosmos"] body {
+  color: var(--text);
+  font-weight: 400;
+  min-height: 100vh;
+}
+
+html[data-theme="cosmos"] .app-sidebar-shell,
+html[data-theme="cosmos"] .app-top-header {
+  isolation: auto !important;
+}
+
+/* ── Marco con gradient lava ─────────────────────────────────────────── */
+html[data-theme="cosmos"] .glass-shell-frame {
+  margin: 18px;
+  padding: 1.5px;
+  border-radius: var(--cosmos-radius-shell);
+  background: linear-gradient(
+    135deg,
+    rgba(168, 102, 255, 0.55),
+    rgba(90, 139, 255, 0.40) 35%,
+    rgba(255, 90, 247, 0.45) 65%,
+    rgba(60, 30, 120, 0.32)
+  );
+  box-shadow:
+    0 0 60px rgba(255, 90, 247, 0.20),
+    0 0 120px rgba(168, 102, 255, 0.10);
+}
+
+html[data-theme="cosmos"] .glass-shell-inner {
+  border-radius: calc(var(--cosmos-radius-shell) - 2px);
+  background: rgba(14, 8, 36, 0.34);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  overflow: hidden;
+  padding: 20px;
+}
+
+@media (max-width: 768px) {
+  html[data-theme="cosmos"] .glass-shell-inner { padding: 6px; }
+  html[data-theme="cosmos"] .app-dashboard-root { gap: 8px; }
+}
+@media (max-width: 640px) {
+  html[data-theme="cosmos"] .glass-shell-frame {
+    margin: 4px;
+    border-radius: 16px;
+  }
+  html[data-theme="cosmos"] .glass-shell-inner {
+    border-radius: 14px;
+  }
+}
+@media (max-width: 480px) {
+  html[data-theme="cosmos"] .glass-shell-frame {
+    margin: 0;
+    padding: 0;
+    border-radius: 0;
+    box-shadow: none;
+    background: rgba(168, 102, 255, 0.30);
+  }
+  html[data-theme="cosmos"] .glass-shell-inner {
+    padding: 0;
+    border-radius: 0;
+  }
+  html[data-theme="cosmos"] .app-dashboard-root { gap: 0; }
+}
+
+html[data-theme="cosmos"] .glass-shell-frame::before,
+html[data-theme="cosmos"] .glass-shell-frame::after,
+html[data-theme="cosmos"] .glass-shell-inner::before,
+html[data-theme="cosmos"] .glass-shell-inner::after {
+  display: none !important;
+}
+
+html[data-theme="cosmos"] .app-dashboard-root {
+  background: transparent !important;
+  gap: 16px;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║              3.  FONDO  ·  <CosmosBackground />                          ║
+ * ║                                                                          ║
+ * ║   Capas (todas dentro de `.cosmos-bg`, position:fixed; z-index:-10):     ║
+ * ║     1. Espacio: gradiente vertical (negro azulado → violeta espacial).   ║
+ * ║     2. Campo de estrellas (CSS radial-gradients, multi-layer).           ║
+ * ║     3. Vía láctea oblicua sutil (gradient diagonal con blur).            ║
+ * ║     4. Nebulosa principal SVG (3 blobs magenta/violeta/azul) girando.    ║
+ * ║     5. Estrellas brillantes con halo parpadeando (6 puntos, CSS).        ║
+ * ║     6. Ruido sutil para evitar banding.                                  ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="cosmos"] .cosmos-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -10;
+  overflow: hidden;
+  /* Espacio profundo REAL — casi NEGRO ABSOLUTO. El color del cosmos
+     viene exclusivamente de las nebulosas, el planeta y las estrellas
+     brillantes. El fondo es el "vacío" del espacio: muy oscuro, con
+     un tono azul-noche apenas perceptible para evitar absoluto plano. */
+  background:
+    radial-gradient(
+      ellipse at 60% 30%,
+      rgba(30, 20, 60, 0.18) 0%,
+      transparent 40%
+    ),
+    linear-gradient(
+      180deg,
+      #000007 0%,
+      #010108 30%,
+      #02020c 60%,
+      #03020e 100%
+    );
+  pointer-events: none;
+}
+
+/* ── Capa 2: campo de estrellas — multi-layer radial gradients para
+   simular ~30 estrellas pequeñas distribuidas en TODA la pantalla
+   (no solo arriba como en Volcán; aquí no hay horizonte). Tres tamaños:
+   1px (más tenues), 1.5px (medias), 2px (más brillantes). Animación
+   sutil de twinkle. */
+html[data-theme="cosmos"] .cosmos-bg .cosmos-stars {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    /* Estrellas grandes (2px) — más brillantes */
+    radial-gradient(2px 2px at 8% 12%,  rgba(255, 255, 255, 0.85), transparent 60%),
+    radial-gradient(2px 2px at 76% 24%, rgba(220, 200, 255, 0.80), transparent 60%),
+    radial-gradient(2px 2px at 34% 78%, rgba(255, 240, 220, 0.75), transparent 60%),
+    radial-gradient(2px 2px at 92% 68%, rgba(255, 255, 255, 0.82), transparent 60%),
+    /* Estrellas medias (1.5px) */
+    radial-gradient(1.5px 1.5px at 20% 6%,  rgba(224, 212, 255, 0.62), transparent 60%),
+    radial-gradient(1.5px 1.5px at 48% 18%, rgba(220, 200, 255, 0.60), transparent 60%),
+    radial-gradient(1.5px 1.5px at 62% 42%, rgba(255, 240, 220, 0.55), transparent 60%),
+    radial-gradient(1.5px 1.5px at 14% 52%, rgba(224, 212, 255, 0.58), transparent 60%),
+    radial-gradient(1.5px 1.5px at 88% 86%, rgba(220, 200, 255, 0.62), transparent 60%),
+    radial-gradient(1.5px 1.5px at 52% 92%, rgba(255, 240, 220, 0.55), transparent 60%),
+    /* Estrellas pequeñas (1px) */
+    radial-gradient(1px 1px at 4% 36%,   rgba(255, 255, 255, 0.42), transparent 60%),
+    radial-gradient(1px 1px at 28% 48%,  rgba(224, 212, 255, 0.40), transparent 60%),
+    radial-gradient(1px 1px at 42% 62%,  rgba(220, 200, 255, 0.42), transparent 60%),
+    radial-gradient(1px 1px at 56% 8%,   rgba(255, 255, 255, 0.44), transparent 60%),
+    radial-gradient(1px 1px at 68% 56%,  rgba(224, 212, 255, 0.38), transparent 60%),
+    radial-gradient(1px 1px at 80% 38%,  rgba(255, 240, 220, 0.42), transparent 60%),
+    radial-gradient(1px 1px at 94% 14%,  rgba(220, 200, 255, 0.40), transparent 60%),
+    radial-gradient(1px 1px at 38% 32%,  rgba(255, 255, 255, 0.38), transparent 60%),
+    radial-gradient(1px 1px at 16% 84%,  rgba(224, 212, 255, 0.40), transparent 60%),
+    radial-gradient(1px 1px at 72% 76%,  rgba(255, 240, 220, 0.42), transparent 60%);
+  animation: cosmos-twinkle 6s ease-in-out infinite;
+}
+
+@keyframes cosmos-twinkle {
+  0%, 100% { opacity: 0.85; }
+  50%      { opacity: 1; }
+}
+
+/* ── Capa 3: Vía láctea oblicua — banda diagonal que cruza el viewport.
+   Más densa que antes: un núcleo central brillante con halos laterales
+   que imitan la apariencia real de la Vía Láctea en cielo oscuro. */
+html[data-theme="cosmos"] .cosmos-bg .cosmos-milky {
+  position: absolute;
+  inset: -10%;
+  background:
+    linear-gradient(
+      115deg,
+      transparent 10%,
+      rgba(130, 80, 200, 0.08) 24%,
+      rgba(168, 102, 255, 0.20) 34%,
+      rgba(200, 160, 255, 0.30) 44%,
+      rgba(220, 180, 255, 0.38) 50%,
+      rgba(200, 160, 255, 0.30) 56%,
+      rgba(90, 139, 255, 0.20) 65%,
+      rgba(130, 80, 200, 0.08) 75%,
+      transparent 88%
+    );
+  filter: blur(28px);
+  pointer-events: none;
+}
+
+/* ── Capa 3b: segunda banda Vía Láctea con ángulo ligeramente diferente
+   para simular la complejidad real de los brazos espirales. */
+html[data-theme="cosmos"] .cosmos-bg .cosmos-milky2 {
+  position: absolute;
+  inset: -10%;
+  background: linear-gradient(
+    128deg,
+    transparent 28%,
+    rgba(80, 60, 180, 0.08) 40%,
+    rgba(140, 100, 240, 0.14) 48%,
+    rgba(160, 120, 255, 0.18) 52%,
+    rgba(140, 100, 240, 0.12) 58%,
+    rgba(80, 60, 180, 0.06) 68%,
+    transparent 80%
+  );
+  filter: blur(40px);
+  pointer-events: none;
+}
+
+/* ── Cometas / estrellas fugaces ────────────────────────────────── */
+html[data-theme="cosmos"] .cosmos-bg .cosmos-comet {
+  position: absolute;
+  height: 1.5px;
+  border-radius: 99px;
+  pointer-events: none;
+  opacity: 0;
+  mix-blend-mode: screen;
+}
+html[data-theme="cosmos"] .cosmos-bg .cosmos-comet-1 {
+  width: 200px;
+  top: 14%;
+  left: 22%;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.92), transparent);
+  filter: drop-shadow(0 0 4px rgba(220, 240, 255, 0.85));
+  animation: cosmos-comet-fly-1 14s ease-in infinite;
+  animation-delay: -2s;
+  transform-origin: left center;
+}
+html[data-theme="cosmos"] .cosmos-bg .cosmos-comet-2 {
+  width: 140px;
+  top: 42%;
+  left: 58%;
+  background: linear-gradient(90deg, rgba(200, 220, 255, 0.88), transparent);
+  filter: drop-shadow(0 0 3px rgba(180, 210, 255, 0.80));
+  animation: cosmos-comet-fly-2 20s ease-in infinite;
+  animation-delay: -9s;
+  transform-origin: left center;
+}
+@keyframes cosmos-comet-fly-1 {
+  0%   { opacity: 0; transform: rotate(22deg) translateX(-60px) scaleX(0.2); }
+  4%   { opacity: 1; transform: rotate(22deg) translateX(0)     scaleX(1); }
+  9%   { opacity: 0; transform: rotate(22deg) translateX(140px) scaleX(0.4); }
+  100% { opacity: 0; transform: rotate(22deg) translateX(140px) scaleX(0.4); }
+}
+@keyframes cosmos-comet-fly-2 {
+  0%   { opacity: 0; transform: rotate(32deg) translateX(-40px) scaleX(0.2); }
+  4%   { opacity: 1; transform: rotate(32deg) translateX(0)     scaleX(1); }
+  9%   { opacity: 0; transform: rotate(32deg) translateX(100px) scaleX(0.4); }
+  100% { opacity: 0; transform: rotate(32deg) translateX(100px) scaleX(0.4); }
+}
+
+/* ── Capa 2b: segunda capa de estrellas con OFFSET para densidad extra ── */
+html[data-theme="cosmos"] .cosmos-bg .cosmos-stars2 {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    radial-gradient(1.5px 1.5px at 12% 38%, rgba(255, 220, 180, 0.65), transparent 60%),
+    radial-gradient(1.5px 1.5px at 36% 8%,  rgba(180, 210, 255, 0.62), transparent 60%),
+    radial-gradient(1.5px 1.5px at 84% 32%, rgba(255, 240, 220, 0.58), transparent 60%),
+    radial-gradient(1px 1px at 22% 22%,     rgba(255, 200, 160, 0.55), transparent 60%),
+    radial-gradient(1px 1px at 58% 14%,     rgba(180, 220, 255, 0.55), transparent 60%),
+    radial-gradient(1px 1px at 6%  62%,     rgba(255, 240, 220, 0.50), transparent 60%),
+    radial-gradient(1px 1px at 46% 28%,     rgba(255, 220, 180, 0.55), transparent 60%),
+    radial-gradient(1px 1px at 76% 48%,     rgba(180, 210, 255, 0.50), transparent 60%),
+    radial-gradient(1px 1px at 30% 66%,     rgba(255, 240, 220, 0.48), transparent 60%),
+    radial-gradient(1px 1px at 64% 82%,     rgba(255, 200, 160, 0.52), transparent 60%),
+    radial-gradient(1px 1px at 86% 76%,     rgba(180, 220, 255, 0.55), transparent 60%),
+    radial-gradient(1px 1px at 48% 88%,     rgba(255, 240, 220, 0.50), transparent 60%),
+    radial-gradient(1px 1px at 2%  18%,     rgba(255, 220, 180, 0.45), transparent 60%),
+    radial-gradient(1px 1px at 96% 56%,     rgba(180, 210, 255, 0.48), transparent 60%),
+    radial-gradient(1px 1px at 18% 96%,     rgba(255, 200, 160, 0.55), transparent 60%);
+  animation: cosmos-twinkle2 8s ease-in-out infinite;
+  animation-delay: -2s;
+}
+
+@keyframes cosmos-twinkle2 {
+  0%, 100% { opacity: 0.7; }
+  50%      { opacity: 1; }
+}
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║   CAPA 4 — NEBULOSAS (con feTurbulence)                                 ║
+ * ║                                                                          ║
+ * ║   El contenedor cubre toda la pantalla (vmax) y gira 240s. Cada nube    ║
+ * ║   <g class="nebula-cloud"> tiene su propia animación de "respiración"   ║
+ * ║   (scale 0.95↔1.08 desincronizada). `mix-blend-mode: screen` para que   ║
+ * ║   se sumen como luz, no como pintura.                                   ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+html[data-theme="cosmos"] .cosmos-bg .cosmos-nebula {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 130vmax;
+  height: 130vmax;
+  transform: translate(-50%, -50%);
+  animation: cosmos-nebula-rotate 240s linear infinite;
+  pointer-events: none;
+  /* Nebulosas más sutiles — el cosmos real es OSCURO, las nebulosas
+     visibles a simple vista son tenues. Reducimos opacidad para que el
+     negro espacial predomine. */
+  opacity: 0.72;
+}
+
+html[data-theme="cosmos"] .cosmos-bg .cosmos-nebula svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  overflow: visible;
+}
+
+html[data-theme="cosmos"] .cosmos-bg .cosmos-nebula .nebula-cloud {
+  mix-blend-mode: screen;
+  transform-origin: 50% 50%;
+  animation: cosmos-nebula-breath 26s ease-in-out infinite;
+}
+html[data-theme="cosmos"] .cosmos-bg .cosmos-nebula .nebula-core {
+  mix-blend-mode: screen;
+  filter: blur(8px);
+  transform-origin: 50% 50%;
+  animation: cosmos-nebula-core-pulse 8s ease-in-out infinite;
+}
+
+@keyframes cosmos-nebula-rotate {
+  to { transform: translate(-50%, -50%) rotate(360deg); }
+}
+@keyframes cosmos-nebula-breath {
+  0%, 100% { transform: scale(1)    translate(0, 0); }
+  50%      { transform: scale(1.06) translate(-0.5%, 0.5%); }
+}
+@keyframes cosmos-nebula-core-pulse {
+  0%, 100% { opacity: 0.75; transform: scale(1); }
+  50%      { opacity: 1.0;  transform: scale(1.10); }
+}
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║   CAPA 5 — GALAXIAS ESPIRALES                                            ║
+ * ║   4 mini-galaxias rotando lentamente. Cada SVG es absolute con su       ║
+ * ║   posición (top/left). Rotación independiente con duraciones distintas. ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+html[data-theme="cosmos"] .cosmos-bg .cosmos-galaxies {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+}
+html[data-theme="cosmos"] .cosmos-bg .cosmos-galaxies .galaxy {
+  position: absolute;
+  transform-origin: 50% 50%;
+  animation: cosmos-galaxy-spin 240s linear infinite;
+  mix-blend-mode: screen;
+  opacity: 0.78;
+  filter: drop-shadow(0 0 8px rgba(168, 102, 255, 0.55));
+}
+@keyframes cosmos-galaxy-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║   CAPA 6 — PLANETA con anillos                                           ║
+ * ║   Esquina sup. dcha. Tamaño responsive (% del viewport). Rotación       ║
+ * ║   muy sutil (no del planeta entero — solo de la sombra/highlight        ║
+ * ║   sería ideal pero por simplicidad: el SVG entero fijo). */
+html[data-theme="cosmos"] .cosmos-bg .cosmos-planet {
+  position: absolute;
+  top: 3%;
+  right: 3%;
+  width: 32vw;
+  max-width: 420px;
+  min-width: 200px;
+  pointer-events: none;
+  z-index: 2;
+  filter:
+    drop-shadow(0 10px 32px rgba(196, 117, 58, 0.50))
+    drop-shadow(0 0 60px rgba(255, 160, 80, 0.20));
+}
+html[data-theme="cosmos"] .cosmos-bg .cosmos-planet svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+@media (max-width: 640px) {
+  html[data-theme="cosmos"] .cosmos-bg .cosmos-planet {
+    width: 50vw;
+    top: 2%;
+    right: 2%;
+    opacity: 0.65;
+  }
+}
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║   CAPA 7 — ESTRELLAS BRILLANTES con rayos de difracción                 ║
+ * ║                                                                          ║
+ * ║   Cada `.bright` ahora es un contenedor con 3 hijos:                    ║
+ * ║     · `.bright-core` ← punto blanco central                             ║
+ * ║     · `.bright-ray-h` ← rayo horizontal (estilo JWST)                   ║
+ * ║     · `.bright-ray-v` ← rayo vertical                                   ║
+ * ║   Pulsa con `--bp` distinto cada una. `--hue` define color del halo.    ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+html[data-theme="cosmos"] .cosmos-bg .cosmos-bright {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 3;
+}
+
+html[data-theme="cosmos"] .cosmos-bg .cosmos-bright .bright {
+  position: absolute;
+  width: 0;
+  height: 0;
+  top: var(--by, 50%);
+  left: var(--bx, 50%);
+  animation: cosmos-bright-pulse var(--bp, 4s) ease-in-out infinite;
+}
+
+html[data-theme="cosmos"] .cosmos-bg .cosmos-bright .bright .bright-core {
+  position: absolute;
+  width: var(--bs, 4px);
+  height: var(--bs, 4px);
+  top: calc(var(--bs, 4px) / -2);
+  left: calc(var(--bs, 4px) / -2);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow:
+    0 0 4px rgba(255, 255, 255, 0.95),
+    0 0 12px hsla(var(--hue, 200), 90%, 75%, 0.65),
+    0 0 24px hsla(var(--hue, 200), 90%, 65%, 0.45);
+}
+
+html[data-theme="cosmos"] .cosmos-bg .cosmos-bright .bright .bright-ray {
+  position: absolute;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    hsla(var(--hue, 200), 90%, 80%, 0.85) 48%,
+    hsla(var(--hue, 200), 90%, 80%, 1) 50%,
+    hsla(var(--hue, 200), 90%, 80%, 0.85) 52%,
+    transparent 100%
+  );
+  filter: blur(0.5px);
+}
+html[data-theme="cosmos"] .cosmos-bg .cosmos-bright .bright .bright-ray-h {
+  width: calc(var(--bs, 4px) * 14);
+  height: 1px;
+  top: -0.5px;
+  left: calc(var(--bs, 4px) * -7);
+}
+html[data-theme="cosmos"] .cosmos-bg .cosmos-bright .bright .bright-ray-v {
+  width: 1px;
+  height: calc(var(--bs, 4px) * 14);
+  top: calc(var(--bs, 4px) * -7);
+  left: -0.5px;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    hsla(var(--hue, 200), 90%, 80%, 0.85) 48%,
+    hsla(var(--hue, 200), 90%, 80%, 1) 50%,
+    hsla(var(--hue, 200), 90%, 80%, 0.85) 52%,
+    transparent 100%
+  );
+}
+
+@keyframes cosmos-bright-pulse {
+  0%, 100% { opacity: 0.55; transform: scale(0.9); }
+  50%      { opacity: 1.0;  transform: scale(1.15); }
+}
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║   CAPA 8 — POLVO CÓSMICO (motas drift)                                  ║
+ * ║   25 puntitos atravesando la pantalla MUY lentamente (28-40s).          ║
+ * ║   Cada uno usa `--dx/--dy` para su trayectoria.                         ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+html[data-theme="cosmos"] .cosmos-bg .cosmos-dust {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+html[data-theme="cosmos"] .cosmos-bg .cosmos-dust .dust {
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  border-radius: 50%;
+  background: rgba(255, 240, 220, 0.55);
+  box-shadow: 0 0 3px rgba(255, 240, 220, 0.45);
+  opacity: 0;
+  animation: cosmos-dust-drift var(--d, 32s) linear infinite;
+}
+@keyframes cosmos-dust-drift {
+  0%   { transform: translate(0, 0)                              scale(0.6); opacity: 0; }
+  15%  {                                                                    opacity: 0.55; }
+  50%  { transform: translate(calc(var(--dx) * 0.5), calc(var(--dy) * 0.5)) scale(1); opacity: 0.55; }
+  85%  {                                                                    opacity: 0.55; }
+  100% { transform: translate(var(--dx), var(--dy))                          scale(0.6); opacity: 0; }
+}
+
+/* ── Capa 6: ruido sutil ──────────────────────────────────────────── */
+html[data-theme="cosmos"] .cosmos-bg .cosmos-noise {
+  position: absolute;
+  inset: 0;
+  opacity: 0.04;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  pointer-events: none;
+  mix-blend-mode: overlay;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                4.  CLASE DE CRISTAL  ·  .glass-surface                   ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="cosmos"] .glass-surface {
+  position: relative;
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur)) saturate(150%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(150%);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow), var(--glass-highlight);
+  border-radius: var(--cosmos-radius);
+  transition:
+    border-color 0.3s ease,
+    transform 0.3s ease,
+    background 0.3s ease,
+    box-shadow 0.3s ease;
+  overflow: hidden;
+}
+
+html[data-theme="cosmos"] .glass-surface::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background: linear-gradient(
+    135deg,
+    rgba(224, 212, 255, 0.20) 0%,
+    rgba(224, 212, 255, 0.05) 22%,
+    transparent 46%
+  );
+  border-radius: inherit;
+}
+
+html[data-theme="cosmos"] .glass-surface > * {
+  position: relative;
+  z-index: 1;
+}
+
+html[data-theme="cosmos"] .glass-surface:hover {
+  border-color: var(--glass-border-glow);
+  transform: translateY(-2px);
+  background: var(--glass-bg-2);
+  box-shadow:
+    0 18px 58px rgba(8, 4, 30, 0.62),
+    0 0 32px var(--glow-nebula),
+    0 0 56px var(--glow-magenta),
+    var(--glass-highlight);
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║              5.  ALIAS  ·  Cards del sistema                             ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="cosmos"] .glass,
+html[data-theme="cosmos"] .glass-1,
+html[data-theme="cosmos"] .glass-2,
+html[data-theme="cosmos"] .glass-3,
+html[data-theme="cosmos"] .glass-4 {
+  isolation: var(--card-isolation);
+  position: relative;
+  border-radius: var(--cosmos-radius);
+  transition:
+    background 0.3s ease,
+    border-color 0.3s ease,
+    box-shadow 0.3s ease,
+    transform 0.3s ease;
+}
+
+html[data-theme="cosmos"] .glass {
+  background: rgba(180, 150, 230, 0.020);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  border: 1px solid rgba(180, 150, 230, 0.05);
+  box-shadow: none;
+}
+
+html[data-theme="cosmos"] .glass-1 {
+  background: rgba(180, 150, 230, 0.10);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  border: 1px solid rgba(168, 140, 220, 0.18);
+  box-shadow: var(--glass-shadow), var(--glass-highlight);
+}
+
+html[data-theme="cosmos"] .glass-2 {
+  background: rgba(180, 150, 230, 0.12);
+  backdrop-filter: blur(20px) saturate(150%);
+  -webkit-backdrop-filter: blur(20px) saturate(150%);
+  border: 1px solid rgba(168, 140, 220, 0.20);
+  box-shadow: var(--glass-shadow), var(--glass-highlight);
+}
+
+html[data-theme="cosmos"] .glass-3,
+html[data-theme="cosmos"] .glass-4 {
+  background: linear-gradient(
+    155deg,
+    rgba(20, 14, 50, 0.48) 0%,
+    rgba(180, 150, 230, 0.12) 45%,
+    rgba(180, 150, 230, 0.06) 100%
+  );
+  backdrop-filter: blur(var(--glass-blur)) saturate(155%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(155%);
+  border: 1px solid rgba(168, 140, 220, 0.24);
+  box-shadow: var(--glass-shadow), var(--glass-highlight);
+}
+
+html[data-theme="cosmos"] .glass::before,
+html[data-theme="cosmos"] .glass-1::before,
+html[data-theme="cosmos"] .glass-2::before,
+html[data-theme="cosmos"] .glass-3::before,
+html[data-theme="cosmos"] .glass-4::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background: linear-gradient(
+    135deg,
+    rgba(224, 212, 255, 0.18) 0%,
+    rgba(224, 212, 255, 0.04) 22%,
+    transparent 46%
+  );
+  border-radius: inherit;
+}
+
+html[data-theme="cosmos"] .glass > *,
+html[data-theme="cosmos"] .glass-1 > *,
+html[data-theme="cosmos"] .glass-2 > *,
+html[data-theme="cosmos"] .glass-3 > *,
+html[data-theme="cosmos"] .glass-4 > * {
+  position: relative;
+  z-index: 1;
+}
+
+html[data-theme="cosmos"] .glass-1:hover,
+html[data-theme="cosmos"] .glass-2:hover,
+html[data-theme="cosmos"] .glass-3:hover,
+html[data-theme="cosmos"] .glass-4:hover {
+  border-color: var(--glass-border-glow);
+}
+
+html[data-theme="cosmos"] .glass-hover:hover {
+  background: var(--glass-bg-2);
+  border-color: var(--glass-border-glow);
+  transform: translateY(-2px);
+  box-shadow:
+    0 18px 58px rgba(8, 4, 30, 0.62),
+    0 0 32px var(--glow-nebula),
+    0 0 56px var(--glow-magenta),
+    var(--glass-highlight);
+}
+
+html[data-theme="cosmos"] .glass .glass-hover:hover,
+html[data-theme="cosmos"] .glass-1 .glass-hover:hover,
+html[data-theme="cosmos"] .glass-2 .glass-hover:hover,
+html[data-theme="cosmos"] .glass-3 .glass-hover:hover,
+html[data-theme="cosmos"] .glass-4 .glass-hover:hover {
+  transform: none !important;
+  box-shadow: var(--glass-highlight) !important;
+}
+
+html[data-theme="cosmos"] .glass:has(.glass-hover) {
+  overflow: hidden;
+}
+
+html[data-theme="cosmos"] .dashboard-quick-action.glass-hover:hover {
+  transform: translateY(-1px);
+  box-shadow:
+    0 1px 4px rgba(8, 4, 30, 0.36),
+    0 0 4px rgba(168, 102, 255, 0.40),
+    var(--glass-highlight);
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║          6.  BORDE ANIMADO  ·  .glow-border                              ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+@property --cosmos-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+html[data-theme="cosmos"] .glow-border {
+  position: relative;
+}
+
+html[data-theme="cosmos"] .glow-border::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1.5px;
+  background: conic-gradient(
+    from var(--cosmos-angle),
+    transparent 0%,
+    transparent 65%,
+    var(--cosmos-nebula) 75%,
+    var(--cosmos-electric) 82%,
+    var(--cosmos-gold) 90%,
+    transparent 98%
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+          mask-composite: exclude;
+  animation: cosmos-border-run 10s linear infinite;
+  pointer-events: none;
+  z-index: 2;
+}
+
+@keyframes cosmos-border-run {
+  to { --cosmos-angle: 360deg; }
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                  7.  APARICIÓN ESCALONADA                                ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="cosmos"] .reveal {
+  opacity: 0;
+  transform: translateY(14px);
+  animation: cosmos-reveal-up 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes cosmos-reveal-up {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                  8.  CHROME  ·  Sidebar + Header                         ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="cosmos"] .app-sidebar-shell {
+  background: transparent !important;
+  background-image: none !important;
+  border-right: 1px solid rgba(168, 140, 220, 0.10);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  box-shadow: none;
+}
+
+html[data-theme="cosmos"] .app-sidebar-shell.sidebar-expanded-solid {
+  /* Negro espacial profundo armonizando con el cosmos */
+  background: linear-gradient(
+    180deg,
+    rgba(4, 2, 14, 0.96) 0%,
+    rgba(1, 1, 6, 0.98) 100%
+  ) !important;
+  border-right: 1px solid rgba(168, 102, 255, 0.22) !important;
+  box-shadow: 4px 0 18px rgba(168, 102, 255, 0.08) !important;
+  backdrop-filter: blur(32px) saturate(160%) !important;
+  -webkit-backdrop-filter: blur(32px) saturate(160%) !important;
+  border-right: 1px solid var(--glass-border) !important;
+  box-shadow:
+    var(--glass-highlight),
+    8px 0 32px rgba(8, 4, 30, 0.55),
+    0 0 60px rgba(168, 102, 255, 0.10) !important;
+  border-radius: 0 !important;
+}
+
+html[data-theme="cosmos"] .sidebar-nav-link-active {
+  position: relative;
+  background: linear-gradient(
+    90deg,
+    rgba(168, 102, 255, 0.20) 0%,
+    rgba(90, 139, 255, 0.08) 100%
+  ) !important;
+  color: var(--text) !important;
+  border-color: transparent !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(168, 102, 255, 0.38),
+    0 0 22px rgba(168, 102, 255, 0.24) !important;
+  overflow: hidden;
+}
+
+html[data-theme="cosmos"] .sidebar-nav-link-active::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 6px;
+  bottom: 6px;
+  width: 3px;
+  border-radius: 2px;
+  background: linear-gradient(
+    180deg,
+    var(--cosmos-gold) 0%,
+    var(--cosmos-electric) 35%,
+    var(--cosmos-nebula) 70%,
+    var(--cosmos-magenta) 100%
+  );
+  box-shadow: 0 0 8px var(--cosmos-nebula);
+  pointer-events: none;
+}
+
+html[data-theme="cosmos"] .sidebar-nav-link:not(.sidebar-nav-link-active):hover {
+  background: rgba(168, 102, 255, 0.08);
+  color: var(--text);
+  box-shadow: inset 0 0 0 1px rgba(168, 102, 255, 0.22);
+}
+
+html[data-theme="cosmos"] .app-top-header {
+  background: transparent !important;
+  background-image: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: none !important;
+  border-bottom: none !important;
+  box-shadow: none !important;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                  9.  TIPOGRAFÍA                                          ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="cosmos"] h1,
+html[data-theme="cosmos"] h2,
+html[data-theme="cosmos"] h3,
+html[data-theme="cosmos"] .text-2xl,
+html[data-theme="cosmos"] .text-3xl,
+html[data-theme="cosmos"] .text-4xl {
+  font-weight: 300;
+  letter-spacing: -0.01em;
+}
+
+html[data-theme="cosmos"] [data-stat-value],
+html[data-theme="cosmos"] .stat-value,
+html[data-theme="cosmos"] .text-4xl.font-bold,
+html[data-theme="cosmos"] .text-3xl.font-bold {
+  font-weight: 300 !important;
+  letter-spacing: -0.02em;
+}
+
+html[data-theme="cosmos"] button[data-variant="primary"],
+html[data-theme="cosmos"] .btn-primary,
+html[data-theme="cosmos"] [data-cta="primary"] {
+  font-weight: 600;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                10.  CTA AMARILLO                                         ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="cosmos"] button[data-variant="primary"]:not(:disabled),
+html[data-theme="cosmos"] .btn-primary:not(:disabled),
+html[data-theme="cosmos"] [data-cta="primary"]:not(:disabled) {
+  background: var(--accent) !important;
+  color: #0a0420 !important;
+  border: none !important;
+  box-shadow:
+    0 8px 24px rgba(255, 235, 102, 0.32),
+    0 0 24px rgba(168, 102, 255, 0.22);
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+html[data-theme="cosmos"] button[data-variant="primary"]:hover:not(:disabled),
+html[data-theme="cosmos"] .btn-primary:hover:not(:disabled),
+html[data-theme="cosmos"] [data-cta="primary"]:hover:not(:disabled) {
+  background: #FFE94D !important;
+  box-shadow:
+    0 10px 32px rgba(255, 235, 102, 0.42),
+    0 0 32px rgba(168, 102, 255, 0.32);
+  transform: translateY(-1px);
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║      11.  PARCHE Tailwind arbitrary hex                                  ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="cosmos"] .bg-\[\#060a14\],
+html[data-theme="cosmos"] .bg-\[\#060a12\],
+html[data-theme="cosmos"] .bg-\[\#060b18\],
+html[data-theme="cosmos"] .bg-\[\#020308\]\/85,
+html[data-theme="cosmos"] .bg-\[\#020408\]\/80 {
+  background-color: rgba(10, 4, 24, 0.85) !important;
+}
+
+html[data-theme="cosmos"] .bg-\[\#0a0f1e\],
+html[data-theme="cosmos"] .bg-\[\#0a0f1e\]\/95,
+html[data-theme="cosmos"] .bg-\[\#0a0f1e\]\/88,
+html[data-theme="cosmos"] .bg-\[\#0a0f1e\]\/85,
+html[data-theme="cosmos"] .bg-\[\#0a0f1e\]\/72,
+html[data-theme="cosmos"] .bg-\[\#0a0f1e\]\/40,
+html[data-theme="cosmos"] .bg-\[\#0a0f1e\]\/15,
+html[data-theme="cosmos"] .bg-\[\#0a1020\] {
+  background-color: rgba(16, 8, 40, 0.86) !important;
+}
+
+html[data-theme="cosmos"] .bg-\[\#0c1224\]\/95,
+html[data-theme="cosmos"] .bg-\[\#0c1325\],
+html[data-theme="cosmos"] .bg-\[\#0d1324\]\/96,
+html[data-theme="cosmos"] .bg-\[\#0d1324\]\/92,
+html[data-theme="cosmos"] .bg-\[\#0d1325\],
+html[data-theme="cosmos"] .bg-\[\#0d1427\]\/95,
+html[data-theme="cosmos"] .bg-\[\#0d1428\],
+html[data-theme="cosmos"] .bg-\[\#0d1428\]\/95,
+html[data-theme="cosmos"] .bg-\[\#0f1424\],
+html[data-theme="cosmos"] .bg-\[\#0f1524\] {
+  background-color: rgba(16, 8, 40, 0.88) !important;
+  backdrop-filter: blur(18px) saturate(150%);
+  -webkit-backdrop-filter: blur(18px) saturate(150%);
+}
+
+html[data-theme="cosmos"] .bg-\[\#121a2e\],
+html[data-theme="cosmos"] .bg-\[\#161f36\],
+html[data-theme="cosmos"] .bg-\[\#1a2238\] {
+  background-color: rgba(180, 150, 230, 0.10) !important;
+  border-color: rgba(168, 140, 220, 0.14) !important;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║               12.  DROPDOWNS                                             ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="cosmos"] .app-dropdown-panel {
+  background: linear-gradient(
+    155deg,
+    rgba(24, 16, 60, 0.84) 0%,
+    rgba(24, 8, 16, 0.92) 100%
+  ) !important;
+  backdrop-filter: blur(22px) saturate(155%) !important;
+  -webkit-backdrop-filter: blur(22px) saturate(155%) !important;
+  border-color: var(--glass-border) !important;
+  box-shadow:
+    var(--glass-highlight),
+    0 22px 52px rgba(8, 4, 30, 0.58),
+    0 0 36px rgba(168, 102, 255, 0.16) !important;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║         13.  KANBAN                                                      ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="cosmos"] .kanban-column-well {
+  background: transparent !important;
+}
+html[data-theme="cosmos"] .kanban-column-well::after,
+html[data-theme="cosmos"] .kanban-column-well::before {
+  background: transparent !important;
+  display: none !important;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║         14.  EDITOR  ·  ProseMirror                                      ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="cosmos"] .ProseMirror pre {
+  background: rgba(24, 8, 16, 0.78) !important;
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║         15.  DETAIL FULL-SCREEN                                          ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="cosmos"]
+  .detail-fullscreen-bg.detail-fullscreen-bg.detail-fullscreen-bg {
+  background: transparent !important;
+  background-image: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+html[data-theme="cosmos"] .detail-fullscreen-bg::before {
+  content: none;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                16.  INPUTS                                               ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="cosmos"] input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]),
+html[data-theme="cosmos"] textarea,
+html[data-theme="cosmos"] select {
+  background: rgba(180, 150, 230, 0.05);
+  border: 1px solid var(--glass-border);
+  color: var(--text);
+}
+
+html[data-theme="cosmos"] input:focus,
+html[data-theme="cosmos"] textarea:focus,
+html[data-theme="cosmos"] select:focus {
+  outline: none;
+  border-color: var(--glass-border-glow);
+  box-shadow: 0 0 0 3px rgba(168, 102, 255, 0.30);
+}
+
+html[data-theme="cosmos"] #cmd-palette-trigger {
+  background: rgba(168, 102, 255, 0.08) !important;
+  border-color: rgba(168, 102, 255, 0.30) !important;
+  color: var(--text-dim) !important;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+html[data-theme="cosmos"] #cmd-palette-trigger:hover {
+  background: rgba(168, 102, 255, 0.16) !important;
+  border-color: var(--glass-border-glow) !important;
+  color: var(--text) !important;
+  box-shadow: 0 0 24px rgba(168, 102, 255, 0.28);
+}
+html[data-theme="cosmos"] #cmd-palette-trigger kbd {
+  background: rgba(168, 102, 255, 0.18) !important;
+  border-color: rgba(168, 102, 255, 0.36) !important;
+  color: var(--text);
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                  17.  SCROLLBARS                                         ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="cosmos"] ::-webkit-scrollbar-thumb {
+  background: rgba(180, 150, 230, 0.12);
+  border-radius: 6px;
+}
+html[data-theme="cosmos"] ::-webkit-scrollbar-thumb:hover {
+  background: rgba(168, 102, 255, 0.50);
+}
+html[data-theme="cosmos"] .overflow-y-auto:hover::-webkit-scrollbar-thumb,
+html[data-theme="cosmos"] .overflow-x-auto:hover::-webkit-scrollbar-thumb,
+html[data-theme="cosmos"] .overflow-auto:hover::-webkit-scrollbar-thumb,
+html[data-theme="cosmos"] *:hover::-webkit-scrollbar-thumb {
+  background: rgba(168, 102, 255, 0.40);
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║              18.  STATS / DASHBOARD                                      ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="cosmos"] [data-stat-color="purple"] { color: var(--stat-purple); }
+html[data-theme="cosmos"] [data-stat-color="blue"]   { color: var(--stat-blue); }
+html[data-theme="cosmos"] [data-stat-color="cyan"]   { color: var(--stat-cyan); }
+html[data-theme="cosmos"] [data-stat-color="green"]  { color: var(--stat-green); }
+
+html[data-theme="cosmos"] .dashboard-shift-track {
+  background: rgba(180, 150, 230, 0.08) !important;
+  border: 1px solid var(--glass-border);
+  overflow: hidden;
+}
+html[data-theme="cosmos"] .dashboard-shift-fill {
+  background: linear-gradient(90deg, var(--cosmos-nebula) 0%, var(--cosmos-gold) 100%) !important;
+  box-shadow: 0 0 14px rgba(168, 102, 255, 0.60);
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║      19-32. RESTO DE OVERRIDES                                           ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+html[data-theme="cosmos"] .presence-online,
+html[data-theme="cosmos"] [data-online="true"] .presence-dot {
+  box-shadow:
+    0 0 0 2px var(--bg-deep),
+    0 0 14px rgba(184, 228, 160, 0.65);
+}
+
+html[data-theme="cosmos"] .user-avatar-ring {
+  box-shadow:
+    0 0 0 2px var(--bg-deep),
+    0 0 0 3px var(--glass-border-glow);
+}
+
+html[data-theme="cosmos"] .glass-opaque-bitacora {
+  isolation: auto;
+  background: rgba(180, 150, 230, 0.10);
+  backdrop-filter: blur(22px) saturate(155%);
+  -webkit-backdrop-filter: blur(22px) saturate(155%);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-highlight), 0 6px 26px rgba(8, 4, 30, 0.38);
+}
+
+html[data-theme="cosmos"] .app-modal-dialog[data-modal-surface="dark"] {
+  position: relative;
+  background: linear-gradient(
+    155deg,
+    rgba(24, 16, 60, 0.64) 0%,
+    rgba(24, 8, 16, 0.82) 100%
+  ) !important;
+  backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+  border-color: var(--glass-border) !important;
+  box-shadow:
+    0 24px 68px rgba(8, 4, 30, 0.58),
+    0 0 52px rgba(168, 102, 255, 0.22),
+    0 0 80px rgba(90, 139, 255, 0.14),
+    var(--glass-highlight) !important;
+  overflow: hidden;
+}
+
+html[data-theme="cosmos"] .app-modal-dialog[data-modal-surface="dark"]::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    135deg,
+    rgba(224, 212, 255, 0.12) 0%,
+    rgba(224, 212, 255, 0.04) 18%,
+    transparent 32%
+  );
+  border-radius: inherit;
+  z-index: 0;
+}
+html[data-theme="cosmos"] .app-modal-dialog[data-modal-surface="dark"] > *:not(button[aria-label="Cerrar"]) {
+  position: relative;
+  z-index: 1;
+}
+
+html[data-theme="cosmos"] .modal-backdrop {
+  background: rgba(15, 5, 10, 0.55);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+html[data-theme="cosmos"] .mobile-bottom-nav {
+  background: linear-gradient(
+    180deg,
+    rgba(16, 8, 40, 0.64) 0%,
+    rgba(10, 4, 24, 0.84) 100%
+  ) !important;
+  border-top-color: var(--glass-border) !important;
+  backdrop-filter: blur(22px) saturate(155%);
+  -webkit-backdrop-filter: blur(22px) saturate(155%);
+  box-shadow:
+    inset 0 1px 0 rgba(224, 212, 255, 0.10),
+    0 -8px 30px rgba(8, 4, 30, 0.55);
+}
+
+html[data-theme="cosmos"] [data-tooltip-content],
+html[data-theme="cosmos"] [role="tooltip"] {
+  background: linear-gradient(
+    155deg,
+    rgba(24, 16, 60, 0.84) 0%,
+    rgba(24, 8, 16, 0.92) 100%
+  ) !important;
+  border: 1px solid var(--glass-border) !important;
+  color: var(--text) !important;
+  backdrop-filter: blur(14px) saturate(155%);
+  -webkit-backdrop-filter: blur(14px) saturate(155%);
+  box-shadow: var(--glass-shadow), var(--glass-highlight);
+}
+
+html[data-theme="cosmos"] .toast-glass {
+  background: linear-gradient(
+    155deg,
+    rgba(24, 16, 60, 0.84) 0%,
+    rgba(24, 8, 16, 0.92) 100%
+  ) !important;
+  border: 1px solid var(--glass-border) !important;
+  color: var(--text) !important;
+  backdrop-filter: blur(22px) saturate(160%);
+  -webkit-backdrop-filter: blur(22px) saturate(160%);
+  box-shadow:
+    var(--glass-highlight),
+    0 18px 44px rgba(8, 4, 30, 0.58),
+    0 0 32px rgba(168, 102, 255, 0.20);
+}
+
+html[data-theme="cosmos"] .loading-card {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+html[data-theme="cosmos"] .dashboard-allgood-banner {
+  background: linear-gradient(
+    135deg,
+    rgba(184, 228, 160, 0.12) 0%,
+    rgba(90, 139, 255, 0.08) 100%
+  ) !important;
+  border-color: rgba(224, 212, 255, 0.14) !important;
+  backdrop-filter: blur(14px) saturate(145%);
+  -webkit-backdrop-filter: blur(14px) saturate(145%);
+  box-shadow:
+    inset 0 1px 0 rgba(224, 212, 255, 0.10),
+    0 0 28px rgba(184, 228, 160, 0.12);
+}
+
+html[data-theme="cosmos"] .dashboard-allgood-icon {
+  background: rgba(184, 228, 160, 0.22) !important;
+  box-shadow: inset 0 0 0 1px rgba(184, 228, 160, 0.40);
+}
+
+html[data-theme="cosmos"] .bg-sky-400\/10,
+html[data-theme="cosmos"] .bg-emerald-400\/10,
+html[data-theme="cosmos"] .bg-orange-400\/10,
+html[data-theme="cosmos"] .bg-red-400\/10,
+html[data-theme="cosmos"] .bg-red-500\/10,
+html[data-theme="cosmos"] .bg-violet-400\/10,
+html[data-theme="cosmos"] .bg-yellow-400\/10,
+html[data-theme="cosmos"] .bg-green-400\/10,
+html[data-theme="cosmos"] .bg-blue-400\/10,
+html[data-theme="cosmos"] .bg-amber-400\/10,
+html[data-theme="cosmos"] .bg-indigo-400\/10,
+html[data-theme="cosmos"] .bg-emerald-500\/6,
+html[data-theme="cosmos"] .bg-emerald-500\/8,
+html[data-theme="cosmos"] .bg-emerald-400\/8,
+html[data-theme="cosmos"] .bg-emerald-400\/\[0\.06\],
+html[data-theme="cosmos"] .bg-emerald-400\/5,
+html[data-theme="cosmos"] .bg-amber-400\/8,
+html[data-theme="cosmos"] .bg-emerald-500\/12,
+html[data-theme="cosmos"] .bg-emerald-500\/15,
+html[data-theme="cosmos"] .bg-rose-400\/10,
+html[data-theme="cosmos"] .bg-rose-500\/10,
+html[data-theme="cosmos"] .hover\:bg-rose-500\/10:hover,
+html[data-theme="cosmos"] .hover\:bg-rose-50:hover {
+  background-image: linear-gradient(
+    rgba(168, 102, 255, 0.06),
+    rgba(90, 139, 255, 0.04)
+  );
+}
+
+html[data-theme="cosmos"] .bg-slate-900\/45,
+html[data-theme="cosmos"] .bg-black\/75,
+html[data-theme="cosmos"] .bg-black\/65,
+html[data-theme="cosmos"] .bg-black\/60,
+html[data-theme="cosmos"] .bg-black\/55,
+html[data-theme="cosmos"] .bg-black\/45,
+html[data-theme="cosmos"] .bg-black\/40,
+html[data-theme="cosmos"] .bg-black\/35 {
+  background-color: rgba(10, 4, 24, 0.55) !important;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+html[data-theme="cosmos"] .bg-black\/30,
+html[data-theme="cosmos"] .bg-black\/25,
+html[data-theme="cosmos"] .bg-black\/20,
+html[data-theme="cosmos"] .bg-black\/15,
+html[data-theme="cosmos"] .bg-black\/10 {
+  background-color: rgba(16, 8, 40, 0.32) !important;
+}
+
+html[data-theme="cosmos"] .bg-black\/\[0\.05\],
+html[data-theme="cosmos"] .bg-black\/\[0\.04\],
+html[data-theme="cosmos"] .bg-black\/\[0\.06\] {
+  background-color: rgba(180, 150, 230, 0.05) !important;
+}
+
+html[data-theme="cosmos"] .bg-zinc-900,
+html[data-theme="cosmos"] .bg-zinc-800,
+html[data-theme="cosmos"] .hover\:bg-zinc-800:hover {
+  background-color: rgba(16, 8, 40, 0.92) !important;
+  border-color: rgba(168, 140, 220, 0.22) !important;
+}
+
+html[data-theme="cosmos"] .text-\[\#0a0f1e\] {
+  color: rgba(10, 4, 24, 1) !important;
+}
+
+html[data-theme="cosmos"] img.rounded-full.object-cover {
+  box-shadow: inset 0 0 0 1px rgba(168, 102, 255, 0.34);
+}
+
+html[data-theme="cosmos"] .border-\[\#0a0f1e\] {
+  border-color: rgba(10, 4, 24, 0.92) !important;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║      33.  AUTO-STAGE-IN + SHINE                                          ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes cosmos-stage-in {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  html[data-theme="cosmos"] .app-dashboard-root > main,
+  html[data-theme="cosmos"] .app-dashboard-root > section {
+    animation: cosmos-stage-in 380ms cubic-bezier(0.2, 0.6, 0.2, 1) both;
+  }
+}
+
+html[data-theme="cosmos"] .glass-hover {
+  overflow: hidden;
+}
+
+html[data-theme="cosmos"] .glass-hover::after,
+html[data-theme="cosmos"] .glass-surface::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    115deg,
+    transparent 30%,
+    rgba(90, 139, 255, 0.20) 50%,
+    transparent 70%
+  );
+  transform: translateX(-110%);
+  transition: transform 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+  border-radius: inherit;
+  z-index: 0;
+}
+
+html[data-theme="cosmos"] .glass-hover > * {
+  position: relative;
+  z-index: 1;
+}
+
+html[data-theme="cosmos"] .glass-hover:hover::after,
+html[data-theme="cosmos"] .glass-surface:hover::after {
+  transform: translateX(110%);
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║      34.  ACCESIBILIDAD  ·  prefers-reduced-motion                       ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-theme="cosmos"] .cosmos-bg .cosmos-stars,
+  html[data-theme="cosmos"] .cosmos-bg .cosmos-stars2,
+  html[data-theme="cosmos"] .cosmos-bg .cosmos-nebula,
+  html[data-theme="cosmos"] .cosmos-bg .cosmos-nebula .nebula-cloud,
+  html[data-theme="cosmos"] .cosmos-bg .cosmos-nebula .nebula-core,
+  html[data-theme="cosmos"] .cosmos-bg .cosmos-galaxies .galaxy {
+    animation: none !important;
+  }
+  html[data-theme="cosmos"] .cosmos-bg .cosmos-bright .bright {
+    animation: none !important;
+    opacity: 0.75 !important;
+  }
+  html[data-theme="cosmos"] .cosmos-bg .cosmos-dust .dust,
+  html[data-theme="cosmos"] .cosmos-bg .cosmos-comet {
+    display: none !important;
+  }
+  html[data-theme="cosmos"] .glow-border::after {
+    animation: none !important;
+  }
+  html[data-theme="cosmos"] .reveal {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+  html[data-theme="cosmos"] .app-dashboard-root > main,
+  html[data-theme="cosmos"] .app-dashboard-root > section {
+    animation: none !important;
+  }
+  html[data-theme="cosmos"] .glass-hover::after,
+  html[data-theme="cosmos"] .glass-surface::after {
+    display: none !important;
+  }
+  html[data-theme="cosmos"] .glass-surface,
+  html[data-theme="cosmos"] .glass,
+  html[data-theme="cosmos"] .glass-1,
+  html[data-theme="cosmos"] .glass-2,
+  html[data-theme="cosmos"] .glass-3,
+  html[data-theme="cosmos"] .glass-4 {
+    transition: none !important;
+  }
+}
