@@ -171,6 +171,16 @@ const OPTIONS: ThemeOption[] = [
     swatch: "linear-gradient(135deg, #050505 0%, #0a0a0a 60%, #1a1a1a 100%), radial-gradient(circle at 75% 30%, rgba(200,16,46,0.55) 0%, transparent 35%)" },
   { id: "onepiece", label: "One Piece", hint: "One Piece: mar Grand Line al atardecer, Jolly Roger ondeando, sol pirata", Icon: Anchor, category: "tribute",
     swatch: "linear-gradient(180deg, #1a1a4a 0%, #6e2a5a 35%, #ff6a3e 70%, #ffd070 100%)" },
+  // Itachi: tema "premium" basado en una IMAGEN real (luna roja + cuervos)
+  // con parallax al cursor y efectos cinemáticos. La preview hace una
+  // recreación abstracta de la imagen (cielo rojo + luna blanca + ascuas).
+  { id: "itachi", label: "Itachi Uchiha", hint: "Itachi: imagen cinemática real, luna roja, cuervos en parallax, ascuas flotantes", Icon: Eye, category: "tribute",
+    swatch: "radial-gradient(circle at 22% 58%, rgba(255,235,210,0.95) 0%, rgba(255,180,140,0.4) 7%, transparent 11%), radial-gradient(ellipse at 65% 45%, rgba(255,80,60,0.55) 0%, transparent 55%), linear-gradient(160deg, #2a0606 0%, #5a0a0a 45%, #1a0303 100%)" },
+  // Amegakure: Naruto × Cyberpunk con imagen 4K real, marco cristal
+  // cyan/magenta y lluvia neón. Preview: cielo violeta + carteles cyan/
+  // magenta abstractos.
+  { id: "amegakure", label: "Amegakure", hint: "Naruto × Cyberpunk: Aldea de la Lluvia como Night City con neones y lluvia diagonal", Icon: Building2, category: "tribute",
+    swatch: "linear-gradient(180deg, #1a0e2a 0%, #2a0e3e 35%, #0a0613 100%), repeating-linear-gradient(105deg, transparent 0 6px, rgba(0,224,255,0.18) 7px, transparent 8px 14px), radial-gradient(circle at 78% 22%, rgba(255,75,200,0.45) 0%, transparent 35%)" },
 ];
 
 const CATEGORY_ORDER: CategoryId[] = [

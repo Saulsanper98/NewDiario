@@ -31,6 +31,8 @@ import { DemonSlayerBackground } from "@/components/layout/DemonSlayerBackground
 import { GhibliBackground } from "@/components/layout/GhibliBackground";
 import { DeathNoteBackground } from "@/components/layout/DeathNoteBackground";
 import { OnePieceBackground } from "@/components/layout/OnePieceBackground";
+import { ItachiBackground } from "@/components/layout/ItachiBackground";
+import { AmegakureBackground } from "@/components/layout/AmegakureBackground";
 import { SessionProvider } from "@/components/layout/SessionProvider";
 import { ThemeProvider } from "@/components/layout/ThemeProvider";
 import { defaultMetadata } from "@/lib/app-brand";
@@ -65,6 +67,8 @@ import "./theme-demonslayer.css";
 import "./theme-ghibli.css";
 import "./theme-deathnote.css";
 import "./theme-onepiece.css";
+import "./theme-itachi.css";
+import "./theme-amegakure.css";
 
 const sora = Sora({
   subsets: ["latin"],
@@ -164,6 +168,8 @@ const DATA_THEME_BOOTSTRAP = [
   "ghibli",
   "deathnote",
   "onepiece",
+  "itachi",
+  "amegakure",
 ];
 
 const BOOTSTRAP_SCRIPT = `(function(){try{var k='cc-ops-theme',r=document.documentElement,t=localStorage.getItem(k),L=${JSON.stringify(
@@ -216,6 +222,8 @@ export default function RootLayout({
           <GhibliBackground />
           <DeathNoteBackground />
           <OnePieceBackground />
+          <ItachiBackground />
+          <AmegakureBackground />
           <SessionProvider>{children}</SessionProvider>
         </ThemeProvider>
         <Toaster

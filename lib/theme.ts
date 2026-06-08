@@ -69,6 +69,12 @@ export const THEME_STORAGE_KEY = "cc-ops-theme";
  *                    fondo gótico, manzana roja como acento.
  *   - `onepiece`   : One Piece — mar Grand Line al atardecer,
  *                    Jolly Roger ondeando, sol naranja pirata.
+ *   - `itachi`     : Naruto / Itachi Uchiha — cinemático con IMAGEN
+ *                    real (luna roja + cuervos) + parallax al cursor,
+ *                    Ken Burns lento, ascuas flotantes, glow lunar.
+ *   - `amegakure`  : Naruto × Cyberpunk — Amegakure reimaginada como
+ *                    Night City (imagen 4K real). Marco cristal cyan/
+ *                    magenta, lluvia neón diagonal, flicker de carteles.
  */
 export type ThemeMode =
   | "dark"
@@ -102,7 +108,9 @@ export type ThemeMode =
   | "demonslayer"
   | "ghibli"
   | "deathnote"
-  | "onepiece";
+  | "onepiece"
+  | "itachi"
+  | "amegakure";
 
 export const THEME_MODES: ThemeMode[] = [
   "aurora",
@@ -137,6 +145,8 @@ export const THEME_MODES: ThemeMode[] = [
   "ghibli",
   "deathnote",
   "onepiece",
+  "itachi",
+  "amegakure",
 ];
 
 /**
@@ -224,6 +234,8 @@ const DATA_THEME_MODES: ReadonlySet<ThemeMode> = new Set<ThemeMode>([
   "ghibli",
   "deathnote",
   "onepiece",
+  "itachi",
+  "amegakure",
 ]);
 
 /**

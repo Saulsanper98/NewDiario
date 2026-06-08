@@ -1,0 +1,408 @@
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║   TEMA "AMEGAKURE" v1 · TRIBUTO · Naruto × Cyberpunk con imagen real    ║
+ * ║                                                                          ║
+ * ║   Imagen 4K real (Amegakure / Aldea de la Lluvia reimaginada como Night ║
+ * ║   City) servida desde /themes/amegakure-bg.jpg. El tema NO recrea la    ║
+ * ║   escena con CSS: usa la imagen y suma capas atmosféricas (parallax JS, ║
+ * ║   Ken Burns, lluvia neón, flicker de carteles, viñeta y grano).         ║
+ * ║                                                                          ║
+ * ║   La app va recortada dentro de un marco "cristal" (igual que el tema   ║
+ * ║   Glass) con borde gradiente cyan→magenta para integrarse con la        ║
+ * ║   estética del fondo cyberpunk.                                         ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                1.  TOKENS DEL TEMA                                        ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+html[data-theme="amegakure"] {
+  /* Paleta noche-violeta + neón. Saturación moderada para no fatigar. */
+  --bg-0: #0a0613;
+  --bg-1: #110a1d;
+  --bg-2: #1a0e2a;
+
+  /* Superficies ligeramente translúcidas con tinte violeta — el fondo se
+   * intuye sin perder legibilidad. */
+  --card: linear-gradient(180deg, #1d1330 0%, #16092a 60%, #0e0420 100%);
+  --surface:   rgba(28, 16, 48, 0.86);
+  --surface-2: rgba(255, 255, 255, 0.045);
+  --border:        rgba(255, 75, 200, 0.22);
+  --border-strong: rgba(0, 230, 255, 0.45);
+
+  /* Acento cyan eléctrico con halo. */
+  --accent:        #00e0ff;
+  --accent-bright: #58f0ff;
+  --accent-glow:   rgba(0, 224, 255, 0.45);
+
+  --text:      #f3edff;
+  --text-soft: #d6c8ee;
+  --muted:     #9a8db5;
+
+  --ok:         #7bf0a8;
+  --gold-relic: #f7c25e;
+
+  /* Tipografía: misma familia japonesa que Itachi/Akatsuki por consistencia
+   * tonal entre tributos del universo Naruto. */
+  --font-display: var(--font-akatsuki-display), "Shippori Mincho", serif;
+  --font-ui:      var(--font-akatsuki-ui), "Zen Kaku Gothic New", sans-serif;
+
+  /* Patrón canónico de los temas con fondo a pantalla completa. */
+  --app-canvas-color: transparent;
+  --app-canvas-image: none;
+  --card-isolation: auto;
+
+  color-scheme: dark;
+}
+
+html[data-theme="amegakure"] body {
+  min-height: 100vh;
+}
+html[data-theme="amegakure"] .app-sidebar-shell,
+html[data-theme="amegakure"] .app-top-header {
+  isolation: auto !important;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║   1.bis  MARCO EXTERIOR ESTILO CRISTAL                                    ║
+ * ║                                                                          ║
+ * ║   La app se "recorta" dentro del marco cristal con borde gradiente      ║
+ * ║   cyan→magenta. Los wrappers ya existen en (dashboard)/layout.tsx; aquí ║
+ * ║   solo les damos estilo. En otros temas son contenedores neutros.       ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+html[data-theme="amegakure"] .glass-shell-frame {
+  margin: 22px;
+  padding: 1.5px;
+  border-radius: 28px;
+  /* Borde gradiente cyan vivo → magenta neón, las dos firmas del cyberpunk. */
+  background:
+    linear-gradient(
+      135deg,
+      rgba(0, 224, 255, 0.85) 0%,
+      rgba(120, 110, 255, 0.55) 45%,
+      rgba(255, 75, 200, 0.85) 100%
+    );
+  box-shadow:
+    0 0 90px rgba(0, 224, 255, 0.30),
+    0 0 180px rgba(255, 75, 200, 0.22);
+  position: relative;
+}
+html[data-theme="amegakure"] .glass-shell-inner {
+  border-radius: 26px;
+  background: rgba(10, 6, 22, 0.55);
+  /* Backdrop-blur sutil: la imagen se intuye detrás del shell sin
+   * dominar visualmente la zona de lectura. */
+  backdrop-filter: blur(6px) saturate(1.05);
+  -webkit-backdrop-filter: blur(6px) saturate(1.05);
+  overflow: hidden;
+  padding: 18px;
+}
+
+@media (max-width: 768px) {
+  html[data-theme="amegakure"] .glass-shell-inner {
+    padding: 6px;
+  }
+  html[data-theme="amegakure"] .app-dashboard-root {
+    gap: 8px;
+  }
+}
+@media (max-width: 640px) {
+  html[data-theme="amegakure"] .glass-shell-frame {
+    margin: 4px;
+    border-radius: 18px;
+  }
+  html[data-theme="amegakure"] .glass-shell-inner {
+    border-radius: 16px;
+  }
+}
+@media (max-width: 480px) {
+  html[data-theme="amegakure"] .glass-shell-frame {
+    margin: 0;
+    padding: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+  html[data-theme="amegakure"] .glass-shell-inner {
+    border-radius: 0;
+    padding: 0;
+  }
+  html[data-theme="amegakure"] .app-dashboard-root {
+    gap: 0;
+  }
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                2.  CAPAS DEL FONDO  (AmegakureBackground)                 ║
+ * ║                                                                          ║
+ * ║   Z-stack de fondo a primer plano. Todas son fixed/full-bleed y         ║
+ * ║   `pointer-events: none`.                                                ║
+ * ║                                                                          ║
+ * ║     -10  .ame-bg                       raíz; tinte violeta de seguridad ║
+ * ║       a) .ame-image-frame              parallax-X JS                     ║
+ * ║          .ame-image                    imagen real con Ken Burns         ║
+ * ║       b) .ame-flicker-1..3             parpadeo de carteles neón        ║
+ * ║       c) .ame-vignette-soft            viñeta principal                 ║
+ * ║       d) .ame-rain                     lluvia diagonal cyan             ║
+ * ║       e) .ame-spark-1..8               chispas ascendentes magenta      ║
+ * ║       f) .ame-grain                    grano fílmico                    ║
+ * ║       g) .ame-vignette-edge            viñeta dura en bordes            ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+html[data-theme="amegakure"] .ame-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -10;
+  overflow: hidden;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at 35% 50%, #1a0a2e 0%, #0a0613 60%, #050208 100%);
+}
+
+/* — a) Imagen real con Ken Burns + parallax JS — */
+html[data-theme="amegakure"] .ame-image-frame {
+  position: absolute;
+  inset: -4% -4% -4% -4%;
+  --parallax-x: 0px;
+  --parallax-y: 0px;
+  transform: translate3d(var(--parallax-x), var(--parallax-y), 0);
+  transition: transform 1200ms cubic-bezier(0.18, 0.7, 0.22, 1);
+  will-change: transform;
+}
+
+html[data-theme="amegakure"] .ame-image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  background-image: url("/themes/amegakure-bg.jpg");
+  background-size: cover;
+  background-position: center 45%;
+  background-repeat: no-repeat;
+  background-color: #0a0613;
+  image-rendering: auto;
+  -webkit-image-rendering: -webkit-optimize-contrast;
+  /* Realce moderado: la imagen ya tiene neones muy saturados; solo
+   * empujamos un poco el contraste y un toque de saturación. */
+  filter:
+    saturate(1.10)
+    contrast(1.06)
+    brightness(0.96);
+  animation: ame-kenburns 44s ease-in-out infinite alternate;
+  transform-origin: 50% 60%;
+  will-change: transform;
+  backface-visibility: hidden;
+  transform: translateZ(0);
+}
+
+@keyframes ame-kenburns {
+  0%   { transform: translateZ(0) scale(1.03) translate(0, 0); }
+  50%  { transform: translateZ(0) scale(1.07) translate(-1.0%, -0.4%); }
+  100% { transform: translateZ(0) scale(1.04) translate(0.6%, 0.2%); }
+}
+
+/* — b) Flicker de los carteles neón —
+ *
+ *   Tres "manchas" radiales, cada una posicionada (aproximadamente) sobre
+ *   un cartel real de la imagen. El flicker se hace por opacidad+scale en
+ *   periodos primos para que NUNCA se sincronicen los tres a la vez. */
+html[data-theme="amegakure"] .ame-flicker {
+  position: absolute;
+  width: 220px;
+  height: 220px;
+  border-radius: 50%;
+  filter: blur(28px);
+  mix-blend-mode: screen;
+  pointer-events: none;
+  will-change: opacity, transform;
+}
+html[data-theme="amegakure"] .ame-flicker-1 {
+  /* Cartel rojo arriba derecha (vertical kanji). */
+  top: 8%; left: 76%;
+  background: radial-gradient(circle, rgba(255, 60, 90, 0.55) 0%, rgba(255, 60, 90, 0.0) 70%);
+  animation: ame-flicker-a 5.3s steps(60, end) infinite;
+}
+html[data-theme="amegakure"] .ame-flicker-2 {
+  /* Cluster magenta-cyan central. */
+  top: 48%; left: 42%;
+  width: 280px; height: 280px;
+  background: radial-gradient(circle, rgba(255, 75, 200, 0.45) 0%, rgba(0, 224, 255, 0.30) 50%, rgba(0,0,0,0) 75%);
+  animation: ame-flicker-b 7.7s steps(40, end) infinite;
+}
+html[data-theme="amegakure"] .ame-flicker-3 {
+  /* Cartel cyan medio izquierda. */
+  top: 52%; left: 16%;
+  background: radial-gradient(circle, rgba(0, 224, 255, 0.55) 0%, rgba(0, 224, 255, 0.0) 70%);
+  animation: ame-flicker-c 4.1s steps(50, end) infinite;
+}
+@keyframes ame-flicker-a {
+  0%, 27%, 32%, 70%, 100% { opacity: 0.85; transform: scale(1); }
+  28%, 31% { opacity: 0.35; transform: scale(0.97); }
+  72%      { opacity: 1.00; transform: scale(1.04); }
+}
+@keyframes ame-flicker-b {
+  0%, 100% { opacity: 0.75; transform: scale(1); }
+  20%      { opacity: 0.55; transform: scale(0.98); }
+  21%      { opacity: 0.95; transform: scale(1.03); }
+  60%      { opacity: 0.65; transform: scale(0.99); }
+}
+@keyframes ame-flicker-c {
+  0%, 100% { opacity: 0.85; transform: scale(1); }
+  10%, 12% { opacity: 0.30; }
+  40%      { opacity: 1.00; transform: scale(1.05); }
+  44%      { opacity: 0.60; }
+}
+
+/* — c) Viñeta principal — */
+html[data-theme="amegakure"] .ame-vignette-soft {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 50% 55%,
+      transparent 0%,
+      transparent 35%,
+      rgba(0, 0, 0, 0.20) 60%,
+      rgba(0, 0, 0, 0.55) 100%);
+}
+
+/* — d) Lluvia diagonal cyan —
+ *
+ *   Implementada como dos `repeating-linear-gradient` superpuestos con
+ *   tamaños y velocidades distintas (parallax de capas). El movimiento
+ *   se hace con background-position en animación lineal. */
+html[data-theme="amegakure"] .ame-rain {
+  position: absolute;
+  inset: -50%;
+  width: 200%;
+  height: 200%;
+  background-image:
+    repeating-linear-gradient(
+      105deg,
+      rgba(0, 224, 255, 0.0) 0px,
+      rgba(0, 224, 255, 0.0) 6px,
+      rgba(120, 230, 255, 0.18) 7px,
+      rgba(0, 224, 255, 0.0) 8px
+    ),
+    repeating-linear-gradient(
+      105deg,
+      rgba(255, 255, 255, 0.0) 0px,
+      rgba(255, 255, 255, 0.0) 14px,
+      rgba(255, 255, 255, 0.10) 15px,
+      rgba(255, 255, 255, 0.0) 16px
+    );
+  animation: ame-rain-fall 1.6s linear infinite;
+  opacity: 0.7;
+  mix-blend-mode: screen;
+  pointer-events: none;
+}
+@keyframes ame-rain-fall {
+  0%   { background-position: 0 0, 0 0; }
+  100% { background-position: -120px 320px, -200px 540px; }
+}
+
+/* — e) Chispas magenta ascendentes — */
+html[data-theme="amegakure"] .ame-spark {
+  position: absolute;
+  width: var(--spark-size, 4px);
+  height: var(--spark-size, 4px);
+  border-radius: 50%;
+  background: radial-gradient(circle, #ffe1f5 0%, #ff5cb8 30%, rgba(255, 75, 200, 0.0) 80%);
+  opacity: 0;
+  animation: ame-spark-rise var(--spark-duration, 18s) ease-in-out infinite;
+  animation-delay: var(--spark-delay, 0s);
+  filter: blur(0.5px);
+  will-change: transform, opacity;
+}
+@keyframes ame-spark-rise {
+  0%   { transform: translateY(20vh) scale(0.6); opacity: 0; }
+  10%  { opacity: 0.85; }
+  60%  { opacity: 0.6; }
+  100% { transform: translateY(-60vh) translateX(var(--spark-drift, 6vw)) scale(1); opacity: 0; }
+}
+
+html[data-theme="amegakure"] .ame-spark-1 { left: 14%; --spark-size: 3px; --spark-duration: 17s; --spark-delay: -1s;  --spark-drift:  4vw; }
+html[data-theme="amegakure"] .ame-spark-2 { left: 26%; --spark-size: 5px; --spark-duration: 22s; --spark-delay: -8s;  --spark-drift: -3vw; }
+html[data-theme="amegakure"] .ame-spark-3 { left: 39%; --spark-size: 2px; --spark-duration: 13s; --spark-delay: -3s;  --spark-drift:  6vw; }
+html[data-theme="amegakure"] .ame-spark-4 { left: 52%; --spark-size: 4px; --spark-duration: 19s; --spark-delay: -11s; --spark-drift:  2vw; }
+html[data-theme="amegakure"] .ame-spark-5 { left: 64%; --spark-size: 3px; --spark-duration: 24s; --spark-delay: -5s;  --spark-drift: -5vw; }
+html[data-theme="amegakure"] .ame-spark-6 { left: 73%; --spark-size: 6px; --spark-duration: 16s; --spark-delay: -14s; --spark-drift:  3vw; }
+html[data-theme="amegakure"] .ame-spark-7 { left: 84%; --spark-size: 3px; --spark-duration: 21s; --spark-delay: -2s;  --spark-drift: -4vw; }
+html[data-theme="amegakure"] .ame-spark-8 { left: 92%; --spark-size: 4px; --spark-duration: 25s; --spark-delay: -10s; --spark-drift:  1vw; }
+
+/* — f) Grano fílmico — */
+html[data-theme="amegakure"] .ame-grain {
+  position: absolute;
+  inset: 0;
+  background-image:
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.55 0'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='0.55'/></svg>");
+  background-size: 180px 180px;
+  opacity: 0.16;
+  mix-blend-mode: overlay;
+}
+
+/* — g) Viñeta dura en bordes — */
+html[data-theme="amegakure"] .ame-vignette-edge {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 50% 50%,
+      transparent 50%,
+      rgba(0, 0, 0, 0.30) 80%,
+      rgba(0, 0, 0, 0.65) 100%);
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                3.  ACENTOS UI — scrollbars, focus rings                   ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+html[data-theme="amegakure"] {
+  scrollbar-color: rgba(0, 224, 255, 0.45) rgba(0, 0, 0, 0.25);
+}
+html[data-theme="amegakure"] *::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, rgba(0, 224, 255, 0.55), rgba(255, 75, 200, 0.55));
+  border-radius: 999px;
+}
+html[data-theme="amegakure"] *::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, rgba(88, 240, 255, 0.7), rgba(255, 110, 220, 0.7));
+}
+
+html[data-theme="amegakure"] :focus-visible {
+  outline-color: var(--accent-bright) !important;
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                4.  ACCESIBILIDAD  ·  prefers-reduced-motion               ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+@media (prefers-reduced-motion: reduce) {
+  html[data-theme="amegakure"] .ame-image,
+  html[data-theme="amegakure"] .ame-flicker,
+  html[data-theme="amegakure"] .ame-rain,
+  html[data-theme="amegakure"] .ame-spark {
+    animation: none !important;
+  }
+  html[data-theme="amegakure"] .ame-rain,
+  html[data-theme="amegakure"] .ame-spark {
+    display: none !important;
+  }
+  html[data-theme="amegakure"] .ame-image-frame {
+    transition: none !important;
+  }
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                5.  RESPONSIVE                                              ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+@media (max-width: 640px) {
+  html[data-theme="amegakure"] .ame-image {
+    /* En mobile centramos en la zona de carteles + skyline. */
+    background-position: 55% 40%;
+  }
+  /* Reducimos densidad de partículas. */
+  html[data-theme="amegakure"] .ame-spark-3,
+  html[data-theme="amegakure"] .ame-spark-5,
+  html[data-theme="amegakure"] .ame-spark-7 {
+    display: none;
+  }
+}
