@@ -5,7 +5,6 @@ export const THEME_STORAGE_KEY = "cc-ops-theme";
  *   ── ESENCIALES ─────────────────────────────────────────────────────
  *   - `aurora`: oscuro base con orbes animados (predeterminado).
  *   - `light` : claro (overrides en `app/theme-light.css`).
- *   - `dark`  : oscuro plano sin orbes.
  *
  *   ── CRISTAL ────────────────────────────────────────────────────────
  *   - `glass` : cristal esmerilado violeta + parallax.
@@ -13,27 +12,36 @@ export const THEME_STORAGE_KEY = "cc-ops-theme";
  *
  *   ── CINEMÁTICOS ────────────────────────────────────────────────────
  *   - `ocaso`   : atardecer cinematográfico cálido (sol + montañas).
- *   - `neon`    : Cyberpunk Blade Runner — skyline neon rosa+cyan.
  *   - `volcano` : volcán en erupción al fondo.
  *   - `abyss`   : océano profundo con medusas bioluminiscentes.
  *   - `cosmos`  : nebulosa espacial (blobs magenta/violeta).
  *   - `storm`   : noche eléctrica con relámpagos y lluvia.
  *
- *   ── INSTITUCIONAL ──────────────────────────────────────────────────
- *   - `ccmgc`   : branding del CCMGC (mapa de Gran Canaria + GC-1/2/3).
- *
  *   ── NATURALEZA CANARIA ─────────────────────────────────────────────
- *   - `dunas`   : Dunas de Maspalomas al atardecer.
  *   - `canario` : Roque Nublo (Gran Canaria) con el Teide al fondo —
  *                 vídeo 1080p en bucle + capa cinemática (sólo desktop;
  *                 en móvil se oculta del selector).
+ *
+ *   ── ABSTRACTOS CON VÍDEO ────────────────────────────────────────────
+ *   - `disco`     : tocadiscos cósmico — vídeo surrealista de un plato
+ *                    girando suspendido en el espacio + halo violeta
+ *                    neón y reflejo ámbar (etiqueta del LP).
+ *   - `liquido`   : fluido azul abstracto en movimiento (tinta, agua),
+ *                    paleta azul profundo + cyan eléctrico.
+ *   - `invierno`  : escena nevada cinemagraph (estatua) con paleta
+ *                    gris-azul fría + acento bronce envejecido.
+ *   - `crepusculo`: atardecer real grabado en 4K — paleta coral cálido
+ *                    + púrpura crepuscular + dorado del sol bajo.
+ *                    Convive con `ocaso` (que es CSS puro y artístico).
+ *
+ *   Todos estos temas con vídeo son DESKTOP_ONLY por el coste del
+ *   stream full-bleed; en móvil hacen fallback a "aurora".
  *
  *   ── CÓSMICOS ───────────────────────────────────────────────────────
  *   - `meteor`  : lluvia de meteoros.
  *   - `voyager` : Voyager — visión cósmica desde la sonda con la Tierra
  *                 y la Vía Láctea (imagen real + parallax).
  *   - `comet`   : cometa azul brillante cruzando un cielo nocturno cálido.
- *   - `nebula`  : nebulosa azul-violeta con clústeres de estrellas.
  *
  *   ── TRIBUTO ────────────────────────────────────────────────────────
  *   Todos los temas tributo aíslan totalmente sus estilos bajo
@@ -47,12 +55,8 @@ export const THEME_STORAGE_KEY = "cc-ops-theme";
  *                     bombillas parpadeantes y fuente neón roja.
  *   - `cyberpunk`   : Cyberpunk 2077 — Night City glitch amarillo
  *                     Arasaka + cyan, scanlines y RAM-flash.
- *   - `interstellar`: Gargantua — agujero negro con disco de
- *                     acreción + maizal sepia y polvo.
- *   - `hollow`      : Hollow Knight — Hallownest azul abismal,
- *                     spores blancos cayendo, melancolía bichesca.
- *   - `ghibli`      : Studio Ghibli — pradera Totoro pastel, lluvia
- *                     tenue y susuwatari (motas negras flotando).
+ *   - `ghibli`      : Studio Ghibli — atardecer Ghibli oscuro cálido,
+ *                     girasoles, lluvia tenue y susuwatari.
  *   - `boreal`      : aurora boreal — cielo verde-violeta sobre cumbre
  *                     nevada, parallax al cursor.
  *   - `dbz`         : Dragon Ball Z — Goku ssj/aura dorada, plasma
@@ -71,29 +75,26 @@ export const THEME_STORAGE_KEY = "cc-ops-theme";
  *                     pulsantes, chispas de mana, círculos rúnicos.
  */
 export type ThemeMode =
-  | "dark"
   | "light"
   | "aurora"
   | "glass"
   | "slate"
   | "ocaso"
-  | "neon"
   | "volcano"
   | "abyss"
   | "cosmos"
   | "storm"
-  | "ccmgc"
-  | "dunas"
   | "canario"
+  | "disco"
+  | "liquido"
+  | "invierno"
+  | "crepusculo"
   | "meteor"
   | "voyager"
   | "comet"
-  | "nebula"
   | "sith"
   | "stranger"
   | "cyberpunk"
-  | "interstellar"
-  | "hollow"
   | "ghibli"
   | "boreal"
   | "dbz"
@@ -105,27 +106,24 @@ export type ThemeMode =
 export const THEME_MODES: ThemeMode[] = [
   "aurora",
   "light",
-  "dark",
   "glass",
   "slate",
   "ocaso",
-  "neon",
   "volcano",
   "abyss",
   "cosmos",
   "storm",
-  "ccmgc",
-  "dunas",
   "canario",
+  "disco",
+  "liquido",
+  "invierno",
+  "crepusculo",
   "meteor",
   "voyager",
   "comet",
-  "nebula",
   "sith",
   "stranger",
   "cyberpunk",
-  "interstellar",
-  "hollow",
   "ghibli",
   "boreal",
   "dbz",
@@ -166,6 +164,10 @@ export function isThemeAvailable(mode: ThemeMode): boolean {
  */
 export const DESKTOP_ONLY_THEMES: ReadonlySet<ThemeMode> = new Set<ThemeMode>([
   "canario",
+  "disco",
+  "liquido",
+  "invierno",
+  "crepusculo",
 ]);
 
 /**
@@ -210,32 +212,28 @@ export function getStoredTheme(): ThemeMode {
 
 /**
  * Lista de modos que se aplican al `<html>` mediante `data-theme="<id>"`.
- * Todos excepto:
- *   - `dark`: estado base del CSS (sin atributos).
- *   - `aurora`: usa `data-aurora="true"` en su lugar (legado).
+ * Excepción: `aurora` usa `data-aurora="true"` en su lugar (legado).
  */
 const DATA_THEME_MODES: ReadonlySet<ThemeMode> = new Set<ThemeMode>([
   "light",
   "glass",
   "slate",
   "ocaso",
-  "neon",
   "volcano",
   "abyss",
   "cosmos",
   "storm",
-  "ccmgc",
-  "dunas",
   "canario",
+  "disco",
+  "liquido",
+  "invierno",
+  "crepusculo",
   "meteor",
   "voyager",
   "comet",
-  "nebula",
   "sith",
   "stranger",
   "cyberpunk",
-  "interstellar",
-  "hollow",
   "ghibli",
   "boreal",
   "dbz",
@@ -249,7 +247,6 @@ const DATA_THEME_MODES: ReadonlySet<ThemeMode> = new Set<ThemeMode>([
  * Sincroniza los atributos del `<html>`:
  *   - `data-theme="<id>"` para todos los modos con CSS scopeado.
  *   - `data-aurora="true"` para Aurora (sin `data-theme`).
- *   - Sin atributos para `dark` (estado base del CSS).
  *
  * Garantiza limpiar siempre el atributo opuesto antes de aplicar.
  */

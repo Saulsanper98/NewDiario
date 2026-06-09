@@ -4,7 +4,6 @@ import { useState, useEffect, useRef, useLayoutEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
 import {
   Sun,
-  Moon,
   Sparkles,
   Check,
   ChevronDown,
@@ -19,18 +18,18 @@ import {
   Orbit,
   CloudLightning,
   Building2,
-  Mountain,
   Stars,
   Eye,
   Swords,
   Lightbulb,
   Cog,
   Globe2,
-  CircleDashed,
   Sunrise,
-  Bug,
   Cloud,
   Palmtree,
+  Disc3,
+  Snowflake,
+  Droplet,
 } from "lucide-react";
 import { useTheme } from "@/components/layout/ThemeProvider";
 import {
@@ -63,7 +62,6 @@ type ThemeOption = {
 };
 
 type CategoryId =
-  | "institutional"
   | "essentials"
   | "crystal"
   | "scenic"
@@ -72,7 +70,6 @@ type CategoryId =
   | "tribute";
 
 const CATEGORY_LABEL: Record<CategoryId, string> = {
-  institutional: "Institucional",
   essentials: "Esenciales",
   crystal: "Cristal",
   scenic: "Cinemáticos",
@@ -90,17 +87,11 @@ const CATEGORY_LABEL: Record<CategoryId, string> = {
  *     usuario reconozca de un vistazo qué va a ver al activarlo.
  */
 const OPTIONS: ThemeOption[] = [
-  // Institucional: branding corporativo del CCMGC. Es prioritario porque
-  // es el "look oficial" de la app. Lo dejamos al inicio del selector.
-  { id: "ccmgc", label: "CCMGC", hint: "Branding institucional: mapa de Gran Canaria con red de carreteras y pulsos de tráfico (amarillo CCMGC)", Icon: Building2, category: "institutional",
-    swatch: "linear-gradient(135deg, #050a18 0%, #0a1e3a 40%, #1a4a8a 80%, #FFEB66 130%)" },
-  // Esenciales: los 3 modos base (oscuro animado, claro, oscuro plano).
+  // Esenciales: los 2 modos base (oscuro con orbes animados + claro).
   { id: "aurora", label: "Aurora", hint: "Oscuro con orbes animados (predeterminado)", Icon: Sparkles, category: "essentials",
     swatch: "linear-gradient(135deg, #1a1530 0%, #4f2d8a 50%, #2a7fb8 100%)" },
   { id: "light", label: "Claro", hint: "Cristal premium sobre lienzo suave (sin orbes)", Icon: Sun, category: "essentials",
     swatch: "linear-gradient(135deg, #ffffff 0%, #f3eccd 60%, #ffeb66 100%)" },
-  { id: "dark", label: "Oscuro", hint: "Interfaz oscura sin orbes ni animaciones", Icon: Moon, category: "essentials",
-    swatch: "linear-gradient(135deg, #0a0f1e 0%, #1a2238 100%)" },
   // Cristal: variantes glassmorphism (parallax violeta + grafito neutro).
   { id: "slate", label: "Slate", hint: "Cristal real con orbes en deriva y borde animado", Icon: Layers, category: "crystal",
     swatch: "linear-gradient(135deg, #1f2937 0%, #475569 50%, #94a3b8 100%)" },
@@ -109,8 +100,6 @@ const OPTIONS: ThemeOption[] = [
   // Cinemáticos: temas espectaculares de uso puntual (estilo escenario).
   { id: "ocaso", label: "Ocaso", hint: "Atardecer cinematográfico: sol radial, banda crepuscular", Icon: Sunset, category: "scenic",
     swatch: "linear-gradient(180deg, #2a1340 0%, #6e2155 30%, #d96a3e 65%, #f4c373 100%)" },
-  { id: "neon", label: "Neon City", hint: "Cyberpunk Blade Runner: skyline con neones rosa y cyan", Icon: Zap, category: "scenic",
-    swatch: "linear-gradient(135deg, #1a0a2e 0%, #ff2a8e 50%, #00e5ff 100%)" },
   { id: "volcano", label: "Volcán", hint: "Cumbre encendida: silueta del volcán con cráter, brasa y chispas", Icon: Flame, category: "scenic",
     swatch: "linear-gradient(180deg, #0d0410 0%, #2d0a14 40%, #6b1808 75%, #ff6b3d 100%)" },
   { id: "abyss", label: "Abismo", hint: "Bajo el océano: medusas bioluminiscentes, god rays y plancton", Icon: Waves, category: "scenic",
@@ -119,11 +108,25 @@ const OPTIONS: ThemeOption[] = [
     swatch: "linear-gradient(135deg, #0a0418 0%, #4a1a6e 50%, #c43cb8 100%)" },
   { id: "storm", label: "Tormenta", hint: "Noche eléctrica: nubes en deriva, relámpagos esporádicos y lluvia", Icon: CloudLightning, category: "scenic",
     swatch: "linear-gradient(180deg, #060812 0%, #131a2c 60%, #a8c8ff 100%)" },
-  // Naturaleza canaria: temas inspirados en paisajes locales (dunas de
-  // Maspalomas, Roque Nublo). Pensados como pequeña carta de presentación
-  // del archipiélago.
-  { id: "dunas", label: "Dunas", hint: "Atardecer en Maspalomas: sol radial, dunas onduladas y arena soplando", Icon: Mountain, category: "nature",
-    swatch: "linear-gradient(180deg, #2a1a0e 0%, #5c2f1a 35%, #d97540 70%, #e6b870 100%)" },
+  // Disco cósmico: vídeo real surrealista de un tocadiscos suspendido en
+  // el espacio. Halo violeta neón sobre el plato + reflejo ámbar (etiqueta
+  // del LP) + chispas de stardust. Sólo desktop por el coste del vídeo.
+  { id: "disco", label: "Disco cósmico", hint: "Tocadiscos suspendido en el espacio: vídeo real con halo violeta y reflejo ámbar (sólo desktop)", Icon: Disc3, category: "scenic",
+    swatch: "radial-gradient(circle at 50% 55%, rgba(243,194,101,0.55) 0%, rgba(243,194,101,0.20) 7%, rgba(60,45,120,0.85) 12%, rgba(20,14,50,0.85) 28%, rgba(7,5,26,1) 60%), radial-gradient(circle at 50% 55%, rgba(232,165,255,0.45) 0%, transparent 55%)" },
+  // Líquido: vídeo real de fluido azul abstracto en movimiento (tinta
+  // cayendo / corrientes). Paleta azul profundo con cyan eléctrico.
+  { id: "liquido", label: "Líquido", hint: "Fluido azul abstracto en movimiento: vídeo real con halos cyan y burbujas (sólo desktop)", Icon: Droplet, category: "scenic",
+    swatch: "radial-gradient(ellipse at 35% 45%, rgba(140,230,255,0.55) 0%, rgba(80,200,255,0.25) 22%, transparent 55%), linear-gradient(180deg, #03101e 0%, #051a30 50%, #082642 100%)" },
+  // Invierno: cinemagraph de estatua nevada con nieve cayendo en bucle.
+  // Paleta gris-azul fría + acento bronce de la estatua.
+  { id: "invierno", label: "Invierno", hint: "Estatua nevada con nieve cayendo: cinemagraph cinematográfico (sólo desktop)", Icon: Snowflake, category: "scenic",
+    swatch: "linear-gradient(180deg, #0d1320 0%, #141d2e 40%, #1c2740 75%, #2a3a55 100%), radial-gradient(circle at 50% 30%, rgba(220,235,255,0.32) 0%, rgba(168,200,255,0.18) 22%, transparent 55%)" },
+  // Crepúsculo: atardecer real grabado en 4K. Convive con `ocaso` (que
+  // es CSS puro y artístico) ofreciendo una alternativa documental.
+  { id: "crepusculo", label: "Crepúsculo", hint: "Atardecer real grabado en 4K: sol bajo + cielo coral + violeta crepuscular (sólo desktop)", Icon: Sunset, category: "scenic",
+    swatch: "linear-gradient(180deg, #1a0820 0%, #45203a 22%, #8a3e2c 50%, #d57a32 72%, #f0b15a 84%, #2a1410 100%), radial-gradient(circle at 35% 58%, rgba(255,220,140,0.55) 0%, rgba(255,170,70,0.40) 12%, transparent 50%)" },
+  // Naturaleza canaria: tema inspirado en el paisaje local (Roque Nublo
+  // + Teide al fondo). Pensado como carta de presentación del archipiélago.
   // Canario: vídeo real del Roque Nublo + Teide al fondo en bucle. Sólo
   // se muestra en desktop (DESKTOP_ONLY_THEMES en lib/theme.ts) por el
   // coste del vídeo full-bleed. El swatch evoca el atardecer crepuscular
@@ -137,8 +140,6 @@ const OPTIONS: ThemeOption[] = [
     swatch: "radial-gradient(circle at 30% 55%, rgba(80,160,255,0.55) 0%, rgba(80,160,255,0.15) 18%, transparent 35%), linear-gradient(135deg, #02030a 0%, #060a18 50%, #0a0e22 100%)" },
   { id: "comet", label: "Cometa", hint: "Cometa azul brillante cruzando un cielo nocturno cálido", Icon: Sparkles, category: "cosmic",
     swatch: "linear-gradient(135deg, #050a18 0%, #081020 35%, #0c1830 65%, #1a2a4a 100%), radial-gradient(circle at 70% 30%, rgba(0,216,255,0.55) 0%, rgba(255,104,80,0.25) 25%, transparent 45%)" },
-  { id: "nebula", label: "Nebulosa", hint: "Nebulosa azul-violeta con clústeres de estrellas", Icon: Orbit, category: "cosmic",
-    swatch: "radial-gradient(ellipse at 35% 45%, rgba(90,138,255,0.55) 0%, rgba(160,187,255,0.25) 25%, transparent 50%), linear-gradient(180deg, #02040c 0%, #050818 50%, #080c24 100%)" },
   // Tributo: temas homenaje a referentes culturales. Cada uno aísla
   // totalmente su CSS bajo `html[data-theme="<id>"]` y nunca afecta a
   // Aurora ni al resto. La mayoría usa el componente genérico
@@ -149,12 +150,8 @@ const OPTIONS: ThemeOption[] = [
     swatch: "linear-gradient(135deg, #1a0510 0%, #330014 45%, #aa0028 90%), radial-gradient(circle at 70% 30%, rgba(255,0,80,0.42) 0%, transparent 55%)" },
   { id: "cyberpunk", label: "Cyberpunk", hint: "Cyberpunk 2077: Night City glitch amarillo Arasaka + cyan + scanlines", Icon: Cog, category: "tribute",
     swatch: "linear-gradient(135deg, #0a0a14 0%, #14141e 40%, #fcee0a 110%), radial-gradient(circle at 25% 75%, rgba(0,229,255,0.45) 0%, transparent 55%)" },
-  { id: "interstellar", label: "Interstellar", hint: "Interstellar: agujero negro Gargantua + disco de acreción + maizal sepia", Icon: CircleDashed, category: "tribute",
-    swatch: "radial-gradient(circle at 50% 50%, #000 0%, #000 18%, rgba(255,160,60,0.85) 22%, rgba(255,200,120,0.4) 28%, transparent 42%), linear-gradient(135deg, #050507 0%, #1a1812 60%, #4a3818 100%)" },
-  { id: "hollow", label: "Hollow Knight", hint: "Hallownest: azul abismal + spores blancos cayendo, melancolía bichesca", Icon: Bug, category: "tribute",
-    swatch: "linear-gradient(180deg, #050810 0%, #0a1828 50%, #1a3550 100%), radial-gradient(ellipse at 50% 80%, rgba(180,210,240,0.35) 0%, transparent 55%)" },
-  { id: "ghibli", label: "Studio Ghibli", hint: "Ghibli: pradera Totoro pastel verde + lluvia tenue + susuwatari (motas)", Icon: Cloud, category: "tribute",
-    swatch: "linear-gradient(180deg, #c8e8d8 0%, #88c4a4 50%, #4a8a64 100%), radial-gradient(circle at 50% 30%, rgba(255,255,255,0.55) 0%, transparent 60%)" },
+  { id: "ghibli", label: "Studio Ghibli", hint: "Ghibli: atardecer dorado, girasoles y susuwatari (motas) flotando al ocaso", Icon: Cloud, category: "tribute",
+    swatch: "linear-gradient(180deg, #0e1c20 0%, #142428 50%, #0a161a 100%), radial-gradient(circle at 65% 35%, rgba(255,200,120,0.55) 0%, rgba(245,170,80,0.20) 25%, transparent 55%)" },
   { id: "boreal", label: "Aurora Boreal", hint: "Aurora boreal verde-violeta sobre cumbre nevada + parallax cinemático", Icon: Sunrise, category: "tribute",
     swatch: "linear-gradient(180deg, #050b1c 0%, #0a1e3a 35%, #1a4a6a 60%, #38b08e 90%), radial-gradient(ellipse at 50% 60%, rgba(120,255,180,0.35) 0%, transparent 55%)" },
   { id: "dbz", label: "Dragon Ball Z", hint: "DBZ: aura dorada SSJ, plasma amarillo y kanji ki sobre cielo eléctrico", Icon: Zap, category: "tribute",
@@ -180,7 +177,6 @@ const OPTIONS: ThemeOption[] = [
 ];
 
 const CATEGORY_ORDER: CategoryId[] = [
-  "institutional",
   "essentials",
   "crystal",
   "scenic",
@@ -190,24 +186,21 @@ const CATEGORY_ORDER: CategoryId[] = [
 ];
 
 /* Layout en columnas por categoría:
- *   - `institutional`: 1 columna (tarjeta ancha, destacada — es el branding).
- *   - `essentials`:    3 columnas (1 fila con los 3 modos base).
- *   - `crystal`:       2 columnas.
- *   - `scenic`:        2 columnas.
- *   - `nature`:        2 columnas.
- *   - `cosmic`:        2 columnas.
+ *   - `essentials`: 2 columnas (los 2 modos base: Aurora + Claro).
+ *   - `crystal`:    2 columnas.
+ *   - `scenic`:     2 columnas.
+ *   - `nature`:     1 columna (solo Canario, tarjeta ancha destacada).
+ *   - `cosmic`:     2 columnas.
+ *   - `tribute`:    2 columnas para mantener swatches grandes con tantos
+ *                   temas (3 columnas haría las miniaturas demasiado chicas).
  * Estos números los inyectamos como clases Tailwind explícitas para que el
  * JIT las genere. */
 const CATEGORY_COLS: Record<CategoryId, string> = {
-  institutional: "grid-cols-1",
-  essentials: "grid-cols-3",
+  essentials: "grid-cols-2",
   crystal: "grid-cols-2",
   scenic: "grid-cols-2",
-  nature: "grid-cols-2",
+  nature: "grid-cols-1",
   cosmic: "grid-cols-2",
-  // Con 18 temas tributo, 2 columnas mantiene los swatches grandes y la
-  // categoría sigue navegable (9 filas). 3 columnas haría las miniaturas
-  // muy chicas y perdería identidad visual.
   tribute: "grid-cols-2",
 };
 

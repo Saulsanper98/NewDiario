@@ -23,8 +23,8 @@ html[data-theme="comet"] .glass-shell-frame {
   box-shadow: 0 0 90px rgba(0, 216, 255, 0.30), 0 0 180px rgba(255, 104, 80, 0.18); position: relative;
 }
 html[data-theme="comet"] .glass-shell-inner {
-  border-radius: 26px; background: rgba(8, 16, 32, 0.55);
-  backdrop-filter: blur(6px) saturate(1.05); -webkit-backdrop-filter: blur(6px) saturate(1.05);
+  border-radius: 26px; background: rgba(8, 16, 32, 0.20);
+  backdrop-filter: blur(24px) saturate(1.20) !important; -webkit-backdrop-filter: blur(24px) saturate(1.20) !important;
   overflow: hidden; padding: 18px;
 }
 @media (max-width: 768px) { html[data-theme="comet"] .glass-shell-inner { padding: 6px; } html[data-theme="comet"] .app-dashboard-root { gap: 8px; } }

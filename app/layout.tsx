@@ -5,21 +5,28 @@ import { BackgroundOrbs } from "@/components/layout/BackgroundOrbs";
 import { GlassBackground } from "@/components/layout/GlassBackground";
 import { SlateBackground } from "@/components/layout/SlateBackground";
 import { OcasoBackground } from "@/components/layout/OcasoBackground";
-import { NeonBackground } from "@/components/layout/NeonBackground";
 import { VolcanoBackground } from "@/components/layout/VolcanoBackground";
 import { AbyssBackground } from "@/components/layout/AbyssBackground";
 import { CosmosBackground } from "@/components/layout/CosmosBackground";
 import { StormBackground } from "@/components/layout/StormBackground";
-import { CCMGCBackground } from "@/components/layout/CCMGCBackground";
-import { DunasBackground } from "@/components/layout/DunasBackground";
-import { CanarioBackground } from "@/components/layout/CanarioBackground";
 import { MeteorBackground } from "@/components/layout/MeteorBackground";
 import { ItachiBackground } from "@/components/layout/ItachiBackground";
 import { AmegakureBackground } from "@/components/layout/AmegakureBackground";
 import { SoloLevelingBackground } from "@/components/layout/SoloLevelingBackground";
+import { SithBackground } from "@/components/layout/SithBackground";
+import { StrangerBackground } from "@/components/layout/StrangerBackground";
+import { CyberpunkBackground } from "@/components/layout/CyberpunkBackground";
+import { DBZBackground } from "@/components/layout/DBZBackground";
 // Componente genérico para temas con imagen real (sustituye a la docena
 // de Backgrounds individuales). Cada uso pasa themeId + prefix CSS.
+// Nota: los temas que requieren efectos exclusivos (Sith → niebla, latido,
+// rayos, parallax inverso del sable) tienen su propio componente.
 import { ImageThemeBackground } from "@/components/layout/ImageThemeBackground";
+// Componente genérico para temas con VÍDEO real en bucle. Misma idea que
+// ImageThemeBackground pero monta un <video> de fondo + capas atmosféricas
+// (fallback CSS, halos, niebla, motas, viñeta, grano). Cada tema con
+// vídeo lo invoca con su `themeId`/`prefix` y la ruta del MP4.
+import { VideoThemeBackground } from "@/components/layout/VideoThemeBackground";
 import { SessionProvider } from "@/components/layout/SessionProvider";
 import { ThemeProvider } from "@/components/layout/ThemeProvider";
 import { defaultMetadata } from "@/lib/app-brand";
@@ -28,23 +35,21 @@ import "./theme-light.css";
 import "./theme-glass.css";
 import "./theme-slate.css";
 import "./theme-ocaso.css";
-import "./theme-neon.css";
 import "./theme-volcano.css";
 import "./theme-abyss.css";
 import "./theme-cosmos.css";
 import "./theme-storm.css";
-import "./theme-ccmgc.css";
-import "./theme-dunas.css";
 import "./theme-canario.css";
+import "./theme-disco.css";
+import "./theme-liquido.css";
+import "./theme-invierno.css";
+import "./theme-crepusculo.css";
 import "./theme-meteor.css";
 import "./theme-voyager.css";
 import "./theme-comet.css";
-import "./theme-nebula.css";
 import "./theme-sith.css";
 import "./theme-stranger.css";
 import "./theme-cyberpunk.css";
-import "./theme-interstellar.css";
-import "./theme-hollow.css";
 import "./theme-ghibli.css";
 import "./theme-boreal.css";
 import "./theme-dbz.css";
@@ -125,23 +130,21 @@ const DATA_THEME_BOOTSTRAP = [
   "glass",
   "slate",
   "ocaso",
-  "neon",
   "volcano",
   "abyss",
   "cosmos",
   "storm",
-  "ccmgc",
-  "dunas",
   "canario",
+  "disco",
+  "liquido",
+  "invierno",
+  "crepusculo",
   "meteor",
   "voyager",
   "comet",
-  "nebula",
   "sith",
   "stranger",
   "cyberpunk",
-  "interstellar",
-  "hollow",
   "ghibli",
   "boreal",
   "dbz",
@@ -153,7 +156,7 @@ const DATA_THEME_BOOTSTRAP = [
 
 const BOOTSTRAP_SCRIPT = `(function(){try{var k='cc-ops-theme',r=document.documentElement,t=localStorage.getItem(k),L=${JSON.stringify(
   DATA_THEME_BOOTSTRAP,
-)};r.removeAttribute('data-theme');r.removeAttribute('data-aurora');if(t&&L.indexOf(t)>-1){r.setAttribute('data-theme',t);}else if(t==='dark'){}else{r.setAttribute('data-aurora','true');}}catch(e){}})();`;
+)};r.removeAttribute('data-theme');r.removeAttribute('data-aurora');if(t&&L.indexOf(t)>-1){r.setAttribute('data-theme',t);}else{r.setAttribute('data-aurora','true');}}catch(e){}})();`;
 
 export default function RootLayout({
   children,
@@ -175,34 +178,57 @@ export default function RootLayout({
           <GlassBackground />
           <SlateBackground />
           <OcasoBackground />
-          <NeonBackground />
           <VolcanoBackground />
           <AbyssBackground />
           <CosmosBackground />
           <StormBackground />
-          <CCMGCBackground />
-          <DunasBackground />
-          <CanarioBackground />
           <MeteorBackground />
           <ItachiBackground />
           <AmegakureBackground />
           <SoloLevelingBackground />
+          <SithBackground />
+          <StrangerBackground />
+          <CyberpunkBackground />
+          <DBZBackground />
           {/* Temas con imagen real: usan el componente genérico
               `<ImageThemeBackground />`. Solo se monta el que coincide
               con `data-theme`, así que el coste de tener todos
               registrados aquí es prácticamente cero. */}
           <ImageThemeBackground themeId="boreal" prefix="boreal" />
           <ImageThemeBackground themeId="comet" prefix="comet" />
-          <ImageThemeBackground themeId="cyberpunk" prefix="cyberpunk" />
-          <ImageThemeBackground themeId="dbz" prefix="dbz" />
           <ImageThemeBackground themeId="ghibli" prefix="ghibli" />
-          <ImageThemeBackground themeId="hollow" prefix="hollow" />
           <ImageThemeBackground themeId="initiald" prefix="initiald" />
-          <ImageThemeBackground themeId="interstellar" prefix="interstellar" />
-          <ImageThemeBackground themeId="nebula" prefix="nebula" />
-          <ImageThemeBackground themeId="sith" prefix="sith" />
-          <ImageThemeBackground themeId="stranger" prefix="stranger" />
           <ImageThemeBackground themeId="voyager" prefix="voyager" />
+          {/* Temas con VÍDEO real en bucle: usan el componente genérico
+              `<VideoThemeBackground />`. Solo se monta el que coincide
+              con `data-theme`; el resto duerme. Por defecto son
+              desktop-only (ver DESKTOP_ONLY_THEMES en lib/theme.ts). */}
+          <VideoThemeBackground
+            themeId="canario"
+            prefix="canario"
+            videoSrc="/videos/canario.mp4"
+            posterSrc="/videos/canario-poster.jpg"
+          />
+          <VideoThemeBackground
+            themeId="disco"
+            prefix="disco"
+            videoSrc="/videos/disco.mp4"
+          />
+          <VideoThemeBackground
+            themeId="liquido"
+            prefix="liquido"
+            videoSrc="/videos/liquidoazul.mp4"
+          />
+          <VideoThemeBackground
+            themeId="invierno"
+            prefix="invierno"
+            videoSrc="/videos/snowstatue.mp4"
+          />
+          <VideoThemeBackground
+            themeId="crepusculo"
+            prefix="crepusculo"
+            videoSrc="/videos/sunset.mp4"
+          />
           <SessionProvider>{children}</SessionProvider>
         </ThemeProvider>
         <Toaster

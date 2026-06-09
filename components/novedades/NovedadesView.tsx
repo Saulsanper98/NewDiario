@@ -1126,7 +1126,7 @@ function ReleaseNoteCard({
         {/* Body */}
         <div
           data-bitacora-prose
-          className={bitacoraReadingProseClass(isLight ? "light" : "dark")}
+          className={bitacoraReadingProseClass(isLight ? "light" : "aurora")}
           dangerouslySetInnerHTML={{ __html: item.body }}
         />
 

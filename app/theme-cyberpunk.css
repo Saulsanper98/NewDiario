@@ -23,8 +23,8 @@ html[data-theme="cyberpunk"] .glass-shell-frame {
   box-shadow: 0 0 90px rgba(255, 212, 0, 0.30), 0 0 180px rgba(255, 29, 138, 0.20); position: relative;
 }
 html[data-theme="cyberpunk"] .glass-shell-inner {
-  border-radius: 26px; background: rgba(8, 8, 22, 0.55);
-  backdrop-filter: blur(6px) saturate(1.05); -webkit-backdrop-filter: blur(6px) saturate(1.05);
+  border-radius: 26px; background: rgba(8, 8, 22, 0.20);
+  backdrop-filter: blur(24px) saturate(1.20) !important; -webkit-backdrop-filter: blur(24px) saturate(1.20) !important;
   overflow: hidden; padding: 18px;
 }
 @media (max-width: 768px) { html[data-theme="cyberpunk"] .glass-shell-inner { padding: 6px; } html[data-theme="cyberpunk"] .app-dashboard-root { gap: 8px; } }

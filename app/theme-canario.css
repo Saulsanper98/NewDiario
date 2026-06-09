@@ -94,9 +94,11 @@ html[data-theme="canario"] .glass-shell-frame {
 }
 html[data-theme="canario"] .glass-shell-inner {
   border-radius: 26px;
-  background: rgba(20, 12, 6, 0.55);
+  background: rgba(20, 12, 6, 0.20);
   overflow: hidden;
   padding: 18px;
+  backdrop-filter: blur(24px) saturate(1.20) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(1.20) !important;
 }
 
 @media (max-width: 768px) {

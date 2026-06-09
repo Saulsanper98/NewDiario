@@ -37,8 +37,8 @@ html[data-theme="dbz"] .glass-shell-frame {
   position: relative;
 }
 html[data-theme="dbz"] .glass-shell-inner {
-  border-radius: 26px; background: rgba(8, 16, 28, 0.55);
-  backdrop-filter: blur(6px) saturate(1.05); -webkit-backdrop-filter: blur(6px) saturate(1.05);
+  border-radius: 26px; background: rgba(8, 16, 28, 0.20);
+  backdrop-filter: blur(24px) saturate(1.20) !important; -webkit-backdrop-filter: blur(24px) saturate(1.20) !important;
   overflow: hidden; padding: 18px;
 }
 @media (max-width: 768px) { html[data-theme="dbz"] .glass-shell-inner { padding: 6px; } html[data-theme="dbz"] .app-dashboard-root { gap: 8px; } }

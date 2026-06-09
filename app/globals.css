@@ -3303,6 +3303,19 @@ html[data-theme="light"] .theme-selector-scroll::-webkit-scrollbar-thumb:hover {
   background-clip: padding-box;
 }
 
+/* El input del buscador del selector de temas NO debe pintar un outline ni
+   un box-shadow propio cuando recibe focus: ya hay un anillo en el div
+   contenedor (focus-within:ring-*). Sin esto, los temas con `:focus-visible`
+   global teñido (Sith, Itachi, etc.) dibujan un "contenedor interior" rojo
+   sobre el input que rompe la estética del selector. Con !important para
+   ganar a todas las reglas globales de tema, sea cual sea su especificidad. */
+#theme-selector-panel input,
+#theme-selector-panel input:focus,
+#theme-selector-panel input:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
 /* Tres puntos animados del indicador "X esta escribiendo...". */
 .chat-typing-dots {
   align-items: center;

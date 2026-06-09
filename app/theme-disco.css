@@ -1,0 +1,422 @@
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║   TEMA "DISCO" v1 · CINEMÁTICO · Tocadiscos cósmico (vídeo real)         ║
+ * ║                                                                          ║
+ * ║   El protagonista es un VÍDEO surrealista (`/videos/disco.mp4`) que     ║
+ * ║   muestra un tocadiscos suspendido en el espacio: un plato girando con  ║
+ * ║   estrellas y polvo cósmico alrededor. La paleta del tema lo abraza con ║
+ * ║   morados profundos + acentos violetas neón (luz UV de cabina) y un    ║
+ * ║   reflejo ámbar sutil que evoca la etiqueta del vinilo.                ║
+ * ║                                                                          ║
+ * ║   Componente: `<VideoThemeBackground themeId="disco" prefix="disco"     ║
+ * ║   videoSrc="/videos/disco.mp4" />`. AISLAMIENTO bajo                    ║
+ * ║   `html[data-theme="disco"]`. SOLO DESKTOP ≥768px (DESKTOP_ONLY_THEMES  ║
+ * ║   en lib/theme.ts).                                                      ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                1.  TOKENS DEL TEMA                                        ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+html[data-theme="disco"] {
+  /* Espacio profundo con tinte violeta — cómodo para sesiones largas. */
+  --bg-0: #07051a;
+  --bg-1: #0c0a24;
+  --bg-2: #15113a;
+
+  /* Superficies SÓLIDAS sobre el vídeo: la UI tiene que leerse aunque
+   * el plato del tocadiscos pase por una zona iluminada del clip. */
+  --card: linear-gradient(180deg, #110d2c 0%, #0a0820 60%, #050414 100%);
+  --surface:   rgba(15, 11, 36, 0.92);
+  --surface-2: rgba(255, 255, 255, 0.04);
+  --border:        rgba(192, 132, 252, 0.24);
+  --border-strong: rgba(232, 165, 255, 0.55);
+
+  /* Acento violeta neón (luz UV de cabina/club). */
+  --accent:        #c084fc;
+  --accent-bright: #e9a5ff;
+  --accent-glow:   rgba(232, 165, 255, 0.45);
+
+  /* Texto frío para que lea sobre los morados sin pelearse con la
+   * saturación del clip. */
+  --text:      #f1ebff;
+  --text-soft: #d4c8ee;
+  --muted:     #8a7eaa;
+
+  --ok:         #6ee7a8;
+  --gold-relic: #f3c265;
+
+  --font-display: var(--font-sora), "Sora", sans-serif;
+  --font-ui:      var(--font-sora), "Sora", sans-serif;
+
+  --app-canvas-color: transparent;
+  --app-canvas-image: none;
+  --card-isolation: auto;
+
+  color-scheme: dark;
+}
+
+html[data-theme="disco"] body {
+  min-height: 100vh;
+}
+html[data-theme="disco"] .app-sidebar-shell,
+html[data-theme="disco"] .app-top-header {
+  isolation: auto !important;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║   1.bis  MARCO EXTERIOR ESTILO CRISTAL                                    ║
+ * ║                                                                          ║
+ * ║   Mismo patrón que `canario`: el wrapper recorta la app en un marco     ║
+ * ║   con glow violeta para que el vídeo "respire" alrededor de la UI.      ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+html[data-theme="disco"] .glass-shell-frame {
+  margin: 22px;
+  padding: 1.5px;
+  border-radius: 28px;
+  background:
+    linear-gradient(
+      135deg,
+      rgba(232, 165, 255, 0.85) 0%,
+      rgba(192, 132, 252, 0.55) 35%,
+      rgba(80, 30, 140, 0.55) 70%,
+      rgba(20, 10, 40, 0.85) 100%
+    );
+  box-shadow:
+    0 0 80px rgba(192, 132, 252, 0.30),
+    0 0 160px rgba(232, 165, 255, 0.15);
+  position: relative;
+}
+html[data-theme="disco"] .glass-shell-inner {
+  border-radius: 26px;
+  background: rgba(12, 10, 28, 0.20);
+  overflow: hidden;
+  padding: 18px;
+  backdrop-filter: blur(24px) saturate(1.20) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(1.20) !important;
+}
+
+@media (max-width: 768px) {
+  html[data-theme="disco"] .glass-shell-inner { padding: 6px; }
+  html[data-theme="disco"] .app-dashboard-root { gap: 8px; }
+}
+@media (max-width: 640px) {
+  html[data-theme="disco"] .glass-shell-frame {
+    margin: 4px;
+    border-radius: 18px;
+  }
+  html[data-theme="disco"] .glass-shell-inner { border-radius: 16px; }
+}
+@media (max-width: 480px) {
+  html[data-theme="disco"] .glass-shell-frame {
+    margin: 0;
+    padding: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+  html[data-theme="disco"] .glass-shell-inner {
+    border-radius: 0;
+    padding: 0;
+  }
+  html[data-theme="disco"] .app-dashboard-root { gap: 0; }
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                2.  CAPAS DEL FONDO  (VideoThemeBackground)               ║
+ * ║                                                                          ║
+ * ║   Z-stack de fondo a primer plano. Todas las capas son fixed/full       ║
+ * ║   bleed y `pointer-events: none`. El contrato de clases coincide con   ║
+ * ║   el del componente genérico `VideoThemeBackground`.                    ║
+ * ║                                                                          ║
+ * ║     -10  .disco-bg                  raíz; cielo cósmico violeta         ║
+ * ║       a) .disco-video               <video> en bucle (muted, loop)      ║
+ * ║       b) .disco-fallback            anillos concéntricos (vinilo CSS)   ║
+ * ║          que toman el relevo si el vídeo no carga                        ║
+ * ║       c) .disco-glow-1              halo violeta sobre el plato         ║
+ * ║       d) .disco-glow-2              destello ámbar (etiqueta del LP)    ║
+ * ║       e) .disco-haze                niebla lateral cósmica              ║
+ * ║       f) .disco-dust .dust          motas/chispas de stardust           ║
+ * ║       g) .disco-vignette            viñeta circular (oculares de cine)  ║
+ * ║       h) .disco-grain               grano fílmico                       ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+html[data-theme="disco"] .disco-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -10;
+  overflow: hidden;
+  pointer-events: none;
+  /* Cielo cósmico violeta-azulado: respaldo para los primeros frames y
+   * para el modo "videoOk = false". */
+  background:
+    radial-gradient(
+      ellipse at 50% 55%,
+      #1a1242 0%,
+      #110b30 40%,
+      #07051a 75%,
+      #03020c 100%
+    );
+}
+
+/* — a) Vídeo (tocadiscos espacial) en bucle — */
+html[data-theme="disco"] .disco-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  /* Realce sutil hacia tonos UV: respeta la imagen sin teñirla en exceso. */
+  filter: saturate(1.08) brightness(0.94) contrast(1.06);
+  opacity: 1;
+  animation: disco-video-fadein 1200ms ease-out both;
+}
+@keyframes disco-video-fadein {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* — b) Fallback CSS: anillos concéntricos imitando un vinilo / plato
+ *      giratorio. Solo es protagonista si el vídeo no carga; cuando
+ *      hay vídeo, queda mayoritariamente tapado pero refuerza el centro. */
+html[data-theme="disco"] .disco-fallback {
+  position: absolute;
+  /* Centrado en pantalla para que coincida con el plato del clip. */
+  left: 50%;
+  top: 55%;
+  width: 70vmin;
+  height: 70vmin;
+  transform: translate(-50%, -50%);
+  background:
+    /* Etiqueta central ámbar (centro del LP) */
+    radial-gradient(
+      circle at center,
+      rgba(243, 194, 101, 0.55) 0%,
+      rgba(243, 194, 101, 0.20) 7%,
+      transparent 12%
+    ),
+    /* Surcos concéntricos: repeating con un punto medio gris-violeta */
+    repeating-radial-gradient(
+      circle at center,
+      rgba(60, 45, 120, 0.85) 0px,
+      rgba(60, 45, 120, 0.85) 1px,
+      rgba(20, 14, 50, 0.85) 2px,
+      rgba(20, 14, 50, 0.85) 6px
+    );
+  border-radius: 50%;
+  filter: blur(1px) opacity(0.55);
+  z-index: 1;
+}
+
+/* — c) Halo violeta principal sobre el plato. Pulso lento que evoca el
+ *      latido de una pista. */
+html[data-theme="disco"] .disco-glow-1 {
+  position: absolute;
+  left: 50%;
+  top: 55%;
+  width: 80vmax;
+  height: 80vmax;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(
+    circle at center,
+    rgba(232, 165, 255, 0.45) 0%,
+    rgba(192, 132, 252, 0.28) 14%,
+    rgba(110, 70, 200, 0.18) 32%,
+    transparent 55%
+  );
+  mix-blend-mode: screen;
+  z-index: 2;
+  animation: disco-glow-pulse 7s ease-in-out infinite alternate;
+}
+@keyframes disco-glow-pulse {
+  from { opacity: 0.78; transform: translate(-50%, -50%) scale(1.00); }
+  to   { opacity: 1.00; transform: translate(-50%, -50%) scale(1.06); }
+}
+
+/* — d) Destello ámbar secundario (la "luz" de la etiqueta del vinilo).
+ *      Más pequeño, descentrado, contrapunto cálido al violeta. */
+html[data-theme="disco"] .disco-glow-2 {
+  position: absolute;
+  left: 50%;
+  top: 55%;
+  width: 28vmax;
+  height: 28vmax;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(
+    circle at center,
+    rgba(243, 194, 101, 0.42) 0%,
+    rgba(243, 130, 80, 0.20) 28%,
+    transparent 58%
+  );
+  mix-blend-mode: screen;
+  z-index: 3;
+  animation: disco-glow-amber 11s ease-in-out infinite alternate;
+}
+@keyframes disco-glow-amber {
+  from { opacity: 0.55; }
+  to   { opacity: 0.85; }
+}
+
+/* — e) Niebla cósmica horizontal: difumina los bordes verticales del
+ *      vídeo y suaviza la transición plato→fondo. */
+html[data-theme="disco"] .disco-haze {
+  position: absolute;
+  inset: 30% 0 22% 0;
+  background:
+    linear-gradient(
+      90deg,
+      rgba(60, 30, 110, 0.22) 0%,
+      rgba(192, 132, 252, 0.10) 50%,
+      rgba(60, 30, 110, 0.22) 100%
+    );
+  mix-blend-mode: screen;
+  z-index: 4;
+  pointer-events: none;
+}
+
+/* — f) Motas de stardust: 6 chispas determinísticas (hereda DEFAULT_DUST
+ *      del componente genérico). Aquí las pintamos como destellos
+ *      lila-platino. */
+html[data-theme="disco"] .disco-dust {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+}
+html[data-theme="disco"] .disco-dust .dust {
+  position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(232, 165, 255, 0.85) 0%,
+    rgba(232, 165, 255, 0) 70%
+  );
+  box-shadow: 0 0 6px rgba(232, 165, 255, 0.55);
+  animation: disco-dust-float linear infinite;
+}
+@keyframes disco-dust-float {
+  0%   { transform: translate3d(0, 0, 0)         scale(1);    opacity: 0; }
+  10%  { opacity: 0.7; }
+  50%  { transform: translate3d(-6vw, -28vh, 0)  scale(1.15); opacity: 0.9; }
+  90%  { opacity: 0.4; }
+  100% { transform: translate3d(-12vw, -52vh, 0) scale(0.9);  opacity: 0; }
+}
+
+/* — g) Viñeta circular: oscurece esquinas para forzar la mirada al
+ *      centro (donde gira el plato). */
+html[data-theme="disco"] .disco-vignette {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  background:
+    radial-gradient(
+      ellipse at 50% 55%,
+      rgba(0, 0, 0, 0) 30%,
+      rgba(8, 4, 22, 0.45) 65%,
+      rgba(4, 2, 14, 0.78) 100%
+    );
+  pointer-events: none;
+}
+
+/* — h) Grano fílmico fino — */
+html[data-theme="disco"] .disco-grain {
+  position: absolute;
+  inset: 0;
+  z-index: 7;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.92' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.55 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.42'/></svg>");
+  background-size: 180px 180px;
+  mix-blend-mode: overlay;
+  opacity: 0.16;
+  pointer-events: none;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                3.  REDUCED MOTION                                         ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+@media (prefers-reduced-motion: reduce) {
+  html[data-theme="disco"] .disco-video {
+    /* No se puede pausar <video> desde CSS — el componente JS lo hace.
+     * Aquí solo neutralizamos animaciones decorativas. */
+    animation: none !important;
+  }
+  html[data-theme="disco"] .disco-glow-1,
+  html[data-theme="disco"] .disco-glow-2,
+  html[data-theme="disco"] .disco-dust .dust {
+    animation: none !important;
+  }
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                4.  SIDEBAR / HEADER COHERENTES                           ║
+ * ║                                                                          ║
+ * ║   Mismo patrón cristal que `canario`/`itachi`: paneles translúcidos     ║
+ * ║   con borde violeta y el contenido siempre legible sobre el vídeo.      ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+html[data-theme="disco"] .app-sidebar-shell {
+  background:
+    radial-gradient(ellipse 70% 55% at 0% 0%,
+      rgba(192, 132, 252, 0.20) 0%,
+      rgba(192, 132, 252, 0.06) 35%,
+      transparent 65%),
+    radial-gradient(ellipse 70% 55% at 100% 100%,
+      rgba(243, 194, 101, 0.14) 0%,
+      rgba(180, 120, 40, 0.05) 35%,
+      transparent 65%),
+    linear-gradient(180deg,
+      rgba(11, 8, 30, 0.78) 0%,
+      rgba(15, 11, 38, 0.82) 50%,
+      rgba(20, 14, 48, 0.86) 100%) !important;
+  border-right: 1px solid rgba(192, 132, 252, 0.22);
+  box-shadow:
+    inset -1px 0 0 rgba(192, 132, 252, 0.20),
+    inset 1px 0 0 rgba(243, 194, 101, 0.06),
+    4px 0 22px rgba(0, 0, 0, 0.45),
+    14px 0 80px rgba(192, 132, 252, 0.10);
+  backdrop-filter: blur(24px) saturate(1.20) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(1.20) !important;
+}
+
+html[data-theme="disco"] .app-top-header {
+  background:
+    linear-gradient(180deg,
+      rgba(15, 11, 38, 0.78) 0%,
+      rgba(15, 11, 38, 0.55) 100%) !important;
+  border-bottom: 1px solid rgba(192, 132, 252, 0.22);
+  backdrop-filter: blur(20px) saturate(1.18) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(1.18) !important;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                5.  SCROLL / FOCUS                                         ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+html[data-theme="disco"] {
+  scrollbar-color: rgba(192, 132, 252, 0.45) rgba(0, 0, 0, 0.25);
+}
+html[data-theme="disco"] *::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg,
+    rgba(232, 165, 255, 0.55),
+    rgba(243, 194, 101, 0.45));
+  border-radius: 999px;
+}
+html[data-theme="disco"] *::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg,
+    rgba(232, 165, 255, 0.75),
+    rgba(243, 194, 101, 0.65));
+}
+html[data-theme="disco"] :focus-visible {
+  outline-color: var(--accent-bright) !important;
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                6.  RESPONSIVE                                             ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+@media (max-width: 640px) {
+  /* Reducimos halos para no saturar viewports pequeños (aunque el tema
+   * ya es desktop-only, este media query cubre tablets en horizontal). */
+  html[data-theme="disco"] .disco-glow-1 { width: 60vmax; height: 60vmax; }
+  html[data-theme="disco"] .disco-glow-2 { width: 18vmax; height: 18vmax; }
+  html[data-theme="disco"] .disco-fallback { width: 90vmin; height: 90vmin; }
+}

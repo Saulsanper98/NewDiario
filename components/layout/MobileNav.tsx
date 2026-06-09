@@ -16,7 +16,6 @@ import {
   Bug,
   X,
   Sun,
-  Moon,
   Sparkles,
   Droplets,
   Layers,
@@ -55,7 +54,6 @@ const primaryNav: MobileNavItem[] = [
 const THEME_OPTIONS: { id: ThemeMode; label: string; Icon: typeof Sun }[] = [
   { id: "aurora", label: "Aurora",  Icon: Sparkles },
   { id: "light",  label: "Claro",   Icon: Sun },
-  { id: "dark",   label: "Oscuro",  Icon: Moon },
   { id: "slate",  label: "Slate",   Icon: Layers },
   { id: "glass",  label: "Cristal", Icon: Droplets },
 ];

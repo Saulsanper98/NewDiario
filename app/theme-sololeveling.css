@@ -91,11 +91,11 @@ html[data-theme="sololeveling"] .glass-shell-frame {
 }
 html[data-theme="sololeveling"] .glass-shell-inner {
   border-radius: 26px;
-  background: rgba(8, 14, 32, 0.55);
+  background: rgba(8, 14, 32, 0.20);
   /* Backdrop-blur sutil: la imagen se intuye detrás del shell sin
    * dominar visualmente la zona de lectura. */
-  backdrop-filter: blur(6px) saturate(1.05);
-  -webkit-backdrop-filter: blur(6px) saturate(1.05);
+  backdrop-filter: blur(24px) saturate(1.20) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(1.20) !important;
   overflow: hidden;
   padding: 18px;
 }
