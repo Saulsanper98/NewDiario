@@ -229,10 +229,13 @@ html[data-theme="itachi"] .itachi-image {
   100% { transform: translateZ(0) scale(1.04) translate(0.6%, 0.3%); }
 }
 
-/* — b) Glow alrededor de la luna (centro-izquierda) — */
+/* — b) Halo alrededor de la luna (centro-izquierda) —
+ *
+ *   Dos capas concéntricas: la interna intensa (calor) y la externa
+ *   muy difusa (atmósfera). Pulsan en contrafase para que la luna
+ *   parezca respirar. */
 html[data-theme="itachi"] .itachi-moon-glow {
   position: absolute;
-  /* Ajustado a la posición de la luna en la imagen original. */
   left: 18%;
   top: 50%;
   width: 28vw;
@@ -243,17 +246,45 @@ html[data-theme="itachi"] .itachi-moon-glow {
   border-radius: 50%;
   background:
     radial-gradient(circle at center,
-      rgba(255, 220, 200, 0.32) 0%,
-      rgba(255, 130, 120, 0.18) 22%,
-      rgba(225, 60, 60, 0.10)   45%,
+      rgba(255, 220, 200, 0.40) 0%,
+      rgba(255, 130, 120, 0.22) 22%,
+      rgba(225, 60, 60, 0.12)   45%,
       transparent                70%);
   filter: blur(14px);
   mix-blend-mode: screen;
   animation: itachi-moon-pulse 7.5s ease-in-out infinite;
 }
+/* Halo exterior más amplio: un segundo "respiro" rojo que abraza la
+ * luna y la funde con el cielo. Posicionado y dimensionado por encima
+ * (~doble) y con menos opacidad para no saturar. */
+html[data-theme="itachi"] .itachi-moon-halo {
+  position: absolute;
+  left: 18%;
+  top: 50%;
+  width: 60vw;
+  height: 60vw;
+  max-width: 720px;
+  max-height: 720px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at center,
+      rgba(255, 80, 80, 0.18) 0%,
+      rgba(225, 50, 50, 0.10) 18%,
+      rgba(160, 24, 30, 0.05) 40%,
+      transparent              65%);
+  filter: blur(36px);
+  mix-blend-mode: screen;
+  animation: itachi-moon-halo-pulse 11s ease-in-out infinite;
+  pointer-events: none;
+}
 @keyframes itachi-moon-pulse {
-  0%, 100% { opacity: 0.78; transform: translate(-50%, -50%) scale(1.00); }
+  0%, 100% { opacity: 0.82; transform: translate(-50%, -50%) scale(1.00); }
   50%      { opacity: 1.00; transform: translate(-50%, -50%) scale(1.06); }
+}
+@keyframes itachi-moon-halo-pulse {
+  0%, 100% { opacity: 0.65; transform: translate(-50%, -50%) scale(1.00); }
+  50%      { opacity: 0.90; transform: translate(-50%, -50%) scale(1.04); }
 }
 
 /* — c) Viñeta principal (oscurece bordes, calma la zona de lectura) — */
@@ -283,12 +314,6 @@ html[data-theme="itachi"] .itachi-crow {
   will-change: transform, opacity;
 }
 
-@keyframes itachi-crow-fly {
-  0%   { transform: translate3d(-15vw, 0, 0) scale(var(--crow-scale, 1)); opacity: 0; }
-  8%   { opacity: 0.85; }
-  92%  { opacity: 0.85; }
-  100% { transform: translate3d(115vw, var(--crow-drift, -10vh), 0) scale(var(--crow-scale, 1)); opacity: 0; }
-}
 @keyframes itachi-crow-flap {
   0%   { transform-origin: center; }
   /* El "flap" se aplica como mini scaleY al SVG anidado vía clase
@@ -304,42 +329,67 @@ html[data-theme="itachi"] .itachi-crow-wings {
   100% { transform: scaleY(0.55); }
 }
 
-/* Posiciones e intensidades por cuervo. Determinísticas. */
+/* Posiciones por cuervo: TODOS lejanos (tamaños pequeños) y SIEMPRE
+ * arriba del 25% para no cruzar nunca por delante de Itachi (que ocupa
+ * el cuadrante centro-inferior de la imagen). Determinísticas. */
 html[data-theme="itachi"] .itachi-crow-1 {
-  top: 18%;
-  --crow-size: 64px;
-  --crow-duration: 24s;
+  top: 6%;
+  --crow-size: 32px;
+  --crow-duration: 38s;
   --crow-delay: -4s;
   --crow-flap-delay: -0.1s;
-  --crow-drift: -6vh;
-  --crow-scale: 1;
-}
-html[data-theme="itachi"] .itachi-crow-2 {
-  top: 52%;
-  --crow-size: 44px;
-  --crow-duration: 32s;
-  --crow-delay: -14s;
-  --crow-flap-delay: -0.2s;
-  --crow-drift: 4vh;
+  --crow-drift: -3vh;
   --crow-scale: 0.85;
 }
+html[data-theme="itachi"] .itachi-crow-2 {
+  top: 12%;
+  --crow-size: 26px;
+  --crow-duration: 48s;
+  --crow-delay: -18s;
+  --crow-flap-delay: -0.2s;
+  --crow-drift: 2vh;
+  --crow-scale: 0.7;
+}
 html[data-theme="itachi"] .itachi-crow-3 {
-  top: 70%;
-  --crow-size: 80px;
-  --crow-duration: 28s;
-  --crow-delay: -22s;
+  top: 18%;
+  --crow-size: 38px;
+  --crow-duration: 32s;
+  --crow-delay: -28s;
   --crow-flap-delay: 0s;
-  --crow-drift: -3vh;
-  --crow-scale: 1.1;
+  --crow-drift: -1vh;
+  --crow-scale: 0.9;
 }
 html[data-theme="itachi"] .itachi-crow-4 {
-  top: 32%;
-  --crow-size: 36px;
-  --crow-duration: 36s;
+  top: 22%;
+  --crow-size: 22px;
+  --crow-duration: 56s;
   --crow-delay: -9s;
   --crow-flap-delay: -0.3s;
-  --crow-drift: 8vh;
-  --crow-scale: 0.7;
+  --crow-drift: 3vh;
+  --crow-scale: 0.6;
+}
+html[data-theme="itachi"] .itachi-crow-5 {
+  top: 4%;
+  --crow-size: 30px;
+  --crow-duration: 44s;
+  --crow-delay: -36s;
+  --crow-flap-delay: -0.15s;
+  --crow-drift: 0vh;
+  --crow-scale: 0.8;
+}
+
+/* Los cuervos lejanos también necesitan opacity más baja y un toque
+ * más oscuro para que parezcan estar a kilómetros: pierden contraste
+ * con la atmósfera roja del cielo. */
+html[data-theme="itachi"] .itachi-crow {
+  opacity: 0;
+  filter: drop-shadow(0 0 4px rgba(80, 10, 12, 0.5));
+}
+@keyframes itachi-crow-fly {
+  0%   { transform: translate3d(-15vw, 0, 0) scale(var(--crow-scale, 1)); opacity: 0; }
+  10%  { opacity: 0.55; }
+  92%  { opacity: 0.55; }
+  100% { transform: translate3d(115vw, var(--crow-drift, -10vh), 0) scale(var(--crow-scale, 1)); opacity: 0; }
 }
 
 /* — e) Ascuas/partículas rojas flotando — */
@@ -431,6 +481,7 @@ html[data-theme="itachi"] :focus-visible {
 @media (prefers-reduced-motion: reduce) {
   html[data-theme="itachi"] .itachi-image,
   html[data-theme="itachi"] .itachi-moon-glow,
+  html[data-theme="itachi"] .itachi-moon-halo,
   html[data-theme="itachi"] .itachi-crow,
   html[data-theme="itachi"] .itachi-crow-wings,
   html[data-theme="itachi"] .itachi-ember {
@@ -462,9 +513,166 @@ html[data-theme="itachi"] :focus-visible {
     left: 22%;
     top: 48%;
   }
+  html[data-theme="itachi"] .itachi-moon-halo {
+    /* En mobile el halo exterior molesta, lo reducimos. */
+    width: 95vw;
+    height: 95vw;
+    left: 22%;
+    top: 48%;
+    opacity: 0.55;
+  }
   /* Reducimos cuervos a 2 en mobile (los más rápidos). */
-  html[data-theme="itachi"] .itachi-crow-3,
-  html[data-theme="itachi"] .itachi-crow-4 {
+  html[data-theme="itachi"] .itachi-crow-4,
+  html[data-theme="itachi"] .itachi-crow-5 {
     display: none;
   }
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                6.  CHROME · sidebar + header + theme selector             ║
+ * ║                                                                          ║
+ * ║   Las superficies del chrome (.app-sidebar-shell, .app-top-header)      ║
+ * ║   por defecto en globals.css tienen un cristal blanco neutro. En este   ║
+ * ║   tema los queremos en carbón rojizo: sangre apagada con un velo de    ║
+ * ║   noche, para fundirse con la imagen de fondo.                          ║
+ * ║                                                                          ║
+ * ║   Cubrimos:                                                              ║
+ * ║     · Sidebar colapsado (w-16, 64px).                                   ║
+ * ║     · Sidebar expandido normal.                                         ║
+ * ║     · Sidebar expandido modo "smart-overlay" (sidebar-expanded-solid). ║
+ * ║     · Header.                                                            ║
+ * ║     · Theme selector (popover).                                          ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+/* Sidebar — base con halos rojizos. Aplica a TODOS los estados:
+ *   · w-16  → rail colapsado (todos los modos cuando no expandido).
+ *   · w-60  → expandido fijo (modo "Siempre expandido").
+ *   · w-60 + sidebar-expanded-solid → expandido overlay (modo "Automático" hover).
+ *
+ * Las capas son (compositadas de arriba abajo):
+ *   1) Halo radial rojizo en la esquina superior-izquierda (brasa).
+ *   2) Tinte diagonal de calor descendente.
+ *   3) Base carbón rojizo translúcida que deja respirar la imagen. */
+/* IMPORTANTE: globals.css tiene una regla con `!important` en
+ * `.app-sidebar-shell.sidebar-expanded-solid` que pisa cualquier
+ * fondo de tema sin `!important`. Por eso aquí forzamos `!important`
+ * en background y backdrop-filter del sidebar y derivados. */
+html[data-theme="itachi"] .app-sidebar-shell {
+  background:
+    radial-gradient(
+      ellipse 70% 55% at 0% 0%,
+      rgba(214, 52, 58, 0.22) 0%,
+      rgba(214, 52, 58, 0.08) 35%,
+      rgba(0, 0, 0, 0.0) 65%
+    ),
+    linear-gradient(
+      155deg,
+      rgba(180, 32, 38, 0.14) 0%,
+      rgba(80, 14, 18, 0.05) 45%,
+      rgba(0, 0, 0, 0.0) 100%
+    ),
+    linear-gradient(
+      180deg,
+      rgba(22, 7, 9, 0.74) 0%,
+      rgba(28, 9, 12, 0.78) 50%,
+      rgba(36, 10, 14, 0.82) 100%
+    ) !important;
+  border-right: 1px solid rgba(214, 52, 58, 0.20);
+  box-shadow:
+    inset -1px 0 0 rgba(214, 52, 58, 0.18),
+    inset 1px 0 0 rgba(255, 75, 85, 0.06),
+    inset 0 1px 0 rgba(255, 75, 85, 0.08),
+    4px 0 22px rgba(0, 0, 0, 0.45),
+    14px 0 80px rgba(214, 52, 58, 0.08);
+  backdrop-filter: blur(24px) saturate(1.18) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(1.18) !important;
+}
+
+/* Cuando está EXPANDIDO (fijo o por hover overlay) la sidebar es ancha y
+ * cubre más superficie de pantalla. Aumentamos la opacidad de la base e
+ * intensificamos los halos para que el panel respire mejor el tema y NO
+ * se vea como un bloque negro plano. Cubre los DOS modos:
+ *   · `.w-60`                → modo "Siempre expandido".
+ *   · `.sidebar-expanded-solid` → modo "Automático" con hover.
+ */
+html[data-theme="itachi"] .app-sidebar-shell.w-60,
+html[data-theme="itachi"] .app-sidebar-shell.sidebar-expanded-solid {
+  background:
+    radial-gradient(
+      ellipse 75% 60% at 0% 0%,
+      rgba(214, 52, 58, 0.28) 0%,
+      rgba(214, 52, 58, 0.12) 35%,
+      rgba(0, 0, 0, 0.0) 65%
+    ),
+    linear-gradient(
+      155deg,
+      rgba(180, 32, 38, 0.22) 0%,
+      rgba(80, 14, 18, 0.08) 45%,
+      rgba(0, 0, 0, 0.0) 100%
+    ),
+    linear-gradient(
+      180deg,
+      rgba(28, 9, 12, 0.88) 0%,
+      rgba(34, 11, 15, 0.90) 50%,
+      rgba(42, 12, 16, 0.92) 100%
+    ) !important;
+  box-shadow:
+    inset -1px 0 0 rgba(214, 52, 58, 0.26),
+    inset 1px 0 0 rgba(255, 75, 85, 0.10),
+    inset 0 1px 0 rgba(255, 75, 85, 0.12),
+    8px 0 36px rgba(0, 0, 0, 0.55),
+    14px 0 80px rgba(214, 52, 58, 0.14);
+  backdrop-filter: blur(28px) saturate(1.22) !important;
+  -webkit-backdrop-filter: blur(28px) saturate(1.22) !important;
+}
+
+html[data-theme="itachi"] .app-top-header {
+  background:
+    linear-gradient(
+      180deg,
+      rgba(22, 6, 9, 0.74) 0%,
+      rgba(20, 6, 9, 0.62) 100%
+    );
+  border-bottom: 1px solid rgba(214, 52, 58, 0.15);
+  box-shadow:
+    inset 0 -1px 0 rgba(255, 75, 85, 0.08),
+    0 4px 22px rgba(0, 0, 0, 0.40);
+  backdrop-filter: blur(22px) saturate(1.1);
+  -webkit-backdrop-filter: blur(22px) saturate(1.1);
+}
+
+/* Bordes interiores de bloques en la sidebar (separadores .border-t). */
+html[data-theme="itachi"] .app-sidebar-shell .border-t {
+  border-top-color: rgba(214, 52, 58, 0.16) !important;
+}
+/* Logo/cabecera del menú expandido (Tailwind .bg-white\/5). */
+html[data-theme="itachi"] .app-sidebar-shell .bg-white\/5 {
+  background-color: rgba(214, 52, 58, 0.06) !important;
+}
+
+/* Theme selector — overrideamos el background inline con !important. */
+html[data-theme="itachi"] #theme-selector-panel {
+  background:
+    linear-gradient(
+      150deg,
+      rgba(214, 52, 58, 0.07) 0%,
+      rgba(0, 0, 0, 0.0) 50%
+    ),
+    linear-gradient(
+      180deg,
+      rgba(20, 6, 8, 0.96) 0%,
+      rgba(28, 8, 11, 0.98) 100%
+    ) !important;
+  border-color: rgba(214, 52, 58, 0.28) !important;
+  box-shadow:
+    0 16px 48px rgba(0, 0, 0, 0.65),
+    0 0 0 1px rgba(214, 52, 58, 0.18),
+    inset 0 1px 0 rgba(255, 75, 85, 0.10) !important;
+}
+
+/* El input de búsqueda y la barra superior del panel cogen también
+ * un tinte rojizo al hacer focus. */
+html[data-theme="itachi"] #theme-selector-panel input:focus {
+  outline-color: rgba(214, 52, 58, 0.55);
 }

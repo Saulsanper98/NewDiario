@@ -264,39 +264,229 @@ html[data-theme="amegakure"] .ame-vignette-soft {
       rgba(0, 0, 0, 0.55) 100%);
 }
 
-/* — d) Lluvia diagonal cyan —
+/* — d) Lluvia neón con TRES capas de profundidad + streaks + splashes —
  *
- *   Implementada como dos `repeating-linear-gradient` superpuestos con
- *   tamaños y velocidades distintas (parallax de capas). El movimiento
- *   se hace con background-position en animación lineal. */
+ *   ╭───────────────────────────────────────────────────────────────────╮
+ *   │ Cada capa usa un SVG inline distinto donde cada gota es una <line>│
+ *   │ con stroke-gradient vertical (cabeza brillante → cola translúcida)│
+ *   │ — esto da el aspecto "bala de lluvia" real, no rayas planas.      │
+ *   │                                                                   │
+ *   │ Las tres capas tienen densidad, tamaño y velocidad diferentes:    │
+ *   │   far  → muchas gotas finas, lentas, con blur (atmósfera).        │
+ *   │   mid  → gotas medianas, velocidad media (cuerpo de la lluvia).   │
+ *   │   near → pocas gotas gruesas y muy brillantes (primer plano).     │
+ *   │                                                                   │
+ *   │ Además:                                                           │
+ *   │   streaks → rayas largas brillantes ocasionales (flash de luz).   │
+ *   │   splashes → halos cyan en la base (impactos).                    │
+ *   │   glow → tinte cyan sutil que une las tres capas.                 │
+ *   │                                                                   │
+ *   │ Cada capa tiene un slight `rotate()` para inclinar la lluvia: las │
+ *   │ líneas SVG son verticales (loop perfecto en background-position-y)│
+ *   │ y la rotación las inclina sin romper el ciclo.                    │
+ *   ╰───────────────────────────────────────────────────────────────────╯ */
 html[data-theme="amegakure"] .ame-rain {
   position: absolute;
-  inset: -50%;
-  width: 200%;
-  height: 200%;
-  background-image:
-    repeating-linear-gradient(
-      105deg,
-      rgba(0, 224, 255, 0.0) 0px,
-      rgba(0, 224, 255, 0.0) 6px,
-      rgba(120, 230, 255, 0.18) 7px,
-      rgba(0, 224, 255, 0.0) 8px
-    ),
-    repeating-linear-gradient(
-      105deg,
-      rgba(255, 255, 255, 0.0) 0px,
-      rgba(255, 255, 255, 0.0) 14px,
-      rgba(255, 255, 255, 0.10) 15px,
-      rgba(255, 255, 255, 0.0) 16px
-    );
-  animation: ame-rain-fall 1.6s linear infinite;
-  opacity: 0.7;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  mix-blend-mode: screen;
+}
+
+html[data-theme="amegakure"] .ame-rain-layer {
+  position: absolute;
+  /* Más grande que la pantalla porque la rotación recorta las esquinas. */
+  inset: -25% -25% -25% -25%;
+  background-repeat: repeat;
+  will-change: background-position;
+}
+
+/* CAPA LEJANA — atmósfera. Densa pero apenas visible. */
+html[data-theme="amegakure"] .ame-rain-far {
+  transform: rotate(7deg);
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='320' height='480' viewBox='0 0 320 480'><defs><linearGradient id='g' x1='0' y1='0' x2='0' y2='1'><stop offset='0%25' stop-color='%23bfe6ff' stop-opacity='0'/><stop offset='55%25' stop-color='%23bfe6ff' stop-opacity='0.08'/><stop offset='100%25' stop-color='%23ffffff' stop-opacity='0.32'/></linearGradient></defs><g stroke='url(%23g)' stroke-linecap='round'><line x1='12' y1='0' x2='12' y2='34' stroke-width='0.7'/><line x1='40' y1='90' x2='40' y2='128' stroke-width='0.7'/><line x1='72' y1='30' x2='72' y2='62' stroke-width='0.6'/><line x1='98' y1='200' x2='98' y2='238' stroke-width='0.7'/><line x1='128' y1='60' x2='128' y2='100' stroke-width='0.7'/><line x1='154' y1='280' x2='154' y2='314' stroke-width='0.6'/><line x1='180' y1='10' x2='180' y2='44' stroke-width='0.7'/><line x1='204' y1='340' x2='204' y2='378' stroke-width='0.7'/><line x1='234' y1='150' x2='234' y2='184' stroke-width='0.6'/><line x1='264' y1='220' x2='264' y2='256' stroke-width='0.7'/><line x1='292' y1='80' x2='292' y2='116' stroke-width='0.6'/><line x1='22' y1='400' x2='22' y2='436' stroke-width='0.7'/><line x1='58' y1='340' x2='58' y2='374' stroke-width='0.7'/><line x1='86' y1='400' x2='86' y2='438' stroke-width='0.6'/><line x1='118' y1='360' x2='118' y2='394' stroke-width='0.7'/><line x1='142' y1='420' x2='142' y2='456' stroke-width='0.7'/><line x1='168' y1='150' x2='168' y2='190' stroke-width='0.6'/><line x1='194' y1='250' x2='194' y2='282' stroke-width='0.7'/><line x1='220' y1='420' x2='220' y2='458' stroke-width='0.7'/><line x1='250' y1='370' x2='250' y2='402' stroke-width='0.6'/><line x1='278' y1='160' x2='278' y2='198' stroke-width='0.7'/><line x1='306' y1='280' x2='306' y2='318' stroke-width='0.7'/></g></svg>");
+  background-size: 320px 480px;
+  filter: blur(0.5px);
+  opacity: 0.55;
+  animation: ame-rain-far 2.6s linear infinite;
+}
+
+/* CAPA MEDIA — el cuerpo de la lluvia. */
+html[data-theme="amegakure"] .ame-rain-mid {
+  transform: rotate(9deg);
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='280' height='420' viewBox='0 0 280 420'><defs><linearGradient id='g' x1='0' y1='0' x2='0' y2='1'><stop offset='0%25' stop-color='%23dff4ff' stop-opacity='0'/><stop offset='45%25' stop-color='%23dff4ff' stop-opacity='0.18'/><stop offset='100%25' stop-color='%23ffffff' stop-opacity='0.62'/></linearGradient></defs><g stroke='url(%23g)' stroke-linecap='round'><line x1='18' y1='10' x2='18' y2='58' stroke-width='1.05'/><line x1='52' y1='160' x2='52' y2='210' stroke-width='1'/><line x1='90' y1='90' x2='90' y2='140' stroke-width='1.1'/><line x1='124' y1='250' x2='124' y2='300' stroke-width='1'/><line x1='160' y1='30' x2='160' y2='82' stroke-width='1.1'/><line x1='196' y1='340' x2='196' y2='388' stroke-width='1.05'/><line x1='232' y1='180' x2='232' y2='230' stroke-width='1.1'/><line x1='264' y1='80' x2='264' y2='128' stroke-width='1'/><line x1='34' y1='280' x2='34' y2='324' stroke-width='1.05'/><line x1='72' y1='370' x2='72' y2='414' stroke-width='1'/><line x1='110' y1='200' x2='110' y2='246' stroke-width='1.1'/><line x1='148' y1='370' x2='148' y2='416' stroke-width='1'/><line x1='178' y1='130' x2='178' y2='176' stroke-width='1.1'/><line x1='214' y1='80' x2='214' y2='130' stroke-width='1.05'/><line x1='248' y1='298' x2='248' y2='344' stroke-width='1.1'/></g></svg>");
+  background-size: 280px 420px;
+  opacity: 0.78;
+  animation: ame-rain-mid 1.55s linear infinite;
+}
+
+/* CAPA CERCANA — pocas gotas, gruesas, brillantes; el primer plano. */
+html[data-theme="amegakure"] .ame-rain-near {
+  transform: rotate(11deg);
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='400' viewBox='0 0 240 400'><defs><linearGradient id='g' x1='0' y1='0' x2='0' y2='1'><stop offset='0%25' stop-color='%23ffffff' stop-opacity='0'/><stop offset='40%25' stop-color='%23eaf8ff' stop-opacity='0.30'/><stop offset='100%25' stop-color='%23ffffff' stop-opacity='0.95'/></linearGradient></defs><g stroke='url(%23g)' stroke-linecap='round'><line x1='30' y1='40' x2='30' y2='100' stroke-width='1.7'/><line x1='90' y1='180' x2='90' y2='240' stroke-width='1.5'/><line x1='150' y1='60' x2='150' y2='118' stroke-width='1.7'/><line x1='200' y1='280' x2='200' y2='338' stroke-width='1.6'/><line x1='62' y1='320' x2='62' y2='378' stroke-width='1.5'/><line x1='124' y1='340' x2='124' y2='398' stroke-width='1.7'/><line x1='176' y1='150' x2='176' y2='210' stroke-width='1.5'/><line x1='220' y1='110' x2='220' y2='170' stroke-width='1.6'/></g></svg>");
+  background-size: 240px 400px;
+  opacity: 0.85;
+  animation: ame-rain-near 0.85s linear infinite;
+}
+
+/* Loops perfectos: el desplazamiento Y es múltiplo exacto de la altura
+ * del SVG (480/420/400) por lo que en el reset no hay salto visible. */
+@keyframes ame-rain-far  { from { background-position: 0 0; } to { background-position: 0 480px; } }
+@keyframes ame-rain-mid  { from { background-position: 0 0; } to { background-position: 0 420px; } }
+@keyframes ame-rain-near { from { background-position: 0 0; } to { background-position: 0 400px; } }
+
+/* — d.bis) Streaks brillantes —
+ *
+ *   Tres rayas largas vertical-diagonales que aparecen brevemente,
+ *   simulando el destello de una gota grande pasando por delante de un
+ *   neón. Cada streak con su delay primo para que NUNCA coincidan. */
+html[data-theme="amegakure"] .ame-rain-streak {
+  position: absolute;
+  width: 2px;
+  border-radius: 2px;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(220, 245, 255, 0.55) 30%,
+    rgba(255, 255, 255, 1) 95%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  filter: drop-shadow(0 0 6px rgba(0, 224, 255, 0.8))
+          drop-shadow(0 0 12px rgba(120, 230, 255, 0.45));
+  opacity: 0;
+  pointer-events: none;
+  will-change: transform, opacity;
+  mix-blend-mode: screen;
+}
+html[data-theme="amegakure"] .ame-rain-streak-1 {
+  top: -20vh;
+  left: 18%;
+  height: 110px;
+  transform: rotate(11deg);
+  animation: ame-streak-fall 4.3s ease-in 0.6s infinite;
+}
+html[data-theme="amegakure"] .ame-rain-streak-2 {
+  top: -20vh;
+  left: 56%;
+  height: 140px;
+  transform: rotate(11deg);
+  animation: ame-streak-fall 5.7s ease-in 2.1s infinite;
+}
+html[data-theme="amegakure"] .ame-rain-streak-3 {
+  top: -20vh;
+  left: 78%;
+  height: 90px;
+  transform: rotate(11deg);
+  animation: ame-streak-fall 3.9s ease-in 3.4s infinite;
+}
+@keyframes ame-streak-fall {
+  0%   { transform: rotate(11deg) translate3d(0, 0, 0);     opacity: 0; }
+  4%   { opacity: 0.9; }
+  92%  { opacity: 0.7; }
+  100% { transform: rotate(11deg) translate3d(0, 130vh, 0); opacity: 0; }
+}
+
+/* — d.ter) Splashes en el suelo virtual —
+ *
+ *   Anillos cyan que se expanden y desvanecen en la franja inferior
+ *   (top 75-95%). Sugieren impactos de gotas en una superficie. */
+html[data-theme="amegakure"] .ame-splash {
+  position: absolute;
+  width: 24px;
+  height: 5px;
+  border-radius: 50%;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(180, 240, 255, 0.85) 0%,
+    rgba(0, 224, 255, 0.55) 40%,
+    rgba(0, 224, 255, 0) 80%
+  );
+  filter: blur(0.6px);
+  opacity: 0;
+  mix-blend-mode: screen;
+  pointer-events: none;
+  will-change: transform, opacity;
+}
+@keyframes ame-splash-pop {
+  0%   { transform: scale(0.4, 0.4); opacity: 0; }
+  10%  { opacity: 0.95; }
+  60%  { opacity: 0.45; }
+  100% { transform: scale(2.6, 1.6); opacity: 0; }
+}
+html[data-theme="amegakure"] .ame-splash-1 { top: 78%; left: 12%; animation: ame-splash-pop 2.1s ease-out 0.0s infinite; }
+html[data-theme="amegakure"] .ame-splash-2 { top: 84%; left: 28%; animation: ame-splash-pop 1.9s ease-out 0.7s infinite; }
+html[data-theme="amegakure"] .ame-splash-3 { top: 80%; left: 44%; animation: ame-splash-pop 2.4s ease-out 1.3s infinite; }
+html[data-theme="amegakure"] .ame-splash-4 { top: 88%; left: 60%; animation: ame-splash-pop 1.7s ease-out 0.4s infinite; }
+html[data-theme="amegakure"] .ame-splash-5 { top: 82%; left: 76%; animation: ame-splash-pop 2.2s ease-out 1.6s infinite; }
+html[data-theme="amegakure"] .ame-splash-6 { top: 86%; left: 90%; animation: ame-splash-pop 2.0s ease-out 0.9s infinite; }
+
+/* — d.quater) Tinte cyan sutil que une las tres capas — */
+html[data-theme="amegakure"] .ame-rain-glow {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(0, 180, 230, 0.05) 0%,
+    rgba(0, 180, 230, 0.02) 40%,
+    rgba(120, 60, 180, 0.04) 100%
+  );
   mix-blend-mode: screen;
   pointer-events: none;
 }
-@keyframes ame-rain-fall {
-  0%   { background-position: 0 0, 0 0; }
-  100% { background-position: -120px 320px, -200px 540px; }
+
+/* — d.quinquies) Rayos lejanos —
+ *
+ *   Flashes blancos/cyan ocasionales que iluminan brevemente toda la
+ *   pantalla. Usamos dos rayos con `animation-delay` y `animation-iteration`
+ *   primos para que se sientan naturales y aleatorios.
+ *
+ *   Cada rayo es un degradado radial que cubre toda la pantalla y
+ *   pulsa muy brevemente (~0.12s on → 0.18s off) y luego espera
+ *   12-22s. La duración total del ciclo (24-32s) es lo suficientemente
+ *   larga como para que el usuario no perciba ritmo. */
+html[data-theme="amegakure"] .ame-lightning {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse at 70% 20%,
+    rgba(180, 240, 255, 0.85) 0%,
+    rgba(120, 230, 255, 0.45) 25%,
+    rgba(0, 224, 255, 0.18) 50%,
+    rgba(0, 0, 0, 0) 75%
+  );
+  opacity: 0;
+  mix-blend-mode: screen;
+  pointer-events: none;
+  will-change: opacity;
+}
+html[data-theme="amegakure"] .ame-lightning-1 {
+  animation: ame-lightning-flash-a 23s linear 7s infinite;
+}
+html[data-theme="amegakure"] .ame-lightning-2 {
+  background: radial-gradient(
+    ellipse at 25% 30%,
+    rgba(220, 200, 255, 0.75) 0%,
+    rgba(180, 120, 255, 0.4) 30%,
+    rgba(120, 60, 200, 0.15) 55%,
+    rgba(0, 0, 0, 0) 80%
+  );
+  animation: ame-lightning-flash-b 31s linear 14s infinite;
+}
+@keyframes ame-lightning-flash-a {
+  0%,    99%   { opacity: 0; }
+  /* Pulso doble corto típico de rayo. */
+  0.2%,  1.4%  { opacity: 0.0; }
+  0.4%         { opacity: 0.85; }
+  0.7%         { opacity: 0.10; }
+  1.0%         { opacity: 0.55; }
+  1.6%         { opacity: 0.0; }
+}
+@keyframes ame-lightning-flash-b {
+  0%,   99%    { opacity: 0; }
+  0.4%         { opacity: 0.65; }
+  0.8%         { opacity: 0.05; }
+  1.2%         { opacity: 0.40; }
+  1.7%         { opacity: 0.0; }
 }
 
 /* — e) Chispas magenta ascendentes — */
@@ -377,7 +567,12 @@ html[data-theme="amegakure"] :focus-visible {
 @media (prefers-reduced-motion: reduce) {
   html[data-theme="amegakure"] .ame-image,
   html[data-theme="amegakure"] .ame-flicker,
-  html[data-theme="amegakure"] .ame-rain,
+  html[data-theme="amegakure"] .ame-rain-far,
+  html[data-theme="amegakure"] .ame-rain-mid,
+  html[data-theme="amegakure"] .ame-rain-near,
+  html[data-theme="amegakure"] .ame-rain-streak,
+  html[data-theme="amegakure"] .ame-splash,
+  html[data-theme="amegakure"] .ame-lightning,
   html[data-theme="amegakure"] .ame-spark {
     animation: none !important;
   }
@@ -399,10 +594,152 @@ html[data-theme="amegakure"] :focus-visible {
     /* En mobile centramos en la zona de carteles + skyline. */
     background-position: 55% 40%;
   }
-  /* Reducimos densidad de partículas. */
+  /* Reducimos densidad de partículas y splashes en mobile. */
   html[data-theme="amegakure"] .ame-spark-3,
   html[data-theme="amegakure"] .ame-spark-5,
-  html[data-theme="amegakure"] .ame-spark-7 {
+  html[data-theme="amegakure"] .ame-spark-7,
+  html[data-theme="amegakure"] .ame-splash-2,
+  html[data-theme="amegakure"] .ame-splash-4,
+  html[data-theme="amegakure"] .ame-splash-6,
+  html[data-theme="amegakure"] .ame-rain-streak-2 {
     display: none;
   }
+  /* En pantallas pequeñas, la capa lejana satura demasiado: la apagamos
+   * y dejamos solo media + cercana. */
+  html[data-theme="amegakure"] .ame-rain-far {
+    opacity: 0.30;
+  }
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                6.  CHROME · sidebar + header + theme selector             ║
+ * ║                                                                          ║
+ * ║   Tinte noche-violeta con halo cyan/magenta para fundir el chrome con   ║
+ * ║   los neones de la imagen. La paleta es la inversa al tema Itachi (que ║
+ * ║   tiene paleta cálida): aquí frío profundo + halo eléctrico.            ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+/* Sidebar — base con halos cyan/magenta. Aplica a TODOS los estados
+ * (rail colapsado, expandido fijo y expandido overlay). Tres capas:
+ *   1) Halo cyan radial arriba-izquierda (eco del cartel cyan grande).
+ *   2) Halo magenta radial abajo-derecha (firma cyberpunk).
+ *   3) Base noche-violeta translúcida. */
+/* IMPORTANTE: globals.css tiene una regla con `!important` en
+ * `.app-sidebar-shell.sidebar-expanded-solid` que pisa cualquier
+ * fondo de tema. Forzamos `!important` aquí también. */
+html[data-theme="amegakure"] .app-sidebar-shell {
+  background:
+    radial-gradient(
+      ellipse 70% 55% at 0% 0%,
+      rgba(0, 224, 255, 0.20) 0%,
+      rgba(0, 224, 255, 0.06) 35%,
+      rgba(0, 0, 0, 0.0) 65%
+    ),
+    radial-gradient(
+      ellipse 70% 55% at 100% 100%,
+      rgba(255, 75, 200, 0.14) 0%,
+      rgba(180, 60, 200, 0.04) 35%,
+      rgba(0, 0, 0, 0.0) 65%
+    ),
+    linear-gradient(
+      180deg,
+      rgba(16, 9, 32, 0.74) 0%,
+      rgba(20, 11, 40, 0.78) 50%,
+      rgba(26, 13, 48, 0.82) 100%
+    ) !important;
+  border-right: 1px solid rgba(0, 224, 255, 0.22);
+  box-shadow:
+    inset -1px 0 0 rgba(0, 224, 255, 0.20),
+    inset 1px 0 0 rgba(255, 75, 200, 0.06),
+    inset 0 1px 0 rgba(0, 224, 255, 0.10),
+    4px 0 22px rgba(0, 0, 0, 0.45),
+    14px 0 80px rgba(0, 224, 255, 0.10);
+  backdrop-filter: blur(24px) saturate(1.20) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(1.20) !important;
+}
+
+html[data-theme="amegakure"] .app-sidebar-shell.w-60,
+html[data-theme="amegakure"] .app-sidebar-shell.sidebar-expanded-solid {
+  background:
+    radial-gradient(
+      ellipse 75% 60% at 0% 0%,
+      rgba(0, 224, 255, 0.26) 0%,
+      rgba(0, 224, 255, 0.10) 35%,
+      rgba(0, 0, 0, 0.0) 65%
+    ),
+    radial-gradient(
+      ellipse 75% 60% at 100% 100%,
+      rgba(255, 75, 200, 0.20) 0%,
+      rgba(180, 60, 200, 0.08) 35%,
+      rgba(0, 0, 0, 0.0) 65%
+    ),
+    linear-gradient(
+      180deg,
+      rgba(20, 11, 40, 0.86) 0%,
+      rgba(24, 13, 48, 0.88) 50%,
+      rgba(30, 15, 56, 0.90) 100%
+    ) !important;
+  box-shadow:
+    inset -1px 0 0 rgba(0, 224, 255, 0.30),
+    inset 1px 0 0 rgba(255, 75, 200, 0.10),
+    inset 0 1px 0 rgba(0, 224, 255, 0.14),
+    8px 0 36px rgba(0, 0, 0, 0.55),
+    14px 0 80px rgba(0, 224, 255, 0.16),
+    14px 0 160px rgba(255, 75, 200, 0.10);
+  backdrop-filter: blur(28px) saturate(1.28) !important;
+  -webkit-backdrop-filter: blur(28px) saturate(1.28) !important;
+}
+
+html[data-theme="amegakure"] .app-top-header {
+  background:
+    linear-gradient(
+      90deg,
+      rgba(14, 8, 28, 0.68) 0%,
+      rgba(18, 10, 36, 0.62) 50%,
+      rgba(28, 14, 48, 0.66) 100%
+    );
+  border-bottom: 1px solid rgba(0, 224, 255, 0.18);
+  box-shadow:
+    inset 0 -1px 0 rgba(255, 75, 200, 0.10),
+    0 4px 22px rgba(0, 0, 0, 0.40),
+    0 8px 60px rgba(0, 224, 255, 0.06);
+  backdrop-filter: blur(22px) saturate(1.15);
+  -webkit-backdrop-filter: blur(22px) saturate(1.15);
+}
+
+html[data-theme="amegakure"] .app-sidebar-shell .border-t {
+  border-top-color: rgba(0, 224, 255, 0.16) !important;
+}
+html[data-theme="amegakure"] .app-sidebar-shell .bg-white\/5 {
+  background-color: rgba(0, 224, 255, 0.06) !important;
+}
+
+html[data-theme="amegakure"] #theme-selector-panel {
+  background:
+    /* Halo cyan→magenta diagonal. */
+    linear-gradient(
+      150deg,
+      rgba(0, 224, 255, 0.08) 0%,
+      rgba(0, 0, 0, 0.0) 35%,
+      rgba(255, 75, 200, 0.06) 100%
+    ),
+    /* Base noche violeta. */
+    linear-gradient(
+      180deg,
+      rgba(14, 8, 28, 0.96) 0%,
+      rgba(20, 12, 40, 0.98) 100%
+    ) !important;
+  border-color: rgba(0, 224, 255, 0.32) !important;
+  box-shadow:
+    0 16px 48px rgba(0, 0, 0, 0.65),
+    0 0 0 1px rgba(0, 224, 255, 0.18),
+    inset 0 1px 0 rgba(255, 75, 200, 0.10),
+    /* Halo doble (cyan + magenta) — firma del cyberpunk. */
+    0 0 80px rgba(0, 224, 255, 0.15),
+    0 0 160px rgba(255, 75, 200, 0.08) !important;
+}
+
+html[data-theme="amegakure"] #theme-selector-panel input:focus {
+  outline-color: rgba(0, 224, 255, 0.65);
 }

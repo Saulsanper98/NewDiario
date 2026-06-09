@@ -22,26 +22,23 @@ import {
   Mountain,
   Stars,
   Eye,
-  Cpu,
   Swords,
-  Binary,
   Lightbulb,
   Cog,
-  KeyRound,
-  Skull,
-  Grid3x3,
-  Gem,
   Globe2,
   CircleDashed,
   Sunrise,
   Bug,
-  Sword,
   Cloud,
-  BookOpen,
-  Anchor,
+  Palmtree,
 } from "lucide-react";
 import { useTheme } from "@/components/layout/ThemeProvider";
-import { isThemeAvailable, type ThemeMode } from "@/lib/theme";
+import {
+  DESKTOP_ONLY_THEMES,
+  DESKTOP_ONLY_MIN_WIDTH,
+  isThemeAvailable,
+  type ThemeMode,
+} from "@/lib/theme";
 import { cn } from "@/lib/utils";
 
 /**
@@ -123,54 +120,47 @@ const OPTIONS: ThemeOption[] = [
   { id: "storm", label: "Tormenta", hint: "Noche eléctrica: nubes en deriva, relámpagos esporádicos y lluvia", Icon: CloudLightning, category: "scenic",
     swatch: "linear-gradient(180deg, #060812 0%, #131a2c 60%, #a8c8ff 100%)" },
   // Naturaleza canaria: temas inspirados en paisajes locales (dunas de
-  // Maspalomas). Pensados como pequeña carta de presentación del archipiélago.
+  // Maspalomas, Roque Nublo). Pensados como pequeña carta de presentación
+  // del archipiélago.
   { id: "dunas", label: "Dunas", hint: "Atardecer en Maspalomas: sol radial, dunas onduladas y arena soplando", Icon: Mountain, category: "nature",
     swatch: "linear-gradient(180deg, #2a1a0e 0%, #5c2f1a 35%, #d97540 70%, #e6b870 100%)" },
-  // Cósmicos: temas espaciales (lluvia de meteoros, aurora boreal). El antiguo
-  // `cosmos` se podría mover aquí en una iteración futura.
+  // Canario: vídeo real del Roque Nublo + Teide al fondo en bucle. Sólo
+  // se muestra en desktop (DESKTOP_ONLY_THEMES en lib/theme.ts) por el
+  // coste del vídeo full-bleed. El swatch evoca el atardecer crepuscular
+  // sobre la silueta del Teide nevado.
+  { id: "canario", label: "Canario", hint: "Roque Nublo con el Teide al fondo: vídeo real al atardecer (sólo desktop)", Icon: Palmtree, category: "nature",
+    swatch: "linear-gradient(180deg, #1d0e2a 0%, #45203a 22%, #8a3e2c 50%, #d57a32 70%, #f0b15a 82%, #2e1a0e 100%), radial-gradient(circle at 22% 65%, rgba(255,220,140,0.55) 0%, transparent 35%)" },
+  // Cósmicos: temas espaciales (lluvia de meteoros + Voyager).
   { id: "meteor", label: "Meteoros", hint: "Lluvia de meteoros: cielo profundo con Vía Láctea y estelas cruzando", Icon: Stars, category: "cosmic",
     swatch: "linear-gradient(135deg, #020410 0%, #060a18 40%, #1a0a3a 75%, #67e8f9 110%)" },
+  { id: "voyager", label: "Voyager", hint: "Voyager: Tierra desde la sonda + Vía Láctea + parallax cósmico", Icon: Globe2, category: "cosmic",
+    swatch: "radial-gradient(circle at 30% 55%, rgba(80,160,255,0.55) 0%, rgba(80,160,255,0.15) 18%, transparent 35%), linear-gradient(135deg, #02030a 0%, #060a18 50%, #0a0e22 100%)" },
+  { id: "comet", label: "Cometa", hint: "Cometa azul brillante cruzando un cielo nocturno cálido", Icon: Sparkles, category: "cosmic",
+    swatch: "linear-gradient(135deg, #050a18 0%, #081020 35%, #0c1830 65%, #1a2a4a 100%), radial-gradient(circle at 70% 30%, rgba(0,216,255,0.55) 0%, rgba(255,104,80,0.25) 25%, transparent 45%)" },
+  { id: "nebula", label: "Nebulosa", hint: "Nebulosa azul-violeta con clústeres de estrellas", Icon: Orbit, category: "cosmic",
+    swatch: "radial-gradient(ellipse at 35% 45%, rgba(90,138,255,0.55) 0%, rgba(160,187,255,0.25) 25%, transparent 50%), linear-gradient(180deg, #02040c 0%, #050818 50%, #080c24 100%)" },
   // Tributo: temas homenaje a referentes culturales. Cada uno aísla
   // totalmente su CSS bajo `html[data-theme="<id>"]` y nunca afecta a
-  // Aurora ni al resto. Replica el patrón "tokens + atmósfera animada
-  // + sidebar/header + glass-1..4 + cmd palette + configtabs + reduced
-  // motion" del primer tributo (Akatsuki).
-  { id: "akatsuki", label: "Akatsuki", hint: "Naruto: negro carbón + rojo sangre, nubes akagumo, kanji 暁 y Sharingan", Icon: Eye, category: "tribute",
-    swatch: "radial-gradient(ellipse at 22% 78%, rgba(214,52,58,0.55) 0%, transparent 45%), radial-gradient(ellipse at 78% 22%, rgba(255,58,69,0.42) 0%, transparent 45%), linear-gradient(135deg, #070405 0%, #150a0d 60%, #0e0809 100%)" },
-  { id: "evangelion", label: "Evangelion", hint: "NGE: terminal NERV/MAGI, AT-Field hexagonal, naranja + cyan + violeta", Icon: Cpu, category: "tribute",
-    swatch: "linear-gradient(135deg, #08070a 0%, #1a0e22 40%, #ff6a00 90%), radial-gradient(circle at 70% 30%, rgba(0,229,255,0.55) 0%, transparent 50%)" },
+  // Aurora ni al resto. La mayoría usa el componente genérico
+  // `<ImageThemeBackground />` con una imagen 4K real + capas atmosféricas.
   { id: "sith", label: "Star Wars: Sith", hint: "Star Wars: hyperspace + sable rojo vertical + halo de la Death Star", Icon: Swords, category: "tribute",
     swatch: "radial-gradient(circle at 50% 50%, rgba(255,28,40,0.55) 0%, transparent 35%), linear-gradient(135deg, #000000 0%, #0a0008 60%, #2a0008 100%)" },
-  { id: "matrix", label: "Matrix", hint: "Matrix: lluvia de código katakana verde fosfórico cayendo sobre CRT", Icon: Binary, category: "tribute",
-    swatch: "linear-gradient(180deg, #000503 0%, #001a0d 50%, #003311 100%), radial-gradient(ellipse at 50% 100%, rgba(0,255,80,0.45) 0%, transparent 60%)" },
   { id: "stranger", label: "Stranger Things", hint: "Stranger Things: Upside Down con tendrils, bombillas y rojo neón retro 80s", Icon: Lightbulb, category: "tribute",
     swatch: "linear-gradient(135deg, #1a0510 0%, #330014 45%, #aa0028 90%), radial-gradient(circle at 70% 30%, rgba(255,0,80,0.42) 0%, transparent 55%)" },
   { id: "cyberpunk", label: "Cyberpunk", hint: "Cyberpunk 2077: Night City glitch amarillo Arasaka + cyan + scanlines", Icon: Cog, category: "tribute",
     swatch: "linear-gradient(135deg, #0a0a14 0%, #14141e 40%, #fcee0a 110%), radial-gradient(circle at 25% 75%, rgba(0,229,255,0.45) 0%, transparent 55%)" },
-  { id: "sheikah", label: "Zelda: Sheikah", hint: "Zelda BOTW/TOTK: runas Sheikah cian sobre piedra antigua + hojas doradas", Icon: KeyRound, category: "tribute",
-    swatch: "linear-gradient(135deg, #0a1820 0%, #142838 60%, #1f4458 100%), radial-gradient(circle at 50% 50%, rgba(96,228,247,0.45) 0%, transparent 50%)" },
-  { id: "mordor", label: "LOTR: Mordor", hint: "LOTR Mordor: Ojo de Sauron + lava + runas tengwar sobre obsidiana", Icon: Eye, category: "tribute",
-    swatch: "linear-gradient(180deg, #0a0202 0%, #1f0606 45%, #5e0a0a 80%, #ff6a00 105%), radial-gradient(ellipse at 50% 30%, rgba(255,140,30,0.55) 0%, transparent 45%)" },
-  { id: "tron", label: "Tron", hint: "Tron: grid neón cyan en perspectiva, lightcycle trail, paleta azul-cyan", Icon: Grid3x3, category: "tribute",
-    swatch: "linear-gradient(180deg, #000408 0%, #00121a 50%, #003040 100%), linear-gradient(90deg, transparent 48%, rgba(0,229,255,0.85) 50%, transparent 52%)" },
-  { id: "persona5", label: "Persona 5", hint: "Persona 5: collage rojo-negro estilo cómic con All-Out Attack y máscaras", Icon: Skull, category: "tribute",
-    swatch: "linear-gradient(135deg, #0a0203 0%, #1a0204 40%, #c8102e 100%), repeating-linear-gradient(45deg, transparent 0 8px, rgba(255,255,255,0.04) 8px 9px)" },
-  { id: "midgar", label: "FF7: Midgar", hint: "Final Fantasy VII: mako verde fluyendo, meteoro rojo y silueta de Midgar", Icon: Gem, category: "tribute",
-    swatch: "linear-gradient(180deg, #050810 0%, #0a1018 45%, #133a2a 85%), radial-gradient(circle at 80% 22%, rgba(255,80,40,0.5) 0%, transparent 35%), radial-gradient(circle at 20% 80%, rgba(60,255,160,0.4) 0%, transparent 50%)" },
   { id: "interstellar", label: "Interstellar", hint: "Interstellar: agujero negro Gargantua + disco de acreción + maizal sepia", Icon: CircleDashed, category: "tribute",
     swatch: "radial-gradient(circle at 50% 50%, #000 0%, #000 18%, rgba(255,160,60,0.85) 22%, rgba(255,200,120,0.4) 28%, transparent 42%), linear-gradient(135deg, #050507 0%, #1a1812 60%, #4a3818 100%)" },
-  { id: "synthwave", label: "Synthwave", hint: "Outrun retro 80s: sol partido magenta-naranja + grid violeta en perspectiva", Icon: Sunrise, category: "tribute",
-    swatch: "linear-gradient(180deg, #1a0a3a 0%, #5a1a6e 45%, #ff2a8e 75%, #ff8a3a 95%)" },
   { id: "hollow", label: "Hollow Knight", hint: "Hallownest: azul abismal + spores blancos cayendo, melancolía bichesca", Icon: Bug, category: "tribute",
     swatch: "linear-gradient(180deg, #050810 0%, #0a1828 50%, #1a3550 100%), radial-gradient(ellipse at 50% 80%, rgba(180,210,240,0.35) 0%, transparent 55%)" },
-  { id: "demonslayer", label: "Demon Slayer", hint: "Kimetsu no Yaiba: checkered Tanjiro verde-negro + llamas Hinokami naranja", Icon: Sword, category: "tribute",
-    swatch: "linear-gradient(135deg, #0a1a14 0%, #1a3a28 50%, #ff6a1a 100%), repeating-linear-gradient(45deg, transparent 0 18px, rgba(0,0,0,0.28) 18px 36px, transparent 36px 54px)" },
   { id: "ghibli", label: "Studio Ghibli", hint: "Ghibli: pradera Totoro pastel verde + lluvia tenue + susuwatari (motas)", Icon: Cloud, category: "tribute",
     swatch: "linear-gradient(180deg, #c8e8d8 0%, #88c4a4 50%, #4a8a64 100%), radial-gradient(circle at 50% 30%, rgba(255,255,255,0.55) 0%, transparent 60%)" },
-  { id: "deathnote", label: "Death Note", hint: "Death Note: kanji L gigante hueso, manzana roja, paleta blanco/negro/sangre", Icon: BookOpen, category: "tribute",
-    swatch: "linear-gradient(135deg, #050505 0%, #0a0a0a 60%, #1a1a1a 100%), radial-gradient(circle at 75% 30%, rgba(200,16,46,0.55) 0%, transparent 35%)" },
-  { id: "onepiece", label: "One Piece", hint: "One Piece: mar Grand Line al atardecer, Jolly Roger ondeando, sol pirata", Icon: Anchor, category: "tribute",
-    swatch: "linear-gradient(180deg, #1a1a4a 0%, #6e2a5a 35%, #ff6a3e 70%, #ffd070 100%)" },
+  { id: "boreal", label: "Aurora Boreal", hint: "Aurora boreal verde-violeta sobre cumbre nevada + parallax cinemático", Icon: Sunrise, category: "tribute",
+    swatch: "linear-gradient(180deg, #050b1c 0%, #0a1e3a 35%, #1a4a6a 60%, #38b08e 90%), radial-gradient(ellipse at 50% 60%, rgba(120,255,180,0.35) 0%, transparent 55%)" },
+  { id: "dbz", label: "Dragon Ball Z", hint: "DBZ: aura dorada SSJ, plasma amarillo y kanji ki sobre cielo eléctrico", Icon: Zap, category: "tribute",
+    swatch: "radial-gradient(ellipse at 50% 60%, rgba(255,225,80,0.65) 0%, rgba(255,160,60,0.35) 22%, transparent 48%), linear-gradient(135deg, #1a1208 0%, #2a1a08 55%, #0a0604 100%)" },
+  { id: "initiald", label: "Initial D", hint: "Initial D: Akina nocturna + AE86 + neones eurobeat y faros", Icon: Cog, category: "tribute",
+    swatch: "linear-gradient(180deg, #050514 0%, #0a0a22 45%, #1a0e2e 100%), radial-gradient(circle at 22% 75%, rgba(255,255,255,0.55) 0%, transparent 18%), radial-gradient(circle at 78% 28%, rgba(255,90,140,0.4) 0%, transparent 45%)" },
   // Itachi: tema "premium" basado en una IMAGEN real (luna roja + cuervos)
   // con parallax al cursor y efectos cinemáticos. La preview hace una
   // recreación abstracta de la imagen (cielo rojo + luna blanca + ascuas).
@@ -181,6 +171,12 @@ const OPTIONS: ThemeOption[] = [
   // magenta abstractos.
   { id: "amegakure", label: "Amegakure", hint: "Naruto × Cyberpunk: Aldea de la Lluvia como Night City con neones y lluvia diagonal", Icon: Building2, category: "tribute",
     swatch: "linear-gradient(180deg, #1a0e2a 0%, #2a0e3e 35%, #0a0613 100%), repeating-linear-gradient(105deg, transparent 0 6px, rgba(0,224,255,0.18) 7px, transparent 8px 14px), radial-gradient(circle at 78% 22%, rgba(255,75,200,0.45) 0%, transparent 35%)" },
+  // Solo Leveling: Sung Jin-Woo invocando al Dragón Sombra (azul) con
+  // aura del Beast Monarch (rojo). Imagen 4K, marco cristal azul→rojo,
+  // halos pulsantes y chispas. Preview: aura azul izquierda + roja
+  // derecha sobre noche profunda.
+  { id: "sololeveling", label: "Solo Leveling", hint: "Sung Jin-Woo: Dragón Sombra azul + aura Beast Monarch carmesí, parallax cinemático 4K", Icon: Swords, category: "tribute",
+    swatch: "radial-gradient(circle at 22% 35%, rgba(74,143,255,0.65) 0%, rgba(74,143,255,0.15) 25%, transparent 50%), radial-gradient(circle at 80% 65%, rgba(255,70,80,0.55) 0%, rgba(255,70,80,0.15) 25%, transparent 50%), linear-gradient(180deg, #050a18 0%, #0c1838 50%, #050a18 100%)" },
 ];
 
 const CATEGORY_ORDER: CategoryId[] = [
@@ -318,11 +314,32 @@ export function ThemeSelector() {
     }
   }, [open]);
 
+  // Detecta si el viewport actual cumple para mostrar temas desktop-only
+  // (vídeo full-bleed, efectos pesados). Reactivo a `resize` y
+  // `change` del media query para que rotaciones de tablet o resize del
+  // navegador refresquen el listado sin recargar.
+  const [canDesktopOnly, setCanDesktopOnly] = useState(false);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mq = window.matchMedia(`(min-width: ${DESKTOP_ONLY_MIN_WIDTH}px)`);
+    const update = () => setCanDesktopOnly(mq.matches);
+    update();
+    mq.addEventListener("change", update);
+    return () => mq.removeEventListener("change", update);
+  }, []);
+
   // Lista base: oculta los temas marcados como WIP en `lib/theme.ts` para
   // que no puedan activarse desde el selector hasta que estén pulidos.
+  // Además, oculta los temas DESKTOP_ONLY cuando el viewport es móvil
+  // para que el usuario no pueda activar un fondo pesado que no rinde.
   const AVAILABLE_OPTIONS = useMemo(
-    () => OPTIONS.filter((o) => isThemeAvailable(o.id)),
-    []
+    () =>
+      OPTIONS.filter((o) => {
+        if (!isThemeAvailable(o.id)) return false;
+        if (DESKTOP_ONLY_THEMES.has(o.id) && !canDesktopOnly) return false;
+        return true;
+      }),
+    [canDesktopOnly]
   );
 
   // Filtro del buscador: matchea contra label, hint Y nombre de categoría.

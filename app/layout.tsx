@@ -12,27 +12,14 @@ import { CosmosBackground } from "@/components/layout/CosmosBackground";
 import { StormBackground } from "@/components/layout/StormBackground";
 import { CCMGCBackground } from "@/components/layout/CCMGCBackground";
 import { DunasBackground } from "@/components/layout/DunasBackground";
+import { CanarioBackground } from "@/components/layout/CanarioBackground";
 import { MeteorBackground } from "@/components/layout/MeteorBackground";
-import { AkatsukiBackground } from "@/components/layout/AkatsukiBackground";
-import { EvangelionBackground } from "@/components/layout/EvangelionBackground";
-import { SithBackground } from "@/components/layout/SithBackground";
-import { MatrixBackground } from "@/components/layout/MatrixBackground";
-import { StrangerBackground } from "@/components/layout/StrangerBackground";
-import { CyberpunkBackground } from "@/components/layout/CyberpunkBackground";
-import { SheikahBackground } from "@/components/layout/SheikahBackground";
-import { MordorBackground } from "@/components/layout/MordorBackground";
-import { TronBackground } from "@/components/layout/TronBackground";
-import { Persona5Background } from "@/components/layout/Persona5Background";
-import { MidgarBackground } from "@/components/layout/MidgarBackground";
-import { InterstellarBackground } from "@/components/layout/InterstellarBackground";
-import { SynthwaveBackground } from "@/components/layout/SynthwaveBackground";
-import { HollowBackground } from "@/components/layout/HollowBackground";
-import { DemonSlayerBackground } from "@/components/layout/DemonSlayerBackground";
-import { GhibliBackground } from "@/components/layout/GhibliBackground";
-import { DeathNoteBackground } from "@/components/layout/DeathNoteBackground";
-import { OnePieceBackground } from "@/components/layout/OnePieceBackground";
 import { ItachiBackground } from "@/components/layout/ItachiBackground";
 import { AmegakureBackground } from "@/components/layout/AmegakureBackground";
+import { SoloLevelingBackground } from "@/components/layout/SoloLevelingBackground";
+// Componente genérico para temas con imagen real (sustituye a la docena
+// de Backgrounds individuales). Cada uso pasa themeId + prefix CSS.
+import { ImageThemeBackground } from "@/components/layout/ImageThemeBackground";
 import { SessionProvider } from "@/components/layout/SessionProvider";
 import { ThemeProvider } from "@/components/layout/ThemeProvider";
 import { defaultMetadata } from "@/lib/app-brand";
@@ -48,27 +35,23 @@ import "./theme-cosmos.css";
 import "./theme-storm.css";
 import "./theme-ccmgc.css";
 import "./theme-dunas.css";
+import "./theme-canario.css";
 import "./theme-meteor.css";
-import "./theme-akatsuki.css";
-import "./theme-evangelion.css";
+import "./theme-voyager.css";
+import "./theme-comet.css";
+import "./theme-nebula.css";
 import "./theme-sith.css";
-import "./theme-matrix.css";
 import "./theme-stranger.css";
 import "./theme-cyberpunk.css";
-import "./theme-sheikah.css";
-import "./theme-mordor.css";
-import "./theme-tron.css";
-import "./theme-persona5.css";
-import "./theme-midgar.css";
 import "./theme-interstellar.css";
-import "./theme-synthwave.css";
 import "./theme-hollow.css";
-import "./theme-demonslayer.css";
 import "./theme-ghibli.css";
-import "./theme-deathnote.css";
-import "./theme-onepiece.css";
+import "./theme-boreal.css";
+import "./theme-dbz.css";
+import "./theme-initiald.css";
 import "./theme-itachi.css";
 import "./theme-amegakure.css";
+import "./theme-sololeveling.css";
 
 const sora = Sora({
   subsets: ["latin"],
@@ -170,6 +153,7 @@ const DATA_THEME_BOOTSTRAP = [
   "onepiece",
   "itachi",
   "amegakure",
+  "sololeveling",
 ];
 
 const BOOTSTRAP_SCRIPT = `(function(){try{var k='cc-ops-theme',r=document.documentElement,t=localStorage.getItem(k),L=${JSON.stringify(
@@ -203,27 +187,27 @@ export default function RootLayout({
           <StormBackground />
           <CCMGCBackground />
           <DunasBackground />
+          <CanarioBackground />
           <MeteorBackground />
-          <AkatsukiBackground />
-          <EvangelionBackground />
-          <SithBackground />
-          <MatrixBackground />
-          <StrangerBackground />
-          <CyberpunkBackground />
-          <SheikahBackground />
-          <MordorBackground />
-          <TronBackground />
-          <Persona5Background />
-          <MidgarBackground />
-          <InterstellarBackground />
-          <SynthwaveBackground />
-          <HollowBackground />
-          <DemonSlayerBackground />
-          <GhibliBackground />
-          <DeathNoteBackground />
-          <OnePieceBackground />
           <ItachiBackground />
           <AmegakureBackground />
+          <SoloLevelingBackground />
+          {/* Temas con imagen real: usan el componente genérico
+              `<ImageThemeBackground />`. Solo se monta el que coincide
+              con `data-theme`, así que el coste de tener todos
+              registrados aquí es prácticamente cero. */}
+          <ImageThemeBackground themeId="boreal" prefix="boreal" />
+          <ImageThemeBackground themeId="comet" prefix="comet" />
+          <ImageThemeBackground themeId="cyberpunk" prefix="cyberpunk" />
+          <ImageThemeBackground themeId="dbz" prefix="dbz" />
+          <ImageThemeBackground themeId="ghibli" prefix="ghibli" />
+          <ImageThemeBackground themeId="hollow" prefix="hollow" />
+          <ImageThemeBackground themeId="initiald" prefix="initiald" />
+          <ImageThemeBackground themeId="interstellar" prefix="interstellar" />
+          <ImageThemeBackground themeId="nebula" prefix="nebula" />
+          <ImageThemeBackground themeId="sith" prefix="sith" />
+          <ImageThemeBackground themeId="stranger" prefix="stranger" />
+          <ImageThemeBackground themeId="voyager" prefix="voyager" />
           <SessionProvider>{children}</SessionProvider>
         </ThemeProvider>
         <Toaster

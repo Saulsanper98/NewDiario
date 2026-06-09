@@ -169,13 +169,17 @@ export function ItachiBackground() {
         <div className="itachi-image" />
       </div>
 
-      {/* b) Glow alrededor de la luna. */}
+      {/* b) Halo de la luna en dos capas: interno (calor) + externo
+       * (atmósfera amplia que abraza el cielo). */}
+      <div className="itachi-moon-halo" />
       <div className="itachi-moon-glow" />
 
       {/* c) Viñeta principal — calma la zona central de lectura. */}
       <div className="itachi-vignette-soft" />
 
-      {/* d) Cuervos extra (4) cruzando la pantalla. */}
+      {/* d) Cuervos lejanos (5) — todos pequeños y cruzando SOLO la
+       * franja superior (top 4-22%) para no pasar nunca por delante de
+       * Itachi. Sensación de "kilómetros de distancia". */}
       <div className="itachi-crow itachi-crow-1">
         <CrowSvg />
       </div>
@@ -186,6 +190,9 @@ export function ItachiBackground() {
         <CrowSvg />
       </div>
       <div className="itachi-crow itachi-crow-4">
+        <CrowSvg />
+      </div>
+      <div className="itachi-crow itachi-crow-5">
         <CrowSvg />
       </div>
 

@@ -1,0 +1,143 @@
+/* TEMA "NEBULA" — nebulosa cósmica azul con clústeres de estrellas.
+ * Paleta: noche absoluta + azul cluster + blanco luminiscente. */
+
+html[data-theme="nebula"] {
+  --bg-0: #02040c; --bg-1: #050818; --bg-2: #080c24;
+  --card: linear-gradient(180deg, #080c24 0%, #050818 60%, #02040c 100%);
+  --surface: rgba(10, 14, 36, 0.86); --surface-2: rgba(255, 255, 255, 0.045);
+  --border: rgba(90, 138, 255, 0.22); --border-strong: rgba(240, 240, 255, 0.45);
+  --accent: #5a8aff; --accent-bright: #a0bbff; --accent-glow: rgba(90, 138, 255, 0.45);
+  --text: #eef0fa; --text-soft: #c8cce0; --muted: #8590a8;
+  --ok: #6ef0a0; --gold-relic: #ffcd58;
+  --font-display: var(--font-akatsuki-display), "Shippori Mincho", serif;
+  --font-ui: var(--font-akatsuki-ui), "Zen Kaku Gothic New", sans-serif;
+  --app-canvas-color: transparent; --app-canvas-image: none; --card-isolation: auto;
+  color-scheme: dark;
+}
+html[data-theme="nebula"] body { min-height: 100vh; }
+html[data-theme="nebula"] .app-sidebar-shell, html[data-theme="nebula"] .app-top-header { isolation: auto !important; }
+
+html[data-theme="nebula"] .glass-shell-frame {
+  margin: 22px; padding: 1.5px; border-radius: 28px;
+  background: linear-gradient(135deg, rgba(90, 138, 255, 0.85) 0%, rgba(140, 160, 220, 0.55) 50%, rgba(240, 240, 255, 0.85) 100%);
+  box-shadow: 0 0 90px rgba(90, 138, 255, 0.30), 0 0 180px rgba(240, 240, 255, 0.12); position: relative;
+}
+html[data-theme="nebula"] .glass-shell-inner {
+  border-radius: 26px; background: rgba(8, 12, 32, 0.55);
+  backdrop-filter: blur(6px) saturate(1.05); -webkit-backdrop-filter: blur(6px) saturate(1.05);
+  overflow: hidden; padding: 18px;
+}
+@media (max-width: 768px) { html[data-theme="nebula"] .glass-shell-inner { padding: 6px; } html[data-theme="nebula"] .app-dashboard-root { gap: 8px; } }
+@media (max-width: 640px) { html[data-theme="nebula"] .glass-shell-frame { margin: 4px; border-radius: 18px; } html[data-theme="nebula"] .glass-shell-inner { border-radius: 16px; } }
+@media (max-width: 480px) { html[data-theme="nebula"] .glass-shell-frame { margin: 0; padding: 0; border-radius: 0; box-shadow: none; } html[data-theme="nebula"] .glass-shell-inner { border-radius: 0; padding: 0; } html[data-theme="nebula"] .app-dashboard-root { gap: 0; } }
+
+html[data-theme="nebula"] .nebula-bg { position: fixed; inset: 0; z-index: -10; overflow: hidden; pointer-events: none; background: radial-gradient(ellipse at 50% 50%, #080c24 0%, #050818 60%, #02040c 100%); }
+html[data-theme="nebula"] .nebula-image-frame { position: absolute; inset: -4%; --parallax-x: 0px; --parallax-y: 0px; transform: translate3d(var(--parallax-x), var(--parallax-y), 0); transition: transform 1200ms cubic-bezier(0.18, 0.7, 0.22, 1); will-change: transform; }
+html[data-theme="nebula"] .nebula-image {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  background-image: url("/themes/nebula-bg.jpg");
+  background-size: cover; background-position: center 50%; background-repeat: no-repeat; background-color: #02040c;
+  filter: saturate(1.15) contrast(1.04) brightness(0.99);
+  animation: nebula-kenburns 60s ease-in-out infinite alternate; transform-origin: 50% 50%;
+  will-change: transform; backface-visibility: hidden; transform: translateZ(0);
+}
+@keyframes nebula-kenburns { 0% { transform: translateZ(0) scale(1.04); } 50% { transform: translateZ(0) scale(1.08) translate(-1%, -0.4%); } 100% { transform: translateZ(0) scale(1.05) translate(0.6%, 0.2%); } }
+
+html[data-theme="nebula"] .nebula-glow-1 {
+  position: absolute; left: 50%; top: 50%; width: 40vw; height: 40vw; max-width: 580px; max-height: 580px;
+  transform: translate(-50%, -50%); border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.42) 0%, rgba(180, 200, 255, 0.28) 22%, rgba(90, 138, 255, 0.14) 45%, transparent 70%);
+  filter: blur(28px); mix-blend-mode: screen; animation: nebula-pulse-1 11.7s ease-in-out infinite;
+}
+@keyframes nebula-pulse-1 { 0%, 100% { opacity: 0.78; transform: translate(-50%, -50%) scale(1); } 50% { opacity: 1; transform: translate(-50%, -50%) scale(1.06); } }
+
+html[data-theme="nebula"] .nebula-glow-2 {
+  position: absolute; left: 25%; top: 65%; width: 30vw; height: 30vw; max-width: 440px; max-height: 440px;
+  transform: translate(-50%, -50%); border-radius: 50%;
+  background: radial-gradient(circle, rgba(220, 230, 255, 0.35) 0%, rgba(120, 160, 240, 0.22) 25%, rgba(60, 100, 180, 0.08) 50%, transparent 72%);
+  filter: blur(24px); mix-blend-mode: screen; animation: nebula-pulse-2 13.3s ease-in-out infinite;
+}
+@keyframes nebula-pulse-2 { 0%, 100% { opacity: 0.65; transform: translate(-50%, -50%) scale(1); } 50% { opacity: 0.88; transform: translate(-50%, -50%) scale(1.05); } }
+
+html[data-theme="nebula"] .nebula-vignette-soft { position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 50%, transparent 0%, transparent 40%, rgba(0,0,0,0.18) 65%, rgba(0,0,0,0.45) 100%); }
+
+html[data-theme="nebula"] .nebula-spark {
+  position: absolute; width: var(--ss, 4px); height: var(--ss, 4px); border-radius: 50%;
+  opacity: 0; animation: nebula-rise var(--sd, 22s) ease-in-out infinite; animation-delay: var(--sl, 0s);
+  filter: blur(0.4px); will-change: transform, opacity; mix-blend-mode: screen;
+  background: radial-gradient(circle, #ffffff 0%, #c8d8ff 30%, transparent 80%);
+  filter: blur(0.4px) drop-shadow(0 0 4px rgba(180, 220, 255, 0.7));
+}
+@keyframes nebula-rise { 0% { transform: translateY(20vh) scale(0.5); opacity: 0; } 10% { opacity: 0.85; } 60% { opacity: 0.55; } 100% { transform: translateY(-65vh) translateX(var(--sx, 4vw)) scale(1.0); opacity: 0; } }
+html[data-theme="nebula"] .nebula-spark-1 { left: 12%; --ss: 2px; --sd: 28s; --sl: -1s; --sx: 3vw; }
+html[data-theme="nebula"] .nebula-spark-2 { left: 28%; --ss: 3px; --sd: 33s; --sl: -7s; --sx: -2vw; }
+html[data-theme="nebula"] .nebula-spark-3 { left: 44%; --ss: 2px; --sd: 24s; --sl: -3s; --sx: 5vw; }
+html[data-theme="nebula"] .nebula-spark-4 { left: 60%; --ss: 4px; --sd: 30s; --sl: -12s; --sx: 2vw; }
+html[data-theme="nebula"] .nebula-spark-5 { left: 76%; --ss: 2px; --sd: 35s; --sl: -5s; --sx: -4vw; }
+html[data-theme="nebula"] .nebula-spark-6 { left: 90%; --ss: 5px; --sd: 27s; --sl: -15s; --sx: 3vw; }
+
+html[data-theme="nebula"] .nebula-rune { position: absolute; border-radius: 50%; border: 1px dashed rgba(90, 138, 255, 0.18); box-shadow: inset 0 0 30px rgba(90, 138, 255, 0.10), 0 0 18px rgba(90, 138, 255, 0.06); pointer-events: none; mix-blend-mode: screen; }
+html[data-theme="nebula"] .nebula-rune::before { content: ""; position: absolute; inset: 12%; border-radius: 50%; border: 1px solid rgba(180, 220, 255, 0.10); }
+html[data-theme="nebula"] .nebula-rune::after { content: ""; position: absolute; inset: 30%; border-radius: 50%; border: 1px dashed rgba(90, 138, 255, 0.14); }
+html[data-theme="nebula"] .nebula-rune-1 { top: 10%; left: 8%; width: 14vw; height: 14vw; max-width: 200px; max-height: 200px; animation: nebula-rotate 130s linear infinite; }
+html[data-theme="nebula"] .nebula-rune-2 { top: 70%; left: 75%; width: 18vw; height: 18vw; max-width: 240px; max-height: 240px; animation: nebula-rotate 170s linear infinite reverse; border-color: rgba(240, 240, 255, 0.18); box-shadow: inset 0 0 30px rgba(240, 240, 255, 0.08), 0 0 18px rgba(240, 240, 255, 0.04); }
+html[data-theme="nebula"] .nebula-rune-3 { top: 14%; left: 84%; width: 10vw; height: 10vw; max-width: 150px; max-height: 150px; animation: nebula-rotate 150s linear infinite; }
+@keyframes nebula-rotate { 0% { transform: rotate(0); } 100% { transform: rotate(360deg); } }
+
+html[data-theme="nebula"] .nebula-grain {
+  position: absolute; inset: 0;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.55 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.55'/></svg>");
+  background-size: 180px 180px; opacity: 0.14; mix-blend-mode: overlay;
+}
+html[data-theme="nebula"] .nebula-vignette-edge { position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 50%, transparent 55%, rgba(0,0,0,0.30) 85%, rgba(0,0,0,0.65) 100%); }
+
+html[data-theme="nebula"] { scrollbar-color: rgba(90, 138, 255, 0.45) rgba(0, 0, 0, 0.25); }
+html[data-theme="nebula"] *::-webkit-scrollbar-thumb { background: linear-gradient(180deg, rgba(90, 138, 255, 0.55), rgba(240, 240, 255, 0.55)); border-radius: 999px; }
+html[data-theme="nebula"] *::-webkit-scrollbar-thumb:hover { background: linear-gradient(180deg, rgba(160, 187, 255, 0.7), rgba(255, 255, 255, 0.7)); }
+html[data-theme="nebula"] :focus-visible { outline-color: var(--accent-bright) !important; box-shadow: 0 0 0 3px var(--accent-glow); }
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-theme="nebula"] .nebula-image, html[data-theme="nebula"] .nebula-glow-1, html[data-theme="nebula"] .nebula-glow-2,
+  html[data-theme="nebula"] .nebula-spark, html[data-theme="nebula"] .nebula-rune { animation: none !important; }
+  html[data-theme="nebula"] .nebula-spark { display: none !important; }
+  html[data-theme="nebula"] .nebula-image-frame { transition: none !important; }
+}
+
+@media (max-width: 640px) {
+  html[data-theme="nebula"] .nebula-image { background-position: 50% 50%; }
+  html[data-theme="nebula"] .nebula-glow-1 { width: 70vw; height: 70vw; }
+  html[data-theme="nebula"] .nebula-glow-2 { width: 55vw; height: 55vw; }
+  html[data-theme="nebula"] .nebula-spark-3, html[data-theme="nebula"] .nebula-spark-5, html[data-theme="nebula"] .nebula-rune-3 { display: none; }
+}
+
+html[data-theme="nebula"] .app-sidebar-shell {
+  background:
+    radial-gradient(ellipse 70% 55% at 0% 0%, rgba(90, 138, 255, 0.20) 0%, rgba(90, 138, 255, 0.06) 35%, transparent 65%),
+    radial-gradient(ellipse 70% 55% at 100% 100%, rgba(240, 240, 255, 0.10) 0%, rgba(120, 140, 200, 0.04) 35%, transparent 65%),
+    linear-gradient(180deg, rgba(8, 12, 32, 0.78) 0%, rgba(12, 18, 40, 0.82) 50%, rgba(16, 22, 50, 0.86) 100%) !important;
+  border-right: 1px solid rgba(90, 138, 255, 0.22);
+  box-shadow: inset -1px 0 0 rgba(90, 138, 255, 0.20), inset 1px 0 0 rgba(240, 240, 255, 0.06), 4px 0 22px rgba(0, 0, 0, 0.45), 14px 0 80px rgba(90, 138, 255, 0.10);
+  backdrop-filter: blur(24px) saturate(1.20) !important; -webkit-backdrop-filter: blur(24px) saturate(1.20) !important;
+}
+html[data-theme="nebula"] .app-sidebar-shell.w-60, html[data-theme="nebula"] .app-sidebar-shell.sidebar-expanded-solid {
+  background:
+    radial-gradient(ellipse 75% 60% at 0% 0%, rgba(90, 138, 255, 0.26) 0%, rgba(90, 138, 255, 0.08) 35%, transparent 65%),
+    radial-gradient(ellipse 75% 60% at 100% 100%, rgba(240, 240, 255, 0.14) 0%, rgba(120, 140, 200, 0.06) 35%, transparent 65%),
+    linear-gradient(180deg, rgba(12, 18, 40, 0.86) 0%, rgba(16, 22, 50, 0.88) 50%, rgba(20, 26, 58, 0.90) 100%) !important;
+  box-shadow: inset -1px 0 0 rgba(90, 138, 255, 0.30), inset 1px 0 0 rgba(240, 240, 255, 0.10), 8px 0 36px rgba(0, 0, 0, 0.55), 14px 0 80px rgba(90, 138, 255, 0.16), 14px 0 160px rgba(240, 240, 255, 0.05);
+  backdrop-filter: blur(28px) saturate(1.25) !important; -webkit-backdrop-filter: blur(28px) saturate(1.25) !important;
+}
+html[data-theme="nebula"] .app-top-header {
+  background: linear-gradient(180deg, rgba(8, 12, 32, 0.74) 0%, rgba(10, 14, 36, 0.62) 100%) !important;
+  border-bottom: 1px solid rgba(90, 138, 255, 0.18);
+  box-shadow: inset 0 -1px 0 rgba(240, 240, 255, 0.06), 0 4px 22px rgba(0, 0, 0, 0.40);
+  backdrop-filter: blur(22px) saturate(1.15) !important; -webkit-backdrop-filter: blur(22px) saturate(1.15) !important;
+}
+html[data-theme="nebula"] .app-sidebar-shell .border-t { border-top-color: rgba(90, 138, 255, 0.16) !important; }
+html[data-theme="nebula"] .app-sidebar-shell .bg-white\/5 { background-color: rgba(90, 138, 255, 0.06) !important; }
+html[data-theme="nebula"] #theme-selector-panel {
+  background: linear-gradient(150deg, rgba(90, 138, 255, 0.08) 0%, transparent 50%, rgba(240, 240, 255, 0.05) 100%), linear-gradient(180deg, rgba(8, 12, 32, 0.96) 0%, rgba(16, 22, 50, 0.98) 100%) !important;
+  border-color: rgba(90, 138, 255, 0.32) !important;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(90, 138, 255, 0.20), inset 0 1px 0 rgba(240, 240, 255, 0.08), 0 0 80px rgba(90, 138, 255, 0.15) !important;
+}
+html[data-theme="nebula"] #theme-selector-panel input:focus { outline-color: rgba(90, 138, 255, 0.65); }

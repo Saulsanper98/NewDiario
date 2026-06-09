@@ -51,6 +51,12 @@ next-start.err.log
 tmp-*.log
 tmp-*.txt
 
+# vídeos de fondo (pesados, se despliegan aparte; ver public/videos/README.md)
+/public/videos/*.mp4
+/public/videos/*.webm
+/public/videos/*-poster.jpg
+/public/videos/*-poster.png
+
 # env files (can opt-in for committing if needed)
 .env*
 !.env.example

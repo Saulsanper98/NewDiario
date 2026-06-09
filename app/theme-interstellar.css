@@ -1,565 +1,143 @@
-/* ╔══════════════════════════════════════════════════════════════════════════╗
- * ║   TEMA "INTERSTELLAR" · TRIBUTO · Gargantua (deep space)                ║
- * ║   Imagen icónica del póster: agujero negro Kerr + disco de acreción     ║
- * ║   ámbar curvado por lente gravitacional. Sin maizal.                    ║
- * ╚══════════════════════════════════════════════════════════════════════════╝ */
+/* TEMA "INTERSTELLAR" — Gargantua / planeta - viaje espacial.
+ * Paleta: noche profunda + ámbar acretivo + azul abismo. */
 
 html[data-theme="interstellar"] {
-  --bg-0: #02030a;
-  --bg-1: #050812;
-  --bg-2: #0a0e1a;
-
-  --card: linear-gradient(180deg, #181410 0%, #100c08 60%, #080604 100%);
-  --surface:   rgba(28, 22, 14, 0.92);
-  --surface-2: rgba(255, 170, 60, 0.04);
-  --border:        rgba(255, 170, 60, 0.22);
-  --border-strong: rgba(255, 170, 60, 0.55);
-
-  --accent:        #ffaa3c;        /* dorado disco de acreción */
-  --accent-bright: #ffd070;
-  --accent-glow:   rgba(255, 170, 60, 0.45);
-  --accent-2:      #c8946a;        /* sepia */
-  --accent-3:      #ffe4a8;        /* hueso pálido */
-
-  --text:      #f0e4cc;
-  --text-soft: #c4b094;
-  --muted:     #806a4e;
-
-  --ok:         #4dffaa;
-  --gold-relic: #ffd070;
-
-  --font-display: "Cinzel", "Trajan Pro", Georgia, serif;
-  --font-ui:      "Sora", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-
-  --app-canvas-color: transparent;
-  --app-canvas-image: none;
-  --card-isolation: auto;
-
+  --bg-0: #050810; --bg-1: #08101e; --bg-2: #0c1828;
+  --card: linear-gradient(180deg, #0c1828 0%, #08101e 60%, #050810 100%);
+  --surface: rgba(14, 24, 40, 0.86); --surface-2: rgba(255, 255, 255, 0.045);
+  --border: rgba(214, 168, 90, 0.22); --border-strong: rgba(26, 58, 106, 0.55);
+  --accent: #d6a85a; --accent-bright: #ffd693; --accent-glow: rgba(214, 168, 90, 0.45);
+  --text: #f4ecdb; --text-soft: #d6c8a8; --muted: #9a8e75;
+  --ok: #6ef0a0; --gold-relic: #ffcd58;
+  --font-display: var(--font-akatsuki-display), "Shippori Mincho", serif;
+  --font-ui: var(--font-akatsuki-ui), "Zen Kaku Gothic New", sans-serif;
+  --app-canvas-color: transparent; --app-canvas-image: none; --card-isolation: auto;
   color-scheme: dark;
 }
-
 html[data-theme="interstellar"] body { min-height: 100vh; }
-html[data-theme="interstellar"] .app-sidebar-shell,
-html[data-theme="interstellar"] .app-top-header { isolation: auto !important; }
-
-
-/* ── 1. FONDO + ATMÓSFERA ────────────────────────────────────────────── */
-html[data-theme="interstellar"] .stellar-bg {
-  position: fixed; inset: 0; z-index: -10; overflow: hidden; pointer-events: none;
-  background:
-    /* Halo amarillo muy difuso alrededor del centro (luz que escapa de Gargantua) */
-    radial-gradient(ellipse 55% 45% at 50% 42%, rgba(255, 170, 60, 0.10) 0%, transparent 65%),
-    /* Tinte púrpura/azul cósmico arriba */
-    radial-gradient(ellipse 80% 60% at 35% 10%, rgba(30, 18, 60, 0.30) 0%, transparent 60%),
-    /* Fondo negro azulado profundo */
-    linear-gradient(180deg, var(--bg-0) 0%, var(--bg-1) 60%, var(--bg-0) 100%);
-}
-
-/* ── 1.1 Estrellas — puntos absolutos con twinkle individual ─────────── */
-html[data-theme="interstellar"] .stellar-bg .stellar-stars { position: absolute; inset: 0; pointer-events: none; }
-html[data-theme="interstellar"] .stellar-bg .stellar-star {
-  position: absolute;
-  border-radius: 50%;
-  background: radial-gradient(circle,
-    rgba(255, 240, 210, 1.0) 0%,
-    rgba(255, 240, 210, 0.65) 40%,
-    transparent 100%);
-  box-shadow: 0 0 4px rgba(255, 240, 210, 0.55);
-  animation: stellar-star-twinkle 6s ease-in-out infinite;
-}
-@keyframes stellar-star-twinkle {
-  0%, 100% { opacity: var(--star-op, 0.55); transform: scale(1); }
-  50%      { opacity: 1;                    transform: scale(1.4); }
-}
-
-/* ── 1.1.b Nebulosa muy sutil (deep space dust) ──────────────────────── */
-html[data-theme="interstellar"] .stellar-bg .stellar-nebula {
-  position: absolute; inset: 0;
-  pointer-events: none;
-  opacity: 0.4;
-  background:
-    radial-gradient(ellipse 40% 30% at 18% 70%, rgba(80, 40, 120, 0.25) 0%, transparent 70%),
-    radial-gradient(ellipse 30% 25% at 82% 22%, rgba(60, 80, 140, 0.18) 0%, transparent 70%);
-  filter: blur(20px);
-}
-
-/* ── 1.2 Gargantua — SVG panorámico centrado, viewBox 800x600.
- *
- *  El SVG se ha cambiado a aspect-ratio 4:3 (en lugar de 1:1) para que
- *  el agujero negro se vea con la perspectiva oblicua de la película.
- *  Width grande para que llene visualmente la mitad de la pantalla. */
-html[data-theme="interstellar"] .stellar-bg .stellar-gargantua {
-  position: absolute; left: 50%; top: 50%;
-  width: clamp(680px, 90vmin, 1100px);
-  height: clamp(510px, 67vmin, 825px);
-  transform: translate(-50%, -50%);
-  pointer-events: none;
-  filter: drop-shadow(0 0 80px rgba(255, 170, 60, 0.55));
-  animation: stellar-gargantua-breath 22s ease-in-out infinite;
-}
-@keyframes stellar-gargantua-breath {
-  0%, 100% { opacity: 0.96; filter: drop-shadow(0 0 65px rgba(255, 170, 60, 0.45)); }
-  50%      { opacity: 1.00; filter: drop-shadow(0 0 110px rgba(255, 200, 90, 0.65)); }
-}
-
-/* ── 1.3 Planeta Miller — punto en órbita lejana inferior izquierda ──── */
-html[data-theme="interstellar"] .stellar-bg .stellar-miller {
-  position: absolute;
-  left: 14%; bottom: 18%;
-  width: 18px; height: 18px;
-  pointer-events: none;
-}
-html[data-theme="interstellar"] .stellar-bg .stellar-miller-halo {
-  position: absolute; inset: -22px;
-  border-radius: 50%;
-  background: radial-gradient(circle,
-    rgba(255, 200, 90, 0.25) 0%,
-    rgba(255, 170, 60, 0.10) 40%,
-    transparent 70%);
-  animation: stellar-miller-glow 4s ease-in-out infinite;
-}
-html[data-theme="interstellar"] .stellar-bg .stellar-miller-body {
-  position: absolute; inset: 0;
-  border-radius: 50%;
-  background: radial-gradient(circle at 35% 35%,
-    rgba(255, 240, 210, 1) 0%,
-    rgba(200, 148, 106, 0.85) 40%,
-    rgba(80, 50, 30, 1) 100%);
-  box-shadow:
-    inset -3px -2px 4px rgba(0, 0, 0, 0.65),
-    0 0 6px rgba(255, 200, 90, 0.65);
-}
-@keyframes stellar-miller-glow {
-  0%, 100% { opacity: 0.65; transform: scale(1); }
-  50%      { opacity: 1.00; transform: scale(1.18); }
-}
-
-/* ── 1.5 Veil + grain + vignette ─────────────────────────────────────── */
-html[data-theme="interstellar"] .stellar-bg .stellar-veil {
-  position: absolute; inset: 0;
-  background: radial-gradient(ellipse 75% 55% at 50% 50%,
-    rgba(5, 5, 7, 0.45) 0%, rgba(5, 5, 7, 0.20) 38%, transparent 78%);
-  pointer-events: none;
-}
-html[data-theme="interstellar"] .stellar-bg .stellar-grain {
-  position: absolute; inset: 0; opacity: 0.05;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.78' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  mix-blend-mode: overlay; pointer-events: none;
-}
-html[data-theme="interstellar"] .stellar-bg .stellar-vignette {
-  position: absolute; inset: 0;
-  background: radial-gradient(ellipse 100% 80% at 50% 50%,
-    transparent 50%, rgba(0, 0, 0, 0.45) 82%, rgba(0, 0, 0, 0.70) 100%);
-  pointer-events: none;
-}
-
-
-/* ── 2. TIPOGRAFÍA + SHELL ──────────────────────────────────────────── */
-html[data-theme="interstellar"] body {
-  color: var(--text); font-family: var(--font-ui); font-weight: 400;
-}
-html[data-theme="interstellar"] h1,
-html[data-theme="interstellar"] h2,
-html[data-theme="interstellar"] h3,
-html[data-theme="interstellar"] h4,
-html[data-theme="interstellar"] h5,
-html[data-theme="interstellar"] h6 {
-  font-family: var(--font-display);
-  font-weight: 700; letter-spacing: 0.04em;
-  color: var(--accent-bright);
-  text-shadow: 0 0 8px rgba(255, 170, 60, 0.30);
-}
-html[data-theme="interstellar"] h1,
-html[data-theme="interstellar"] h2 { font-weight: 800; color: var(--accent-3); }
+html[data-theme="interstellar"] .app-sidebar-shell, html[data-theme="interstellar"] .app-top-header { isolation: auto !important; }
 
 html[data-theme="interstellar"] .glass-shell-frame {
-  margin: 18px; padding: 0; border-radius: 18px;
-  background: transparent; box-shadow: none; isolation: auto !important;
+  margin: 22px; padding: 1.5px; border-radius: 28px;
+  background: linear-gradient(135deg, rgba(214, 168, 90, 0.85) 0%, rgba(120, 96, 70, 0.45) 50%, rgba(26, 58, 106, 0.85) 100%);
+  box-shadow: 0 0 90px rgba(214, 168, 90, 0.25), 0 0 180px rgba(26, 58, 106, 0.20); position: relative;
 }
 html[data-theme="interstellar"] .glass-shell-inner {
-  border-radius: 17px; background: transparent;
-  backdrop-filter: none; -webkit-backdrop-filter: none;
-  isolation: auto !important; overflow: visible; padding: 20px;
+  border-radius: 26px; background: rgba(8, 14, 24, 0.55);
+  backdrop-filter: blur(6px) saturate(1.05); -webkit-backdrop-filter: blur(6px) saturate(1.05);
+  overflow: hidden; padding: 18px;
 }
-@media (max-width: 768px) {
-  html[data-theme="interstellar"] .glass-shell-inner { padding: 6px; }
-  html[data-theme="interstellar"] .app-dashboard-root { gap: 8px; }
+@media (max-width: 768px) { html[data-theme="interstellar"] .glass-shell-inner { padding: 6px; } html[data-theme="interstellar"] .app-dashboard-root { gap: 8px; } }
+@media (max-width: 640px) { html[data-theme="interstellar"] .glass-shell-frame { margin: 4px; border-radius: 18px; } html[data-theme="interstellar"] .glass-shell-inner { border-radius: 16px; } }
+@media (max-width: 480px) { html[data-theme="interstellar"] .glass-shell-frame { margin: 0; padding: 0; border-radius: 0; box-shadow: none; } html[data-theme="interstellar"] .glass-shell-inner { border-radius: 0; padding: 0; } html[data-theme="interstellar"] .app-dashboard-root { gap: 0; } }
+
+html[data-theme="interstellar"] .interstellar-bg { position: fixed; inset: 0; z-index: -10; overflow: hidden; pointer-events: none; background: radial-gradient(ellipse at 50% 50%, #0c1828 0%, #08101e 60%, #02050a 100%); }
+html[data-theme="interstellar"] .interstellar-image-frame { position: absolute; inset: -4%; --parallax-x: 0px; --parallax-y: 0px; transform: translate3d(var(--parallax-x), var(--parallax-y), 0); transition: transform 1200ms cubic-bezier(0.18, 0.7, 0.22, 1); will-change: transform; }
+html[data-theme="interstellar"] .interstellar-image {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  background-image: url("/themes/interstellar-bg.jpg");
+  background-size: cover; background-position: center 45%; background-repeat: no-repeat; background-color: #050810;
+  filter: saturate(1.10) contrast(1.06) brightness(0.97);
+  animation: interstellar-kenburns 50s ease-in-out infinite alternate; transform-origin: 50% 45%;
+  will-change: transform; backface-visibility: hidden; transform: translateZ(0);
 }
+@keyframes interstellar-kenburns { 0% { transform: translateZ(0) scale(1.04); } 50% { transform: translateZ(0) scale(1.08) translate(-1%, -0.4%); } 100% { transform: translateZ(0) scale(1.05) translate(0.6%, 0.2%); } }
+
+html[data-theme="interstellar"] .interstellar-glow-1 {
+  position: absolute; left: 50%; top: 45%; width: 36vw; height: 36vw; max-width: 520px; max-height: 520px;
+  transform: translate(-50%, -50%); border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 230, 180, 0.42) 0%, rgba(214, 168, 90, 0.28) 22%, rgba(140, 100, 30, 0.14) 45%, transparent 70%);
+  filter: blur(22px); mix-blend-mode: screen; animation: interstellar-pulse-1 9.7s ease-in-out infinite;
+}
+@keyframes interstellar-pulse-1 { 0%, 100% { opacity: 0.78; transform: translate(-50%, -50%) scale(1); } 50% { opacity: 1; transform: translate(-50%, -50%) scale(1.06); } }
+
+html[data-theme="interstellar"] .interstellar-glow-2 {
+  position: absolute; left: 50%; top: 88%; width: 40vw; height: 24vw; max-width: 600px; max-height: 360px;
+  transform: translate(-50%, -50%); border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(180, 220, 255, 0.30) 0%, rgba(26, 58, 106, 0.22) 25%, rgba(10, 30, 60, 0.10) 50%, transparent 72%);
+  filter: blur(24px); mix-blend-mode: screen; animation: interstellar-pulse-2 11.3s ease-in-out infinite;
+}
+@keyframes interstellar-pulse-2 { 0%, 100% { opacity: 0.72; transform: translate(-50%, -50%) scale(1); } 50% { opacity: 1; transform: translate(-50%, -50%) scale(1.05); } }
+
+html[data-theme="interstellar"] .interstellar-vignette-soft { position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 55%, transparent 0%, transparent 35%, rgba(0,0,0,0.20) 60%, rgba(0,0,0,0.55) 100%); }
+
+html[data-theme="interstellar"] .interstellar-spark {
+  position: absolute; width: var(--ss, 4px); height: var(--ss, 4px); border-radius: 50%;
+  opacity: 0; animation: interstellar-rise var(--sd, 22s) ease-in-out infinite; animation-delay: var(--sl, 0s);
+  filter: blur(0.4px); will-change: transform, opacity; mix-blend-mode: screen;
+  background: radial-gradient(circle, #fff 0%, #b8e0ff 30%, transparent 80%);
+  filter: blur(0.4px) drop-shadow(0 0 4px rgba(180, 220, 255, 0.7));
+}
+@keyframes interstellar-rise { 0% { transform: translateY(20vh) scale(0.5); opacity: 0; } 10% { opacity: 0.85; } 60% { opacity: 0.55; } 100% { transform: translateY(-65vh) translateX(var(--sx, 4vw)) scale(1.0); opacity: 0; } }
+html[data-theme="interstellar"] .interstellar-spark-1 { left: 12%; --ss: 2px; --sd: 28s; --sl: -1s; --sx: 3vw; }
+html[data-theme="interstellar"] .interstellar-spark-2 { left: 28%; --ss: 3px; --sd: 33s; --sl: -7s; --sx: -2vw; }
+html[data-theme="interstellar"] .interstellar-spark-3 { left: 44%; --ss: 2px; --sd: 24s; --sl: -3s; --sx: 5vw; }
+html[data-theme="interstellar"] .interstellar-spark-4 { left: 60%; --ss: 4px; --sd: 30s; --sl: -12s; --sx: 2vw; }
+html[data-theme="interstellar"] .interstellar-spark-5 { left: 76%; --ss: 2px; --sd: 35s; --sl: -5s; --sx: -4vw; }
+html[data-theme="interstellar"] .interstellar-spark-6 { left: 90%; --ss: 5px; --sd: 27s; --sl: -15s; --sx: 3vw; }
+
+html[data-theme="interstellar"] .interstellar-rune { position: absolute; border-radius: 50%; border: 1px dashed rgba(214, 168, 90, 0.18); box-shadow: inset 0 0 30px rgba(214, 168, 90, 0.10), 0 0 18px rgba(214, 168, 90, 0.06); pointer-events: none; mix-blend-mode: screen; }
+html[data-theme="interstellar"] .interstellar-rune::before { content: ""; position: absolute; inset: 12%; border-radius: 50%; border: 1px solid rgba(255, 220, 180, 0.10); }
+html[data-theme="interstellar"] .interstellar-rune::after { content: ""; position: absolute; inset: 30%; border-radius: 50%; border: 1px dashed rgba(214, 168, 90, 0.14); }
+html[data-theme="interstellar"] .interstellar-rune-1 { top: 10%; left: 8%; width: 14vw; height: 14vw; max-width: 200px; max-height: 200px; animation: interstellar-rotate 110s linear infinite; }
+html[data-theme="interstellar"] .interstellar-rune-2 { top: 70%; left: 22%; width: 18vw; height: 18vw; max-width: 240px; max-height: 240px; animation: interstellar-rotate 150s linear infinite reverse; border-color: rgba(26, 58, 106, 0.30); box-shadow: inset 0 0 30px rgba(26, 58, 106, 0.12), 0 0 18px rgba(26, 58, 106, 0.08); }
+html[data-theme="interstellar"] .interstellar-rune-3 { top: 12%; left: 84%; width: 10vw; height: 10vw; max-width: 150px; max-height: 150px; animation: interstellar-rotate 130s linear infinite; }
+@keyframes interstellar-rotate { 0% { transform: rotate(0); } 100% { transform: rotate(360deg); } }
+
+html[data-theme="interstellar"] .interstellar-grain {
+  position: absolute; inset: 0;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.55 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.55'/></svg>");
+  background-size: 180px 180px; opacity: 0.16; mix-blend-mode: overlay;
+}
+html[data-theme="interstellar"] .interstellar-vignette-edge { position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 50%, transparent 50%, rgba(0,0,0,0.30) 80%, rgba(0,0,0,0.65) 100%); }
+
+html[data-theme="interstellar"] { scrollbar-color: rgba(214, 168, 90, 0.45) rgba(0, 0, 0, 0.25); }
+html[data-theme="interstellar"] *::-webkit-scrollbar-thumb { background: linear-gradient(180deg, rgba(214, 168, 90, 0.55), rgba(26, 58, 106, 0.55)); border-radius: 999px; }
+html[data-theme="interstellar"] *::-webkit-scrollbar-thumb:hover { background: linear-gradient(180deg, rgba(255, 214, 147, 0.7), rgba(60, 100, 160, 0.7)); }
+html[data-theme="interstellar"] :focus-visible { outline-color: var(--accent-bright) !important; box-shadow: 0 0 0 3px var(--accent-glow); }
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-theme="interstellar"] .interstellar-image, html[data-theme="interstellar"] .interstellar-glow-1, html[data-theme="interstellar"] .interstellar-glow-2,
+  html[data-theme="interstellar"] .interstellar-spark, html[data-theme="interstellar"] .interstellar-rune { animation: none !important; }
+  html[data-theme="interstellar"] .interstellar-spark { display: none !important; }
+  html[data-theme="interstellar"] .interstellar-image-frame { transition: none !important; }
+}
+
 @media (max-width: 640px) {
-  html[data-theme="interstellar"] .glass-shell-frame { margin: 4px; border-radius: 12px; }
-  html[data-theme="interstellar"] .glass-shell-inner { border-radius: 11px; }
-}
-@media (max-width: 480px) {
-  html[data-theme="interstellar"] .glass-shell-frame { margin: 0; padding: 0; border-radius: 0; background: none; }
-  html[data-theme="interstellar"] .glass-shell-inner { padding: 0; border-radius: 0; }
-  html[data-theme="interstellar"] .app-dashboard-root { gap: 0; }
-}
-html[data-theme="interstellar"] .glass-shell-frame::before,
-html[data-theme="interstellar"] .glass-shell-frame::after,
-html[data-theme="interstellar"] .glass-shell-inner::before,
-html[data-theme="interstellar"] .glass-shell-inner::after { display: none !important; }
-html[data-theme="interstellar"] .app-dashboard-root { background: transparent !important; gap: 16px; }
-
-
-/* ── 3-10: SUPERFICIES, SIDEBAR, TEXTO, INPUTS, PORTALES, CONFIGTABS ───── */
-html[data-theme="interstellar"] .glass-surface {
-  position: relative; isolation: auto;
-  background: var(--card);
-  backdrop-filter: none; -webkit-backdrop-filter: none;
-  border: 1px solid var(--border); border-radius: 14px;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 170, 60, 0.06),
-    0 1px 0 rgba(0, 0, 0, 0.55),
-    0 18px 40px rgba(0, 0, 0, 0.55),
-    0 0 24px rgba(255, 170, 60, 0.06);
-  transition: border-color 0.2s ease, transform 0.2s ease;
-  overflow: hidden;
-}
-html[data-theme="interstellar"] .glass-surface::before { display: none; }
-html[data-theme="interstellar"] .glass-surface > * { position: relative; z-index: 1; }
-html[data-theme="interstellar"] .glass-surface:hover { border-color: var(--border-strong); }
-
-html[data-theme="interstellar"] .glass,
-html[data-theme="interstellar"] .glass-1,
-html[data-theme="interstellar"] .glass-2,
-html[data-theme="interstellar"] .glass-3,
-html[data-theme="interstellar"] .glass-4 {
-  isolation: auto !important; position: relative; border-radius: 14px;
-  transition: background 0.2s ease, border-color 0.2s ease;
-}
-html[data-theme="interstellar"] .glass,
-html[data-theme="interstellar"] .glass-1 {
-  background: var(--card); border: 1px solid var(--border);
-  backdrop-filter: none; -webkit-backdrop-filter: none;
-  box-shadow: inset 0 1px 0 rgba(255, 170, 60, 0.04), 0 12px 30px rgba(0, 0, 0, 0.50);
-}
-html[data-theme="interstellar"] .glass-2 {
-  background: linear-gradient(180deg, rgba(255, 170, 60, 0.025), rgba(255, 170, 60, 0)), var(--card);
-  border: 1px solid var(--border);
-  backdrop-filter: none; -webkit-backdrop-filter: none;
-  box-shadow: inset 0 1px 0 rgba(255, 170, 60, 0.05), 0 16px 36px rgba(0, 0, 0, 0.55);
-}
-html[data-theme="interstellar"] .glass-3 {
-  background: linear-gradient(180deg, rgba(255, 170, 60, 0.04), rgba(255, 170, 60, 0)), var(--card);
-  border: 1px solid var(--border-strong);
-  backdrop-filter: none; -webkit-backdrop-filter: none;
-  box-shadow: inset 0 1px 0 rgba(255, 170, 60, 0.06), 0 20px 44px rgba(0, 0, 0, 0.60);
-}
-html[data-theme="interstellar"] .glass-4 {
-  background: linear-gradient(180deg, rgba(255, 170, 60, 0.05), rgba(255, 170, 60, 0)), var(--card);
-  border: 1px solid var(--border-strong);
-  backdrop-filter: none; -webkit-backdrop-filter: none;
-  box-shadow: inset 0 1px 0 rgba(255, 170, 60, 0.07), 0 28px 56px rgba(0, 0, 0, 0.70);
+  html[data-theme="interstellar"] .interstellar-image { background-position: 50% 45%; }
+  html[data-theme="interstellar"] .interstellar-glow-1 { width: 70vw; height: 70vw; }
+  html[data-theme="interstellar"] .interstellar-glow-2 { width: 80vw; height: 40vw; }
+  html[data-theme="interstellar"] .interstellar-spark-3, html[data-theme="interstellar"] .interstellar-spark-5, html[data-theme="interstellar"] .interstellar-rune-3 { display: none; }
 }
 
 html[data-theme="interstellar"] .app-sidebar-shell {
-  background: linear-gradient(180deg,
-    rgba(24, 20, 16, 0.55) 0%, rgba(16, 12, 8, 0.62) 60%, rgba(10, 8, 5, 0.65) 100%);
-  border-right: none;
-  backdrop-filter: blur(22px) saturate(110%);
-  -webkit-backdrop-filter: blur(22px) saturate(110%);
-  box-shadow: inset -1px 0 0 rgba(255, 170, 60, 0.14), 4px 0 22px rgba(0, 0, 0, 0.45);
+  background:
+    radial-gradient(ellipse 70% 55% at 0% 0%, rgba(214, 168, 90, 0.20) 0%, rgba(214, 168, 90, 0.06) 35%, transparent 65%),
+    radial-gradient(ellipse 70% 55% at 100% 100%, rgba(26, 58, 106, 0.20) 0%, rgba(10, 30, 60, 0.06) 35%, transparent 65%),
+    linear-gradient(180deg, rgba(8, 14, 24, 0.78) 0%, rgba(12, 22, 36, 0.82) 50%, rgba(16, 26, 44, 0.86) 100%) !important;
+  border-right: 1px solid rgba(214, 168, 90, 0.22);
+  box-shadow: inset -1px 0 0 rgba(214, 168, 90, 0.20), inset 1px 0 0 rgba(26, 58, 106, 0.10), 4px 0 22px rgba(0, 0, 0, 0.45), 14px 0 80px rgba(214, 168, 90, 0.08);
+  backdrop-filter: blur(24px) saturate(1.20) !important; -webkit-backdrop-filter: blur(24px) saturate(1.20) !important;
+}
+html[data-theme="interstellar"] .app-sidebar-shell.w-60, html[data-theme="interstellar"] .app-sidebar-shell.sidebar-expanded-solid {
+  background:
+    radial-gradient(ellipse 75% 60% at 0% 0%, rgba(214, 168, 90, 0.26) 0%, rgba(214, 168, 90, 0.08) 35%, transparent 65%),
+    radial-gradient(ellipse 75% 60% at 100% 100%, rgba(26, 58, 106, 0.26) 0%, rgba(10, 30, 60, 0.10) 35%, transparent 65%),
+    linear-gradient(180deg, rgba(12, 22, 36, 0.86) 0%, rgba(16, 26, 44, 0.88) 50%, rgba(20, 30, 52, 0.90) 100%) !important;
+  box-shadow: inset -1px 0 0 rgba(214, 168, 90, 0.30), inset 1px 0 0 rgba(26, 58, 106, 0.16), 8px 0 36px rgba(0, 0, 0, 0.55), 14px 0 80px rgba(214, 168, 90, 0.14), 14px 0 160px rgba(26, 58, 106, 0.10);
+  backdrop-filter: blur(28px) saturate(1.25) !important; -webkit-backdrop-filter: blur(28px) saturate(1.25) !important;
 }
 html[data-theme="interstellar"] .app-top-header {
-  background: linear-gradient(180deg, rgba(16, 12, 8, 0.55) 0%, rgba(16, 12, 8, 0.45) 100%);
-  border-bottom: none;
-  backdrop-filter: blur(22px) saturate(110%);
-  -webkit-backdrop-filter: blur(22px) saturate(110%);
-  box-shadow: inset 0 -1px 0 rgba(255, 170, 60, 0.14), 0 4px 22px rgba(0, 0, 0, 0.35);
+  background: linear-gradient(90deg, rgba(8, 14, 24, 0.68) 0%, rgba(12, 18, 30, 0.62) 50%, rgba(16, 22, 38, 0.66) 100%) !important;
+  border-bottom: 1px solid rgba(214, 168, 90, 0.18);
+  box-shadow: inset 0 -1px 0 rgba(26, 58, 106, 0.10), 0 4px 22px rgba(0, 0, 0, 0.40);
+  backdrop-filter: blur(22px) saturate(1.15) !important; -webkit-backdrop-filter: blur(22px) saturate(1.15) !important;
 }
-html[data-theme="interstellar"] .sidebar-nav-link-active {
-  background: linear-gradient(180deg, rgba(255, 170, 60, 0.18) 0%, rgba(255, 170, 60, 0.10) 100%) !important;
-  color: var(--accent-3) !important;
-  border-color: rgba(255, 170, 60, 0.42) !important;
-  box-shadow: inset 0 0 0 1px rgba(255, 170, 60, 0.22), 0 0 14px rgba(255, 170, 60, 0.30) !important;
-}
-html[data-theme="interstellar"] .sidebar-nav-link-active.ring-2 {
-  --tw-ring-color: rgba(255, 208, 112, 0.55) !important;
-}
-html[data-theme="interstellar"] .sidebar-nav-link:hover:not(.sidebar-nav-link-active) {
-  background: rgba(255, 170, 60, 0.08) !important; color: var(--text) !important;
-}
-html[data-theme="interstellar"] .sidebar-active-bar {
-  background: linear-gradient(180deg, var(--accent-bright) 0%, var(--accent) 100%) !important;
-  box-shadow: 0 0 12px rgba(255, 170, 60, 0.65) !important;
-}
-html[data-theme="interstellar"] nav .text-white\/40,
-html[data-theme="interstellar"] nav [class*="text-white"][class*="uppercase"] {
-  color: rgba(196, 176, 148, 0.55) !important; letter-spacing: 0.10em;
-}
-html[data-theme="interstellar"] .app-sidebar-shell .border-t {
-  border-top-color: rgba(255, 170, 60, 0.16) !important;
-}
-html[data-theme="interstellar"] .app-sidebar-shell .bg-white\/5 {
-  background-color: rgba(255, 170, 60, 0.04) !important;
-}
-
-html[data-theme="interstellar"] [data-bitacora-html-body],
-html[data-theme="interstellar"] [data-bitacora-prose].prose,
-html[data-theme="interstellar"] [data-bitacora-prose] .ProseMirror {
-  color: var(--text); font-family: var(--font-ui);
-  font-size: 16.5px; line-height: 1.85;
-}
-html[data-theme="interstellar"] [data-bitacora-html-body] > p:first-child,
-html[data-theme="interstellar"] [data-bitacora-prose].prose > p:first-child {
-  color: var(--accent-3); font-weight: 600;
-}
-html[data-theme="interstellar"] [data-bitacora-html-body] a,
-html[data-theme="interstellar"] [data-bitacora-prose] .ProseMirror a {
-  color: var(--accent-bright); text-decoration: none;
-  border-bottom: 1px solid rgba(255, 170, 60, 0.30);
-}
-html[data-theme="interstellar"] [data-bitacora-html-body] a:hover,
-html[data-theme="interstellar"] [data-bitacora-prose] .ProseMirror a:hover {
-  color: #ffe4a8; border-bottom-color: rgba(255, 170, 60, 0.65);
-}
-
-html[data-theme="interstellar"] mark,
-html[data-theme="interstellar"] .ProseMirror mark,
-html[data-theme="interstellar"] [data-bitacora-html-body] mark {
-  background: linear-gradient(180deg, var(--accent) 0%, #b87028 100%);
-  color: #1a1208; font-weight: 700;
-  border-radius: 3px; padding: 0 5px;
-  box-shadow:
-    inset 0 0 0 1px rgba(0, 0, 0, 0.40),
-    inset 0 1px 0 rgba(255, 255, 255, 0.30);
-  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.30);
-}
-
-html[data-theme="interstellar"] input,
-html[data-theme="interstellar"] textarea,
-html[data-theme="interstellar"] select {
-  background-color: rgba(255, 170, 60, 0.025);
-  color: var(--text); border-color: var(--border);
-}
-html[data-theme="interstellar"] input::placeholder,
-html[data-theme="interstellar"] textarea::placeholder { color: var(--muted); }
-html[data-theme="interstellar"] input:focus,
-html[data-theme="interstellar"] textarea:focus,
-html[data-theme="interstellar"] select:focus {
-  border-color: var(--border-strong); outline: none;
-  box-shadow: 0 0 0 2px rgba(255, 170, 60, 0.22);
-}
-html[data-theme="interstellar"] [data-bitacora-prose] input[type="text"],
-html[data-theme="interstellar"] form input[type="text"] {
-  background-color: rgba(255, 170, 60, 0.025);
-}
-html[data-theme="interstellar"] .btn-primary,
-html[data-theme="interstellar"] button[data-variant="primary"] {
-  background: linear-gradient(180deg, var(--accent-bright) 0%, var(--accent) 100%);
-  color: #1a1208; border: 1px solid rgba(255, 170, 60, 0.55);
-  font-weight: 700;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.20), 0 1px 0 rgba(0, 0, 0, 0.45);
-}
-html[data-theme="interstellar"] .btn-primary:hover,
-html[data-theme="interstellar"] button[data-variant="primary"]:hover {
-  background: linear-gradient(180deg, #ffe4a8 0%, var(--accent-bright) 100%);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.25),
-    0 0 0 1px rgba(255, 170, 60, 0.55),
-    0 0 18px rgba(255, 170, 60, 0.55);
-}
-
+html[data-theme="interstellar"] .app-sidebar-shell .border-t { border-top-color: rgba(214, 168, 90, 0.16) !important; }
+html[data-theme="interstellar"] .app-sidebar-shell .bg-white\/5 { background-color: rgba(214, 168, 90, 0.06) !important; }
 html[data-theme="interstellar"] #theme-selector-panel {
-  background: linear-gradient(155deg, #181410 0%, #100c08 60%, #080604 100%) !important;
-  border-color: var(--border) !important;
-  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.78), 0 0 0 1px rgba(255, 170, 60, 0.14), 0 0 32px rgba(255, 170, 60, 0.10) !important;
+  background: linear-gradient(150deg, rgba(214, 168, 90, 0.08) 0%, transparent 35%, rgba(26, 58, 106, 0.08) 100%), linear-gradient(180deg, rgba(8, 14, 24, 0.96) 0%, rgba(16, 26, 44, 0.98) 100%) !important;
+  border-color: rgba(214, 168, 90, 0.32) !important;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(214, 168, 90, 0.18), inset 0 1px 0 rgba(26, 58, 106, 0.10), 0 0 80px rgba(214, 168, 90, 0.12), 0 0 160px rgba(26, 58, 106, 0.08) !important;
 }
-html[data-theme="interstellar"] #theme-selector-panel input[type="text"] {
-  background-color: rgba(255, 170, 60, 0.05) !important; color: var(--text) !important;
-}
-html[data-theme="interstellar"] #theme-selector-panel .border-b { border-color: var(--border) !important; }
-html[data-theme="interstellar"] .cmd-palette-backdrop { background-color: rgba(5, 5, 7, 0.92) !important; }
-html[data-theme="interstellar"] #cmd-palette-panel [cmdk-root],
-html[data-theme="interstellar"] #cmd-palette-panel [cmdk-list] {
-  background-color: #100c08 !important; border-color: var(--border) !important;
-}
-html[data-theme="interstellar"] #cmd-palette-panel [cmdk-input-wrapper],
-html[data-theme="interstellar"] #cmd-palette-panel > div > div:first-child {
-  background-color: #100c08 !important; border-color: var(--border) !important;
-}
-html[data-theme="interstellar"] #cmd-palette-panel [class*="bg-\[\#060912\]"],
-html[data-theme="interstellar"] #cmd-palette-panel input[cmdk-input] {
-  background-color: rgba(255, 170, 60, 0.04) !important;
-  color: var(--text) !important; border-color: var(--border) !important;
-}
-html[data-theme="interstellar"] #cmd-palette-panel [cmdk-input-wrapper] > div:focus-within {
-  border-color: rgba(255, 208, 112, 0.65) !important;
-}
-html[data-theme="interstellar"] #cmd-palette-panel [cmdk-item][data-selected="true"] {
-  background-color: rgba(255, 170, 60, 0.16) !important; color: var(--text) !important;
-}
-
-html[data-theme="interstellar"] .config-tabs-root [class*="text-violet-"],
-html[data-theme="interstellar"] .config-tabs-root [class*="text-amber-"],
-html[data-theme="interstellar"] .config-tabs-root [class*="text-sky-"],
-html[data-theme="interstellar"] .config-tabs-root [class*="text-emerald-"],
-html[data-theme="interstellar"] .config-tabs-root [class*="text-rose-"],
-html[data-theme="interstellar"] .config-tabs-root [class*="text-indigo-"],
-html[data-theme="interstellar"] .config-tabs-root [class*="text-fuchsia-"],
-html[data-theme="interstellar"] .config-tabs-root [class*="text-cyan-"],
-html[data-theme="interstellar"] .config-tabs-root [class*="text-pink-"],
-html[data-theme="interstellar"] .config-tabs-root [class*="text-teal-"],
-html[data-theme="interstellar"] .config-tabs-root [class*="text-orange-"] {
-  color: var(--accent-bright) !important;
-}
-html[data-theme="interstellar"] .config-tabs-root [class*="bg-violet-"],
-html[data-theme="interstellar"] .config-tabs-root [class*="bg-amber-"],
-html[data-theme="interstellar"] .config-tabs-root [class*="bg-sky-"],
-html[data-theme="interstellar"] .config-tabs-root [class*="bg-emerald-"],
-html[data-theme="interstellar"] .config-tabs-root [class*="bg-rose-"],
-html[data-theme="interstellar"] .config-tabs-root [class*="bg-indigo-"],
-html[data-theme="interstellar"] .config-tabs-root [class*="bg-fuchsia-"],
-html[data-theme="interstellar"] .config-tabs-root [class*="bg-cyan-"],
-html[data-theme="interstellar"] .config-tabs-root [class*="bg-pink-"],
-html[data-theme="interstellar"] .config-tabs-root [class*="bg-teal-"],
-html[data-theme="interstellar"] .config-tabs-root [class*="bg-orange-"] {
-  background-color: rgba(255, 170, 60, 0.10) !important;
-}
-html[data-theme="interstellar"] .config-tabs-root [class*="border-violet-"],
-html[data-theme="interstellar"] .config-tabs-root [class*="border-amber-"],
-html[data-theme="interstellar"] .config-tabs-root [class*="border-sky-"],
-html[data-theme="interstellar"] .config-tabs-root [class*="border-emerald-"],
-html[data-theme="interstellar"] .config-tabs-root [class*="border-rose-"],
-html[data-theme="interstellar"] .config-tabs-root [class*="border-indigo-"],
-html[data-theme="interstellar"] .config-tabs-root [class*="border-fuchsia-"],
-html[data-theme="interstellar"] .config-tabs-root [class*="border-cyan-"],
-html[data-theme="interstellar"] .config-tabs-root [class*="border-pink-"],
-html[data-theme="interstellar"] .config-tabs-root [class*="border-teal-"],
-html[data-theme="interstellar"] .config-tabs-root [class*="border-orange-"] {
-  border-color: rgba(255, 170, 60, 0.22) !important;
-}
-html[data-theme="interstellar"] .config-tabs-root [class*="ring-violet-"],
-html[data-theme="interstellar"] .config-tabs-root [class*="ring-amber-"],
-html[data-theme="interstellar"] .config-tabs-root [class*="ring-sky-"],
-html[data-theme="interstellar"] .config-tabs-root [class*="ring-emerald-"],
-html[data-theme="interstellar"] .config-tabs-root [class*="ring-rose-"],
-html[data-theme="interstellar"] .config-tabs-root [class*="ring-indigo-"],
-html[data-theme="interstellar"] .config-tabs-root [class*="ring-fuchsia-"],
-html[data-theme="interstellar"] .config-tabs-root [class*="ring-cyan-"],
-html[data-theme="interstellar"] .config-tabs-root [class*="ring-pink-"],
-html[data-theme="interstellar"] .config-tabs-root [class*="ring-teal-"],
-html[data-theme="interstellar"] .config-tabs-root [class*="ring-orange-"] {
-  --tw-ring-color: rgba(255, 170, 60, 0.32) !important;
-}
-html[data-theme="interstellar"] .config-tabs-root [class*="from-violet"],
-html[data-theme="interstellar"] .config-tabs-root [class*="from-amber"],
-html[data-theme="interstellar"] .config-tabs-root [class*="from-sky"],
-html[data-theme="interstellar"] .config-tabs-root [class*="from-emerald"],
-html[data-theme="interstellar"] .config-tabs-root [class*="from-rose"],
-html[data-theme="interstellar"] .config-tabs-root [class*="from-indigo"] {
-  --tw-gradient-from: rgba(255, 170, 60, 0.10) var(--tw-gradient-from-position) !important;
-  --tw-gradient-to: rgba(255, 170, 60, 0) var(--tw-gradient-to-position) !important;
-  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-via, var(--tw-gradient-to)), var(--tw-gradient-to) !important;
-}
-html[data-theme="interstellar"] .config-tabs-root [class*="to-fuchsia"],
-html[data-theme="interstellar"] .config-tabs-root [class*="to-orange"],
-html[data-theme="interstellar"] .config-tabs-root [class*="to-cyan"],
-html[data-theme="interstellar"] .config-tabs-root [class*="to-teal"],
-html[data-theme="interstellar"] .config-tabs-root [class*="to-pink"],
-html[data-theme="interstellar"] .config-tabs-root [class*="to-violet"] {
-  --tw-gradient-to: rgba(200, 148, 106, 0.10) var(--tw-gradient-to-position) !important;
-}
-html[data-theme="interstellar"] .config-tabs-root .bg-gradient-to-r[class*="from-amber"],
-html[data-theme="interstellar"] .config-tabs-root .bg-gradient-to-r[class*="from-violet"],
-html[data-theme="interstellar"] .config-tabs-root .bg-gradient-to-r[class*="from-sky"],
-html[data-theme="interstellar"] .config-tabs-root .bg-gradient-to-r[class*="from-emerald"],
-html[data-theme="interstellar"] .config-tabs-root .bg-gradient-to-r[class*="from-rose"],
-html[data-theme="interstellar"] .config-tabs-root .bg-gradient-to-r[class*="from-indigo"] {
-  background: linear-gradient(90deg, var(--accent-2) 0%, var(--accent) 50%, var(--accent-bright) 100%) !important;
-}
-html[data-theme="interstellar"] .config-tabs-root .blur-3xl {
-  background-color: rgba(255, 170, 60, 0.06) !important;
-}
-
-html[data-theme="interstellar"] .my-profile-card {
-  background: linear-gradient(180deg,
-    rgba(28, 22, 14, 0.95) 0%, rgba(20, 16, 10, 0.97) 50%, rgba(14, 10, 6, 0.98) 100%) !important;
-  border-color: var(--border) !important;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 170, 60, 0.05),
-    0 18px 50px rgba(0, 0, 0, 0.65) !important;
-}
-html[data-theme="interstellar"] .my-profile-card .border-white\/8 {
-  border-color: rgba(255, 170, 60, 0.16) !important;
-}
-
-html[data-theme="interstellar"] .glass-surface::after,
-html[data-theme="interstellar"] .glass-2::after,
-html[data-theme="interstellar"] .glass-3::after,
-html[data-theme="interstellar"] .glass-4::after {
-  content: ""; position: absolute; top: 0; left: 0; right: 0;
-  height: 2px; pointer-events: none; z-index: 2;
-  background: linear-gradient(90deg,
-    transparent 0%, transparent 28%,
-    rgba(255, 170, 60, 0.55) 44%,
-    rgba(255, 230, 180, 1.00) 50%,
-    rgba(255, 170, 60, 0.55) 56%,
-    transparent 72%, transparent 100%);
-  background-size: 260% 100%; background-position: 100% 0;
-  animation: stellar-shimmer 6s ease-in-out infinite;
-  border-top-left-radius: inherit; border-top-right-radius: inherit;
-}
-@keyframes stellar-shimmer {
-  0%   { background-position: 130% 0; }
-  100% { background-position: -30% 0; }
-}
-
-html[data-theme="interstellar"] h2,
-html[data-theme="interstellar"] h3 { position: relative; }
-html[data-theme="interstellar"] h2::after,
-html[data-theme="interstellar"] h3::after {
-  content: ""; display: block; width: 48px; height: 2px;
-  margin-top: 8px;
-  background: linear-gradient(90deg, var(--accent) 0%, var(--accent-bright) 60%, transparent 100%);
-  box-shadow: 0 0 8px rgba(255, 170, 60, 0.55); border-radius: 999px;
-}
-html[data-theme="interstellar"] h3::after { width: 32px; height: 1.5px; margin-top: 6px; }
-
-html[data-theme="interstellar"] .glass-surface,
-html[data-theme="interstellar"] .glass-2,
-html[data-theme="interstellar"] .glass-3,
-html[data-theme="interstellar"] .glass-4 {
-  animation: stellar-card-reveal 0.55s cubic-bezier(0.22, 0.61, 0.36, 1) backwards;
-}
-html[data-theme="interstellar"] .glass-surface:nth-child(1),
-html[data-theme="interstellar"] .glass-2:nth-child(1),
-html[data-theme="interstellar"] .glass-3:nth-child(1),
-html[data-theme="interstellar"] .glass-4:nth-child(1) { animation-delay: 0.04s; }
-html[data-theme="interstellar"] .glass-surface:nth-child(2),
-html[data-theme="interstellar"] .glass-2:nth-child(2),
-html[data-theme="interstellar"] .glass-3:nth-child(2),
-html[data-theme="interstellar"] .glass-4:nth-child(2) { animation-delay: 0.08s; }
-html[data-theme="interstellar"] .glass-surface:nth-child(3),
-html[data-theme="interstellar"] .glass-2:nth-child(3),
-html[data-theme="interstellar"] .glass-3:nth-child(3),
-html[data-theme="interstellar"] .glass-4:nth-child(3) { animation-delay: 0.12s; }
-html[data-theme="interstellar"] .glass-surface:nth-child(4),
-html[data-theme="interstellar"] .glass-2:nth-child(4),
-html[data-theme="interstellar"] .glass-3:nth-child(4),
-html[data-theme="interstellar"] .glass-4:nth-child(4) { animation-delay: 0.16s; }
-html[data-theme="interstellar"] .glass-surface:nth-child(5),
-html[data-theme="interstellar"] .glass-2:nth-child(5),
-html[data-theme="interstellar"] .glass-3:nth-child(5),
-html[data-theme="interstellar"] .glass-4:nth-child(5) { animation-delay: 0.20s; }
-
-@keyframes stellar-card-reveal {
-  0%   { opacity: 0; transform: translateY(8px); }
-  100% { opacity: 1; transform: translateY(0);    }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  html[data-theme="interstellar"] .stellar-bg .stellar-star,
-  html[data-theme="interstellar"] .stellar-bg .stellar-gargantua,
-  html[data-theme="interstellar"] .stellar-bg .stellar-miller-halo,
-  html[data-theme="interstellar"] .glass-surface::after,
-  html[data-theme="interstellar"] .glass-2::after,
-  html[data-theme="interstellar"] .glass-3::after,
-  html[data-theme="interstellar"] .glass-4::after,
-  html[data-theme="interstellar"] .glass-surface,
-  html[data-theme="interstellar"] .glass-2,
-  html[data-theme="interstellar"] .glass-3,
-  html[data-theme="interstellar"] .glass-4 {
-    animation: none !important;
-  }
-}
+html[data-theme="interstellar"] #theme-selector-panel input:focus { outline-color: rgba(214, 168, 90, 0.65); }

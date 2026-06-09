@@ -1,697 +1,141 @@
-/* ╔══════════════════════════════════════════════════════════════════════════╗
- * ║   TEMA "CYBERPUNK" · TRIBUTO · Night City glitch amarillo+cyan          ║
- * ╚══════════════════════════════════════════════════════════════════════════╝ */
+/* TEMA "CYBERPUNK" — Night City urbano (Cyberpunk 2077).
+ * Paleta: noche graphite + amarillo Arasaka + magenta neón. */
 
 html[data-theme="cyberpunk"] {
-  --bg-0: #050510;
-  --bg-1: #0a0a18;
-  --bg-2: #14141e;
-
-  --card: linear-gradient(180deg, #14141e 0%, #0a0a18 60%, #06060f 100%);
-  --surface:   rgba(20, 20, 30, 0.92);
-  --surface-2: rgba(252, 238, 10, 0.04);
-  --border:        rgba(252, 238, 10, 0.22);
-  --border-strong: rgba(252, 238, 10, 0.55);
-
-  --accent:        #fcee0a;       /* amarillo Arasaka */
-  --accent-bright: #ffff4d;
-  --accent-glow:   rgba(252, 238, 10, 0.40);
-  --accent-2:      #00e5ff;       /* cyan glitch */
-  --accent-3:      #ff003c;       /* rojo error */
-
-  --text:      #f8f8e0;
-  --text-soft: #c4c4a8;
-  --muted:     #6a6a55;
-
-  --ok:         #4dffaa;
-  --gold-relic: #fcee0a;
-
-  --font-display: "Rajdhani", "Eurostile", ui-monospace, "JetBrains Mono", Consolas, monospace;
-  --font-ui:      "Sora", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-
-  --app-canvas-color: transparent;
-  --app-canvas-image: none;
-  --card-isolation: auto;
-
+  --bg-0: #060614; --bg-1: #0a0a18; --bg-2: #0e0e22;
+  --card: linear-gradient(180deg, #0e0e22 0%, #0a0a18 60%, #060614 100%);
+  --surface: rgba(14, 14, 34, 0.86); --surface-2: rgba(255, 255, 255, 0.045);
+  --border: rgba(255, 212, 0, 0.22); --border-strong: rgba(255, 29, 138, 0.45);
+  --accent: #ffd400; --accent-bright: #fff05a; --accent-glow: rgba(255, 212, 0, 0.45);
+  --text: #f4f0d8; --text-soft: #d6d0a8; --muted: #9a9078;
+  --ok: #6ef0a0; --gold-relic: #ffd400;
+  --font-display: var(--font-akatsuki-display), "Shippori Mincho", serif;
+  --font-ui: var(--font-akatsuki-ui), "Zen Kaku Gothic New", sans-serif;
+  --app-canvas-color: transparent; --app-canvas-image: none; --card-isolation: auto;
   color-scheme: dark;
 }
-
 html[data-theme="cyberpunk"] body { min-height: 100vh; }
-html[data-theme="cyberpunk"] .app-sidebar-shell,
-html[data-theme="cyberpunk"] .app-top-header { isolation: auto !important; }
-
-
-/* ── 1. FONDO + ATMÓSFERA ────────────────────────────────────────────── */
-html[data-theme="cyberpunk"] .cyber-bg {
-  position: fixed; inset: 0; z-index: -10; overflow: hidden; pointer-events: none;
-  background:
-    radial-gradient(ellipse 90% 65% at 60% 60%, rgba(252, 238, 10, 0.08) 0%, transparent 65%),
-    radial-gradient(ellipse 70% 55% at 25% 75%, rgba(0, 229, 255, 0.10) 0%, transparent 65%),
-    linear-gradient(180deg, var(--bg-0) 0%, var(--bg-1) 50%, var(--bg-0) 100%);
-}
-
-/* ── 1.1 Skyline silueta (en SVG) ─────────────────────────────────────── */
-html[data-theme="cyberpunk"] .cyber-bg .cyber-skyline {
-  position: absolute; left: 0; right: 0; bottom: 0;
-  width: 100%; height: 35%;
-  pointer-events: none;
-  filter: drop-shadow(0 -2px 8px rgba(252, 238, 10, 0.30));
-}
-
-/* ── 1.2 Scanlines + glitch bands ─────────────────────────────────────── */
-html[data-theme="cyberpunk"] .cyber-bg .cyber-scanlines {
-  position: absolute; inset: 0;
-  background-image: repeating-linear-gradient(
-    0deg,
-    rgba(0, 0, 0, 0.16) 0px, rgba(0, 0, 0, 0.16) 1px,
-    transparent 1px, transparent 4px);
-  mix-blend-mode: multiply; opacity: 0.55; pointer-events: none;
-}
-
-html[data-theme="cyberpunk"] .cyber-bg .cyber-glitch-band {
-  position: absolute; left: 0; right: 0;
-  height: 2px;
-  background: linear-gradient(90deg,
-    transparent 0%,
-    rgba(0, 229, 255, 0.65) 28%,
-    rgba(252, 238, 10, 0.85) 50%,
-    rgba(255, 0, 60, 0.55) 72%,
-    transparent 100%);
-  filter: blur(0.5px);
-  opacity: 0;
-  animation: cyber-glitch-band 7s steps(1, end) infinite;
-}
-html[data-theme="cyberpunk"] .cyber-bg .cyber-glitch-band-1 { top: 18%; animation-delay: 0s; }
-html[data-theme="cyberpunk"] .cyber-bg .cyber-glitch-band-2 { top: 56%; animation-delay: 2.4s; }
-html[data-theme="cyberpunk"] .cyber-bg .cyber-glitch-band-3 { top: 78%; animation-delay: 5.1s; }
-
-@keyframes cyber-glitch-band {
-  0%, 92%, 100% { transform: translateX(0); opacity: 0; }
-  93%           { transform: translateX(-12px); opacity: 0.85; }
-  94%           { transform: translateX(8px);  opacity: 1.00; }
-  95%           { transform: translateX(-4px); opacity: 0.65; }
-  96%           { transform: translateX(0);    opacity: 0; }
-}
-
-/* ── 1.3 Cartel "NIGHT CITY" — tipografía deformada + glow magenta ────── */
-html[data-theme="cyberpunk"] .cyber-bg .cyber-citysign {
-  position: absolute;
-  left: 50%; top: 50%;
-  transform: translate(-50%, -55%) skew(-6deg, 0);
-  font-family: var(--font-display);
-  font-weight: 900;
-  line-height: 0.82;
-  letter-spacing: 0.04em;
-  color: transparent;
-  text-transform: uppercase;
-  text-align: center;
-  pointer-events: none; user-select: none;
-  -webkit-text-stroke: 1.5px rgba(252, 238, 10, 0.45);
-  text-shadow:
-    -2px 0 rgba(255, 0, 100, 0.40),
-     2px 0 rgba(0, 229, 255, 0.40),
-     0 0 18px rgba(252, 238, 10, 0.35);
-  animation: cyber-sign-flicker 7s steps(1, end) infinite;
-}
-html[data-theme="cyberpunk"] .cyber-bg .cyber-citysign-top    { font-size: clamp(4rem, 10vw, 12rem); }
-html[data-theme="cyberpunk"] .cyber-bg .cyber-citysign-bottom { font-size: clamp(6rem, 14vw, 17rem); margin-top: -0.06em; }
-html[data-theme="cyberpunk"] .cyber-bg .cyber-citysign-sub {
-  font-size: clamp(0.85rem, 1.6vw, 1.4rem);
-  -webkit-text-stroke: 0; color: rgba(0, 229, 255, 0.65);
-  letter-spacing: 0.4em; margin-top: 0.4em;
-  text-shadow: 0 0 8px rgba(0, 229, 255, 0.65);
-}
-@keyframes cyber-sign-flicker {
-  0%, 96%, 100% { opacity: 0.55; }
-  97%           { opacity: 0.20; }
-  97.5%         { opacity: 0.85; }
-  98%           { opacity: 0.30; }
-  98.5%         { opacity: 0.70; }
-}
-
-/* ── 1.3.b Logo holográfico Arasaka (cuadrado, esquina sup. derecha) ──── */
-html[data-theme="cyberpunk"] .cyber-bg .cyber-arasaka {
-  position: absolute;
-  top: 5%; right: 4%;
-  width: clamp(110px, 13vw, 180px);
-  height: clamp(110px, 13vw, 180px);
-  pointer-events: none;
-  opacity: 0.50;
-  filter: drop-shadow(0 0 14px rgba(252, 238, 10, 0.35));
-  animation: cyber-arasaka-hologram 9s ease-in-out infinite;
-}
-@keyframes cyber-arasaka-hologram {
-  0%, 100% { opacity: 0.50; transform: scale(1.00); }
-  50%      { opacity: 0.78; transform: scale(1.02); }
-  92%      { opacity: 0.50; }
-  93%      { opacity: 0.15; }
-  94%      { opacity: 0.78; }
-  95%      { opacity: 0.40; }
-}
-
-/* ── 1.3.c Pilares de anuncios verticales con katakana cayendo ────────── */
-html[data-theme="cyberpunk"] .cyber-bg .cyber-pillars {
-  position: absolute; inset: 0; pointer-events: none; overflow: hidden;
-}
-html[data-theme="cyberpunk"] .cyber-bg .cyber-pillar {
-  position: absolute; top: 0; bottom: 0;
-  width: clamp(28px, 3vw, 44px);
-  overflow: hidden;
-  opacity: 0.55;
-  mix-blend-mode: screen;
-  pointer-events: none;
-}
-html[data-theme="cyberpunk"] .cyber-bg .cyber-pillar-strip {
-  display: flex; flex-direction: column;
-  animation: cyber-pillar-scroll linear infinite;
-  font-family: ui-monospace, "JetBrains Mono", Consolas, monospace;
-  font-size: clamp(0.9rem, 1.4vw, 1.3rem);
-  font-weight: 700;
-  line-height: 1.1;
-  text-align: center;
-}
-html[data-theme="cyberpunk"] .cyber-bg .cyber-pillar-glyphs {
-  display: flex; flex-direction: column; padding: 0.2em 0;
-}
-html[data-theme="cyberpunk"] .cyber-bg .cyber-pillar-glyphs span {
-  display: block; padding: 0.05em 0;
-}
-html[data-theme="cyberpunk"] .cyber-bg .cyber-pillar-yellow .cyber-pillar-strip {
-  color: rgba(252, 238, 10, 0.85);
-  text-shadow: 0 0 8px rgba(252, 238, 10, 0.85), 0 0 18px rgba(252, 238, 10, 0.45);
-}
-html[data-theme="cyberpunk"] .cyber-bg .cyber-pillar-cyan .cyber-pillar-strip {
-  color: rgba(0, 229, 255, 0.85);
-  text-shadow: 0 0 8px rgba(0, 229, 255, 0.85), 0 0 18px rgba(0, 229, 255, 0.45);
-}
-html[data-theme="cyberpunk"] .cyber-bg .cyber-pillar-magenta .cyber-pillar-strip {
-  color: rgba(255, 0, 100, 0.85);
-  text-shadow: 0 0 8px rgba(255, 0, 100, 0.85), 0 0 18px rgba(255, 0, 100, 0.45);
-}
-@keyframes cyber-pillar-scroll {
-  0%   { transform: translateY(0); }
-  100% { transform: translateY(-33.333%); }
-}
-
-/* ── 1.3.d Skylines a dos planos (parallax estático) ─────────────────── */
-html[data-theme="cyberpunk"] .cyber-bg .cyber-skyline {
-  position: absolute; left: 0; right: 0; bottom: 0;
-  width: 100%; pointer-events: none;
-}
-html[data-theme="cyberpunk"] .cyber-bg .cyber-skyline-far  { height: 22%; opacity: 0.7; bottom: 18%; }
-html[data-theme="cyberpunk"] .cyber-bg .cyber-skyline-near { height: 35%; filter: drop-shadow(0 -2px 8px rgba(252, 238, 10, 0.30)); }
-
-/* ── 1.3.e Tráfico aéreo (puntos de luz cruzando) ────────────────────── */
-html[data-theme="cyberpunk"] .cyber-bg .cyber-traffic { position: absolute; inset: 0; pointer-events: none; }
-html[data-theme="cyberpunk"] .cyber-bg .cyber-traffic-dot {
-  position: absolute;
-  left: -20px;
-  width: 4px; height: 4px;
-  border-radius: 50%;
-  animation: cyber-traffic-cross linear infinite;
-}
-@keyframes cyber-traffic-cross {
-  0%   { transform: translateX(0)         scale(0.6); opacity: 0; }
-  6%   { opacity: 0.95; }
-  92%  { opacity: 0.95; }
-  100% { transform: translateX(120vw)     scale(1.2); opacity: 0; }
-}
-
-/* ── 1.3.f Lluvia diagonal neón ───────────────────────────────────────── */
-html[data-theme="cyberpunk"] .cyber-bg .cyber-rain {
-  position: absolute; inset: -20%;
-  pointer-events: none;
-  background-image: repeating-linear-gradient(
-    105deg,
-    rgba(0, 229, 255, 0.10) 0,
-    rgba(0, 229, 255, 0.10) 1px,
-    transparent 1px,
-    transparent 6px);
-  mix-blend-mode: screen;
-  opacity: 0.45;
-  animation: cyber-rain-fall 1.4s linear infinite;
-}
-@keyframes cyber-rain-fall {
-  0%   { background-position: 0 0; }
-  100% { background-position: -120px 320px; }
-}
-
-/* ── 1.4 Veil + grain + vignette ─────────────────────────────────────── */
-html[data-theme="cyberpunk"] .cyber-bg .cyber-veil {
-  position: absolute; inset: 0;
-  background: radial-gradient(ellipse 75% 55% at 50% 50%,
-    rgba(5, 5, 16, 0.45) 0%, rgba(5, 5, 16, 0.20) 40%, transparent 80%);
-  pointer-events: none;
-}
-html[data-theme="cyberpunk"] .cyber-bg .cyber-grain {
-  position: absolute; inset: 0; opacity: 0.04;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.78' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  mix-blend-mode: overlay; pointer-events: none;
-}
-html[data-theme="cyberpunk"] .cyber-bg .cyber-vignette {
-  position: absolute; inset: 0;
-  background: radial-gradient(ellipse 100% 80% at 50% 50%,
-    transparent 50%, rgba(0, 0, 0, 0.40) 82%, rgba(0, 0, 0, 0.65) 100%);
-  pointer-events: none;
-}
-
-
-/* ── 2. TIPOGRAFÍA + SHELL ───────────────────────────────────────────── */
-html[data-theme="cyberpunk"] body {
-  color: var(--text); font-family: var(--font-ui); font-weight: 400;
-}
-html[data-theme="cyberpunk"] h1,
-html[data-theme="cyberpunk"] h2,
-html[data-theme="cyberpunk"] h3,
-html[data-theme="cyberpunk"] h4,
-html[data-theme="cyberpunk"] h5,
-html[data-theme="cyberpunk"] h6 {
-  font-family: var(--font-display);
-  font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;
-  color: var(--accent);
-  text-shadow: 0 0 8px rgba(252, 238, 10, 0.40);
-}
-html[data-theme="cyberpunk"] h1,
-html[data-theme="cyberpunk"] h2 { font-weight: 800; color: #ffffff; }
+html[data-theme="cyberpunk"] .app-sidebar-shell, html[data-theme="cyberpunk"] .app-top-header { isolation: auto !important; }
 
 html[data-theme="cyberpunk"] .glass-shell-frame {
-  margin: 18px; padding: 0; border-radius: 18px;
-  background: transparent; box-shadow: none; isolation: auto !important;
+  margin: 22px; padding: 1.5px; border-radius: 28px;
+  background: linear-gradient(135deg, rgba(255, 212, 0, 0.85) 0%, rgba(180, 100, 70, 0.45) 50%, rgba(255, 29, 138, 0.85) 100%);
+  box-shadow: 0 0 90px rgba(255, 212, 0, 0.30), 0 0 180px rgba(255, 29, 138, 0.20); position: relative;
 }
 html[data-theme="cyberpunk"] .glass-shell-inner {
-  border-radius: 17px; background: transparent;
-  backdrop-filter: none; -webkit-backdrop-filter: none;
-  isolation: auto !important; overflow: visible; padding: 20px;
+  border-radius: 26px; background: rgba(8, 8, 22, 0.55);
+  backdrop-filter: blur(6px) saturate(1.05); -webkit-backdrop-filter: blur(6px) saturate(1.05);
+  overflow: hidden; padding: 18px;
 }
-@media (max-width: 768px) {
-  html[data-theme="cyberpunk"] .glass-shell-inner { padding: 6px; }
-  html[data-theme="cyberpunk"] .app-dashboard-root { gap: 8px; }
+@media (max-width: 768px) { html[data-theme="cyberpunk"] .glass-shell-inner { padding: 6px; } html[data-theme="cyberpunk"] .app-dashboard-root { gap: 8px; } }
+@media (max-width: 640px) { html[data-theme="cyberpunk"] .glass-shell-frame { margin: 4px; border-radius: 18px; } html[data-theme="cyberpunk"] .glass-shell-inner { border-radius: 16px; } }
+@media (max-width: 480px) { html[data-theme="cyberpunk"] .glass-shell-frame { margin: 0; padding: 0; border-radius: 0; box-shadow: none; } html[data-theme="cyberpunk"] .glass-shell-inner { border-radius: 0; padding: 0; } html[data-theme="cyberpunk"] .app-dashboard-root { gap: 0; } }
+
+html[data-theme="cyberpunk"] .cyberpunk-bg { position: fixed; inset: 0; z-index: -10; overflow: hidden; pointer-events: none; background: radial-gradient(ellipse at 50% 50%, #0e0e22 0%, #0a0a18 60%, #02020a 100%); }
+html[data-theme="cyberpunk"] .cyberpunk-image-frame { position: absolute; inset: -4%; --parallax-x: 0px; --parallax-y: 0px; transform: translate3d(var(--parallax-x), var(--parallax-y), 0); transition: transform 1200ms cubic-bezier(0.18, 0.7, 0.22, 1); will-change: transform; }
+html[data-theme="cyberpunk"] .cyberpunk-image {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  background-image: url("/themes/cyberpunk-bg.png");
+  background-size: cover; background-position: center 50%; background-repeat: no-repeat; background-color: #060614;
+  filter: saturate(1.20) contrast(1.06) brightness(0.96);
+  animation: cyberpunk-kenburns 44s ease-in-out infinite alternate; transform-origin: 50% 60%;
+  will-change: transform; backface-visibility: hidden; transform: translateZ(0);
 }
+@keyframes cyberpunk-kenburns { 0% { transform: translateZ(0) scale(1.03); } 50% { transform: translateZ(0) scale(1.07) translate(-1%, -0.4%); } 100% { transform: translateZ(0) scale(1.04) translate(0.6%, 0.2%); } }
+
+html[data-theme="cyberpunk"] .cyberpunk-glow-1 {
+  position: absolute; left: 50%; top: 60%; width: 36vw; height: 22vw; max-width: 540px; max-height: 320px;
+  transform: translate(-50%, -50%); border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(255, 240, 90, 0.45) 0%, rgba(255, 212, 0, 0.28) 22%, rgba(180, 130, 0, 0.12) 45%, transparent 70%);
+  filter: blur(20px); mix-blend-mode: screen; animation: cyberpunk-pulse-1 6.7s ease-in-out infinite;
+}
+@keyframes cyberpunk-pulse-1 { 0%, 100% { opacity: 0.78; transform: translate(-50%, -50%) scale(1); } 50% { opacity: 1; transform: translate(-50%, -50%) scale(1.06); } }
+
+html[data-theme="cyberpunk"] .cyberpunk-glow-2 {
+  position: absolute; left: 80%; top: 35%; width: 26vw; height: 26vw; max-width: 380px; max-height: 380px;
+  transform: translate(-50%, -50%); border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 180, 220, 0.42) 0%, rgba(255, 29, 138, 0.28) 25%, rgba(180, 20, 100, 0.10) 50%, transparent 72%);
+  filter: blur(22px); mix-blend-mode: screen; animation: cyberpunk-pulse-2 8.3s ease-in-out infinite;
+}
+@keyframes cyberpunk-pulse-2 { 0%, 100% { opacity: 0.72; transform: translate(-50%, -50%) scale(1); } 50% { opacity: 1; transform: translate(-50%, -50%) scale(1.05); } }
+
+html[data-theme="cyberpunk"] .cyberpunk-vignette-soft { position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 65%, transparent 0%, transparent 35%, rgba(0,0,0,0.20) 60%, rgba(0,0,0,0.55) 100%); }
+
+html[data-theme="cyberpunk"] .cyberpunk-spark {
+  position: absolute; width: var(--ss, 4px); height: var(--ss, 4px); border-radius: 50%;
+  opacity: 0; animation: cyberpunk-rise var(--sd, 18s) ease-in-out infinite; animation-delay: var(--sl, 0s);
+  filter: blur(0.6px); will-change: transform, opacity; mix-blend-mode: screen;
+}
+@keyframes cyberpunk-rise { 0% { transform: translateY(20vh) scale(0.5); opacity: 0; } 10% { opacity: 0.92; } 60% { opacity: 0.6; } 100% { transform: translateY(-65vh) translateX(var(--sx, 4vw)) scale(1.1); opacity: 0; } }
+html[data-theme="cyberpunk"] .cyberpunk-spark-1 { left: 12%; --ss: 4px; --sd: 18s; --sl: -1s; --sx: 4vw; background: radial-gradient(circle, #fff5b8 0%, #ffd400 30%, transparent 80%); filter: blur(0.6px) drop-shadow(0 0 6px rgba(255, 212, 0, 0.7)); }
+html[data-theme="cyberpunk"] .cyberpunk-spark-2 { left: 28%; --ss: 6px; --sd: 23s; --sl: -7s; --sx: -3vw; background: radial-gradient(circle, #ffc8e8 0%, #ff1d8a 30%, transparent 80%); filter: blur(0.6px) drop-shadow(0 0 6px rgba(255, 29, 138, 0.7)); }
+html[data-theme="cyberpunk"] .cyberpunk-spark-3 { left: 44%; --ss: 3px; --sd: 14s; --sl: -3s; --sx: 6vw; background: radial-gradient(circle, #fff5b8 0%, #ffd400 30%, transparent 80%); filter: blur(0.6px) drop-shadow(0 0 6px rgba(255, 212, 0, 0.7)); }
+html[data-theme="cyberpunk"] .cyberpunk-spark-4 { left: 60%; --ss: 5px; --sd: 20s; --sl: -12s; --sx: 2vw; background: radial-gradient(circle, #ffc8e8 0%, #ff1d8a 30%, transparent 80%); filter: blur(0.6px) drop-shadow(0 0 6px rgba(255, 29, 138, 0.7)); }
+html[data-theme="cyberpunk"] .cyberpunk-spark-5 { left: 76%; --ss: 4px; --sd: 25s; --sl: -5s; --sx: -5vw; background: radial-gradient(circle, #fff5b8 0%, #ffd400 30%, transparent 80%); filter: blur(0.6px) drop-shadow(0 0 6px rgba(255, 212, 0, 0.7)); }
+html[data-theme="cyberpunk"] .cyberpunk-spark-6 { left: 90%; --ss: 7px; --sd: 17s; --sl: -15s; --sx: 3vw; background: radial-gradient(circle, #ffc8e8 0%, #ff1d8a 30%, transparent 80%); filter: blur(0.6px) drop-shadow(0 0 6px rgba(255, 29, 138, 0.7)); }
+
+html[data-theme="cyberpunk"] .cyberpunk-rune { position: absolute; border-radius: 50%; border: 1px dashed rgba(255, 212, 0, 0.18); box-shadow: inset 0 0 30px rgba(255, 212, 0, 0.10), 0 0 18px rgba(255, 212, 0, 0.06); pointer-events: none; mix-blend-mode: screen; }
+html[data-theme="cyberpunk"] .cyberpunk-rune::before { content: ""; position: absolute; inset: 12%; border-radius: 50%; border: 1px solid rgba(255, 240, 90, 0.10); }
+html[data-theme="cyberpunk"] .cyberpunk-rune::after { content: ""; position: absolute; inset: 30%; border-radius: 50%; border: 1px dashed rgba(255, 212, 0, 0.14); }
+html[data-theme="cyberpunk"] .cyberpunk-rune-1 { top: 10%; left: 8%; width: 14vw; height: 14vw; max-width: 200px; max-height: 200px; animation: cyberpunk-rotate 90s linear infinite; }
+html[data-theme="cyberpunk"] .cyberpunk-rune-2 { top: 70%; left: 22%; width: 18vw; height: 18vw; max-width: 240px; max-height: 240px; animation: cyberpunk-rotate 130s linear infinite reverse; border-color: rgba(255, 29, 138, 0.18); box-shadow: inset 0 0 30px rgba(255, 29, 138, 0.10), 0 0 18px rgba(255, 29, 138, 0.06); }
+html[data-theme="cyberpunk"] .cyberpunk-rune-3 { top: 14%; left: 84%; width: 10vw; height: 10vw; max-width: 150px; max-height: 150px; animation: cyberpunk-rotate 110s linear infinite; }
+@keyframes cyberpunk-rotate { 0% { transform: rotate(0); } 100% { transform: rotate(360deg); } }
+
+html[data-theme="cyberpunk"] .cyberpunk-grain {
+  position: absolute; inset: 0;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.55 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.55'/></svg>");
+  background-size: 180px 180px; opacity: 0.16; mix-blend-mode: overlay;
+}
+html[data-theme="cyberpunk"] .cyberpunk-vignette-edge { position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 50%, transparent 50%, rgba(0,0,0,0.30) 80%, rgba(0,0,0,0.65) 100%); }
+
+html[data-theme="cyberpunk"] { scrollbar-color: rgba(255, 212, 0, 0.45) rgba(0, 0, 0, 0.25); }
+html[data-theme="cyberpunk"] *::-webkit-scrollbar-thumb { background: linear-gradient(180deg, rgba(255, 212, 0, 0.55), rgba(255, 29, 138, 0.55)); border-radius: 999px; }
+html[data-theme="cyberpunk"] *::-webkit-scrollbar-thumb:hover { background: linear-gradient(180deg, rgba(255, 240, 90, 0.7), rgba(255, 80, 170, 0.7)); }
+html[data-theme="cyberpunk"] :focus-visible { outline-color: var(--accent-bright) !important; box-shadow: 0 0 0 3px var(--accent-glow); }
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-theme="cyberpunk"] .cyberpunk-image, html[data-theme="cyberpunk"] .cyberpunk-glow-1, html[data-theme="cyberpunk"] .cyberpunk-glow-2,
+  html[data-theme="cyberpunk"] .cyberpunk-spark, html[data-theme="cyberpunk"] .cyberpunk-rune { animation: none !important; }
+  html[data-theme="cyberpunk"] .cyberpunk-spark { display: none !important; }
+  html[data-theme="cyberpunk"] .cyberpunk-image-frame { transition: none !important; }
+}
+
 @media (max-width: 640px) {
-  html[data-theme="cyberpunk"] .glass-shell-frame { margin: 4px; border-radius: 12px; }
-  html[data-theme="cyberpunk"] .glass-shell-inner { border-radius: 11px; }
-}
-@media (max-width: 480px) {
-  html[data-theme="cyberpunk"] .glass-shell-frame { margin: 0; padding: 0; border-radius: 0; background: none; }
-  html[data-theme="cyberpunk"] .glass-shell-inner { padding: 0; border-radius: 0; }
-  html[data-theme="cyberpunk"] .app-dashboard-root { gap: 0; }
-}
-html[data-theme="cyberpunk"] .glass-shell-frame::before,
-html[data-theme="cyberpunk"] .glass-shell-frame::after,
-html[data-theme="cyberpunk"] .glass-shell-inner::before,
-html[data-theme="cyberpunk"] .glass-shell-inner::after { display: none !important; }
-html[data-theme="cyberpunk"] .app-dashboard-root { background: transparent !important; gap: 16px; }
-
-
-/* ── 3. SUPERFICIES ──────────────────────────────────────────────────── */
-html[data-theme="cyberpunk"] .glass-surface {
-  position: relative; isolation: auto;
-  background: var(--card);
-  backdrop-filter: none; -webkit-backdrop-filter: none;
-  border: 1px solid var(--border); border-radius: 14px;
-  box-shadow:
-    inset 0 1px 0 rgba(252, 238, 10, 0.06),
-    0 1px 0 rgba(0, 0, 0, 0.55),
-    0 18px 40px rgba(0, 0, 0, 0.55),
-    0 0 24px rgba(252, 238, 10, 0.06);
-  transition: border-color 0.2s ease, transform 0.2s ease;
-  overflow: hidden;
-}
-html[data-theme="cyberpunk"] .glass-surface::before { display: none; }
-html[data-theme="cyberpunk"] .glass-surface > * { position: relative; z-index: 1; }
-html[data-theme="cyberpunk"] .glass-surface:hover { border-color: var(--border-strong); }
-
-html[data-theme="cyberpunk"] .glass,
-html[data-theme="cyberpunk"] .glass-1,
-html[data-theme="cyberpunk"] .glass-2,
-html[data-theme="cyberpunk"] .glass-3,
-html[data-theme="cyberpunk"] .glass-4 {
-  isolation: auto !important; position: relative; border-radius: 14px;
-  transition: background 0.2s ease, border-color 0.2s ease;
-}
-html[data-theme="cyberpunk"] .glass,
-html[data-theme="cyberpunk"] .glass-1 {
-  background: var(--card); border: 1px solid var(--border);
-  backdrop-filter: none; -webkit-backdrop-filter: none;
-  box-shadow: inset 0 1px 0 rgba(252, 238, 10, 0.04), 0 12px 30px rgba(0, 0, 0, 0.50);
-}
-html[data-theme="cyberpunk"] .glass-2 {
-  background: linear-gradient(180deg, rgba(252, 238, 10, 0.025), rgba(252, 238, 10, 0)), var(--card);
-  border: 1px solid var(--border);
-  backdrop-filter: none; -webkit-backdrop-filter: none;
-  box-shadow: inset 0 1px 0 rgba(252, 238, 10, 0.05), 0 16px 36px rgba(0, 0, 0, 0.55);
-}
-html[data-theme="cyberpunk"] .glass-3 {
-  background: linear-gradient(180deg, rgba(252, 238, 10, 0.04), rgba(252, 238, 10, 0)), var(--card);
-  border: 1px solid var(--border-strong);
-  backdrop-filter: none; -webkit-backdrop-filter: none;
-  box-shadow: inset 0 1px 0 rgba(252, 238, 10, 0.06), 0 20px 44px rgba(0, 0, 0, 0.60);
-}
-html[data-theme="cyberpunk"] .glass-4 {
-  background: linear-gradient(180deg, rgba(252, 238, 10, 0.05), rgba(252, 238, 10, 0)), var(--card);
-  border: 1px solid var(--border-strong);
-  backdrop-filter: none; -webkit-backdrop-filter: none;
-  box-shadow: inset 0 1px 0 rgba(252, 238, 10, 0.07), 0 28px 56px rgba(0, 0, 0, 0.70);
+  html[data-theme="cyberpunk"] .cyberpunk-image { background-position: 60% 50%; }
+  html[data-theme="cyberpunk"] .cyberpunk-glow-1 { width: 70vw; height: 50vw; }
+  html[data-theme="cyberpunk"] .cyberpunk-glow-2 { width: 50vw; height: 50vw; }
+  html[data-theme="cyberpunk"] .cyberpunk-spark-3, html[data-theme="cyberpunk"] .cyberpunk-spark-5, html[data-theme="cyberpunk"] .cyberpunk-rune-3 { display: none; }
 }
 
-/* Esquinas con corner-cuts (estética cyber HUD) */
-html[data-theme="cyberpunk"] .glass-surface,
-html[data-theme="cyberpunk"] .glass-3,
-html[data-theme="cyberpunk"] .glass-4 {
-  clip-path: polygon(
-    14px 0, 100% 0, 100% calc(100% - 14px),
-    calc(100% - 14px) 100%, 0 100%, 0 14px
-  );
-}
-
-
-/* ── 4. SIDEBAR + HEADER ─────────────────────────────────────────────── */
 html[data-theme="cyberpunk"] .app-sidebar-shell {
-  background: linear-gradient(180deg,
-    rgba(14, 14, 26, 0.55) 0%, rgba(10, 10, 20, 0.62) 60%, rgba(6, 6, 15, 0.65) 100%);
-  border-right: none;
-  backdrop-filter: blur(22px) saturate(120%);
-  -webkit-backdrop-filter: blur(22px) saturate(120%);
-  box-shadow: inset -1px 0 0 rgba(252, 238, 10, 0.14), 4px 0 22px rgba(0, 0, 0, 0.45);
+  background:
+    radial-gradient(ellipse 70% 55% at 0% 0%, rgba(255, 212, 0, 0.20) 0%, rgba(255, 212, 0, 0.06) 35%, transparent 65%),
+    radial-gradient(ellipse 70% 55% at 100% 100%, rgba(255, 29, 138, 0.18) 0%, rgba(180, 20, 100, 0.06) 35%, transparent 65%),
+    linear-gradient(180deg, rgba(8, 8, 22, 0.78) 0%, rgba(12, 12, 28, 0.82) 50%, rgba(16, 16, 36, 0.86) 100%) !important;
+  border-right: 1px solid rgba(255, 212, 0, 0.22);
+  box-shadow: inset -1px 0 0 rgba(255, 212, 0, 0.20), inset 1px 0 0 rgba(255, 29, 138, 0.08), 4px 0 22px rgba(0, 0, 0, 0.45), 14px 0 80px rgba(255, 212, 0, 0.10);
+  backdrop-filter: blur(24px) saturate(1.20) !important; -webkit-backdrop-filter: blur(24px) saturate(1.20) !important;
+}
+html[data-theme="cyberpunk"] .app-sidebar-shell.w-60, html[data-theme="cyberpunk"] .app-sidebar-shell.sidebar-expanded-solid {
+  background:
+    radial-gradient(ellipse 75% 60% at 0% 0%, rgba(255, 212, 0, 0.26) 0%, rgba(255, 212, 0, 0.08) 35%, transparent 65%),
+    radial-gradient(ellipse 75% 60% at 100% 100%, rgba(255, 29, 138, 0.22) 0%, rgba(180, 20, 100, 0.08) 35%, transparent 65%),
+    linear-gradient(180deg, rgba(12, 12, 28, 0.86) 0%, rgba(16, 16, 36, 0.88) 50%, rgba(20, 20, 44, 0.90) 100%) !important;
+  box-shadow: inset -1px 0 0 rgba(255, 212, 0, 0.30), inset 1px 0 0 rgba(255, 29, 138, 0.12), 8px 0 36px rgba(0, 0, 0, 0.55), 14px 0 80px rgba(255, 212, 0, 0.16), 14px 0 160px rgba(255, 29, 138, 0.10);
+  backdrop-filter: blur(28px) saturate(1.25) !important; -webkit-backdrop-filter: blur(28px) saturate(1.25) !important;
 }
 html[data-theme="cyberpunk"] .app-top-header {
-  background: linear-gradient(180deg, rgba(10, 10, 20, 0.55) 0%, rgba(10, 10, 20, 0.45) 100%);
-  border-bottom: none;
-  backdrop-filter: blur(22px) saturate(120%);
-  -webkit-backdrop-filter: blur(22px) saturate(120%);
-  box-shadow: inset 0 -1px 0 rgba(252, 238, 10, 0.14), 0 4px 22px rgba(0, 0, 0, 0.35);
+  background: linear-gradient(90deg, rgba(20, 14, 22, 0.68) 0%, rgba(12, 12, 28, 0.62) 50%, rgba(20, 12, 24, 0.66) 100%) !important;
+  border-bottom: 1px solid rgba(255, 212, 0, 0.18);
+  box-shadow: inset 0 -1px 0 rgba(255, 29, 138, 0.10), 0 4px 22px rgba(0, 0, 0, 0.40);
+  backdrop-filter: blur(22px) saturate(1.15) !important; -webkit-backdrop-filter: blur(22px) saturate(1.15) !important;
 }
-
-html[data-theme="cyberpunk"] .sidebar-nav-link-active {
-  background: linear-gradient(180deg, rgba(252, 238, 10, 0.18) 0%, rgba(252, 238, 10, 0.10) 100%) !important;
-  color: #ffffff !important;
-  border-color: rgba(252, 238, 10, 0.42) !important;
-  box-shadow: inset 0 0 0 1px rgba(252, 238, 10, 0.22), 0 0 14px rgba(252, 238, 10, 0.30) !important;
-}
-html[data-theme="cyberpunk"] .sidebar-nav-link-active.ring-2 {
-  --tw-ring-color: rgba(255, 255, 77, 0.55) !important;
-}
-html[data-theme="cyberpunk"] .sidebar-nav-link:hover:not(.sidebar-nav-link-active) {
-  background: rgba(252, 238, 10, 0.08) !important; color: var(--text) !important;
-}
-html[data-theme="cyberpunk"] .sidebar-active-bar {
-  background: linear-gradient(180deg, var(--accent-bright) 0%, var(--accent) 100%) !important;
-  box-shadow: 0 0 12px rgba(252, 238, 10, 0.65) !important;
-}
-html[data-theme="cyberpunk"] nav .text-white\/40,
-html[data-theme="cyberpunk"] nav [class*="text-white"][class*="uppercase"] {
-  color: rgba(0, 229, 255, 0.55) !important; letter-spacing: 0.10em;
-}
-html[data-theme="cyberpunk"] .app-sidebar-shell .border-t {
-  border-top-color: rgba(252, 238, 10, 0.16) !important;
-}
-html[data-theme="cyberpunk"] .app-sidebar-shell .bg-white\/5 {
-  background-color: rgba(252, 238, 10, 0.04) !important;
-}
-
-
-/* ── 5. TEXTO + LINKS + MARK ─────────────────────────────────────────── */
-html[data-theme="cyberpunk"] [data-bitacora-html-body],
-html[data-theme="cyberpunk"] [data-bitacora-prose].prose,
-html[data-theme="cyberpunk"] [data-bitacora-prose] .ProseMirror {
-  color: var(--text); font-family: var(--font-ui);
-  font-size: 16.5px; line-height: 1.85;
-}
-html[data-theme="cyberpunk"] [data-bitacora-html-body] > p:first-child,
-html[data-theme="cyberpunk"] [data-bitacora-prose].prose > p:first-child {
-  color: #ffffff; font-weight: 600;
-}
-html[data-theme="cyberpunk"] [data-bitacora-html-body] a,
-html[data-theme="cyberpunk"] [data-bitacora-prose] .ProseMirror a {
-  color: var(--accent-2); text-decoration: none;
-  border-bottom: 1px solid rgba(0, 229, 255, 0.35);
-}
-html[data-theme="cyberpunk"] [data-bitacora-html-body] a:hover,
-html[data-theme="cyberpunk"] [data-bitacora-prose] .ProseMirror a:hover {
-  color: var(--accent); border-bottom-color: rgba(252, 238, 10, 0.65);
-}
-
-html[data-theme="cyberpunk"] mark,
-html[data-theme="cyberpunk"] .ProseMirror mark,
-html[data-theme="cyberpunk"] [data-bitacora-html-body] mark {
-  background: linear-gradient(180deg, var(--accent-bright) 0%, var(--accent) 100%);
-  color: #050510; font-weight: 800;
-  border-radius: 0; padding: 1px 6px;
-  box-shadow:
-    inset 0 0 0 1px rgba(0, 0, 0, 0.40),
-    inset 0 1px 0 rgba(255, 255, 255, 0.30);
-  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.30);
-}
-
-
-/* ── 6. INPUTS + BOTONES ─────────────────────────────────────────────── */
-html[data-theme="cyberpunk"] input,
-html[data-theme="cyberpunk"] textarea,
-html[data-theme="cyberpunk"] select {
-  background-color: rgba(252, 238, 10, 0.025);
-  color: var(--text); border-color: var(--border);
-}
-html[data-theme="cyberpunk"] input::placeholder,
-html[data-theme="cyberpunk"] textarea::placeholder { color: var(--muted); }
-html[data-theme="cyberpunk"] input:focus,
-html[data-theme="cyberpunk"] textarea:focus,
-html[data-theme="cyberpunk"] select:focus {
-  border-color: var(--border-strong); outline: none;
-  box-shadow: 0 0 0 2px rgba(252, 238, 10, 0.22);
-}
-html[data-theme="cyberpunk"] [data-bitacora-prose] input[type="text"],
-html[data-theme="cyberpunk"] form input[type="text"] {
-  background-color: rgba(252, 238, 10, 0.025);
-}
-
-html[data-theme="cyberpunk"] .btn-primary,
-html[data-theme="cyberpunk"] button[data-variant="primary"] {
-  background: linear-gradient(180deg, var(--accent-bright) 0%, var(--accent) 100%);
-  color: #050510; border: 1px solid rgba(252, 238, 10, 0.55);
-  font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25), 0 1px 0 rgba(0, 0, 0, 0.45);
-}
-html[data-theme="cyberpunk"] .btn-primary:hover,
-html[data-theme="cyberpunk"] button[data-variant="primary"]:hover {
-  background: linear-gradient(180deg, #ffff80 0%, var(--accent-bright) 100%);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.30),
-    0 0 0 1px rgba(252, 238, 10, 0.55),
-    0 0 18px rgba(252, 238, 10, 0.55);
-}
-
-
-/* ── 7. PORTALES ──────────────────────────────────────────────────────── */
+html[data-theme="cyberpunk"] .app-sidebar-shell .border-t { border-top-color: rgba(255, 212, 0, 0.16) !important; }
+html[data-theme="cyberpunk"] .app-sidebar-shell .bg-white\/5 { background-color: rgba(255, 212, 0, 0.06) !important; }
 html[data-theme="cyberpunk"] #theme-selector-panel {
-  background: linear-gradient(155deg, #14141e 0%, #0a0a18 60%, #06060f 100%) !important;
-  border-color: var(--border) !important;
-  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.78), 0 0 0 1px rgba(252, 238, 10, 0.14), 0 0 32px rgba(252, 238, 10, 0.10) !important;
+  background: linear-gradient(150deg, rgba(255, 212, 0, 0.08) 0%, transparent 35%, rgba(255, 29, 138, 0.06) 100%), linear-gradient(180deg, rgba(8, 8, 22, 0.96) 0%, rgba(16, 16, 36, 0.98) 100%) !important;
+  border-color: rgba(255, 212, 0, 0.32) !important;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 212, 0, 0.20), inset 0 1px 0 rgba(255, 29, 138, 0.10), 0 0 80px rgba(255, 212, 0, 0.15) !important;
 }
-html[data-theme="cyberpunk"] #theme-selector-panel input[type="text"] {
-  background-color: rgba(252, 238, 10, 0.05) !important; color: var(--text) !important;
-}
-html[data-theme="cyberpunk"] #theme-selector-panel .border-b { border-color: var(--border) !important; }
-
-html[data-theme="cyberpunk"] .cmd-palette-backdrop { background-color: rgba(5, 5, 16, 0.88) !important; }
-html[data-theme="cyberpunk"] #cmd-palette-panel [cmdk-root],
-html[data-theme="cyberpunk"] #cmd-palette-panel [cmdk-list] {
-  background-color: #0a0a18 !important; border-color: var(--border) !important;
-}
-html[data-theme="cyberpunk"] #cmd-palette-panel [cmdk-input-wrapper],
-html[data-theme="cyberpunk"] #cmd-palette-panel > div > div:first-child {
-  background-color: #0a0a18 !important; border-color: var(--border) !important;
-}
-html[data-theme="cyberpunk"] #cmd-palette-panel [class*="bg-\[\#060912\]"],
-html[data-theme="cyberpunk"] #cmd-palette-panel input[cmdk-input] {
-  background-color: rgba(252, 238, 10, 0.04) !important;
-  color: var(--text) !important; border-color: var(--border) !important;
-}
-html[data-theme="cyberpunk"] #cmd-palette-panel [cmdk-input-wrapper] > div:focus-within {
-  border-color: rgba(255, 255, 77, 0.65) !important;
-}
-html[data-theme="cyberpunk"] #cmd-palette-panel [cmdk-item][data-selected="true"] {
-  background-color: rgba(252, 238, 10, 0.16) !important; color: var(--text) !important;
-}
-
-
-/* ── 8. CONFIG TABS ──────────────────────────────────────────────────── */
-html[data-theme="cyberpunk"] .config-tabs-root [class*="text-violet-"],
-html[data-theme="cyberpunk"] .config-tabs-root [class*="text-amber-"],
-html[data-theme="cyberpunk"] .config-tabs-root [class*="text-sky-"],
-html[data-theme="cyberpunk"] .config-tabs-root [class*="text-emerald-"],
-html[data-theme="cyberpunk"] .config-tabs-root [class*="text-rose-"],
-html[data-theme="cyberpunk"] .config-tabs-root [class*="text-indigo-"],
-html[data-theme="cyberpunk"] .config-tabs-root [class*="text-fuchsia-"],
-html[data-theme="cyberpunk"] .config-tabs-root [class*="text-cyan-"],
-html[data-theme="cyberpunk"] .config-tabs-root [class*="text-pink-"],
-html[data-theme="cyberpunk"] .config-tabs-root [class*="text-teal-"],
-html[data-theme="cyberpunk"] .config-tabs-root [class*="text-orange-"] {
-  color: var(--accent) !important;
-}
-html[data-theme="cyberpunk"] .config-tabs-root [class*="bg-violet-"],
-html[data-theme="cyberpunk"] .config-tabs-root [class*="bg-amber-"],
-html[data-theme="cyberpunk"] .config-tabs-root [class*="bg-sky-"],
-html[data-theme="cyberpunk"] .config-tabs-root [class*="bg-emerald-"],
-html[data-theme="cyberpunk"] .config-tabs-root [class*="bg-rose-"],
-html[data-theme="cyberpunk"] .config-tabs-root [class*="bg-indigo-"],
-html[data-theme="cyberpunk"] .config-tabs-root [class*="bg-fuchsia-"],
-html[data-theme="cyberpunk"] .config-tabs-root [class*="bg-cyan-"],
-html[data-theme="cyberpunk"] .config-tabs-root [class*="bg-pink-"],
-html[data-theme="cyberpunk"] .config-tabs-root [class*="bg-teal-"],
-html[data-theme="cyberpunk"] .config-tabs-root [class*="bg-orange-"] {
-  background-color: rgba(252, 238, 10, 0.10) !important;
-}
-html[data-theme="cyberpunk"] .config-tabs-root [class*="border-violet-"],
-html[data-theme="cyberpunk"] .config-tabs-root [class*="border-amber-"],
-html[data-theme="cyberpunk"] .config-tabs-root [class*="border-sky-"],
-html[data-theme="cyberpunk"] .config-tabs-root [class*="border-emerald-"],
-html[data-theme="cyberpunk"] .config-tabs-root [class*="border-rose-"],
-html[data-theme="cyberpunk"] .config-tabs-root [class*="border-indigo-"],
-html[data-theme="cyberpunk"] .config-tabs-root [class*="border-fuchsia-"],
-html[data-theme="cyberpunk"] .config-tabs-root [class*="border-cyan-"],
-html[data-theme="cyberpunk"] .config-tabs-root [class*="border-pink-"],
-html[data-theme="cyberpunk"] .config-tabs-root [class*="border-teal-"],
-html[data-theme="cyberpunk"] .config-tabs-root [class*="border-orange-"] {
-  border-color: rgba(252, 238, 10, 0.22) !important;
-}
-html[data-theme="cyberpunk"] .config-tabs-root [class*="ring-violet-"],
-html[data-theme="cyberpunk"] .config-tabs-root [class*="ring-amber-"],
-html[data-theme="cyberpunk"] .config-tabs-root [class*="ring-sky-"],
-html[data-theme="cyberpunk"] .config-tabs-root [class*="ring-emerald-"],
-html[data-theme="cyberpunk"] .config-tabs-root [class*="ring-rose-"],
-html[data-theme="cyberpunk"] .config-tabs-root [class*="ring-indigo-"],
-html[data-theme="cyberpunk"] .config-tabs-root [class*="ring-fuchsia-"],
-html[data-theme="cyberpunk"] .config-tabs-root [class*="ring-cyan-"],
-html[data-theme="cyberpunk"] .config-tabs-root [class*="ring-pink-"],
-html[data-theme="cyberpunk"] .config-tabs-root [class*="ring-teal-"],
-html[data-theme="cyberpunk"] .config-tabs-root [class*="ring-orange-"] {
-  --tw-ring-color: rgba(252, 238, 10, 0.32) !important;
-}
-html[data-theme="cyberpunk"] .config-tabs-root [class*="from-violet"],
-html[data-theme="cyberpunk"] .config-tabs-root [class*="from-amber"],
-html[data-theme="cyberpunk"] .config-tabs-root [class*="from-sky"],
-html[data-theme="cyberpunk"] .config-tabs-root [class*="from-emerald"],
-html[data-theme="cyberpunk"] .config-tabs-root [class*="from-rose"],
-html[data-theme="cyberpunk"] .config-tabs-root [class*="from-indigo"] {
-  --tw-gradient-from: rgba(252, 238, 10, 0.10) var(--tw-gradient-from-position) !important;
-  --tw-gradient-to: rgba(252, 238, 10, 0) var(--tw-gradient-to-position) !important;
-  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-via, var(--tw-gradient-to)), var(--tw-gradient-to) !important;
-}
-html[data-theme="cyberpunk"] .config-tabs-root [class*="to-fuchsia"],
-html[data-theme="cyberpunk"] .config-tabs-root [class*="to-orange"],
-html[data-theme="cyberpunk"] .config-tabs-root [class*="to-cyan"],
-html[data-theme="cyberpunk"] .config-tabs-root [class*="to-teal"],
-html[data-theme="cyberpunk"] .config-tabs-root [class*="to-pink"],
-html[data-theme="cyberpunk"] .config-tabs-root [class*="to-violet"] {
-  --tw-gradient-to: rgba(0, 229, 255, 0.10) var(--tw-gradient-to-position) !important;
-}
-html[data-theme="cyberpunk"] .config-tabs-root .bg-gradient-to-r[class*="from-amber"],
-html[data-theme="cyberpunk"] .config-tabs-root .bg-gradient-to-r[class*="from-violet"],
-html[data-theme="cyberpunk"] .config-tabs-root .bg-gradient-to-r[class*="from-sky"],
-html[data-theme="cyberpunk"] .config-tabs-root .bg-gradient-to-r[class*="from-emerald"],
-html[data-theme="cyberpunk"] .config-tabs-root .bg-gradient-to-r[class*="from-rose"],
-html[data-theme="cyberpunk"] .config-tabs-root .bg-gradient-to-r[class*="from-indigo"] {
-  background: linear-gradient(90deg, var(--accent-2) 0%, var(--accent) 50%, var(--accent-3) 100%) !important;
-}
-html[data-theme="cyberpunk"] .config-tabs-root .blur-3xl {
-  background-color: rgba(252, 238, 10, 0.06) !important;
-}
-
-html[data-theme="cyberpunk"] .my-profile-card {
-  background: linear-gradient(180deg,
-    rgba(20, 20, 30, 0.95) 0%, rgba(14, 14, 22, 0.97) 50%, rgba(10, 10, 18, 0.98) 100%) !important;
-  border-color: var(--border) !important;
-  box-shadow:
-    inset 0 1px 0 rgba(252, 238, 10, 0.05),
-    0 18px 50px rgba(0, 0, 0, 0.65) !important;
-}
-html[data-theme="cyberpunk"] .my-profile-card .border-white\/8 {
-  border-color: rgba(252, 238, 10, 0.16) !important;
-}
-
-
-/* ── 9. MICRO-DETALLES + REVEAL ─────────────────────────────────────── */
-html[data-theme="cyberpunk"] .glass-surface::after,
-html[data-theme="cyberpunk"] .glass-2::after,
-html[data-theme="cyberpunk"] .glass-3::after,
-html[data-theme="cyberpunk"] .glass-4::after {
-  content: ""; position: absolute; top: 0; left: 0; right: 0;
-  height: 2px; pointer-events: none; z-index: 2;
-  background: linear-gradient(90deg,
-    transparent 0%, transparent 22%,
-    rgba(0, 229, 255, 0.55) 38%,
-    rgba(252, 238, 10, 1.00) 50%,
-    rgba(255, 0, 60, 0.55) 62%,
-    transparent 78%, transparent 100%);
-  background-size: 280% 100%; background-position: 100% 0;
-  animation: cyber-shimmer 6s ease-in-out infinite;
-  border-top-left-radius: inherit; border-top-right-radius: inherit;
-}
-@keyframes cyber-shimmer {
-  0%   { background-position: 130% 0; }
-  100% { background-position: -30% 0; }
-}
-
-html[data-theme="cyberpunk"] h2,
-html[data-theme="cyberpunk"] h3 { position: relative; }
-html[data-theme="cyberpunk"] h2::after,
-html[data-theme="cyberpunk"] h3::after {
-  content: ""; display: block; width: 48px; height: 2px;
-  margin-top: 8px;
-  background: linear-gradient(90deg, var(--accent-2) 0%, var(--accent) 60%, transparent 100%);
-  box-shadow: 0 0 8px rgba(252, 238, 10, 0.55); border-radius: 0;
-}
-html[data-theme="cyberpunk"] h3::after { width: 32px; height: 1.5px; margin-top: 6px; }
-
-html[data-theme="cyberpunk"] .glass-surface,
-html[data-theme="cyberpunk"] .glass-2,
-html[data-theme="cyberpunk"] .glass-3,
-html[data-theme="cyberpunk"] .glass-4 {
-  animation: cyber-card-reveal 0.55s cubic-bezier(0.22, 0.61, 0.36, 1) backwards;
-}
-html[data-theme="cyberpunk"] .glass-surface:nth-child(1),
-html[data-theme="cyberpunk"] .glass-2:nth-child(1),
-html[data-theme="cyberpunk"] .glass-3:nth-child(1),
-html[data-theme="cyberpunk"] .glass-4:nth-child(1) { animation-delay: 0.04s; }
-html[data-theme="cyberpunk"] .glass-surface:nth-child(2),
-html[data-theme="cyberpunk"] .glass-2:nth-child(2),
-html[data-theme="cyberpunk"] .glass-3:nth-child(2),
-html[data-theme="cyberpunk"] .glass-4:nth-child(2) { animation-delay: 0.08s; }
-html[data-theme="cyberpunk"] .glass-surface:nth-child(3),
-html[data-theme="cyberpunk"] .glass-2:nth-child(3),
-html[data-theme="cyberpunk"] .glass-3:nth-child(3),
-html[data-theme="cyberpunk"] .glass-4:nth-child(3) { animation-delay: 0.12s; }
-html[data-theme="cyberpunk"] .glass-surface:nth-child(4),
-html[data-theme="cyberpunk"] .glass-2:nth-child(4),
-html[data-theme="cyberpunk"] .glass-3:nth-child(4),
-html[data-theme="cyberpunk"] .glass-4:nth-child(4) { animation-delay: 0.16s; }
-html[data-theme="cyberpunk"] .glass-surface:nth-child(5),
-html[data-theme="cyberpunk"] .glass-2:nth-child(5),
-html[data-theme="cyberpunk"] .glass-3:nth-child(5),
-html[data-theme="cyberpunk"] .glass-4:nth-child(5) { animation-delay: 0.20s; }
-
-@keyframes cyber-card-reveal {
-  0%   { opacity: 0; transform: translateY(8px); }
-  100% { opacity: 1; transform: translateY(0);    }
-}
-
-
-/* ── 10. REDUCED MOTION ─────────────────────────────────────────────── */
-@media (prefers-reduced-motion: reduce) {
-  html[data-theme="cyberpunk"] .cyber-bg .cyber-glitch-band,
-  html[data-theme="cyberpunk"] .cyber-bg .cyber-citysign,
-  html[data-theme="cyberpunk"] .cyber-bg .cyber-arasaka,
-  html[data-theme="cyberpunk"] .cyber-bg .cyber-pillar-strip,
-  html[data-theme="cyberpunk"] .cyber-bg .cyber-traffic-dot,
-  html[data-theme="cyberpunk"] .cyber-bg .cyber-rain,
-  html[data-theme="cyberpunk"] .glass-surface::after,
-  html[data-theme="cyberpunk"] .glass-2::after,
-  html[data-theme="cyberpunk"] .glass-3::after,
-  html[data-theme="cyberpunk"] .glass-4::after,
-  html[data-theme="cyberpunk"] .glass-surface,
-  html[data-theme="cyberpunk"] .glass-2,
-  html[data-theme="cyberpunk"] .glass-3,
-  html[data-theme="cyberpunk"] .glass-4 {
-    animation: none !important;
-  }
-}
+html[data-theme="cyberpunk"] #theme-selector-panel input:focus { outline-color: rgba(255, 212, 0, 0.65); }

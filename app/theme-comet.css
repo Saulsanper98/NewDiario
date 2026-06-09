@@ -1,0 +1,141 @@
+/* TEMA "COMET" — cielo nocturno con cometa azul brillante y atardecer cálido.
+ * Paleta: noche profunda azul + cyan eléctrico cometa + naranja flare. */
+
+html[data-theme="comet"] {
+  --bg-0: #050a18; --bg-1: #081020; --bg-2: #0c1830;
+  --card: linear-gradient(180deg, #0c1830 0%, #081020 60%, #050a18 100%);
+  --surface: rgba(14, 24, 48, 0.86); --surface-2: rgba(255, 255, 255, 0.045);
+  --border: rgba(0, 216, 255, 0.22); --border-strong: rgba(255, 104, 80, 0.45);
+  --accent: #00d8ff; --accent-bright: #6deeff; --accent-glow: rgba(0, 216, 255, 0.45);
+  --text: #eef4ff; --text-soft: #c8d4ee; --muted: #8595b8;
+  --ok: #6ef0a0; --gold-relic: #ffcd58;
+  --font-display: var(--font-akatsuki-display), "Shippori Mincho", serif;
+  --font-ui: var(--font-akatsuki-ui), "Zen Kaku Gothic New", sans-serif;
+  --app-canvas-color: transparent; --app-canvas-image: none; --card-isolation: auto;
+  color-scheme: dark;
+}
+html[data-theme="comet"] body { min-height: 100vh; }
+html[data-theme="comet"] .app-sidebar-shell, html[data-theme="comet"] .app-top-header { isolation: auto !important; }
+
+html[data-theme="comet"] .glass-shell-frame {
+  margin: 22px; padding: 1.5px; border-radius: 28px;
+  background: linear-gradient(135deg, rgba(0, 216, 255, 0.85) 0%, rgba(120, 130, 200, 0.45) 50%, rgba(255, 104, 80, 0.85) 100%);
+  box-shadow: 0 0 90px rgba(0, 216, 255, 0.30), 0 0 180px rgba(255, 104, 80, 0.18); position: relative;
+}
+html[data-theme="comet"] .glass-shell-inner {
+  border-radius: 26px; background: rgba(8, 16, 32, 0.55);
+  backdrop-filter: blur(6px) saturate(1.05); -webkit-backdrop-filter: blur(6px) saturate(1.05);
+  overflow: hidden; padding: 18px;
+}
+@media (max-width: 768px) { html[data-theme="comet"] .glass-shell-inner { padding: 6px; } html[data-theme="comet"] .app-dashboard-root { gap: 8px; } }
+@media (max-width: 640px) { html[data-theme="comet"] .glass-shell-frame { margin: 4px; border-radius: 18px; } html[data-theme="comet"] .glass-shell-inner { border-radius: 16px; } }
+@media (max-width: 480px) { html[data-theme="comet"] .glass-shell-frame { margin: 0; padding: 0; border-radius: 0; box-shadow: none; } html[data-theme="comet"] .glass-shell-inner { border-radius: 0; padding: 0; } html[data-theme="comet"] .app-dashboard-root { gap: 0; } }
+
+html[data-theme="comet"] .comet-bg { position: fixed; inset: 0; z-index: -10; overflow: hidden; pointer-events: none; background: radial-gradient(ellipse at 50% 50%, #0c1830 0%, #081020 60%, #02050a 100%); }
+html[data-theme="comet"] .comet-image-frame { position: absolute; inset: -4%; --parallax-x: 0px; --parallax-y: 0px; transform: translate3d(var(--parallax-x), var(--parallax-y), 0); transition: transform 1200ms cubic-bezier(0.18, 0.7, 0.22, 1); will-change: transform; }
+html[data-theme="comet"] .comet-image {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  background-image: url("/themes/comet-bg.png");
+  background-size: cover; background-position: center 40%; background-repeat: no-repeat; background-color: #050a18;
+  filter: saturate(1.10) contrast(1.04) brightness(0.99);
+  animation: comet-kenburns 50s ease-in-out infinite alternate; transform-origin: 50% 40%;
+  will-change: transform; backface-visibility: hidden; transform: translateZ(0);
+}
+@keyframes comet-kenburns { 0% { transform: translateZ(0) scale(1.03); } 50% { transform: translateZ(0) scale(1.07) translate(-1%, -0.4%); } 100% { transform: translateZ(0) scale(1.04) translate(0.6%, 0.2%); } }
+
+html[data-theme="comet"] .comet-glow-1 {
+  position: absolute; left: 25%; top: 25%; width: 22vw; height: 22vw; max-width: 320px; max-height: 320px;
+  transform: translate(-50%, -50%); border-radius: 50%;
+  background: radial-gradient(circle, rgba(220, 250, 255, 0.55) 0%, rgba(0, 216, 255, 0.32) 22%, rgba(0, 100, 160, 0.14) 45%, transparent 70%);
+  filter: blur(16px); mix-blend-mode: screen; animation: comet-pulse-1 5.7s ease-in-out infinite;
+}
+@keyframes comet-pulse-1 { 0%, 100% { opacity: 0.85; transform: translate(-50%, -50%) scale(1); } 50% { opacity: 1; transform: translate(-50%, -50%) scale(1.06); } }
+
+html[data-theme="comet"] .comet-glow-2 {
+  position: absolute; left: 70%; top: 50%; width: 30vw; height: 16vw; max-width: 440px; max-height: 240px;
+  transform: translate(-50%, -50%); border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(255, 200, 180, 0.42) 0%, rgba(255, 104, 80, 0.28) 25%, rgba(180, 60, 40, 0.10) 50%, transparent 72%);
+  filter: blur(20px); mix-blend-mode: screen; animation: comet-pulse-2 7.3s ease-in-out infinite;
+}
+@keyframes comet-pulse-2 { 0%, 100% { opacity: 0.78; transform: translate(-50%, -50%) scale(1); } 50% { opacity: 1; transform: translate(-50%, -50%) scale(1.05); } }
+
+html[data-theme="comet"] .comet-vignette-soft { position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 55%, transparent 0%, transparent 40%, rgba(0,0,0,0.18) 65%, rgba(0,0,0,0.45) 100%); }
+
+html[data-theme="comet"] .comet-spark {
+  position: absolute; width: var(--ss, 4px); height: var(--ss, 4px); border-radius: 50%;
+  opacity: 0; animation: comet-rise var(--sd, 18s) ease-in-out infinite; animation-delay: var(--sl, 0s);
+  filter: blur(0.6px); will-change: transform, opacity; mix-blend-mode: screen;
+}
+@keyframes comet-rise { 0% { transform: translateY(20vh) scale(0.5); opacity: 0; } 10% { opacity: 0.92; } 60% { opacity: 0.6; } 100% { transform: translateY(-65vh) translateX(var(--sx, 4vw)) scale(1.1); opacity: 0; } }
+html[data-theme="comet"] .comet-spark-1 { left: 12%; --ss: 3px; --sd: 22s; --sl: -1s; --sx: 3vw; background: radial-gradient(circle, #d8f8ff 0%, #00d8ff 30%, transparent 80%); filter: blur(0.5px) drop-shadow(0 0 6px rgba(0, 216, 255, 0.7)); }
+html[data-theme="comet"] .comet-spark-2 { left: 28%; --ss: 5px; --sd: 28s; --sl: -7s; --sx: -2vw; background: radial-gradient(circle, #d8f8ff 0%, #00d8ff 30%, transparent 80%); filter: blur(0.5px) drop-shadow(0 0 6px rgba(0, 216, 255, 0.7)); }
+html[data-theme="comet"] .comet-spark-3 { left: 50%; --ss: 3px; --sd: 18s; --sl: -3s; --sx: 5vw; background: radial-gradient(circle, #ffe0d8 0%, #ff6850 30%, transparent 80%); filter: blur(0.5px) drop-shadow(0 0 6px rgba(255, 104, 80, 0.7)); }
+html[data-theme="comet"] .comet-spark-4 { left: 64%; --ss: 6px; --sd: 24s; --sl: -12s; --sx: 2vw; background: radial-gradient(circle, #ffe0d8 0%, #ff6850 30%, transparent 80%); filter: blur(0.5px) drop-shadow(0 0 6px rgba(255, 104, 80, 0.7)); }
+html[data-theme="comet"] .comet-spark-5 { left: 80%; --ss: 3px; --sd: 30s; --sl: -5s; --sx: -4vw; background: radial-gradient(circle, #d8f8ff 0%, #00d8ff 30%, transparent 80%); filter: blur(0.5px) drop-shadow(0 0 6px rgba(0, 216, 255, 0.7)); }
+html[data-theme="comet"] .comet-spark-6 { left: 92%; --ss: 6px; --sd: 20s; --sl: -15s; --sx: 3vw; background: radial-gradient(circle, #d8f8ff 0%, #00d8ff 30%, transparent 80%); filter: blur(0.5px) drop-shadow(0 0 6px rgba(0, 216, 255, 0.7)); }
+
+html[data-theme="comet"] .comet-rune { position: absolute; border-radius: 50%; border: 1px dashed rgba(0, 216, 255, 0.18); box-shadow: inset 0 0 30px rgba(0, 216, 255, 0.10), 0 0 18px rgba(0, 216, 255, 0.06); pointer-events: none; mix-blend-mode: screen; }
+html[data-theme="comet"] .comet-rune::before { content: ""; position: absolute; inset: 12%; border-radius: 50%; border: 1px solid rgba(180, 240, 255, 0.10); }
+html[data-theme="comet"] .comet-rune::after { content: ""; position: absolute; inset: 30%; border-radius: 50%; border: 1px dashed rgba(0, 216, 255, 0.14); }
+html[data-theme="comet"] .comet-rune-1 { top: 6%; left: 6%; width: 12vw; height: 12vw; max-width: 180px; max-height: 180px; animation: comet-rotate 110s linear infinite; }
+html[data-theme="comet"] .comet-rune-2 { top: 75%; left: 25%; width: 16vw; height: 16vw; max-width: 220px; max-height: 220px; animation: comet-rotate 150s linear infinite reverse; border-color: rgba(255, 104, 80, 0.18); box-shadow: inset 0 0 30px rgba(255, 104, 80, 0.10), 0 0 18px rgba(255, 104, 80, 0.06); }
+html[data-theme="comet"] .comet-rune-3 { top: 12%; left: 86%; width: 9vw; height: 9vw; max-width: 130px; max-height: 130px; animation: comet-rotate 130s linear infinite; }
+@keyframes comet-rotate { 0% { transform: rotate(0); } 100% { transform: rotate(360deg); } }
+
+html[data-theme="comet"] .comet-grain {
+  position: absolute; inset: 0;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.55 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.55'/></svg>");
+  background-size: 180px 180px; opacity: 0.14; mix-blend-mode: overlay;
+}
+html[data-theme="comet"] .comet-vignette-edge { position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 50%, transparent 55%, rgba(0,0,0,0.25) 85%, rgba(0,0,0,0.55) 100%); }
+
+html[data-theme="comet"] { scrollbar-color: rgba(0, 216, 255, 0.45) rgba(0, 0, 0, 0.25); }
+html[data-theme="comet"] *::-webkit-scrollbar-thumb { background: linear-gradient(180deg, rgba(0, 216, 255, 0.55), rgba(255, 104, 80, 0.55)); border-radius: 999px; }
+html[data-theme="comet"] *::-webkit-scrollbar-thumb:hover { background: linear-gradient(180deg, rgba(109, 238, 255, 0.7), rgba(255, 150, 130, 0.7)); }
+html[data-theme="comet"] :focus-visible { outline-color: var(--accent-bright) !important; box-shadow: 0 0 0 3px var(--accent-glow); }
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-theme="comet"] .comet-image, html[data-theme="comet"] .comet-glow-1, html[data-theme="comet"] .comet-glow-2,
+  html[data-theme="comet"] .comet-spark, html[data-theme="comet"] .comet-rune { animation: none !important; }
+  html[data-theme="comet"] .comet-spark { display: none !important; }
+  html[data-theme="comet"] .comet-image-frame { transition: none !important; }
+}
+
+@media (max-width: 640px) {
+  html[data-theme="comet"] .comet-image { background-position: 50% 40%; }
+  html[data-theme="comet"] .comet-glow-1 { width: 45vw; height: 45vw; }
+  html[data-theme="comet"] .comet-glow-2 { width: 60vw; height: 30vw; }
+  html[data-theme="comet"] .comet-spark-3, html[data-theme="comet"] .comet-spark-5, html[data-theme="comet"] .comet-rune-3 { display: none; }
+}
+
+html[data-theme="comet"] .app-sidebar-shell {
+  background:
+    radial-gradient(ellipse 70% 55% at 0% 0%, rgba(0, 216, 255, 0.20) 0%, rgba(0, 216, 255, 0.06) 35%, transparent 65%),
+    radial-gradient(ellipse 70% 55% at 100% 100%, rgba(255, 104, 80, 0.18) 0%, rgba(180, 60, 40, 0.06) 35%, transparent 65%),
+    linear-gradient(180deg, rgba(8, 16, 32, 0.78) 0%, rgba(12, 22, 44, 0.82) 50%, rgba(16, 26, 52, 0.86) 100%) !important;
+  border-right: 1px solid rgba(0, 216, 255, 0.22);
+  box-shadow: inset -1px 0 0 rgba(0, 216, 255, 0.20), inset 1px 0 0 rgba(255, 104, 80, 0.06), 4px 0 22px rgba(0, 0, 0, 0.45), 14px 0 80px rgba(0, 216, 255, 0.10);
+  backdrop-filter: blur(24px) saturate(1.20) !important; -webkit-backdrop-filter: blur(24px) saturate(1.20) !important;
+}
+html[data-theme="comet"] .app-sidebar-shell.w-60, html[data-theme="comet"] .app-sidebar-shell.sidebar-expanded-solid {
+  background:
+    radial-gradient(ellipse 75% 60% at 0% 0%, rgba(0, 216, 255, 0.26) 0%, rgba(0, 216, 255, 0.08) 35%, transparent 65%),
+    radial-gradient(ellipse 75% 60% at 100% 100%, rgba(255, 104, 80, 0.22) 0%, rgba(180, 60, 40, 0.08) 35%, transparent 65%),
+    linear-gradient(180deg, rgba(12, 22, 44, 0.86) 0%, rgba(16, 26, 52, 0.88) 50%, rgba(20, 30, 60, 0.90) 100%) !important;
+  box-shadow: inset -1px 0 0 rgba(0, 216, 255, 0.30), inset 1px 0 0 rgba(255, 104, 80, 0.12), 8px 0 36px rgba(0, 0, 0, 0.55), 14px 0 80px rgba(0, 216, 255, 0.16), 14px 0 160px rgba(255, 104, 80, 0.08);
+  backdrop-filter: blur(28px) saturate(1.25) !important; -webkit-backdrop-filter: blur(28px) saturate(1.25) !important;
+}
+html[data-theme="comet"] .app-top-header {
+  background: linear-gradient(90deg, rgba(8, 16, 32, 0.68) 0%, rgba(12, 18, 36, 0.62) 50%, rgba(20, 14, 22, 0.66) 100%) !important;
+  border-bottom: 1px solid rgba(0, 216, 255, 0.18);
+  box-shadow: inset 0 -1px 0 rgba(255, 104, 80, 0.08), 0 4px 22px rgba(0, 0, 0, 0.40);
+  backdrop-filter: blur(22px) saturate(1.15) !important; -webkit-backdrop-filter: blur(22px) saturate(1.15) !important;
+}
+html[data-theme="comet"] .app-sidebar-shell .border-t { border-top-color: rgba(0, 216, 255, 0.16) !important; }
+html[data-theme="comet"] .app-sidebar-shell .bg-white\/5 { background-color: rgba(0, 216, 255, 0.06) !important; }
+html[data-theme="comet"] #theme-selector-panel {
+  background: linear-gradient(150deg, rgba(0, 216, 255, 0.08) 0%, transparent 35%, rgba(255, 104, 80, 0.06) 100%), linear-gradient(180deg, rgba(8, 16, 32, 0.96) 0%, rgba(16, 26, 52, 0.98) 100%) !important;
+  border-color: rgba(0, 216, 255, 0.32) !important;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(0, 216, 255, 0.20), inset 0 1px 0 rgba(255, 104, 80, 0.10), 0 0 80px rgba(0, 216, 255, 0.15) !important;
+}
+html[data-theme="comet"] #theme-selector-panel input:focus { outline-color: rgba(0, 216, 255, 0.65); }

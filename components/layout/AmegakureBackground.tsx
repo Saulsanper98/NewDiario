@@ -125,8 +125,37 @@ export function AmegakureBackground() {
       {/* c) Viñeta principal — calma la zona central. */}
       <div className="ame-vignette-soft" />
 
-      {/* d) Lluvia diagonal cyan. */}
-      <div className="ame-rain" />
+      {/* d) Lluvia neón con 3 capas de profundidad + streaks + splashes.
+       *
+       * Estructura: un wrapper `.ame-rain` que recorta lo que se sale de
+       * la pantalla (porque las capas están rotadas e infladas un 25%),
+       * y dentro:
+       *   - 3 capas `.ame-rain-layer` con SVGs distintos (gotas reales).
+       *   - 3 streaks largos brillantes que pasan ocasionalmente.
+       *   - 6 splashes en la franja inferior (impactos en superficie).
+       *   - 1 glow cyan sutil que une todas las capas.
+       */}
+      <div className="ame-rain">
+        <div className="ame-rain-layer ame-rain-far" />
+        <div className="ame-rain-layer ame-rain-mid" />
+        <div className="ame-rain-layer ame-rain-near" />
+        <div className="ame-rain-streak ame-rain-streak-1" />
+        <div className="ame-rain-streak ame-rain-streak-2" />
+        <div className="ame-rain-streak ame-rain-streak-3" />
+        <div className="ame-splash ame-splash-1" />
+        <div className="ame-splash ame-splash-2" />
+        <div className="ame-splash ame-splash-3" />
+        <div className="ame-splash ame-splash-4" />
+        <div className="ame-splash ame-splash-5" />
+        <div className="ame-splash ame-splash-6" />
+        <div className="ame-rain-glow" />
+      </div>
+
+      {/* d.bis) Rayos lejanos — dos flashes que iluminan la escena
+       * brevemente cada 23-31s. El usuario los percibe como destellos
+       * naturales gracias a los timings primos. */}
+      <div className="ame-lightning ame-lightning-1" />
+      <div className="ame-lightning ame-lightning-2" />
 
       {/* e) Chispas magenta ascendentes (8). */}
       <div className="ame-spark ame-spark-1" />
