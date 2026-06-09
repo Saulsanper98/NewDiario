@@ -10,7 +10,6 @@ import {
   Droplets,
   Layers,
   Sunset,
-  Zap,
   Search,
   X,
   Flame,
@@ -22,14 +21,7 @@ import {
   Eye,
   Swords,
   Lightbulb,
-  Cog,
-  Globe2,
-  Sunrise,
   Cloud,
-  Palmtree,
-  Disc3,
-  Snowflake,
-  Droplet,
 } from "lucide-react";
 import { useTheme } from "@/components/layout/ThemeProvider";
 import {
@@ -65,7 +57,6 @@ type CategoryId =
   | "essentials"
   | "crystal"
   | "scenic"
-  | "nature"
   | "cosmic"
   | "tribute";
 
@@ -73,7 +64,6 @@ const CATEGORY_LABEL: Record<CategoryId, string> = {
   essentials: "Esenciales",
   crystal: "Cristal",
   scenic: "Cinemáticos",
-  nature: "Naturaleza canaria",
   cosmic: "Cósmicos",
   tribute: "Tributo",
 };
@@ -108,36 +98,9 @@ const OPTIONS: ThemeOption[] = [
     swatch: "linear-gradient(135deg, #0a0418 0%, #4a1a6e 50%, #c43cb8 100%)" },
   { id: "storm", label: "Tormenta", hint: "Noche eléctrica: nubes en deriva, relámpagos esporádicos y lluvia", Icon: CloudLightning, category: "scenic",
     swatch: "linear-gradient(180deg, #060812 0%, #131a2c 60%, #a8c8ff 100%)" },
-  // Disco cósmico: vídeo real surrealista de un tocadiscos suspendido en
-  // el espacio. Halo violeta neón sobre el plato + reflejo ámbar (etiqueta
-  // del LP) + chispas de stardust. Sólo desktop por el coste del vídeo.
-  { id: "disco", label: "Disco cósmico", hint: "Tocadiscos suspendido en el espacio: vídeo real con halo violeta y reflejo ámbar (sólo desktop)", Icon: Disc3, category: "scenic",
-    swatch: "radial-gradient(circle at 50% 55%, rgba(243,194,101,0.55) 0%, rgba(243,194,101,0.20) 7%, rgba(60,45,120,0.85) 12%, rgba(20,14,50,0.85) 28%, rgba(7,5,26,1) 60%), radial-gradient(circle at 50% 55%, rgba(232,165,255,0.45) 0%, transparent 55%)" },
-  // Líquido: vídeo real de fluido azul abstracto en movimiento (tinta
-  // cayendo / corrientes). Paleta azul profundo con cyan eléctrico.
-  { id: "liquido", label: "Líquido", hint: "Fluido azul abstracto en movimiento: vídeo real con halos cyan y burbujas (sólo desktop)", Icon: Droplet, category: "scenic",
-    swatch: "radial-gradient(ellipse at 35% 45%, rgba(140,230,255,0.55) 0%, rgba(80,200,255,0.25) 22%, transparent 55%), linear-gradient(180deg, #03101e 0%, #051a30 50%, #082642 100%)" },
-  // Invierno: cinemagraph de estatua nevada con nieve cayendo en bucle.
-  // Paleta gris-azul fría + acento bronce de la estatua.
-  { id: "invierno", label: "Invierno", hint: "Estatua nevada con nieve cayendo: cinemagraph cinematográfico (sólo desktop)", Icon: Snowflake, category: "scenic",
-    swatch: "linear-gradient(180deg, #0d1320 0%, #141d2e 40%, #1c2740 75%, #2a3a55 100%), radial-gradient(circle at 50% 30%, rgba(220,235,255,0.32) 0%, rgba(168,200,255,0.18) 22%, transparent 55%)" },
-  // Crepúsculo: atardecer real grabado en 4K. Convive con `ocaso` (que
-  // es CSS puro y artístico) ofreciendo una alternativa documental.
-  { id: "crepusculo", label: "Crepúsculo", hint: "Atardecer real grabado en 4K: sol bajo + cielo coral + violeta crepuscular (sólo desktop)", Icon: Sunset, category: "scenic",
-    swatch: "linear-gradient(180deg, #1a0820 0%, #45203a 22%, #8a3e2c 50%, #d57a32 72%, #f0b15a 84%, #2a1410 100%), radial-gradient(circle at 35% 58%, rgba(255,220,140,0.55) 0%, rgba(255,170,70,0.40) 12%, transparent 50%)" },
-  // Naturaleza canaria: tema inspirado en el paisaje local (Roque Nublo
-  // + Teide al fondo). Pensado como carta de presentación del archipiélago.
-  // Canario: vídeo real del Roque Nublo + Teide al fondo en bucle. Sólo
-  // se muestra en desktop (DESKTOP_ONLY_THEMES en lib/theme.ts) por el
-  // coste del vídeo full-bleed. El swatch evoca el atardecer crepuscular
-  // sobre la silueta del Teide nevado.
-  { id: "canario", label: "Canario", hint: "Roque Nublo con el Teide al fondo: vídeo real al atardecer (sólo desktop)", Icon: Palmtree, category: "nature",
-    swatch: "linear-gradient(180deg, #1d0e2a 0%, #45203a 22%, #8a3e2c 50%, #d57a32 70%, #f0b15a 82%, #2e1a0e 100%), radial-gradient(circle at 22% 65%, rgba(255,220,140,0.55) 0%, transparent 35%)" },
-  // Cósmicos: temas espaciales (lluvia de meteoros + Voyager).
+  // Cósmicos: temas espaciales (lluvia de meteoros + cometa).
   { id: "meteor", label: "Meteoros", hint: "Lluvia de meteoros: cielo profundo con Vía Láctea y estelas cruzando", Icon: Stars, category: "cosmic",
     swatch: "linear-gradient(135deg, #020410 0%, #060a18 40%, #1a0a3a 75%, #67e8f9 110%)" },
-  { id: "voyager", label: "Voyager", hint: "Voyager: Tierra desde la sonda + Vía Láctea + parallax cósmico", Icon: Globe2, category: "cosmic",
-    swatch: "radial-gradient(circle at 30% 55%, rgba(80,160,255,0.55) 0%, rgba(80,160,255,0.15) 18%, transparent 35%), linear-gradient(135deg, #02030a 0%, #060a18 50%, #0a0e22 100%)" },
   { id: "comet", label: "Cometa", hint: "Cometa azul brillante cruzando un cielo nocturno cálido", Icon: Sparkles, category: "cosmic",
     swatch: "linear-gradient(135deg, #050a18 0%, #081020 35%, #0c1830 65%, #1a2a4a 100%), radial-gradient(circle at 70% 30%, rgba(0,216,255,0.55) 0%, rgba(255,104,80,0.25) 25%, transparent 45%)" },
   // Tributo: temas homenaje a referentes culturales. Cada uno aísla
@@ -148,16 +111,8 @@ const OPTIONS: ThemeOption[] = [
     swatch: "radial-gradient(circle at 50% 50%, rgba(255,28,40,0.55) 0%, transparent 35%), linear-gradient(135deg, #000000 0%, #0a0008 60%, #2a0008 100%)" },
   { id: "stranger", label: "Stranger Things", hint: "Stranger Things: Upside Down con tendrils, bombillas y rojo neón retro 80s", Icon: Lightbulb, category: "tribute",
     swatch: "linear-gradient(135deg, #1a0510 0%, #330014 45%, #aa0028 90%), radial-gradient(circle at 70% 30%, rgba(255,0,80,0.42) 0%, transparent 55%)" },
-  { id: "cyberpunk", label: "Cyberpunk", hint: "Cyberpunk 2077: Night City glitch amarillo Arasaka + cyan + scanlines", Icon: Cog, category: "tribute",
-    swatch: "linear-gradient(135deg, #0a0a14 0%, #14141e 40%, #fcee0a 110%), radial-gradient(circle at 25% 75%, rgba(0,229,255,0.45) 0%, transparent 55%)" },
   { id: "ghibli", label: "Studio Ghibli", hint: "Ghibli: atardecer dorado, girasoles y susuwatari (motas) flotando al ocaso", Icon: Cloud, category: "tribute",
     swatch: "linear-gradient(180deg, #0e1c20 0%, #142428 50%, #0a161a 100%), radial-gradient(circle at 65% 35%, rgba(255,200,120,0.55) 0%, rgba(245,170,80,0.20) 25%, transparent 55%)" },
-  { id: "boreal", label: "Aurora Boreal", hint: "Aurora boreal verde-violeta sobre cumbre nevada + parallax cinemático", Icon: Sunrise, category: "tribute",
-    swatch: "linear-gradient(180deg, #050b1c 0%, #0a1e3a 35%, #1a4a6a 60%, #38b08e 90%), radial-gradient(ellipse at 50% 60%, rgba(120,255,180,0.35) 0%, transparent 55%)" },
-  { id: "dbz", label: "Dragon Ball Z", hint: "DBZ: aura dorada SSJ, plasma amarillo y kanji ki sobre cielo eléctrico", Icon: Zap, category: "tribute",
-    swatch: "radial-gradient(ellipse at 50% 60%, rgba(255,225,80,0.65) 0%, rgba(255,160,60,0.35) 22%, transparent 48%), linear-gradient(135deg, #1a1208 0%, #2a1a08 55%, #0a0604 100%)" },
-  { id: "initiald", label: "Initial D", hint: "Initial D: Akina nocturna + AE86 + neones eurobeat y faros", Icon: Cog, category: "tribute",
-    swatch: "linear-gradient(180deg, #050514 0%, #0a0a22 45%, #1a0e2e 100%), radial-gradient(circle at 22% 75%, rgba(255,255,255,0.55) 0%, transparent 18%), radial-gradient(circle at 78% 28%, rgba(255,90,140,0.4) 0%, transparent 45%)" },
   // Itachi: tema "premium" basado en una IMAGEN real (luna roja + cuervos)
   // con parallax al cursor y efectos cinemáticos. La preview hace una
   // recreación abstracta de la imagen (cielo rojo + luna blanca + ascuas).
@@ -180,7 +135,6 @@ const CATEGORY_ORDER: CategoryId[] = [
   "essentials",
   "crystal",
   "scenic",
-  "nature",
   "cosmic",
   "tribute",
 ];
@@ -189,7 +143,6 @@ const CATEGORY_ORDER: CategoryId[] = [
  *   - `essentials`: 2 columnas (los 2 modos base: Aurora + Claro).
  *   - `crystal`:    2 columnas.
  *   - `scenic`:     2 columnas.
- *   - `nature`:     1 columna (solo Canario, tarjeta ancha destacada).
  *   - `cosmic`:     2 columnas.
  *   - `tribute`:    2 columnas para mantener swatches grandes con tantos
  *                   temas (3 columnas haría las miniaturas demasiado chicas).
@@ -199,7 +152,6 @@ const CATEGORY_COLS: Record<CategoryId, string> = {
   essentials: "grid-cols-2",
   crystal: "grid-cols-2",
   scenic: "grid-cols-2",
-  nature: "grid-cols-1",
   cosmic: "grid-cols-2",
   tribute: "grid-cols-2",
 };

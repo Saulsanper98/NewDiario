@@ -17,30 +17,8 @@ export const THEME_STORAGE_KEY = "cc-ops-theme";
  *   - `cosmos`  : nebulosa espacial (blobs magenta/violeta).
  *   - `storm`   : noche eléctrica con relámpagos y lluvia.
  *
- *   ── NATURALEZA CANARIA ─────────────────────────────────────────────
- *   - `canario` : Roque Nublo (Gran Canaria) con el Teide al fondo —
- *                 vídeo 1080p en bucle + capa cinemática (sólo desktop;
- *                 en móvil se oculta del selector).
- *
- *   ── ABSTRACTOS CON VÍDEO ────────────────────────────────────────────
- *   - `disco`     : tocadiscos cósmico — vídeo surrealista de un plato
- *                    girando suspendido en el espacio + halo violeta
- *                    neón y reflejo ámbar (etiqueta del LP).
- *   - `liquido`   : fluido azul abstracto en movimiento (tinta, agua),
- *                    paleta azul profundo + cyan eléctrico.
- *   - `invierno`  : escena nevada cinemagraph (estatua) con paleta
- *                    gris-azul fría + acento bronce envejecido.
- *   - `crepusculo`: atardecer real grabado en 4K — paleta coral cálido
- *                    + púrpura crepuscular + dorado del sol bajo.
- *                    Convive con `ocaso` (que es CSS puro y artístico).
- *
- *   Todos estos temas con vídeo son DESKTOP_ONLY por el coste del
- *   stream full-bleed; en móvil hacen fallback a "aurora".
- *
  *   ── CÓSMICOS ───────────────────────────────────────────────────────
  *   - `meteor`  : lluvia de meteoros.
- *   - `voyager` : Voyager — visión cósmica desde la sonda con la Tierra
- *                 y la Vía Láctea (imagen real + parallax).
  *   - `comet`   : cometa azul brillante cruzando un cielo nocturno cálido.
  *
  *   ── TRIBUTO ────────────────────────────────────────────────────────
@@ -53,16 +31,8 @@ export const THEME_STORAGE_KEY = "cc-ops-theme";
  *                     sable rojo vertical pulsante, halo Death Star.
  *   - `stranger`    : Stranger Things — Upside Down con tendrils,
  *                     bombillas parpadeantes y fuente neón roja.
- *   - `cyberpunk`   : Cyberpunk 2077 — Night City glitch amarillo
- *                     Arasaka + cyan, scanlines y RAM-flash.
  *   - `ghibli`      : Studio Ghibli — atardecer Ghibli oscuro cálido,
  *                     girasoles, lluvia tenue y susuwatari.
- *   - `boreal`      : aurora boreal — cielo verde-violeta sobre cumbre
- *                     nevada, parallax al cursor.
- *   - `dbz`         : Dragon Ball Z — Goku ssj/aura dorada, plasma
- *                     amarillo y kanji ki.
- *   - `initiald`    : Initial D — montaña Akina nocturna con AE86,
- *                     neones eurobeat y faros.
  *   - `itachi`      : Naruto / Itachi Uchiha — cinemático con IMAGEN
  *                     real (luna roja + cuervos) + parallax al cursor,
  *                     Ken Burns lento, ascuas flotantes, glow lunar.
@@ -84,21 +54,11 @@ export type ThemeMode =
   | "abyss"
   | "cosmos"
   | "storm"
-  | "canario"
-  | "disco"
-  | "liquido"
-  | "invierno"
-  | "crepusculo"
   | "meteor"
-  | "voyager"
   | "comet"
   | "sith"
   | "stranger"
-  | "cyberpunk"
   | "ghibli"
-  | "boreal"
-  | "dbz"
-  | "initiald"
   | "itachi"
   | "amegakure"
   | "sololeveling";
@@ -113,21 +73,11 @@ export const THEME_MODES: ThemeMode[] = [
   "abyss",
   "cosmos",
   "storm",
-  "canario",
-  "disco",
-  "liquido",
-  "invierno",
-  "crepusculo",
   "meteor",
-  "voyager",
   "comet",
   "sith",
   "stranger",
-  "cyberpunk",
   "ghibli",
-  "boreal",
-  "dbz",
-  "initiald",
   "itachi",
   "amegakure",
   "sololeveling",
@@ -159,16 +109,13 @@ export function isThemeAvailable(mode: ThemeMode): boolean {
  *  `applyThemeToDocument` hacen fallback a "aurora" si el usuario llega
  *  a móvil con uno guardado.
  *
- *  Para añadir uno nuevo: meterlo aquí y asegurarse de que su Background
- *  consume el matchMedia correspondiente (ver `CanarioBackground`).
+ *  Actualmente vacío: tras la limpieza de temas con vídeo, ningún tema
+ *  vigente necesita restricción desktop-only. Se mantiene el set por
+ *  contrato de tipos (consumido por el selector, `getStoredTheme` y
+ *  `applyThemeToDocument`); añadir aquí cualquier tema futuro que use
+ *  efectos pesados.
  */
-export const DESKTOP_ONLY_THEMES: ReadonlySet<ThemeMode> = new Set<ThemeMode>([
-  "canario",
-  "disco",
-  "liquido",
-  "invierno",
-  "crepusculo",
-]);
+export const DESKTOP_ONLY_THEMES: ReadonlySet<ThemeMode> = new Set<ThemeMode>([]);
 
 /**
  * Breakpoint para considerar "móvil" en este sistema. Coincide con
@@ -223,21 +170,11 @@ const DATA_THEME_MODES: ReadonlySet<ThemeMode> = new Set<ThemeMode>([
   "abyss",
   "cosmos",
   "storm",
-  "canario",
-  "disco",
-  "liquido",
-  "invierno",
-  "crepusculo",
   "meteor",
-  "voyager",
   "comet",
   "sith",
   "stranger",
-  "cyberpunk",
   "ghibli",
-  "boreal",
-  "dbz",
-  "initiald",
   "itachi",
   "amegakure",
   "sololeveling",

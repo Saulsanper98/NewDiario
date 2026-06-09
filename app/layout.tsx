@@ -15,18 +15,11 @@ import { AmegakureBackground } from "@/components/layout/AmegakureBackground";
 import { SoloLevelingBackground } from "@/components/layout/SoloLevelingBackground";
 import { SithBackground } from "@/components/layout/SithBackground";
 import { StrangerBackground } from "@/components/layout/StrangerBackground";
-import { CyberpunkBackground } from "@/components/layout/CyberpunkBackground";
-import { DBZBackground } from "@/components/layout/DBZBackground";
 // Componente genérico para temas con imagen real (sustituye a la docena
 // de Backgrounds individuales). Cada uso pasa themeId + prefix CSS.
 // Nota: los temas que requieren efectos exclusivos (Sith → niebla, latido,
 // rayos, parallax inverso del sable) tienen su propio componente.
 import { ImageThemeBackground } from "@/components/layout/ImageThemeBackground";
-// Componente genérico para temas con VÍDEO real en bucle. Misma idea que
-// ImageThemeBackground pero monta un <video> de fondo + capas atmosféricas
-// (fallback CSS, halos, niebla, motas, viñeta, grano). Cada tema con
-// vídeo lo invoca con su `themeId`/`prefix` y la ruta del MP4.
-import { VideoThemeBackground } from "@/components/layout/VideoThemeBackground";
 import { SessionProvider } from "@/components/layout/SessionProvider";
 import { ThemeProvider } from "@/components/layout/ThemeProvider";
 import { defaultMetadata } from "@/lib/app-brand";
@@ -39,21 +32,11 @@ import "./theme-volcano.css";
 import "./theme-abyss.css";
 import "./theme-cosmos.css";
 import "./theme-storm.css";
-import "./theme-canario.css";
-import "./theme-disco.css";
-import "./theme-liquido.css";
-import "./theme-invierno.css";
-import "./theme-crepusculo.css";
 import "./theme-meteor.css";
-import "./theme-voyager.css";
 import "./theme-comet.css";
 import "./theme-sith.css";
 import "./theme-stranger.css";
-import "./theme-cyberpunk.css";
 import "./theme-ghibli.css";
-import "./theme-boreal.css";
-import "./theme-dbz.css";
-import "./theme-initiald.css";
 import "./theme-itachi.css";
 import "./theme-amegakure.css";
 import "./theme-sololeveling.css";
@@ -134,21 +117,11 @@ const DATA_THEME_BOOTSTRAP = [
   "abyss",
   "cosmos",
   "storm",
-  "canario",
-  "disco",
-  "liquido",
-  "invierno",
-  "crepusculo",
   "meteor",
-  "voyager",
   "comet",
   "sith",
   "stranger",
-  "cyberpunk",
   "ghibli",
-  "boreal",
-  "dbz",
-  "initiald",
   "itachi",
   "amegakure",
   "sololeveling",
@@ -188,47 +161,12 @@ export default function RootLayout({
           <SoloLevelingBackground />
           <SithBackground />
           <StrangerBackground />
-          <CyberpunkBackground />
-          <DBZBackground />
           {/* Temas con imagen real: usan el componente genérico
               `<ImageThemeBackground />`. Solo se monta el que coincide
               con `data-theme`, así que el coste de tener todos
               registrados aquí es prácticamente cero. */}
-          <ImageThemeBackground themeId="boreal" prefix="boreal" />
           <ImageThemeBackground themeId="comet" prefix="comet" />
           <ImageThemeBackground themeId="ghibli" prefix="ghibli" />
-          <ImageThemeBackground themeId="initiald" prefix="initiald" />
-          <ImageThemeBackground themeId="voyager" prefix="voyager" />
-          {/* Temas con VÍDEO real en bucle: usan el componente genérico
-              `<VideoThemeBackground />`. Solo se monta el que coincide
-              con `data-theme`; el resto duerme. Por defecto son
-              desktop-only (ver DESKTOP_ONLY_THEMES en lib/theme.ts). */}
-          <VideoThemeBackground
-            themeId="canario"
-            prefix="canario"
-            videoSrc="/videos/canario.mp4"
-            posterSrc="/videos/canario-poster.jpg"
-          />
-          <VideoThemeBackground
-            themeId="disco"
-            prefix="disco"
-            videoSrc="/videos/disco.mp4"
-          />
-          <VideoThemeBackground
-            themeId="liquido"
-            prefix="liquido"
-            videoSrc="/videos/liquidoazul.mp4"
-          />
-          <VideoThemeBackground
-            themeId="invierno"
-            prefix="invierno"
-            videoSrc="/videos/snowstatue.mp4"
-          />
-          <VideoThemeBackground
-            themeId="crepusculo"
-            prefix="crepusculo"
-            videoSrc="/videos/sunset.mp4"
-          />
           <SessionProvider>{children}</SessionProvider>
         </ThemeProvider>
         <Toaster
