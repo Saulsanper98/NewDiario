@@ -1,22 +1,18 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   AtSign,
   Bell,
   CheckSquare,
   KeyRound,
-  Link2,
   Loader2,
   MessageSquare,
   Music,
   Play,
   Sparkles,
-  Trash2,
-  Upload,
   Volume2,
   VolumeX,
-  Wand2,
   type LucideIcon,
 } from "lucide-react";
 import toast from "react-hot-toast";
@@ -28,21 +24,30 @@ import {
   type SoundCategory,
   SOUND_PRESETS,
   type SoundPreferences,
-  type UserSoundLite,
   playSoundId,
   setLocalPrefs,
   setUserSoundsCache,
 } from "@/lib/notifications/sound-player";
 
-interface UserSoundFull extends UserSoundLite {
-  mimeType: string;
-  sizeBytes: number;
-  source: "UPLOAD" | "URL";
-  originalUrl: string | null;
-  createdAt: string;
-}
-
 const CATEGORIES: SoundCategory[] = ["chat", "mention", "login", "task"];
+
+/**
+ * Sanitiza las preferencias que llegan del servidor o del localStorage:
+ * cualquier valor que apunte a `user:<id>` se elimina (los sonidos
+ * personales fueron retirados; la clave queda undefined y el cliente
+ * cae al sonido por defecto del sistema).
+ */
+function stripUserPrefs(prefs: SoundPreferences | null | undefined): SoundPreferences {
+  if (!prefs) return {};
+  const out: SoundPreferences = {};
+  for (const k of Object.keys(prefs) as SoundCategory[]) {
+    const v = prefs[k];
+    if (typeof v === "string" && !v.startsWith("user:")) {
+      out[k] = v;
+    }
+  }
+  return out;
+}
 
 const CATEGORY_META: Record<
   SoundCategory,
@@ -125,30 +130,28 @@ const CATEGORY_META: Record<
 };
 
 /**
- * Tarjeta "Sonidos personalizados" para la pestaña Mi cuenta.
+ * Tarjeta "Sonidos" para la pestaña Mi cuenta.
  *
  * Permite al usuario:
  *  - Ver y reproducir los presets del sistema (sintéticos, sin archivos).
- *  - Subir audios propios desde el PC (hasta 10 MB).
- *  - Importar un audio desde una URL pública (lo descarga el servidor).
- *  - Borrar cualquier sonido propio.
  *  - Asignar un sonido distinto a cada categoría (chat / mención / login / tarea)
  *    y previsualizarlo en el momento.
+ *
+ * NOTA: La biblioteca personal (subir/importar audios) fue retirada por
+ * decisión de producto. La UI conserva el catálogo de presets para que
+ * cada usuario siga pudiendo personalizar qué tono escucha por categoría.
  */
 export function SoundLibraryCard() {
   const { theme } = useTheme();
   const L = theme === "light";
 
-  const [userSounds, setUserSounds] = useState<UserSoundFull[]>([]);
   const [prefs, setPrefs] = useState<SoundPreferences>({});
-  const [loading, setLoading] = useState(true);
+  const [, setLoading] = useState(true);
   const [savingCat, setSavingCat] = useState<SoundCategory | null>(null);
-  const [uploading, setUploading] = useState(false);
-  const [urlInput, setUrlInput] = useState("");
-  const [urlBusy, setUrlBusy] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Carga inicial: lista de sonidos + preferencias.
+  // Carga inicial: solo preferencias. Las normalizamos quitando cualquier
+  // referencia legacy a `user:<id>` para que la UI no muestre un valor
+  // huérfano si el usuario tenía una preferencia previa a la purga.
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -156,14 +159,14 @@ export function SoundLibraryCard() {
         const r = await fetch("/api/me/sounds");
         if (!r.ok) throw new Error("No se pudieron cargar los sonidos");
         const data = (await r.json()) as {
-          sounds: UserSoundFull[];
           preferences: SoundPreferences;
         };
         if (cancelled) return;
-        setUserSounds(data.sounds);
-        setPrefs(data.preferences ?? {});
-        setUserSoundsCache(data.sounds);
-        setLocalPrefs(data.preferences ?? {});
+        const safe = stripUserPrefs(data.preferences);
+        setPrefs(safe);
+        // Borramos la cache de URLs de sonidos personales (ya no existen).
+        setUserSoundsCache([]);
+        setLocalPrefs(safe);
       } catch (e) {
         toast.error(e instanceof Error ? e.message : "Error cargando sonidos");
       } finally {
@@ -185,21 +188,11 @@ export function SoundLibraryCard() {
         hint: p.description,
         group: "preset" as const,
       })),
-      ...userSounds.map((s) => ({
-        value: `user:${s.id}`,
-        label: s.name,
-        hint:
-          s.source === "URL"
-            ? "Importado por URL"
-            : `${(s.sizeBytes / 1024).toFixed(0)} KB · ${s.mimeType.replace("audio/", "")}`,
-        group: "user" as const,
-      })),
     ];
-  }, [userSounds]);
+  }, []);
 
-  // Agrupa las opciones en el formato que espera `Listbox`.
   const listboxGroups = useMemo<ListboxGroup[]>(() => {
-    const groups: ListboxGroup[] = [
+    return [
       {
         label: "Sistema",
         options: allOptions
@@ -217,20 +210,7 @@ export function SoundLibraryCard() {
           })),
       },
     ];
-    if (userSounds.length > 0) {
-      groups.push({
-        label: "Mis sonidos",
-        options: allOptions
-          .filter((o) => o.group === "user")
-          .map((o) => ({
-            value: o.value,
-            label: o.label,
-            hint: (o as { hint?: string }).hint,
-          })),
-      });
-    }
-    return groups;
-  }, [allOptions, userSounds.length]);
+  }, [allOptions]);
 
   const handlePreview = useCallback((soundId: string) => {
     void playSoundId(soundId);
@@ -261,97 +241,6 @@ export function SoundLibraryCard() {
       }
     },
     [handlePreview]
-  );
-
-  const handleUpload = useCallback(async (file: File) => {
-    if (file.size > 10 * 1024 * 1024) {
-      toast.error("El audio no puede superar 10 MB");
-      return;
-    }
-    setUploading(true);
-    try {
-      const fd = new FormData();
-      fd.append("file", file);
-      fd.append("name", file.name.replace(/\.[^.]+$/, ""));
-      const r = await fetch("/api/me/sounds/upload", { method: "POST", body: fd });
-      const data = (await r.json()) as { sound?: UserSoundFull; error?: string };
-      if (!r.ok || !data.sound) throw new Error(data.error ?? "No se pudo subir");
-      setUserSounds((prev) => {
-        const next = [data.sound!, ...prev];
-        setUserSoundsCache(next);
-        return next;
-      });
-      toast.success(`"${data.sound.name}" añadido`);
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Error subiendo");
-    } finally {
-      setUploading(false);
-    }
-  }, []);
-
-  const handleFromUrl = useCallback(async () => {
-    const url = urlInput.trim();
-    if (!url) return;
-    setUrlBusy(true);
-    try {
-      const r = await fetch("/api/me/sounds/from-url", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url }),
-      });
-      const data = (await r.json()) as { sound?: UserSoundFull; error?: string };
-      if (!r.ok || !data.sound) throw new Error(data.error ?? "No se pudo importar");
-      setUserSounds((prev) => {
-        const next = [data.sound!, ...prev];
-        setUserSoundsCache(next);
-        return next;
-      });
-      setUrlInput("");
-      toast.success(`"${data.sound.name}" importado`);
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Error importando");
-    } finally {
-      setUrlBusy(false);
-    }
-  }, [urlInput]);
-
-  const handleDelete = useCallback(
-    async (sound: UserSoundFull) => {
-      if (!window.confirm(`Borrar "${sound.name}"?`)) return;
-      try {
-        const r = await fetch(`/api/me/sounds/${sound.id}`, {
-          method: "DELETE",
-        });
-        if (!r.ok) {
-          const err = (await r.json().catch(() => ({}))) as { error?: string };
-          throw new Error(err.error ?? "No se pudo borrar");
-        }
-        setUserSounds((prev) => {
-          const next = prev.filter((s) => s.id !== sound.id);
-          setUserSoundsCache(next);
-          return next;
-        });
-        // Si alguna preferencia apuntaba a este, el server ya la limpió: lo
-        // reflejamos en el estado local.
-        const updated: SoundPreferences = { ...prefs };
-        const target = `user:${sound.id}`;
-        let changed = false;
-        for (const k of Object.keys(updated) as SoundCategory[]) {
-          if (updated[k] === target) {
-            delete updated[k];
-            changed = true;
-          }
-        }
-        if (changed) {
-          setPrefs(updated);
-          setLocalPrefs(updated);
-        }
-        toast.success(`"${sound.name}" eliminado`);
-      } catch (e) {
-        toast.error(e instanceof Error ? e.message : "Error borrando");
-      }
-    },
-    [prefs]
   );
 
   // Etiqueta legible para la opción seleccionada (en la card de preview).
@@ -415,18 +304,8 @@ export function SoundLibraryCard() {
                   L ? "text-zinc-900" : "text-white"
                 )}
               >
-                Sonidos personalizados
+                Sonidos de notificaciones
               </h3>
-              <span
-                className={cn(
-                  "inline-flex items-center rounded-full px-1.5 py-px text-[10px] font-semibold uppercase tracking-wider",
-                  L
-                    ? "bg-amber-100/80 text-amber-800 ring-1 ring-amber-200/70"
-                    : "bg-amber-500/15 text-amber-200 ring-1 ring-amber-400/25"
-                )}
-              >
-                {userSounds.length} {userSounds.length === 1 ? "propio" : "propios"}
-              </span>
             </div>
             <p
               className={cn(
@@ -434,8 +313,8 @@ export function SoundLibraryCard() {
                 L ? "text-zinc-600" : "text-white/55"
               )}
             >
-              Elige qué tono escuchas en cada evento. Sube audios del PC o
-              importa una URL pública. Formatos: <span className="font-medium">mp3, m4a, ogg, wav, webm</span> hasta <span className="font-medium">10&nbsp;MB</span>.
+              Elige qué tono escuchas en cada evento. Catálogo del sistema
+              con presets sintéticos siempre disponibles.
             </p>
           </div>
         </div>
@@ -567,133 +446,7 @@ export function SoundLibraryCard() {
         })}
       </div>
 
-      {/* Acciones para añadir sonidos — dropzone visual + URL */}
-      <div
-        className={cn(
-          "relative overflow-hidden rounded-xl border p-3",
-          L
-            ? "border-zinc-200 bg-gradient-to-br from-amber-50/60 via-white to-white"
-            : "border-white/10 bg-gradient-to-br from-amber-500/[0.04] via-white/[0.015] to-white/[0.015]"
-        )}
-      >
-        <div className="flex items-center gap-2.5">
-          <span
-            className={cn(
-              "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ring-1",
-              L
-                ? "bg-amber-100/70 text-amber-800 ring-amber-200"
-                : "bg-amber-500/15 text-amber-200 ring-amber-400/25"
-            )}
-            aria-hidden
-          >
-            <Wand2 className="h-4 w-4" />
-          </span>
-          <div className="min-w-0 flex-1">
-            <p
-              className={cn(
-                "text-[13px] font-semibold leading-tight",
-                L ? "text-zinc-900" : "text-white/95"
-              )}
-            >
-              Añadir un sonido nuevo
-            </p>
-            <p
-              className={cn(
-                "mt-0.5 text-[11px]",
-                L ? "text-zinc-500" : "text-white/45"
-              )}
-            >
-              Súbelo desde tu equipo o pega un enlace público a un audio.
-            </p>
-          </div>
-        </div>
-
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="audio/*"
-          className="hidden"
-          onChange={(e) => {
-            const f = e.target.files?.[0];
-            if (f) void handleUpload(f);
-            e.currentTarget.value = "";
-          }}
-        />
-
-        <div className="mt-3 grid gap-2 sm:grid-cols-2">
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={uploading}
-            className={cn(
-              "inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-sm font-semibold transition-all",
-              "bg-gradient-to-br from-[#ffeb66] to-[#d4a700] text-[#0a0f1e]",
-              "shadow-[0_3px_14px_rgba(255,235,102,0.35)] hover:brightness-110 hover:-translate-y-0.5 active:translate-y-0",
-              uploading && "opacity-70 hover:translate-y-0"
-            )}
-          >
-            {uploading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Upload className="h-4 w-4" />
-            )}
-            {uploading ? "Subiendo…" : "Subir audio del PC"}
-          </button>
-          <div
-            className={cn(
-              "flex items-center gap-1.5 rounded-lg border px-2 py-1.5 transition-colors focus-within:border-[#ffeb66]/55",
-              L
-                ? "border-zinc-200 bg-white"
-                : "border-white/10 bg-white/[0.04]"
-            )}
-          >
-            <Link2
-              className={cn(
-                "h-4 w-4 shrink-0",
-                L ? "text-zinc-400" : "text-white/40"
-              )}
-            />
-            <input
-              type="url"
-              placeholder="Pega una URL https://… con un audio"
-              value={urlInput}
-              onChange={(e) => setUrlInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  void handleFromUrl();
-                }
-              }}
-              disabled={urlBusy}
-              className={cn(
-                "min-w-0 flex-1 bg-transparent text-xs outline-none",
-                L
-                  ? "text-zinc-900 placeholder:text-zinc-400"
-                  : "text-white placeholder:text-white/35"
-              )}
-            />
-            <button
-              type="button"
-              onClick={() => void handleFromUrl()}
-              disabled={urlBusy || !urlInput.trim()}
-              className={cn(
-                "shrink-0 rounded-md px-2 py-1 text-xs font-semibold transition-colors disabled:opacity-40",
-                L
-                  ? "bg-zinc-900 text-white hover:bg-zinc-800"
-                  : "bg-white text-zinc-900 hover:bg-zinc-100"
-              )}
-            >
-              {urlBusy ? (
-                <Loader2 className="h-3 w-3 animate-spin" />
-              ) : (
-                "Importar"
-              )}
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Biblioteca de presets + propios */}
+      {/* Biblioteca de presets del sistema */}
       <div className="space-y-4">
         <SoundList
           title="Sonidos del sistema"
@@ -705,31 +458,6 @@ export function SoundLibraryCard() {
             name: p.name,
             sub: p.description,
             removable: false,
-          }))}
-          onPreview={handlePreview}
-        />
-        <SoundList
-          title="Mis sonidos"
-          subtitle="Audios que tú has subido o importado"
-          icon={Music}
-          isLight={L}
-          emptyText={
-            loading
-              ? "Cargando…"
-              : "Todavía no has añadido ninguno. Sube uno o importa una URL."
-          }
-          items={userSounds.map((s) => ({
-            id: `user:${s.id}`,
-            name: s.name,
-            sub:
-              s.source === "URL"
-                ? `Importado · ${truncate(s.originalUrl ?? "URL", 50)}`
-                : `${(s.sizeBytes / 1024).toFixed(0)} KB · ${s.mimeType.replace(
-                    "audio/",
-                    ""
-                  )}`,
-            removable: true,
-            onDelete: () => void handleDelete(s),
           }))}
           onPreview={handlePreview}
         />
@@ -756,7 +484,6 @@ function SoundList({
     name: string;
     sub: string;
     removable: boolean;
-    onDelete?: () => void;
   }[];
   isLight: boolean;
   onPreview: (id: string) => void;
@@ -879,31 +606,10 @@ function SoundList({
               >
                 <Volume2 className="h-3.5 w-3.5" />
               </button>
-              {it.removable && it.onDelete && (
-                <button
-                  type="button"
-                  onClick={it.onDelete}
-                  aria-label={`Borrar ${it.name}`}
-                  title="Borrar"
-                  className={cn(
-                    "flex h-7 w-7 shrink-0 items-center justify-center rounded-md transition-colors",
-                    isLight
-                      ? "text-zinc-400 hover:bg-red-50 hover:text-red-600"
-                      : "text-white/40 hover:bg-red-500/15 hover:text-red-300"
-                  )}
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </button>
-              )}
             </li>
           ))}
         </ul>
       )}
     </div>
   );
-}
-
-function truncate(s: string, max: number) {
-  if (s.length <= max) return s;
-  return s.slice(0, max - 1) + "…";
 }
