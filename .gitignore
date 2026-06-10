@@ -75,3 +75,4 @@ next-env.d.ts
 # Uploads privados (fuera de /public, servidos via API autorizada)
 uploads-private/
 
+.build-manual.log

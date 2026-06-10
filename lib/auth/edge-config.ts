@@ -105,11 +105,19 @@ export const edgeAuthConfig: NextAuthConfig = {
       // Dejar pasar rutas Auth.js; si no, authorized devuelve redirect HTML y el cliente recibe HTML en lugar de JSON (signIn / CSRF).
       if (nextUrl.pathname.startsWith("/api/auth")) return true;
       // Rutas API públicas (accesibles sin sesión)
+      //
+      // IMPORTANTE: este callback `authorized` corre ANTES que
+      // `middleware.ts`. Si una ruta debe ser pública, hay que añadirla
+      // AQUI tambien (no basta con la lista de `isPublicApi` del
+      // middleware), o NextAuth la redirige a /login antes de que el
+      // middleware tenga oportunidad de dejarla pasar.
       if (
         nextUrl.pathname === "/api/features" ||
         nextUrl.pathname === "/api/branding" ||
         nextUrl.pathname === "/api/login-users" ||
-        nextUrl.pathname === "/api/login-departments"
+        nextUrl.pathname === "/api/login-departments" ||
+        /* Healthcheck publico para WinSW / monitores externos. */
+        nextUrl.pathname === "/api/health"
       ) return true;
 
       // Si refreshTokenUserFromDb invalido el token (id vacio), tratamos
