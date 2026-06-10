@@ -41,6 +41,17 @@ export default async function NuevaEntradaPage({
   });
   const departmentMembers = deptMembers.map((r) => r.user);
 
+  // Datos extra para el modal de plantillas: nombre del depto activo (para
+  // mostrar en el grupo "De [Depto]" y resolver {{depto}}) + check de
+  // rol ADMIN/SUPERADMIN del depto para habilitar publicación al equipo.
+  const activeDept = departments.find((d) => d.id === deptId);
+  const activeDeptName = activeDept?.name ?? "Departamento";
+  const userDeptRow = user.departments.find((d) => d.id === deptId);
+  const canManageDepartmentTemplates =
+    user.role === "SUPERADMIN" ||
+    userDeptRow?.role === "ADMIN" ||
+    userDeptRow?.role === "SUPERADMIN";
+
   return (
     <div className="flex flex-col h-full overflow-hidden">
       <Header
@@ -56,6 +67,9 @@ export default async function NuevaEntradaPage({
           allDepartments={departments}
           initialDate={initialDate ?? null}
           departmentMembers={departmentMembers}
+          currentUser={{ id: user.id, name: user.name ?? "Usuario" }}
+          activeDepartmentName={activeDeptName}
+          canManageDepartmentTemplates={canManageDepartmentTemplates}
         />
       </div>
     </div>

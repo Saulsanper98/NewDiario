@@ -270,6 +270,8 @@ model User {
   projectLogComments    ProjectLogComment[]  @relation("ProjectLogCommentAuthor")
   projectLogReactions   ProjectLogReaction[] @relation("ProjectLogReactionUser")
   projectLogReads       ProjectLogRead[]     @relation("ProjectLogReadUser")
+  logTemplatesOwned     LogTemplate[]        @relation("LogTemplateOwner")
+  logTemplatesCreated   LogTemplate[]        @relation("LogTemplateCreatedBy")
   calendarEvents        CalendarEvent[]      @relation("CalendarEventAuthor")
   calendarTemplates     CalendarEventTemplate[] @relation("CalendarTemplateAuthor")
 
@@ -383,6 +385,7 @@ model Department {
   shiftHandoffs  ShiftHandoff[]
   calendarEvents    CalendarEvent[]
   calendarTemplates CalendarEventTemplate[]
+  logTemplates      LogTemplate[]
 
   @@index([slug])
 }
@@ -488,6 +491,62 @@ model LogEntry {
   @@index([requiresFollowup])
   @@index([deletedAt])
   @@index([title])
+}
+
+/**
+ * Plantilla de nota de bitácora.
+ *
+ * Existen dos sabores:
+ *   - **Personal**: `ownerUserId != null` y `departmentId == null`. Solo
+ *     la ve y edita el usuario propietario.
+ *   - **Departamental**: `ownerUserId == null` y `departmentId != null`.
+ *     La ven todos los miembros del depto; la editan / borran ADMIN o
+ *     SUPERADMIN del depto.
+ *
+ * Garantizamos el XOR en la API (no a nivel SQL: añadir un CHECK
+ * constraint requeriría migración manual y no compensa para una sola
+ * regla que el endpoint puede validar fácilmente).
+ *
+ * Los placeholders ({{fecha}}, {{autor}}, {{turno}}, {{depto}}) se
+ * persisten **sin resolver** en `content` / `title`; se resuelven al
+ * insertar en el formulario de nueva entrada, no en la DB. De esta
+ * forma una misma plantilla genera un texto distinto cada día.
+ */
+model LogTemplate {
+  id               String       @id @default(cuid())
+  name             String       @db.VarChar(120)
+  description      String?      @db.VarChar(280)
+  /// Dueño cuando es personal. Null cuando es departamental.
+  ownerUserId      String?
+  /// Departamento cuando es departamental. Null cuando es personal.
+  departmentId     String?
+  /// Usuario que creó la plantilla (para auditoría; en personales suele
+  /// coincidir con ownerUserId, en departamentales será el ADMIN).
+  createdById      String
+  type             LogEntryType?
+  shift            Shift?
+  /// Título prefijado, opcionalmente con placeholders.
+  title            String?      @db.VarChar(280)
+  /// Cuerpo HTML, sanitizado en backend antes de guardar.
+  content          String       @db.Text
+  requiresFollowup Boolean      @default(false)
+  /// Etiquetas a aplicar al crear entrada desde la plantilla. Guardamos
+  /// nombres (no FK a LogTag) porque las plantillas viven más que los
+  /// tags individuales y queremos que sigan funcionando aunque se
+  /// renombre un tag. El consumidor resuelve nombre → LogTag al crear
+  /// la entrada (creando el tag si no existía).
+  tags             String[]     @default([])
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  deletedAt        DateTime?
+
+  owner       User?       @relation("LogTemplateOwner", fields: [ownerUserId], references: [id], onDelete: Cascade)
+  department  Department? @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  createdBy   User        @relation("LogTemplateCreatedBy", fields: [createdById], references: [id])
+
+  @@index([ownerUserId])
+  @@index([departmentId])
+  @@index([deletedAt])
 }
 
 model LogEditHistory {

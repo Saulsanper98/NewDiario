@@ -10,8 +10,12 @@ import toast from "react-hot-toast";
 import {
   X, AlertTriangle, AlertCircle, Info, Wrench, CheckCircle, Zap,
   Sun, Sunset, Moon, Eye, EyeOff, Clock, Save, Loader2, SpellCheck2,
+  FileText,
 } from "lucide-react";
 import { RichEditor } from "./RichEditor";
+import { LogTemplateModal } from "./LogTemplateModal";
+import { resolveTemplatePlaceholders } from "@/lib/log-template";
+import type { LogTemplateDTO } from "@/lib/log-template";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Card } from "@/components/ui/Card";
@@ -306,6 +310,13 @@ interface NewLogEntryFormProps {
   initialDate?: string | null;
   /** Miembros del departamento de la entrada (nueva) para invitados en encuestas. */
   departmentMembers?: DeptMemberOption[];
+  /** Datos del usuario actual para resolver `{{autor}}` en placeholders y
+   *  saber qué plantillas marcar como "Mías" en el modal. */
+  currentUser?: { id: string; name: string };
+  /** Nombre del depto activo (para `{{depto}}` y agrupar en el modal). */
+  activeDepartmentName?: string;
+  /** Si el usuario puede crear plantillas departamentales. */
+  canManageDepartmentTemplates?: boolean;
 }
 
 /* ── main component ─────────────────────────────────────────────────────── */
@@ -316,6 +327,9 @@ export function NewLogEntryForm({
   editingEntry,
   initialDate = null,
   departmentMembers = [],
+  currentUser,
+  activeDepartmentName,
+  canManageDepartmentTemplates = false,
 }: NewLogEntryFormProps) {
   const { accent, withAlpha } = useAccentForUi();
   const { theme } = useTheme();
@@ -369,6 +383,9 @@ export function NewLogEntryForm({
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [correctingSpelling, setCorrectingSpelling] = useState(false);
   const [pollDrafts, setPollDrafts] = useState<LocalPollDraft[]>([]);
+
+  /* Plantillas — modal y aplicación */
+  const [templateModalOpen, setTemplateModalOpen] = useState(false);
 
   /* last saved display */
   const [, forceUpdate] = useState(0);
@@ -464,6 +481,68 @@ export function NewLogEntryForm({
   }
 
   function removeTag(tag: string) { setTags(tags.filter((t) => t !== tag)); }
+
+  /**
+   * Aplica una plantilla al formulario actual. Resuelve placeholders al
+   * vuelo usando el contexto del momento (autor, turno seleccionado,
+   * depto activo, fecha — la de la entrada si está retroactiva, si no
+   * hoy). Los campos del formulario que la plantilla NO declara quedan
+   * intactos para no sobrescribir trabajo del usuario.
+   *
+   * Las etiquetas se mergean (no se reemplazan) para que el usuario que
+   * ya tecleó alguna no pierda su trabajo.
+   */
+  function applyTemplate(template: LogTemplateDTO) {
+    const fechaBase =
+      initialDate && isValidYyyyMmDd(initialDate)
+        ? new Date(`${initialDate}T12:00:00`)
+        : new Date();
+    const ctx = {
+      autor: currentUser?.name ?? null,
+      turno: watch("shift"),
+      depto: activeDepartmentName ?? null,
+      fecha: fechaBase,
+    };
+
+    if (template.title) {
+      setValue("title", resolveTemplatePlaceholders(template.title, ctx), {
+        shouldDirty: true,
+      });
+    }
+    if (template.type) {
+      setValue("type", template.type as FormData["type"], {
+        shouldDirty: true,
+      });
+    }
+    if (template.shift) {
+      setValue("shift", template.shift as FormData["shift"], {
+        shouldDirty: true,
+      });
+    }
+    setValue("requiresFollowup", template.requiresFollowup, {
+      shouldDirty: true,
+    });
+
+    // El cuerpo siempre se aplica (es el campo principal de la plantilla).
+    // Si el usuario ya había escrito algo lo perdería; eso es el coste de
+    // aceptar el "Usar plantilla". Para evitar sorpresas, el botón está
+    // junto al título y no en mitad del editor.
+    setContent(resolveTemplatePlaceholders(template.content, ctx));
+
+    // Merge de tags sin duplicar (normalizamos en lowercase como el resto
+    // del form). Mantenemos el orden: primero las existentes, luego las
+    // nuevas de la plantilla que aún no estuviesen.
+    if (template.tags.length > 0) {
+      const normalized = template.tags.map((t) => t.toLowerCase());
+      const merged = [...tags];
+      for (const t of normalized) {
+        if (!merged.includes(t)) merged.push(t);
+      }
+      setTags(merged);
+    }
+
+    toast.success(`Plantilla «${template.name}» aplicada`);
+  }
 
   function toggleShare(deptId: string) {
     const exists = sharedWith.find((s) => s.departmentId === deptId);
@@ -801,8 +880,31 @@ export function NewLogEntryForm({
 
         {/* Title — B34, B37, B40 */}
         <div>
-          <div className="flex items-center justify-between mb-1.5">
-            <label className={formLabelClass(theme)}>Título</label>
+          <div className="flex items-center justify-between mb-1.5 gap-2 flex-wrap">
+            <div className="flex items-center gap-2">
+              <label className={formLabelClass(theme)}>Título</label>
+              {/* Botón "Plantillas": solo en modo creación (no en edit) y
+                  cuando tenemos al currentUser disponible (= se montó desde
+                  /bitacora/nueva). En edición no aplicamos plantillas porque
+                  el contenido ya existe; el usuario las gestiona desde una
+                  entrada nueva. */}
+              {!editingEntry && currentUser && (
+                <button
+                  type="button"
+                  onClick={() => setTemplateModalOpen(true)}
+                  className={cn(
+                    "inline-flex items-center gap-1 text-[11.5px] font-medium px-2 py-0.5 rounded-md border transition-colors",
+                    theme === "light"
+                      ? "text-zinc-600 bg-white border-zinc-200 hover:bg-zinc-50 hover:border-zinc-300"
+                      : "text-white/65 bg-white/[0.04] border-white/[0.1] hover:bg-white/[0.07] hover:text-white/85"
+                  )}
+                  title="Usar plantilla"
+                >
+                  <FileText className="w-3.5 h-3.5" aria-hidden />
+                  Plantilla
+                </button>
+              )}
+            </div>
             <span
               className={cn(
                 "text-[10px] tabular-nums transition-colors",
@@ -1275,6 +1377,21 @@ export function NewLogEntryForm({
         onDiscard={handleDiscard}
         onContinue={() => setShowCancelDialog(false)}
       />
+
+      {/* Modal de plantillas. Solo lo montamos cuando hay currentUser
+          (siempre lo hay en la página /bitacora/nueva pero `editingEntry`
+          en otras rutas podría no pasarlo). */}
+      {currentUser && (
+        <LogTemplateModal
+          open={templateModalOpen}
+          onClose={() => setTemplateModalOpen(false)}
+          onApply={applyTemplate}
+          activeDepartmentId={departmentId}
+          activeDepartmentName={activeDepartmentName ?? "Departamento"}
+          canManageDepartmentTemplates={canManageDepartmentTemplates}
+          currentUserId={currentUser.id}
+        />
+      )}
     </div>
   );
 }
