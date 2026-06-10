@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
 import toast from "react-hot-toast";
-import { Bell, ChevronDown, ChevronRight, Check, X, Loader2, WifiOff, Sun, Sunset, Moon } from "lucide-react";
+import { Bell, ChevronDown, ChevronRight, Check, X, Loader2, WifiOff, Sun, Sunset, Moon, Mail } from "lucide-react";
 import { ReportBugHeaderButton } from "@/components/bugs/ReportBugHeaderButton";
 import Link from "next/link";
 import { CommandPalette } from "@/components/layout/CommandPalette";
@@ -92,6 +92,13 @@ export function Header({ user, breadcrumb }: HeaderProps) {
     unread: number;
   } | null>(null);
   const [notifLoading, setNotifLoading] = useState(false);
+  /**
+   * Filtro del panel de notificaciones. Por defecto "unread" (comportamiento
+   * histórico). El usuario puede cambiar a "all" para revisar también las
+   * leídas y/o "Marcar como no leída" desde el icono que aparece en cada item.
+   * Se persiste por origen en localStorage para que sobreviva entre sesiones.
+   */
+  const [notifFilter, setNotifFilter] = useState<"unread" | "all">("unread");
 
   const deptRef = useRef<HTMLDivElement>(null);
   const notifRef = useRef<HTMLDivElement>(null);
@@ -105,10 +112,23 @@ export function Header({ user, breadcrumb }: HeaderProps) {
     notifOpenRef.current = notifOpen;
   }, [notifOpen]);
 
+  /* Lee el filtro persistido antes del primer fetch para no hacer un
+     extra round-trip cuando el usuario ya había elegido "Todas". */
+  useEffect(() => {
+    try {
+      const v = localStorage.getItem("cc-ops-notif-filter");
+      if (v === "all" || v === "unread") setNotifFilter(v);
+    } catch {
+      /* localStorage bloqueado */
+    }
+  }, []);
+
   const refreshNotifications = useCallback(async () => {
     setNotifLoading(true);
     try {
-      const res = await fetch("/api/notifications");
+      const res = await fetch(
+        `/api/notifications?onlyUnread=${notifFilter === "unread"}`
+      );
       if (res.ok) {
         const data = (await res.json()) as {
           items: NotifItem[];
@@ -160,7 +180,16 @@ export function Header({ user, breadcrumb }: HeaderProps) {
     } finally {
       setNotifLoading(false);
     }
-  }, []);
+  }, [notifFilter]);
+
+  /* Al cambiar el filtro reseteamos el set de "vistas" para no arrastrar
+     IDs entre modos (en "all" se llenaría con las leídas, en "unread" solo
+     con las nuevas — si no reseteamos, alternar filtros podría enmascarar
+     una mención nueva). La primera carga tras el reset rellena el set sin
+     sonar, igual que en el primer mount. */
+  useEffect(() => {
+    seenNotifIdsRef.current = null;
+  }, [notifFilter]);
 
   useEffect(() => {
     void refreshNotifications();
@@ -348,6 +377,31 @@ export function Header({ user, breadcrumb }: HeaderProps) {
         ) : (
           <span className="text-sm font-semibold text-white truncate">
             {ROUTE_FALLBACK_TITLE[pathname] ?? "CC Ops"}
+          </span>
+        )}
+
+        {/* Chip estático del departamento activo. Solo se renderiza cuando
+            el usuario tiene UN único departamento (en multi-depto el
+            dept-selector siguiente ya cumple esta función con su dot de
+            accent + nombre, y duplicarlo añadiría ruido). Visible en
+            pantallas ≥ md (768px); en mobile el espacio es crítico y la
+            información del depto aparece dentro del SidebarProfileMenu. */}
+        {user.departments.length === 1 && activeDept && (
+          <span
+            className={cn(
+              "hidden md:inline-flex items-center gap-1.5 ml-2 px-2 py-0.5 rounded-full border text-[11px] font-medium",
+              isLight
+                ? "border-zinc-200/80 bg-white/70 text-zinc-700"
+                : "border-white/10 bg-white/[0.04] text-white/65"
+            )}
+            title={`Departamento activo: ${activeDept.name}`}
+          >
+            <span
+              className="w-2 h-2 rounded-full shrink-0"
+              style={{ backgroundColor: accent(activeDept.accentColor) }}
+              aria-hidden
+            />
+            <span className="truncate max-w-[200px]">{activeDept.name}</span>
           </span>
         )}
 
@@ -543,6 +597,64 @@ export function Header({ user, breadcrumb }: HeaderProps) {
                 </button>
               </div>
             </div>
+            {/* Segmented control: filtro No leídas / Todas. Persistido en
+                localStorage. Cambiarlo dispara `refreshNotifications` por el
+                useCallback que depende de `notifFilter`. */}
+            <div
+              className={cn(
+                "px-4 py-2 border-b flex items-center gap-1",
+                isLight ? "border-zinc-200/90" : "border-white/8"
+              )}
+              role="tablist"
+              aria-label="Filtro de notificaciones"
+            >
+              {(["unread", "all"] as const).map((f) => {
+                const isActive = notifFilter === f;
+                const label = f === "unread" ? "No leídas" : "Todas";
+                return (
+                  <button
+                    key={f}
+                    type="button"
+                    role="tab"
+                    aria-selected={isActive}
+                    onClick={() => {
+                      setNotifFilter(f);
+                      try {
+                        localStorage.setItem("cc-ops-notif-filter", f);
+                      } catch {
+                        /* localStorage bloqueado */
+                      }
+                    }}
+                    className={cn(
+                      "flex-1 rounded-md px-2 py-1 text-[11px] font-medium transition-colors",
+                      isActive
+                        ? isLight
+                          ? "bg-zinc-900/[0.06] text-zinc-900"
+                          : "bg-white/8 text-white"
+                        : isLight
+                          ? "text-zinc-500 hover:text-zinc-800 hover:bg-zinc-100"
+                          : "text-white/45 hover:text-white/80 hover:bg-white/5"
+                    )}
+                  >
+                    {label}
+                    {f === "unread" && (notifData?.unread ?? 0) > 0 && (
+                      <span
+                        className={cn(
+                          "ml-1.5 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full px-1 text-[9px] font-bold leading-none",
+                          isActive
+                            ? "bg-[#ffeb66] text-[#0a0f1e]"
+                            : isLight
+                              ? "bg-zinc-200 text-zinc-700"
+                              : "bg-white/15 text-white/70"
+                        )}
+                      >
+                        {notifData!.unread > 9 ? "9+" : notifData!.unread}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
             <div className="max-h-80 overflow-y-auto">
               {notifLoading && !notifData ? (
                 <div
@@ -565,79 +677,141 @@ export function Header({ user, breadcrumb }: HeaderProps) {
                   <p className="text-sm">Sin notificaciones</p>
                 </div>
               ) : (
-                notifData.items.map((n) => (
-                  <button
-                    key={n.id}
-                    type="button"
-                    className={cn(
-                      "w-full text-left px-4 py-3 border-b transition-colors",
-                      isLight
-                        ? cn(
-                            "border-zinc-100 hover:bg-zinc-50/95",
-                            !n.isRead && "bg-[color:var(--lt-accent-bg)]"
-                          )
-                        : cn(
-                            "border-white/5 hover:bg-white/5",
-                            !n.isRead && "bg-[#ffeb66]/5"
-                          )
-                    )}
-                    onClick={async () => {
-                      if (!n.isRead) {
-                        await fetch("/api/notifications", {
-                          method: "PATCH",
-                          headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify({ ids: [n.id] }),
-                        });
-                        void refreshNotifications();
+                notifData.items.map((n) => {
+                  /* Acción primaria del item: navegar al link asociado y
+                     marcar como leído si no lo estaba. Definida como función
+                     compartida para reutilizarla en onClick y onKeyDown
+                     (Enter/Space) sin duplicar lógica. */
+                  const openNotification = async () => {
+                    if (!n.isRead) {
+                      await fetch("/api/notifications", {
+                        method: "PATCH",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ ids: [n.id] }),
+                      });
+                      void refreshNotifications();
+                    }
+                    setNotifOpen(false);
+                    if (!n.link) return;
+                    if (isInternalLink(n.link)) {
+                      if (n.link.startsWith("/")) {
+                        router.push(n.link);
+                      } else {
+                        const u = new URL(n.link, window.location.origin);
+                        router.push(`${u.pathname}${u.search}${u.hash}`);
                       }
-                      setNotifOpen(false);
-                      if (!n.link) return;
-                      if (isInternalLink(n.link)) {
-                        if (n.link.startsWith("/")) {
-                          router.push(n.link);
-                        } else {
-                          const u = new URL(n.link, window.location.origin);
-                          router.push(`${u.pathname}${u.search}${u.hash}`);
+                      return;
+                    }
+                    try {
+                      const u = new URL(n.link);
+                      window.open(u.href, "_blank", "noopener,noreferrer");
+                    } catch {
+                      window.open(n.link, "_blank", "noopener,noreferrer");
+                    }
+                  };
+
+                  /* Acción secundaria: cambiar el estado leído/no leído sin
+                     navegar. Para items leídos lo usamos para "Marcar como
+                     no leída"; en items no leídos el usuario ya tiene la
+                     acción primaria (click) que las marca como leídas. */
+                  const markUnread = async () => {
+                    try {
+                      const res = await fetch("/api/notifications", {
+                        method: "PATCH",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                          ids: [n.id],
+                          markAs: "unread",
+                        }),
+                      });
+                      if (!res.ok) throw new Error();
+                      void refreshNotifications();
+                    } catch {
+                      toast.error("No se pudo marcar como no leída");
+                    }
+                  };
+
+                  return (
+                    /* div + role="button" + tabIndex para no anidar <button>
+                       dentro de <button> (no es HTML válido). Mantenemos
+                       a11y completo con onKeyDown para Enter y Space. */
+                    <div
+                      key={n.id}
+                      role="button"
+                      tabIndex={0}
+                      className={cn(
+                        "w-full text-left px-4 py-3 border-b transition-colors flex items-start gap-2 cursor-pointer focus:outline-none",
+                        isLight
+                          ? cn(
+                              "border-zinc-100 hover:bg-zinc-50/95 focus-visible:bg-zinc-50",
+                              !n.isRead && "bg-[color:var(--lt-accent-bg)]"
+                            )
+                          : cn(
+                              "border-white/5 hover:bg-white/5 focus-visible:bg-white/5",
+                              !n.isRead && "bg-[#ffeb66]/5"
+                            )
+                      )}
+                      onClick={() => {
+                        void openNotification();
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          void openNotification();
                         }
-                        return;
-                      }
-                      try {
-                        const u = new URL(n.link);
-                        window.open(u.href, "_blank", "noopener,noreferrer");
-                      } catch {
-                        window.open(n.link, "_blank", "noopener,noreferrer");
-                      }
-                    }}
-                  >
-                    <p
-                      className={cn(
-                        "text-sm font-medium truncate",
-                        isLight ? "text-zinc-900" : "text-white"
-                      )}
+                      }}
                     >
-                      {n.title}
-                    </p>
-                    <p
-                      className={cn(
-                        "text-xs mt-0.5 line-clamp-2",
-                        isLight ? "text-zinc-600" : "text-white/45"
+                      <div className="min-w-0 flex-1">
+                        <p
+                          className={cn(
+                            "text-sm font-medium truncate",
+                            isLight ? "text-zinc-900" : "text-white"
+                          )}
+                        >
+                          {n.title}
+                        </p>
+                        <p
+                          className={cn(
+                            "text-xs mt-0.5 line-clamp-2",
+                            isLight ? "text-zinc-600" : "text-white/45"
+                          )}
+                        >
+                          {n.message}
+                        </p>
+                        <p
+                          className={cn(
+                            "text-[10px] mt-1",
+                            isLight ? "text-zinc-400" : "text-white/25"
+                          )}
+                        >
+                          {new Date(n.createdAt).toLocaleString("es-ES", {
+                            dateStyle: "short",
+                            timeStyle: "short",
+                          })}
+                        </p>
+                      </div>
+                      {n.isRead && (
+                        <button
+                          type="button"
+                          aria-label="Marcar como no leída"
+                          title="Marcar como no leída"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            void markUnread();
+                          }}
+                          className={cn(
+                            "shrink-0 rounded-md p-1 transition-colors",
+                            isLight
+                              ? "text-zinc-400 hover:bg-zinc-200/70 hover:text-zinc-800"
+                              : "text-white/30 hover:bg-white/8 hover:text-white/70"
+                          )}
+                        >
+                          <Mail className="h-3.5 w-3.5" />
+                        </button>
                       )}
-                    >
-                      {n.message}
-                    </p>
-                    <p
-                      className={cn(
-                        "text-[10px] mt-1",
-                        isLight ? "text-zinc-400" : "text-white/25"
-                      )}
-                    >
-                      {new Date(n.createdAt).toLocaleString("es-ES", {
-                        dateStyle: "short",
-                        timeStyle: "short",
-                      })}
-                    </p>
-                  </button>
-                ))
+                    </div>
+                  );
+                })
               )}
             </div>
           </div>

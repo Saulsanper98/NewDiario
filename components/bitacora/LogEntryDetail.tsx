@@ -17,6 +17,7 @@ import {
   Paperclip,
   Link2,
   Trash2,
+  Undo2,
   ChevronRight,
   ChevronLeft,
   ChevronDown,
@@ -473,10 +474,53 @@ export function LogEntryDetail({
     try {
       const res = await fetch(`/api/log-entries/${entry.id}`, { method: "DELETE" });
       if (!res.ok) throw new Error();
-      toast.success("Entrada eliminada");
       setDeleteEntryOpen(false);
       router.push("/bitacora");
       router.refresh();
+      /* Patrón "toast Deshacer 10s": en lugar del toast simple de éxito,
+         mostramos uno persistente con un botón que llama al endpoint
+         /restore (POST). El endpoint exige el mismo criterio de
+         permisos que DELETE (autor o SUPERADMIN), así que no abre una
+         vía nueva de escalada. Pasada la ventana, si el usuario no
+         hace nada, la entrada queda soft-deleted como antes. */
+      const entryIdForUndo = entry.id;
+      toast.custom(
+        (t) => (
+          <div
+            className={cn(
+              "flex items-center gap-3 rounded-xl border px-4 py-3 shadow-xl backdrop-blur-md",
+              "border-white/12 bg-[#0d1428]/95 text-sm text-white/85"
+            )}
+            role="status"
+          >
+            <Trash2 className="h-4 w-4 shrink-0 text-white/55" aria-hidden />
+            <span className="flex-1 leading-snug">Entrada eliminada</span>
+            <button
+              type="button"
+              onClick={async () => {
+                toast.dismiss(t.id);
+                try {
+                  const r = await fetch(
+                    `/api/log-entries/${entryIdForUndo}/restore`,
+                    { method: "POST" }
+                  );
+                  if (!r.ok) throw new Error();
+                  toast.success("Entrada restaurada");
+                  router.push(`/bitacora/${entryIdForUndo}`);
+                  router.refresh();
+                } catch {
+                  toast.error("No se pudo restaurar la entrada");
+                }
+              }}
+              className="inline-flex shrink-0 items-center gap-1 rounded-md border border-[#ffeb66]/30 bg-[#ffeb66]/10 px-2.5 py-1 text-xs font-semibold text-[#ffeb66] transition-colors hover:bg-[#ffeb66]/15"
+            >
+              <Undo2 className="h-3 w-3" aria-hidden />
+              Deshacer
+            </button>
+          </div>
+        ),
+        { duration: 10000 }
+      );
     } catch {
       toast.error("No se pudo eliminar la entrada");
     } finally {
