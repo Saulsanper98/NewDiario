@@ -938,55 +938,60 @@ function ProjectLogComments({
                               </span>
                             </div>
 
-                            {parent && (
-                              <button
-                                type="button"
-                                onClick={() => jumpToComment(parent.id)}
-                                className={cn(
-                                  "w-full text-left flex items-start gap-2 mt-1 mb-1 px-2 py-1 rounded-md border-l-[3px] transition-colors",
-                                  L
-                                    ? "bg-zinc-100/70 border-l-emerald-500/65 hover:bg-zinc-100"
-                                    : "bg-white/[0.04] border-l-emerald-400/50 hover:bg-white/[0.07]"
-                                )}
-                                aria-label={`Ir al comentario original de ${parent.author.name}`}
-                              >
-                                <CornerDownLeft
+                            {parent && (() => {
+                              const isSelfReply =
+                                parent.author.id === c.author.id;
+                              return (
+                                <button
+                                  type="button"
+                                  onClick={() => jumpToComment(parent.id)}
                                   className={cn(
-                                    "w-3 h-3 mt-0.5 shrink-0",
+                                    "w-full text-left flex items-start gap-2 mt-1 mb-1 px-2 py-1 rounded-md border-l-[3px] transition-colors",
                                     L
-                                      ? "text-emerald-700/80"
-                                      : "text-emerald-300/75"
+                                      ? "bg-zinc-100/70 border-l-emerald-500/65 hover:bg-zinc-100"
+                                      : "bg-white/[0.04] border-l-emerald-400/50 hover:bg-white/[0.07]"
                                   )}
-                                  aria-hidden
-                                />
-                                <div className="min-w-0 flex-1">
-                                  <span
+                                  aria-label={
+                                    isSelfReply
+                                      ? "Ir a tu comentario original"
+                                      : `Ir al comentario original de ${parent.author.name}`
+                                  }
+                                >
+                                  <CornerDownLeft
                                     className={cn(
-                                      "text-[10.5px] font-semibold",
+                                      "w-3 h-3 mt-0.5 shrink-0",
                                       L
-                                        ? "text-emerald-800"
-                                        : "text-emerald-200/85"
+                                        ? "text-emerald-700/80"
+                                        : "text-emerald-300/75"
                                     )}
-                                  >
-                                    {parent.author.name}
-                                  </span>
-                                  <span
-                                    className={cn(
-                                      "ml-1.5 text-[11px] leading-snug line-clamp-2",
-                                      L
-                                        ? "text-zinc-500"
-                                        : "text-white/45",
-                                      parent.deletedAt &&
-                                        "italic opacity-70"
-                                    )}
-                                  >
-                                    {parent.deletedAt
-                                      ? "Comentario eliminado"
-                                      : parentSnippet}
-                                  </span>
-                                </div>
-                              </button>
-                            )}
+                                    aria-hidden
+                                  />
+                                  <div className="min-w-0 flex-1">
+                                    <span
+                                      className={cn(
+                                        "text-[10.5px] font-semibold",
+                                        L
+                                          ? "text-emerald-800"
+                                          : "text-emerald-200/85"
+                                      )}
+                                    >
+                                      {isSelfReply ? "Tú" : parent.author.name}
+                                    </span>
+                                    <span
+                                      className={cn(
+                                        "ml-1.5 text-[11px] leading-snug line-clamp-2",
+                                        L ? "text-zinc-500" : "text-white/45",
+                                        parent.deletedAt && "italic opacity-70"
+                                      )}
+                                    >
+                                      {parent.deletedAt
+                                        ? "Comentario eliminado"
+                                        : parentSnippet}
+                                    </span>
+                                  </div>
+                                </button>
+                              );
+                            })()}
 
                             {isTombstone ? (
                               <div

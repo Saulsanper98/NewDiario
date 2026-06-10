@@ -1307,29 +1307,37 @@ export const TaskDetailPanel = forwardRef<HTMLDivElement, TaskDetailPanelProps>(
                         )}
                       </div>
 
-                      {parentComment && (
-                        <button
-                          type="button"
-                          onClick={() => jumpToComment(parentComment.id)}
-                          className="w-full text-left flex items-start gap-1.5 mb-1.5 px-2 py-1 rounded-md bg-white/[0.03] border-l-[2px] border-l-[#4a9eff]/55 hover:bg-white/[0.06] transition-colors"
-                          aria-label={`Ir al comentario original de ${parentComment.author?.name ?? "usuario"}`}
-                        >
-                          <CornerDownLeft className="w-3 h-3 mt-0.5 shrink-0 text-[#4a9eff]/55" aria-hidden />
-                          <div className="min-w-0 flex-1">
-                            <span className="text-[10px] font-semibold text-[#4a9eff]/85">
-                              {parentComment.author?.name ?? "Usuario"}
-                            </span>
-                            <span className={cn(
-                              "ml-1.5 text-[10.5px] leading-snug line-clamp-2 text-white/45",
-                              parentComment.deletedAt && "italic opacity-70"
-                            )}>
-                              {parentComment.deletedAt
-                                ? "Comentario eliminado"
-                                : parentSnippet}
-                            </span>
-                          </div>
-                        </button>
-                      )}
+                      {parentComment && (() => {
+                        const isSelfReply =
+                          parentComment.author?.id === c.author?.id;
+                        return (
+                          <button
+                            type="button"
+                            onClick={() => jumpToComment(parentComment.id)}
+                            className="w-full text-left flex items-start gap-1.5 mb-1.5 px-2 py-1 rounded-md bg-white/[0.03] border-l-[2px] border-l-[#4a9eff]/55 hover:bg-white/[0.06] transition-colors"
+                            aria-label={
+                              isSelfReply
+                                ? "Ir a tu comentario original"
+                                : `Ir al comentario original de ${parentComment.author?.name ?? "usuario"}`
+                            }
+                          >
+                            <CornerDownLeft className="w-3 h-3 mt-0.5 shrink-0 text-[#4a9eff]/55" aria-hidden />
+                            <div className="min-w-0 flex-1">
+                              <span className="text-[10px] font-semibold text-[#4a9eff]/85">
+                                {isSelfReply ? "Tú" : (parentComment.author?.name ?? "Usuario")}
+                              </span>
+                              <span className={cn(
+                                "ml-1.5 text-[10.5px] leading-snug line-clamp-2 text-white/45",
+                                parentComment.deletedAt && "italic opacity-70"
+                              )}>
+                                {parentComment.deletedAt
+                                  ? "Comentario eliminado"
+                                  : parentSnippet}
+                              </span>
+                            </div>
+                          </button>
+                        );
+                      })()}
 
                       {!parentComment && legacyReplyTarget && !commentHasRichHtml(c.content) && (
                         <div className="flex items-center gap-1 mb-1.5 text-[10px] text-white/35">

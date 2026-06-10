@@ -1618,49 +1618,66 @@ export function LogEntryDetail({
 
                       {/* Quote-preview del comentario padre cuando es una
                           respuesta real (parentId). Si el padre está borrado
-                          (tombstone), mostramos el placeholder en cursiva. */}
-                      {parentComment && (
-                        <button
-                          type="button"
-                          onClick={() => jumpToComment(parentComment.id)}
-                          className={cn(
-                            "w-full text-left flex items-start gap-2 mb-2 px-2.5 py-1.5 rounded-md border-l-[3px] transition-colors group/quote",
-                            L
-                              ? "bg-zinc-50 border-l-emerald-500/70 hover:bg-zinc-100"
-                              : "bg-white/[0.04] border-l-emerald-400/55 hover:bg-white/[0.07]"
-                          )}
-                          aria-label={`Ir al comentario original de ${parentComment.author.name}`}
-                        >
-                          <CornerDownLeft
+                          (tombstone), mostramos el placeholder en cursiva.
+                          Si es self-reply (respondes a ti mismo) pintamos
+                          "Tú" en vez de repetir tu nombre arriba y abajo. */}
+                      {parentComment && (() => {
+                        const isSelfReply =
+                          parentComment.author.id === c.author.id;
+                        return (
+                          <button
+                            type="button"
+                            onClick={() => jumpToComment(parentComment.id)}
                             className={cn(
-                              "w-3 h-3 mt-0.5 shrink-0",
-                              L ? "text-emerald-700/80" : "text-emerald-300/75"
+                              "w-full text-left flex items-start gap-2 mb-2 px-2.5 py-1.5 rounded-md border-l-[3px] transition-colors group/quote",
+                              L
+                                ? "bg-zinc-50 border-l-emerald-500/70 hover:bg-zinc-100"
+                                : "bg-white/[0.04] border-l-emerald-400/55 hover:bg-white/[0.07]"
                             )}
-                            aria-hidden
-                          />
-                          <div className="min-w-0 flex-1">
-                            <span
+                            aria-label={
+                              isSelfReply
+                                ? "Ir a tu comentario original"
+                                : `Ir al comentario original de ${parentComment.author.name}`
+                            }
+                          >
+                            <CornerDownLeft
                               className={cn(
-                                "text-[11px] font-semibold tracking-tight",
-                                L ? "text-emerald-800" : "text-emerald-200/85"
+                                "w-3 h-3 mt-0.5 shrink-0",
+                                L
+                                  ? "text-emerald-700/80"
+                                  : "text-emerald-300/75"
                               )}
-                            >
-                              {parentComment.author.name}
-                            </span>
-                            <span
-                              className={cn(
-                                "ml-1.5 text-[11.5px] leading-snug line-clamp-2",
-                                L ? "text-zinc-500" : "text-white/45",
-                                parentComment.deletedAt && "italic opacity-70"
-                              )}
-                            >
-                              {parentComment.deletedAt
-                                ? "Comentario eliminado"
-                                : commentPlainText(parentComment.content).slice(0, 140)}
-                            </span>
-                          </div>
-                        </button>
-                      )}
+                              aria-hidden
+                            />
+                            <div className="min-w-0 flex-1">
+                              <span
+                                className={cn(
+                                  "text-[11px] font-semibold tracking-tight",
+                                  L
+                                    ? "text-emerald-800"
+                                    : "text-emerald-200/85"
+                                )}
+                              >
+                                {isSelfReply ? "Tú" : parentComment.author.name}
+                              </span>
+                              <span
+                                className={cn(
+                                  "ml-1.5 text-[11.5px] leading-snug line-clamp-2",
+                                  L ? "text-zinc-500" : "text-white/45",
+                                  parentComment.deletedAt &&
+                                    "italic opacity-70"
+                                )}
+                              >
+                                {parentComment.deletedAt
+                                  ? "Comentario eliminado"
+                                  : commentPlainText(
+                                      parentComment.content
+                                    ).slice(0, 140)}
+                              </span>
+                            </div>
+                          </button>
+                        );
+                      })()}
 
                       {/* Fallback retro-compatible para comentarios viejos
                           que usaban la convención `@nombre:`. Sólo se pinta
