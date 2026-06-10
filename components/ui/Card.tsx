@@ -19,10 +19,7 @@ export function Card({ className, hover, light, children, ...props }: CardProps)
   return (
     <div
       className={cn(
-        "rounded-xl p-4",
-        L
-          ? "glass"
-          : "glass",
+        "rounded-xl p-4 glass",
         hover &&
           (L
             ? "hover:bg-white/95 hover:border-black/[0.12] cursor-pointer transition-colors"

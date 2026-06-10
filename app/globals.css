@@ -1,4 +1,6 @@
-@import url("https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&display=swap");
+/* Sora se carga vía next/font/google en app/layout.tsx — no usar @import aquí
+   para evitar doble descarga desde fonts.googleapis.com cuando ya está
+   self-hosted en .next/static/media. */
 @import "tailwindcss";
 
 @theme inline {

@@ -267,6 +267,7 @@ export function Header({ user, breadcrumb }: HeaderProps) {
       </div>
     )}
     <header
+      role="banner"
       className={cn(
         /* relative z-30: dropdowns (notif., dept.) deben pintar sobre el contenido siguiente (mismo padre flex). */
         /* Mobile: padding y gap reducidos (de 24px/16px a 12px/8px) para
@@ -274,6 +275,9 @@ export function Header({ user, breadcrumb }: HeaderProps) {
            360px sin truncar de más. Los controles secundarios (búsqueda,
            tema, reportar bug) se ocultan con `hidden sm:flex` y se
            acceden desde MobileNav + Configuración. */
+        /* role="banner" explícito porque <header> está anidado en el layout
+           del dashboard (no es child directo de <body>). Sin role, los
+           lectores de pantalla no lo identifican como banner del sitio. */
         "h-16 app-top-header relative z-30 flex items-center gap-2 px-3 sm:gap-4 sm:px-6 shrink-0 print:hidden",
         isOffline ? "mt-7" : ""
       )}
