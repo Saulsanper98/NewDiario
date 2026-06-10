@@ -1,111 +1,139 @@
-/* TEMA "STRANGER" — Stranger Things. Welcome to Hawkins (cielo dividido).
- * Paleta: noche violeta + naranja atardecer (izq) + violeta tormenta (der). */
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║  TEMA "STRANGER" — Stranger Things × Welcome to Hawkins                   ║
+ * ║                                                                          ║
+ * ║  Aislamiento total bajo `html[data-theme="stranger"]`. Aurora y el       ║
+ * ║  resto de temas no comparten ningún selector. Tampoco hay overrides     ║
+ * ║  globales: todo lo que se monta aquí queda anclado a este atributo.     ║
+ * ║                                                                          ║
+ * ║  Estructura:                                                             ║
+ * ║   1. Tokens / paleta (cielo + Hellfire crimson + sangre de Demogorgon)  ║
+ * ║   2. Shell (frame, sidebar, header)                                     ║
+ * ║   3. Fondo: imagen Ken Burns + halos sol/tormenta                       ║
+ * ║   4. Atmósfera: rayos, skyflash, mástil, código morse SOS, glitch VHS   ║
+ * ║   5. Partículas: sparks, runas, grano, viñeta                           ║
+ * ║   6. Cards premium (.glass scopeado)                                    ║
+ * ║   7. Botones / CTAs (Hellfire red)                                      ║
+ * ║   8. Inputs / search                                                    ║
+ * ║   9. Texto, headings y micro-componentes                                ║
+ * ║  10. Scrollbar / focus                                                  ║
+ * ║  11. Responsive + reduced-motion                                        ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+/* ── 1. TOKENS / PALETA ───────────────────────────────────────────────────── */
 
 html[data-theme="stranger"] {
-  --bg-0: #060410; --bg-1: #0c0820; --bg-2: #14102e;
+  /* Cielo dividido: izquierda atardecer naranja, derecha tormenta violeta.
+   * Añadimos un crimson Hellfire para CTAs y un dorado para acentos sutiles. */
+  --bg-0: #060410;
+  --bg-1: #0c0820;
+  --bg-2: #14102e;
   --card: linear-gradient(180deg, #14102e 0%, #0c0820 60%, #060410 100%);
-  --surface: rgba(20, 16, 46, 0.86); --surface-2: rgba(255, 255, 255, 0.045);
-  --border: rgba(255, 110, 61, 0.22); --border-strong: rgba(74, 45, 255, 0.45);
-  --accent: #ff6e3d; --accent-bright: #ff9866; --accent-glow: rgba(255, 110, 61, 0.45);
-  --text: #f4ecff; --text-soft: #d6c8ee; --muted: #9a8db5;
-  --ok: #6ef0a0; --gold-relic: #f7c25e;
+  --surface: rgba(20, 16, 46, 0.86);
+  --surface-2: rgba(255, 255, 255, 0.045);
+
+  /* Acento principal: naranja brasa del atardecer (mantenido). */
+  --accent: #ff6e3d;
+  --accent-bright: #ff9866;
+  --accent-glow: rgba(255, 110, 61, 0.45);
+
+  /* Hellfire crimson — referencia al logo + Demogorgon. Lo usamos para
+   * focus rings, CTA primario y micro-acentos puntuales. */
+  --hellfire: #ff2e3c;
+  --hellfire-bright: #ff5a64;
+  --hellfire-glow: rgba(255, 46, 60, 0.55);
+
+  /* Violeta del Upside Down: para sombras, bordes secundarios y rayos. */
+  --upside: #4a2dff;
+  --upside-bright: #7a60ff;
+  --upside-glow: rgba(74, 45, 255, 0.45);
+
+  --border: rgba(255, 110, 61, 0.22);
+  --border-strong: rgba(74, 45, 255, 0.45);
+  --text: #f4ecff;
+  --text-soft: #d6c8ee;
+  --muted: #9a8db5;
+  --ok: #6ef0a0;
+  --gold-relic: #f7c25e;
+
+  /* Card overrides: las cards de Aurora son casi transparentes y se
+   * pierden sobre el cielo. En stranger las hacemos más sólidas con un
+   * tinte violeta nocturno y un blur generoso. */
+  --card-bg: linear-gradient(
+    160deg,
+    rgba(22, 14, 38, 0.78) 0%,
+    rgba(12, 8, 24, 0.82) 55%,
+    rgba(8, 4, 18, 0.86) 100%
+  );
+  --card-bg-hover: linear-gradient(
+    160deg,
+    rgba(28, 18, 46, 0.86) 0%,
+    rgba(16, 10, 30, 0.88) 55%,
+    rgba(10, 6, 22, 0.90) 100%
+  );
+  --card-blur: 18px;
+  --card-border: 1px solid rgba(255, 110, 61, 0.16);
+  --card-border-hover: 1px solid rgba(255, 110, 61, 0.28);
+  --card-shadow:
+    0 1px 0 rgba(255, 110, 61, 0.06) inset,
+    0 0 0 1px rgba(74, 45, 255, 0.08) inset,
+    0 10px 24px rgba(0, 0, 0, 0.45),
+    0 18px 60px rgba(74, 45, 255, 0.08);
+  --card-shadow-hover:
+    0 1px 0 rgba(255, 110, 61, 0.10) inset,
+    0 0 0 1px rgba(74, 45, 255, 0.14) inset,
+    0 14px 32px rgba(0, 0, 0, 0.55),
+    0 20px 72px rgba(255, 46, 60, 0.10);
+
   --font-display: var(--font-akatsuki-display), "Shippori Mincho", serif;
   --font-ui: var(--font-akatsuki-ui), "Zen Kaku Gothic New", sans-serif;
-  --app-canvas-color: transparent; --app-canvas-image: none; --card-isolation: auto;
+  --app-canvas-color: transparent;
+  --app-canvas-image: none;
+  --card-isolation: auto;
   color-scheme: dark;
 }
 html[data-theme="stranger"] body { min-height: 100vh; }
-html[data-theme="stranger"] .app-sidebar-shell, html[data-theme="stranger"] .app-top-header { isolation: auto !important; }
+html[data-theme="stranger"] .app-sidebar-shell,
+html[data-theme="stranger"] .app-top-header { isolation: auto !important; }
+
+/* ── 2. SHELL (frame + sidebar + header) ──────────────────────────────────── */
 
 html[data-theme="stranger"] .glass-shell-frame {
-  margin: 22px; padding: 1.5px; border-radius: 28px;
-  background: linear-gradient(135deg, rgba(255, 110, 61, 0.85) 0%, rgba(180, 80, 140, 0.45) 50%, rgba(74, 45, 255, 0.85) 100%);
-  box-shadow: 0 0 90px rgba(255, 110, 61, 0.25), 0 0 180px rgba(74, 45, 255, 0.20); position: relative;
+  margin: 22px;
+  padding: 1.5px;
+  border-radius: 28px;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 110, 61, 0.85) 0%,
+    rgba(255, 46, 60, 0.55) 30%,
+    rgba(180, 80, 140, 0.45) 55%,
+    rgba(74, 45, 255, 0.85) 100%
+  );
+  box-shadow:
+    0 0 90px rgba(255, 110, 61, 0.22),
+    0 0 180px rgba(74, 45, 255, 0.20),
+    0 0 60px rgba(255, 46, 60, 0.10);
+  position: relative;
 }
 html[data-theme="stranger"] .glass-shell-inner {
-  border-radius: 26px; background: rgba(8, 6, 18, 0.20);
-  backdrop-filter: blur(24px) saturate(1.20) !important; -webkit-backdrop-filter: blur(24px) saturate(1.20) !important;
-  overflow: hidden; padding: 18px;
+  border-radius: 26px;
+  background: rgba(8, 6, 18, 0.20);
+  backdrop-filter: blur(24px) saturate(1.20) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(1.20) !important;
+  overflow: hidden;
+  padding: 18px;
 }
-@media (max-width: 768px) { html[data-theme="stranger"] .glass-shell-inner { padding: 6px; } html[data-theme="stranger"] .app-dashboard-root { gap: 8px; } }
-@media (max-width: 640px) { html[data-theme="stranger"] .glass-shell-frame { margin: 4px; border-radius: 18px; } html[data-theme="stranger"] .glass-shell-inner { border-radius: 16px; } }
-@media (max-width: 480px) { html[data-theme="stranger"] .glass-shell-frame { margin: 0; padding: 0; border-radius: 0; box-shadow: none; } html[data-theme="stranger"] .glass-shell-inner { border-radius: 0; padding: 0; } html[data-theme="stranger"] .app-dashboard-root { gap: 0; } }
-
-html[data-theme="stranger"] .stranger-bg { position: fixed; inset: 0; z-index: -10; overflow: hidden; pointer-events: none; background: radial-gradient(ellipse at 50% 50%, #14102e 0%, #0c0820 60%, #02010a 100%); }
-html[data-theme="stranger"] .stranger-image-frame { position: absolute; inset: -4%; --parallax-x: 0px; --parallax-y: 0px; transform: translate3d(var(--parallax-x), var(--parallax-y), 0); transition: transform 1200ms cubic-bezier(0.18, 0.7, 0.22, 1); will-change: transform; }
-html[data-theme="stranger"] .stranger-image {
-  position: absolute; inset: 0; width: 100%; height: 100%;
-  background-image: url("/themes/stranger-bg.jpg");
-  background-size: cover; background-position: center 45%; background-repeat: no-repeat; background-color: #060410;
-  filter: saturate(1.10) contrast(1.06) brightness(0.96);
-  animation: stranger-kenburns 44s ease-in-out infinite alternate; transform-origin: 50% 60%;
-  will-change: transform; backface-visibility: hidden; transform: translateZ(0);
+@media (max-width: 768px) {
+  html[data-theme="stranger"] .glass-shell-inner { padding: 6px; }
+  html[data-theme="stranger"] .app-dashboard-root { gap: 8px; }
 }
-@keyframes stranger-kenburns { 0% { transform: translateZ(0) scale(1.03); } 50% { transform: translateZ(0) scale(1.07) translate(-1%, -0.4%); } 100% { transform: translateZ(0) scale(1.04) translate(0.6%, 0.2%); } }
-
-html[data-theme="stranger"] .stranger-glow-1 {
-  position: absolute; left: 18%; top: 35%; width: 32vw; height: 32vw; max-width: 460px; max-height: 460px;
-  transform: translate(-50%, -50%); border-radius: 50%;
-  background: radial-gradient(circle, rgba(255, 220, 180, 0.42) 0%, rgba(255, 110, 61, 0.28) 22%, rgba(180, 60, 20, 0.12) 45%, transparent 70%);
-  filter: blur(20px); mix-blend-mode: screen; animation: stranger-pulse-1 7.5s ease-in-out infinite;
-}
-@keyframes stranger-pulse-1 { 0%, 100% { opacity: 0.78; transform: translate(-50%, -50%) scale(1); } 50% { opacity: 1; transform: translate(-50%, -50%) scale(1.06); } }
-
-html[data-theme="stranger"] .stranger-glow-2 {
-  position: absolute; left: 80%; top: 30%; width: 30vw; height: 30vw; max-width: 420px; max-height: 420px;
-  transform: translate(-50%, -50%); border-radius: 50%;
-  background: radial-gradient(circle, rgba(180, 200, 255, 0.32) 0%, rgba(74, 45, 255, 0.22) 25%, rgba(40, 24, 180, 0.10) 50%, transparent 72%);
-  filter: blur(22px); mix-blend-mode: screen; animation: stranger-pulse-2 9.3s ease-in-out infinite;
-}
-@keyframes stranger-pulse-2 { 0%, 100% { opacity: 0.72; transform: translate(-50%, -50%) scale(1); } 50% { opacity: 1; transform: translate(-50%, -50%) scale(1.05); } }
-
-html[data-theme="stranger"] .stranger-vignette-soft { position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 65%, transparent 0%, transparent 35%, rgba(0,0,0,0.20) 60%, rgba(0,0,0,0.55) 100%); }
-
-html[data-theme="stranger"] .stranger-spark {
-  position: absolute; width: var(--ss, 4px); height: var(--ss, 4px); border-radius: 50%;
-  opacity: 0; animation: stranger-rise var(--sd, 18s) ease-in-out infinite; animation-delay: var(--sl, 0s);
-  filter: blur(0.6px); will-change: transform, opacity; mix-blend-mode: screen;
-}
-@keyframes stranger-rise { 0% { transform: translateY(20vh) scale(0.5); opacity: 0; } 10% { opacity: 0.92; } 60% { opacity: 0.6; } 100% { transform: translateY(-65vh) translateX(var(--sx, 4vw)) scale(1.1); opacity: 0; } }
-html[data-theme="stranger"] .stranger-spark-1 { left: 12%; --ss: 4px; --sd: 18s; --sl: -1s; --sx: 4vw; background: radial-gradient(circle, #ffe1c0 0%, #ff6e3d 30%, transparent 80%); filter: blur(0.6px) drop-shadow(0 0 6px rgba(255, 110, 61, 0.7)); }
-html[data-theme="stranger"] .stranger-spark-2 { left: 28%; --ss: 6px; --sd: 23s; --sl: -7s; --sx: -3vw; background: radial-gradient(circle, #ffe1c0 0%, #ff6e3d 30%, transparent 80%); filter: blur(0.6px) drop-shadow(0 0 6px rgba(255, 110, 61, 0.7)); }
-html[data-theme="stranger"] .stranger-spark-3 { left: 50%; --ss: 3px; --sd: 14s; --sl: -3s; --sx: 6vw; background: radial-gradient(circle, #d8d8ff 0%, #4a2dff 30%, transparent 80%); filter: blur(0.6px) drop-shadow(0 0 6px rgba(74, 45, 255, 0.7)); }
-html[data-theme="stranger"] .stranger-spark-4 { left: 68%; --ss: 5px; --sd: 20s; --sl: -12s; --sx: 2vw; background: radial-gradient(circle, #d8d8ff 0%, #4a2dff 30%, transparent 80%); filter: blur(0.6px) drop-shadow(0 0 6px rgba(74, 45, 255, 0.7)); }
-html[data-theme="stranger"] .stranger-spark-5 { left: 82%; --ss: 4px; --sd: 25s; --sl: -5s; --sx: -5vw; background: radial-gradient(circle, #d8d8ff 0%, #4a2dff 30%, transparent 80%); filter: blur(0.6px) drop-shadow(0 0 6px rgba(74, 45, 255, 0.7)); }
-html[data-theme="stranger"] .stranger-spark-6 { left: 92%; --ss: 7px; --sd: 17s; --sl: -15s; --sx: 3vw; background: radial-gradient(circle, #d8d8ff 0%, #4a2dff 30%, transparent 80%); filter: blur(0.6px) drop-shadow(0 0 6px rgba(74, 45, 255, 0.7)); }
-
-html[data-theme="stranger"] .stranger-rune { position: absolute; border-radius: 50%; border: 1px dashed rgba(255, 110, 61, 0.18); box-shadow: inset 0 0 30px rgba(255, 110, 61, 0.10), 0 0 18px rgba(255, 110, 61, 0.06); pointer-events: none; mix-blend-mode: screen; }
-html[data-theme="stranger"] .stranger-rune::before { content: ""; position: absolute; inset: 12%; border-radius: 50%; border: 1px solid rgba(255, 200, 180, 0.10); }
-html[data-theme="stranger"] .stranger-rune::after { content: ""; position: absolute; inset: 30%; border-radius: 50%; border: 1px dashed rgba(255, 110, 61, 0.14); }
-html[data-theme="stranger"] .stranger-rune-1 { top: 8%; left: 8%; width: 14vw; height: 14vw; max-width: 200px; max-height: 200px; animation: stranger-rotate 90s linear infinite; }
-html[data-theme="stranger"] .stranger-rune-2 { top: 12%; left: 80%; width: 18vw; height: 18vw; max-width: 240px; max-height: 240px; animation: stranger-rotate 130s linear infinite reverse; border-color: rgba(74, 45, 255, 0.18); box-shadow: inset 0 0 30px rgba(74, 45, 255, 0.10), 0 0 18px rgba(74, 45, 255, 0.06); }
-html[data-theme="stranger"] .stranger-rune-3 { top: 78%; left: 50%; width: 10vw; height: 10vw; max-width: 150px; max-height: 150px; animation: stranger-rotate 110s linear infinite; }
-@keyframes stranger-rotate { 0% { transform: rotate(0); } 100% { transform: rotate(360deg); } }
-
-html[data-theme="stranger"] .stranger-grain {
-  position: absolute; inset: 0;
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.55 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.55'/></svg>");
-  background-size: 180px 180px; opacity: 0.16; mix-blend-mode: overlay;
-}
-html[data-theme="stranger"] .stranger-vignette-edge { position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 50%, transparent 50%, rgba(0,0,0,0.30) 80%, rgba(0,0,0,0.65) 100%); }
-
-html[data-theme="stranger"] { scrollbar-color: rgba(255, 110, 61, 0.45) rgba(0, 0, 0, 0.25); }
-html[data-theme="stranger"] *::-webkit-scrollbar-thumb { background: linear-gradient(180deg, rgba(255, 110, 61, 0.55), rgba(74, 45, 255, 0.55)); border-radius: 999px; }
-html[data-theme="stranger"] *::-webkit-scrollbar-thumb:hover { background: linear-gradient(180deg, rgba(255, 152, 102, 0.7), rgba(120, 90, 255, 0.7)); }
-html[data-theme="stranger"] :focus-visible { outline-color: var(--accent-bright) !important; box-shadow: 0 0 0 3px var(--accent-glow); }
-
-@media (prefers-reduced-motion: reduce) {
-  html[data-theme="stranger"] .stranger-image, html[data-theme="stranger"] .stranger-glow-1, html[data-theme="stranger"] .stranger-glow-2,
-  html[data-theme="stranger"] .stranger-spark, html[data-theme="stranger"] .stranger-rune { animation: none !important; }
-  html[data-theme="stranger"] .stranger-spark { display: none !important; }
-  html[data-theme="stranger"] .stranger-image-frame { transition: none !important; }
-}
-
 @media (max-width: 640px) {
-  html[data-theme="stranger"] .stranger-image { background-position: 50% 50%; }
-  html[data-theme="stranger"] .stranger-glow-1 { width: 60vw; height: 60vw; }
-  html[data-theme="stranger"] .stranger-glow-2 { width: 55vw; height: 55vw; }
-  html[data-theme="stranger"] .stranger-spark-3, html[data-theme="stranger"] .stranger-spark-5, html[data-theme="stranger"] .stranger-rune-3 { display: none; }
+  html[data-theme="stranger"] .glass-shell-frame { margin: 4px; border-radius: 18px; }
+  html[data-theme="stranger"] .glass-shell-inner { border-radius: 16px; }
+}
+@media (max-width: 480px) {
+  html[data-theme="stranger"] .glass-shell-frame { margin: 0; padding: 0; border-radius: 0; box-shadow: none; }
+  html[data-theme="stranger"] .glass-shell-inner { border-radius: 0; padding: 0; }
+  html[data-theme="stranger"] .app-dashboard-root { gap: 0; }
 }
 
 html[data-theme="stranger"] .app-sidebar-shell {
@@ -114,28 +142,645 @@ html[data-theme="stranger"] .app-sidebar-shell {
     radial-gradient(ellipse 70% 55% at 100% 100%, rgba(74, 45, 255, 0.18) 0%, rgba(40, 24, 180, 0.06) 35%, transparent 65%),
     linear-gradient(180deg, rgba(12, 8, 24, 0.78) 0%, rgba(16, 12, 32, 0.82) 50%, rgba(22, 16, 42, 0.86) 100%) !important;
   border-right: 1px solid rgba(255, 110, 61, 0.22);
-  box-shadow: inset -1px 0 0 rgba(255, 110, 61, 0.20), inset 1px 0 0 rgba(74, 45, 255, 0.08), 4px 0 22px rgba(0, 0, 0, 0.45), 14px 0 80px rgba(255, 110, 61, 0.08);
-  backdrop-filter: blur(24px) saturate(1.20) !important; -webkit-backdrop-filter: blur(24px) saturate(1.20) !important;
+  box-shadow:
+    inset -1px 0 0 rgba(255, 110, 61, 0.20),
+    inset 1px 0 0 rgba(74, 45, 255, 0.08),
+    4px 0 22px rgba(0, 0, 0, 0.45),
+    14px 0 80px rgba(255, 110, 61, 0.08);
+  backdrop-filter: blur(24px) saturate(1.20) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(1.20) !important;
 }
-html[data-theme="stranger"] .app-sidebar-shell.w-60, html[data-theme="stranger"] .app-sidebar-shell.sidebar-expanded-solid {
+html[data-theme="stranger"] .app-sidebar-shell.w-60,
+html[data-theme="stranger"] .app-sidebar-shell.sidebar-expanded-solid {
   background:
     radial-gradient(ellipse 75% 60% at 0% 0%, rgba(255, 110, 61, 0.26) 0%, rgba(255, 110, 61, 0.10) 35%, transparent 65%),
     radial-gradient(ellipse 75% 60% at 100% 100%, rgba(74, 45, 255, 0.22) 0%, rgba(40, 24, 180, 0.08) 35%, transparent 65%),
     linear-gradient(180deg, rgba(16, 12, 32, 0.86) 0%, rgba(20, 16, 40, 0.88) 50%, rgba(26, 20, 50, 0.90) 100%) !important;
-  box-shadow: inset -1px 0 0 rgba(255, 110, 61, 0.30), inset 1px 0 0 rgba(74, 45, 255, 0.12), 8px 0 36px rgba(0, 0, 0, 0.55), 14px 0 80px rgba(255, 110, 61, 0.16), 14px 0 160px rgba(74, 45, 255, 0.10);
-  backdrop-filter: blur(28px) saturate(1.25) !important; -webkit-backdrop-filter: blur(28px) saturate(1.25) !important;
+  box-shadow:
+    inset -1px 0 0 rgba(255, 110, 61, 0.30),
+    inset 1px 0 0 rgba(74, 45, 255, 0.12),
+    8px 0 36px rgba(0, 0, 0, 0.55),
+    14px 0 80px rgba(255, 110, 61, 0.16),
+    14px 0 160px rgba(74, 45, 255, 0.10);
+  backdrop-filter: blur(28px) saturate(1.25) !important;
+  -webkit-backdrop-filter: blur(28px) saturate(1.25) !important;
 }
 html[data-theme="stranger"] .app-top-header {
-  background: linear-gradient(90deg, rgba(20, 14, 18, 0.68) 0%, rgba(14, 10, 24, 0.62) 50%, rgba(16, 12, 32, 0.66) 100%) !important;
-  border-bottom: 1px solid rgba(255, 110, 61, 0.18);
-  box-shadow: inset 0 -1px 0 rgba(74, 45, 255, 0.10), 0 4px 22px rgba(0, 0, 0, 0.40);
-  backdrop-filter: blur(22px) saturate(1.15) !important; -webkit-backdrop-filter: blur(22px) saturate(1.15) !important;
+  background: linear-gradient(90deg, rgba(20, 14, 18, 0.72) 0%, rgba(14, 10, 24, 0.66) 50%, rgba(16, 12, 32, 0.70) 100%) !important;
+  border-bottom: 1px solid rgba(255, 110, 61, 0.20);
+  box-shadow:
+    inset 0 -1px 0 rgba(74, 45, 255, 0.10),
+    0 4px 22px rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(22px) saturate(1.15) !important;
+  -webkit-backdrop-filter: blur(22px) saturate(1.15) !important;
 }
-html[data-theme="stranger"] .app-sidebar-shell .border-t { border-top-color: rgba(255, 110, 61, 0.16) !important; }
-html[data-theme="stranger"] .app-sidebar-shell .bg-white\/5 { background-color: rgba(255, 110, 61, 0.06) !important; }
+html[data-theme="stranger"] .app-sidebar-shell .border-t {
+  border-top-color: rgba(255, 110, 61, 0.16) !important;
+}
+html[data-theme="stranger"] .app-sidebar-shell .bg-white\/5 {
+  background-color: rgba(255, 110, 61, 0.06) !important;
+}
+
+/* ── 3. FONDO: imagen Ken Burns + halos sol/tormenta ──────────────────────── */
+
+html[data-theme="stranger"] .stranger-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -10;
+  overflow: hidden;
+  pointer-events: none;
+  background: radial-gradient(ellipse at 50% 50%, #14102e 0%, #0c0820 60%, #02010a 100%);
+}
+html[data-theme="stranger"] .stranger-image-frame {
+  position: absolute;
+  inset: -4%;
+  --parallax-x: 0px;
+  --parallax-y: 0px;
+  transform: translate3d(var(--parallax-x), var(--parallax-y), 0);
+  transition: transform 1200ms cubic-bezier(0.18, 0.7, 0.22, 1);
+  will-change: transform;
+}
+html[data-theme="stranger"] .stranger-image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  background-image: url("/themes/stranger-bg.jpg");
+  background-size: cover;
+  background-position: center 45%;
+  background-repeat: no-repeat;
+  background-color: #060410;
+  /* Subimos un poco más el contraste y bajamos brillo: la imagen es muy
+   * saturada de serie, así las cards se leen mejor encima. */
+  filter: saturate(1.08) contrast(1.10) brightness(0.86);
+  animation: stranger-kenburns 44s ease-in-out infinite alternate;
+  transform-origin: 50% 60%;
+  will-change: transform;
+  backface-visibility: hidden;
+  transform: translateZ(0);
+}
+@keyframes stranger-kenburns {
+  0% { transform: translateZ(0) scale(1.03); }
+  50% { transform: translateZ(0) scale(1.07) translate(-1%, -0.4%); }
+  100% { transform: translateZ(0) scale(1.04) translate(0.6%, 0.2%); }
+}
+
+html[data-theme="stranger"] .stranger-glow-1 {
+  position: absolute;
+  left: 18%;
+  top: 35%;
+  width: 32vw;
+  height: 32vw;
+  max-width: 460px;
+  max-height: 460px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(255, 220, 180, 0.42) 0%,
+    rgba(255, 110, 61, 0.28) 22%,
+    rgba(180, 60, 20, 0.12) 45%,
+    transparent 70%
+  );
+  filter: blur(20px);
+  mix-blend-mode: screen;
+  animation: stranger-pulse-1 7.5s ease-in-out infinite;
+}
+@keyframes stranger-pulse-1 {
+  0%, 100% { opacity: 0.78; transform: translate(-50%, -50%) scale(1); }
+  50%      { opacity: 1.00; transform: translate(-50%, -50%) scale(1.06); }
+}
+
+html[data-theme="stranger"] .stranger-glow-2 {
+  position: absolute;
+  left: 80%;
+  top: 30%;
+  width: 30vw;
+  height: 30vw;
+  max-width: 420px;
+  max-height: 420px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(180, 200, 255, 0.32) 0%,
+    rgba(74, 45, 255, 0.22) 25%,
+    rgba(40, 24, 180, 0.10) 50%,
+    transparent 72%
+  );
+  filter: blur(22px);
+  mix-blend-mode: screen;
+  animation: stranger-pulse-2 9.3s ease-in-out infinite;
+}
+@keyframes stranger-pulse-2 {
+  0%, 100% { opacity: 0.72; transform: translate(-50%, -50%) scale(1); }
+  50%      { opacity: 1.00; transform: translate(-50%, -50%) scale(1.05); }
+}
+
+/* ── 4. ATMÓSFERA: rayos, skyflash, mástil, morse SOS, glitch VHS ─────────── */
+
+/* SKYFLASH — resplandor a pantalla completa que precede al rayo. Va detrás
+ * del rayo para que el bolt se dibuje encima del flash. Períodos primos
+ * 17 s y 23 s para que jamás coincidan visualmente con los rayos cercanos. */
+html[data-theme="stranger"] .stranger-skyflash {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse at 50% 30%,
+    rgba(220, 200, 255, 0.85) 0%,
+    rgba(170, 140, 255, 0.45) 25%,
+    rgba(80, 60, 180, 0.18) 55%,
+    transparent 80%
+  );
+  mix-blend-mode: screen;
+  opacity: 0;
+  will-change: opacity;
+}
+html[data-theme="stranger"] .stranger-skyflash-1 { animation: stranger-skyflash 17s infinite; }
+html[data-theme="stranger"] .stranger-skyflash-2 { animation: stranger-skyflash 23s infinite; animation-delay: -11s; }
+@keyframes stranger-skyflash {
+  0%, 7%, 100%       { opacity: 0; }
+  0.4%, 1.6%, 3.4%   { opacity: 0.95; }   /* ráfaga: 3 destellos */
+  1%,   2.4%, 4.2%   { opacity: 0.10; }
+  4.6%               { opacity: 0; }
+}
+
+/* BOLTS — silueta vertical zigzag dibujada con clip-path. Tres rayos, dos
+ * cercanos brillantes y uno lejano más tenue al horizonte. */
+html[data-theme="stranger"] .stranger-bolt {
+  position: absolute;
+  width: 7px;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 1.00) 0%,
+    rgba(220, 200, 255, 0.95) 30%,
+    rgba(160, 120, 255, 0.85) 70%,
+    rgba(80, 50, 200, 0.0) 100%
+  );
+  filter:
+    drop-shadow(0 0 10px rgba(220, 200, 255, 0.95))
+    drop-shadow(0 0 22px rgba(140, 100, 255, 0.80))
+    drop-shadow(0 0 48px rgba(80, 50, 200, 0.45));
+  opacity: 0;
+  mix-blend-mode: screen;
+  will-change: opacity;
+  /* clip-path con zigzag (silueta de rayo). Tiene que parecer un trazo
+   * orgánico — no una línea recta. Construido con coords aproximadas. */
+  clip-path: polygon(
+    48% 0%,  62% 12%,  44% 28%,  60% 40%,  42% 56%,  64% 70%,  46% 84%,  56% 100%,
+    50% 100%, 38% 84%, 54% 70%, 36% 56%, 50% 40%, 34% 28%, 50% 12%, 38% 0%
+  );
+}
+html[data-theme="stranger"] .stranger-bolt-1 {
+  left: 22%;
+  top: 5%;
+  height: 42vh;
+  animation: stranger-bolt 17s infinite;
+}
+html[data-theme="stranger"] .stranger-bolt-2 {
+  left: 74%;
+  top: 8%;
+  height: 38vh;
+  animation: stranger-bolt 23s infinite;
+  animation-delay: -11s;
+}
+html[data-theme="stranger"] .stranger-bolt-distant {
+  left: 52%;
+  top: 22%;
+  height: 16vh;
+  width: 3px;
+  filter:
+    drop-shadow(0 0 6px rgba(200, 180, 255, 0.85))
+    drop-shadow(0 0 16px rgba(120, 90, 220, 0.55));
+  animation: stranger-bolt 31s infinite;
+  animation-delay: -19s;
+}
+@keyframes stranger-bolt {
+  0%, 7%, 100%      { opacity: 0; }
+  0.3%, 1.5%, 3.3%  { opacity: 1.0; transform: scaleY(1.00); }
+  0.9%, 2.3%, 4.1%  { opacity: 0.05; }
+  4.6%              { opacity: 0; }
+}
+
+/* MÁSTIL ELÉCTRICO — luz roja parpadeante (blink-blink-pause), referencia
+ * a la antena/poste eléctrico recurrente del show. Está anclado a la
+ * esquina inferior derecha en la zona donde la imagen sugiere el cartel. */
+html[data-theme="stranger"] .stranger-pole-light {
+  position: absolute;
+  right: 12vw;
+  bottom: 26vh;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    #ffeaea 0%,
+    #ff2e3c 35%,
+    #5a0a12 80%,
+    transparent 100%
+  );
+  box-shadow:
+    0 0 10px rgba(255, 46, 60, 0.9),
+    0 0 24px rgba(255, 46, 60, 0.6),
+    0 0 50px rgba(255, 46, 60, 0.30);
+  opacity: 0.10;
+  will-change: opacity;
+  animation: stranger-pole 3.7s ease-in-out infinite;
+}
+@keyframes stranger-pole {
+  0%, 38%, 100%    { opacity: 0.15; }
+  6%, 20%          { opacity: 1.00; }
+  10%, 24%         { opacity: 0.20; }
+}
+
+/* CÓDIGO MORSE SOS — luz cálida amarilla parpadeando "· · · — — — · · ·"
+ * sobre la zona del cartel "Welcome to Hawkins". Bucle de 12s. Cada
+ * keyframe corresponde a un punto (~0.7s) o raya (~1.4s) con su pausa. */
+html[data-theme="stranger"] .stranger-morse {
+  position: absolute;
+  left: 8vw;
+  bottom: 30vh;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    #fff7e0 0%,
+    #ffd070 30%,
+    #a07020 75%,
+    transparent 100%
+  );
+  box-shadow:
+    0 0 12px rgba(255, 208, 112, 0.90),
+    0 0 28px rgba(255, 180, 60, 0.55),
+    0 0 60px rgba(220, 130, 30, 0.30);
+  opacity: 0.05;
+  will-change: opacity;
+  animation: stranger-morse 12s linear infinite;
+}
+/* SOS = ... --- ...  → 3 puntos (cortos), 3 rayas (largas), 3 puntos.
+ *   Punto on=5%, off=3%; Raya on=10%, off=3%; pausa entre letras 7%. */
+@keyframes stranger-morse {
+  /* S = · · · */
+  0%       { opacity: 0.05; }
+  1%       { opacity: 1.00; }   /* punto 1 on */
+  5%       { opacity: 0.05; }   /* off */
+  8%       { opacity: 1.00; }
+  12%      { opacity: 0.05; }
+  15%      { opacity: 1.00; }
+  19%      { opacity: 0.05; }
+  /* pausa entre letras */
+  26%      { opacity: 0.05; }
+  /* O = — — — */
+  27%      { opacity: 1.00; }
+  37%      { opacity: 0.05; }
+  40%      { opacity: 1.00; }
+  50%      { opacity: 0.05; }
+  53%      { opacity: 1.00; }
+  63%      { opacity: 0.05; }
+  /* pausa entre letras */
+  70%      { opacity: 0.05; }
+  /* S = · · · */
+  71%      { opacity: 1.00; }
+  75%      { opacity: 0.05; }
+  78%      { opacity: 1.00; }
+  82%      { opacity: 0.05; }
+  85%      { opacity: 1.00; }
+  89%      { opacity: 0.05; }
+  100%     { opacity: 0.05; }
+}
+
+/* GLITCH VHS — cada ~38s, microdesplazamiento horizontal con bandas RGB
+ * (rojo + cyan) durante ~250 ms. La realidad se rasga. Aplicado al
+ * frame de la imagen vía un overlay con mix-blend-mode. */
+html[data-theme="stranger"] .stranger-glitch {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  background:
+    linear-gradient(
+      90deg,
+      rgba(255, 46, 60, 0.25) 0%,
+      rgba(255, 46, 60, 0.25) 49.5%,
+      transparent 50%,
+      transparent 100%
+    ),
+    linear-gradient(
+      90deg,
+      transparent 0%,
+      transparent 50%,
+      rgba(60, 220, 255, 0.25) 50.5%,
+      rgba(60, 220, 255, 0.25) 100%
+    );
+  background-size: 100% 4px, 100% 4px;
+  background-position: 0 0, 0 2px;
+  background-repeat: repeat-y, repeat-y;
+  mix-blend-mode: screen;
+  animation: stranger-glitch 38s linear infinite;
+  will-change: opacity, transform;
+}
+@keyframes stranger-glitch {
+  0%, 98.8%, 100%   { opacity: 0; transform: translateX(0); }
+  99.0%             { opacity: 0.55; transform: translateX(-3px); }
+  99.2%             { opacity: 0.40; transform: translateX(2px); }
+  99.4%             { opacity: 0.55; transform: translateX(-2px); }
+  99.6%             { opacity: 0.35; transform: translateX(3px); }
+  99.8%             { opacity: 0.25; transform: translateX(0); }
+}
+
+html[data-theme="stranger"] .stranger-vignette-soft {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse at 50% 65%,
+    transparent 0%,
+    transparent 30%,
+    rgba(0,0,0,0.25) 55%,
+    rgba(0,0,0,0.55) 85%,
+    rgba(0,0,0,0.70) 100%
+  );
+}
+
+/* ── 5. PARTÍCULAS: sparks + runas + grano + viñeta dura ──────────────────── */
+
+html[data-theme="stranger"] .stranger-spark {
+  position: absolute;
+  width: var(--ss, 4px);
+  height: var(--ss, 4px);
+  border-radius: 50%;
+  opacity: 0;
+  animation: stranger-rise var(--sd, 18s) ease-in-out infinite;
+  animation-delay: var(--sl, 0s);
+  filter: blur(0.6px);
+  will-change: transform, opacity;
+  mix-blend-mode: screen;
+}
+@keyframes stranger-rise {
+  0%   { transform: translateY(20vh) scale(0.5); opacity: 0; }
+  10%  { opacity: 0.92; }
+  60%  { opacity: 0.6; }
+  100% { transform: translateY(-65vh) translateX(var(--sx, 4vw)) scale(1.1); opacity: 0; }
+}
+html[data-theme="stranger"] .stranger-spark-1 { left: 12%; --ss: 4px; --sd: 18s; --sl: -1s;  --sx:  4vw; background: radial-gradient(circle, #ffe1c0 0%, #ff6e3d 30%, transparent 80%); filter: blur(0.6px) drop-shadow(0 0 6px rgba(255, 110, 61, 0.7)); }
+html[data-theme="stranger"] .stranger-spark-2 { left: 28%; --ss: 6px; --sd: 23s; --sl: -7s;  --sx: -3vw; background: radial-gradient(circle, #ffe1c0 0%, #ff6e3d 30%, transparent 80%); filter: blur(0.6px) drop-shadow(0 0 6px rgba(255, 110, 61, 0.7)); }
+html[data-theme="stranger"] .stranger-spark-3 { left: 50%; --ss: 3px; --sd: 14s; --sl: -3s;  --sx:  6vw; background: radial-gradient(circle, #d8d8ff 0%, #4a2dff 30%, transparent 80%); filter: blur(0.6px) drop-shadow(0 0 6px rgba(74, 45, 255, 0.7)); }
+html[data-theme="stranger"] .stranger-spark-4 { left: 68%; --ss: 5px; --sd: 20s; --sl: -12s; --sx:  2vw; background: radial-gradient(circle, #d8d8ff 0%, #4a2dff 30%, transparent 80%); filter: blur(0.6px) drop-shadow(0 0 6px rgba(74, 45, 255, 0.7)); }
+html[data-theme="stranger"] .stranger-spark-5 { left: 82%; --ss: 4px; --sd: 25s; --sl: -5s;  --sx: -5vw; background: radial-gradient(circle, #d8d8ff 0%, #4a2dff 30%, transparent 80%); filter: blur(0.6px) drop-shadow(0 0 6px rgba(74, 45, 255, 0.7)); }
+html[data-theme="stranger"] .stranger-spark-6 { left: 92%; --ss: 7px; --sd: 17s; --sl: -15s; --sx:  3vw; background: radial-gradient(circle, #d8d8ff 0%, #4a2dff 30%, transparent 80%); filter: blur(0.6px) drop-shadow(0 0 6px rgba(74, 45, 255, 0.7)); }
+
+html[data-theme="stranger"] .stranger-rune {
+  position: absolute;
+  border-radius: 50%;
+  border: 1px dashed rgba(255, 110, 61, 0.18);
+  box-shadow:
+    inset 0 0 30px rgba(255, 110, 61, 0.10),
+    0 0 18px rgba(255, 110, 61, 0.06);
+  pointer-events: none;
+  mix-blend-mode: screen;
+}
+html[data-theme="stranger"] .stranger-rune::before {
+  content: ""; position: absolute; inset: 12%; border-radius: 50%;
+  border: 1px solid rgba(255, 200, 180, 0.10);
+}
+html[data-theme="stranger"] .stranger-rune::after {
+  content: ""; position: absolute; inset: 30%; border-radius: 50%;
+  border: 1px dashed rgba(255, 110, 61, 0.14);
+}
+html[data-theme="stranger"] .stranger-rune-1 { top: 8%;  left: 8%;  width: 14vw; height: 14vw; max-width: 200px; max-height: 200px; animation: stranger-rotate 90s linear infinite; }
+html[data-theme="stranger"] .stranger-rune-2 {
+  top: 12%; left: 80%; width: 18vw; height: 18vw; max-width: 240px; max-height: 240px;
+  animation: stranger-rotate 130s linear infinite reverse;
+  border-color: rgba(74, 45, 255, 0.18);
+  box-shadow:
+    inset 0 0 30px rgba(74, 45, 255, 0.10),
+    0 0 18px rgba(74, 45, 255, 0.06);
+}
+html[data-theme="stranger"] .stranger-rune-3 { top: 78%; left: 50%; width: 10vw; height: 10vw; max-width: 150px; max-height: 150px; animation: stranger-rotate 110s linear infinite; }
+@keyframes stranger-rotate {
+  0%   { transform: rotate(0); }
+  100% { transform: rotate(360deg); }
+}
+
+html[data-theme="stranger"] .stranger-grain {
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.55 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.55'/></svg>");
+  background-size: 180px 180px;
+  opacity: 0.18;
+  mix-blend-mode: overlay;
+}
+html[data-theme="stranger"] .stranger-vignette-edge {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse at 50% 50%,
+    transparent 45%,
+    rgba(0,0,0,0.35) 78%,
+    rgba(0,0,0,0.75) 100%
+  );
+}
+
+/* ── 6. CARDS PREMIUM (.glass scopeado) ───────────────────────────────────── */
+
+/* Damos a las cards más cuerpo en stranger: ya el bloque de tokens cambia
+ * --card-bg, --card-border y --card-shadow. Estos overrides son extras
+ * para casos donde el componente no usa las variables (por ejemplo cards
+ * con `glass-hover` que pintan su propio fondo en hover). */
+html[data-theme="stranger"] .glass,
+html[data-theme="stranger"] .glass-1 {
+  /* Borde sutil con halo Hellfire en interior. */
+  border-color: rgba(255, 110, 61, 0.18) !important;
+}
+html[data-theme="stranger"] .glass-hover:hover {
+  background: var(--card-bg-hover) !important;
+  border-color: rgba(255, 110, 61, 0.28) !important;
+  box-shadow: var(--card-shadow-hover) !important;
+}
+
+/* Cards interiores (dashboard, listados): un toque de gradiente sutil
+ * en la esquina superior izquierda como si la luz del atardecer las
+ * tocara. Aplicado vía pseudo-elemento para no romper layout. */
+html[data-theme="stranger"] .glass::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    150deg,
+    rgba(255, 110, 61, 0.05) 0%,
+    transparent 35%,
+    rgba(74, 45, 255, 0.04) 100%
+  );
+  pointer-events: none;
+  /* Detrás del contenido pero encima del fondo de la card. */
+  z-index: 0;
+}
+/* Aseguramos que los hijos queden por encima del overlay. */
+html[data-theme="stranger"] .glass > * { position: relative; z-index: 1; }
+
+/* ── 7. BOTONES / CTAs (Hellfire) ─────────────────────────────────────────── */
+
+/* CTA primario amarillo de Aurora (bg-[#ffeb66]) → en stranger lo
+ * convertimos en un degradado Hellfire (carmesí → naranja brasa).
+ * Atacamos las clases utilitarias literales para no tener que tocar
+ * cada componente. */
+html[data-theme="stranger"] .bg-\[\#ffeb66\] {
+  background: linear-gradient(
+    135deg,
+    #ff2e3c 0%,
+    #ff6e3d 100%
+  ) !important;
+  color: #fff7f5 !important;
+  box-shadow:
+    0 4px 16px rgba(255, 46, 60, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.30);
+}
+html[data-theme="stranger"] .hover\:bg-\[\#ffe440\]:hover,
+html[data-theme="stranger"] .bg-\[\#ffeb66\]:hover {
+  background: linear-gradient(
+    135deg,
+    #ff5564 0%,
+    #ff9866 100%
+  ) !important;
+  box-shadow:
+    0 6px 22px rgba(255, 46, 60, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22) !important;
+}
+
+/* Borde dorado/amarillo amber que aparece en algunos badges → rojo crimson. */
+html[data-theme="stranger"] .text-\[\#ffeb66\],
+html[data-theme="stranger"] .text-\[\#ffe440\] {
+  color: var(--hellfire-bright) !important;
+  text-shadow: 0 0 12px rgba(255, 46, 60, 0.35);
+}
+
+/* ── 8. INPUTS / SEARCH ───────────────────────────────────────────────────── */
+
+html[data-theme="stranger"] input[type="text"],
+html[data-theme="stranger"] input[type="email"],
+html[data-theme="stranger"] input[type="search"],
+html[data-theme="stranger"] input[type="password"],
+html[data-theme="stranger"] input[type="number"],
+html[data-theme="stranger"] input[type="url"],
+html[data-theme="stranger"] textarea,
+html[data-theme="stranger"] select {
+  background-color: rgba(12, 8, 24, 0.55) !important;
+  border-color: rgba(255, 110, 61, 0.20) !important;
+}
+html[data-theme="stranger"] input[type="text"]:focus,
+html[data-theme="stranger"] input[type="email"]:focus,
+html[data-theme="stranger"] input[type="search"]:focus,
+html[data-theme="stranger"] input[type="password"]:focus,
+html[data-theme="stranger"] input[type="number"]:focus,
+html[data-theme="stranger"] input[type="url"]:focus,
+html[data-theme="stranger"] textarea:focus,
+html[data-theme="stranger"] select:focus {
+  border-color: var(--hellfire) !important;
+  box-shadow:
+    0 0 0 3px rgba(255, 46, 60, 0.22),
+    0 0 24px rgba(255, 46, 60, 0.15) !important;
+  outline: none !important;
+}
+
+/* ── 9. TEXTO, HEADINGS y micro-componentes ───────────────────────────────── */
+
+/* Headings con un text-shadow rojo Hellfire muy sutil para evocar el
+ * neón del título. Solo afecta a `h1` y `h2` para no contaminar todo. */
+html[data-theme="stranger"] h1,
+html[data-theme="stranger"] h2 {
+  text-shadow:
+    0 0 18px rgba(255, 46, 60, 0.18),
+    0 1px 0 rgba(0, 0, 0, 0.45);
+}
+
+/* Loaders/spinners con tinte rojo en lugar de azul/blanco. */
+html[data-theme="stranger"] .animate-spin {
+  color: var(--hellfire-bright);
+}
+
+/* Reacciones de subrayado / divisores: el `border-zinc-200` (light) y
+ * `border-white/10` (dark) son muy fríos para el tema. Los teñimos. */
+html[data-theme="stranger"] .border-white\/10 {
+  border-color: rgba(255, 110, 61, 0.16) !important;
+}
+html[data-theme="stranger"] .border-white\/5 {
+  border-color: rgba(255, 110, 61, 0.10) !important;
+}
+
+/* Chips de estado / badges genéricos: si no tienen color propio, los
+ * pintamos en tono violeta del Upside Down para que tengan identidad. */
+html[data-theme="stranger"] .bg-white\/5 {
+  background-color: rgba(74, 45, 255, 0.10) !important;
+}
+
+/* ── 10. SCROLLBAR / FOCUS ────────────────────────────────────────────────── */
+
+html[data-theme="stranger"] {
+  scrollbar-color: rgba(255, 46, 60, 0.50) rgba(0, 0, 0, 0.25);
+}
+html[data-theme="stranger"] *::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, rgba(255, 46, 60, 0.65), rgba(74, 45, 255, 0.55));
+  border-radius: 999px;
+}
+html[data-theme="stranger"] *::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, rgba(255, 100, 110, 0.85), rgba(120, 90, 255, 0.75));
+}
+html[data-theme="stranger"] :focus-visible {
+  outline-color: var(--hellfire-bright) !important;
+  box-shadow: 0 0 0 3px var(--hellfire-glow), 0 0 24px var(--hellfire-glow) !important;
+}
+
 html[data-theme="stranger"] #theme-selector-panel {
-  background: linear-gradient(150deg, rgba(255, 110, 61, 0.08) 0%, transparent 35%, rgba(74, 45, 255, 0.06) 100%), linear-gradient(180deg, rgba(12, 8, 24, 0.96) 0%, rgba(20, 14, 36, 0.98) 100%) !important;
-  border-color: rgba(255, 110, 61, 0.32) !important;
-  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 110, 61, 0.18), inset 0 1px 0 rgba(74, 45, 255, 0.10), 0 0 80px rgba(255, 110, 61, 0.12), 0 0 160px rgba(74, 45, 255, 0.08) !important;
+  background:
+    linear-gradient(150deg, rgba(255, 46, 60, 0.08) 0%, transparent 35%, rgba(74, 45, 255, 0.06) 100%),
+    linear-gradient(180deg, rgba(12, 8, 24, 0.96) 0%, rgba(20, 14, 36, 0.98) 100%) !important;
+  border-color: rgba(255, 46, 60, 0.32) !important;
+  box-shadow:
+    0 16px 48px rgba(0, 0, 0, 0.65),
+    0 0 0 1px rgba(255, 46, 60, 0.18),
+    inset 0 1px 0 rgba(74, 45, 255, 0.10),
+    0 0 80px rgba(255, 46, 60, 0.12),
+    0 0 160px rgba(74, 45, 255, 0.08) !important;
 }
-html[data-theme="stranger"] #theme-selector-panel input:focus { outline-color: rgba(255, 110, 61, 0.65); }
+html[data-theme="stranger"] #theme-selector-panel input:focus {
+  outline-color: var(--hellfire);
+}
+
+/* ── 11. RESPONSIVE + REDUCED MOTION ──────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-theme="stranger"] .stranger-image,
+  html[data-theme="stranger"] .stranger-glow-1,
+  html[data-theme="stranger"] .stranger-glow-2,
+  html[data-theme="stranger"] .stranger-spark,
+  html[data-theme="stranger"] .stranger-rune,
+  html[data-theme="stranger"] .stranger-bolt,
+  html[data-theme="stranger"] .stranger-skyflash,
+  html[data-theme="stranger"] .stranger-pole-light,
+  html[data-theme="stranger"] .stranger-morse,
+  html[data-theme="stranger"] .stranger-glitch {
+    animation: none !important;
+  }
+  html[data-theme="stranger"] .stranger-spark,
+  html[data-theme="stranger"] .stranger-bolt,
+  html[data-theme="stranger"] .stranger-skyflash,
+  html[data-theme="stranger"] .stranger-glitch { display: none !important; }
+  html[data-theme="stranger"] .stranger-pole-light { opacity: 0.6 !important; }
+  html[data-theme="stranger"] .stranger-image-frame { transition: none !important; }
+}
+
+@media (max-width: 640px) {
+  html[data-theme="stranger"] .stranger-image { background-position: 50% 50%; }
+  html[data-theme="stranger"] .stranger-glow-1 { width: 60vw; height: 60vw; }
+  html[data-theme="stranger"] .stranger-glow-2 { width: 55vw; height: 55vw; }
+  html[data-theme="stranger"] .stranger-spark-3,
+  html[data-theme="stranger"] .stranger-spark-5,
+  html[data-theme="stranger"] .stranger-rune-3,
+  html[data-theme="stranger"] .stranger-bolt-distant { display: none; }
+  /* En móvil bajamos la altura de los rayos cercanos para que no atraviesen
+   * la zona donde están las cards principales. */
+  html[data-theme="stranger"] .stranger-bolt-1 { height: 30vh; }
+  html[data-theme="stranger"] .stranger-bolt-2 { height: 28vh; }
+}
