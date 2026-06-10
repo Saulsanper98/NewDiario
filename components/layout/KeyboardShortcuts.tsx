@@ -55,11 +55,28 @@ function ShortcutDiscoveryChip() {
   );
 }
 
+/**
+ * Mapeo de secuencias "g <letra>" → ruta de navegación. Estilo Linear / GitHub.
+ * Tras pulsar `g`, el usuario tiene NAV_SEQUENCE_TIMEOUT_MS para pulsar la
+ * segunda tecla; si no llega, se descarta. Si la segunda tecla no está en el
+ * mapeo, se descarta también sin efecto (no consume la pulsación normal).
+ */
+const NAV_SEQUENCES: Record<string, string> = {
+  d: "/dashboard",
+  b: "/bitacora/dia",
+  p: "/proyectos",
+  t: "/traspaso",
+  c: "/calendario",
+};
+const NAV_SEQUENCE_TIMEOUT_MS = 1500;
+
 export function KeyboardShortcuts() {
   const router = useRouter();
   const pathname = usePathname();
   const [helpOpen, setHelpOpen] = useState(false);
   const dialogRef = useRef<HTMLDivElement>(null);
+  /* Timer activo cuando el usuario ha pulsado "g" y esperamos la 2ª tecla. */
+  const gTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useFocusTrap(helpOpen, dialogRef);
 
@@ -74,7 +91,34 @@ export function KeyboardShortcuts() {
 
       if (isEditing) return;
 
+      /* Secuencia `g <letra>` con prioridad sobre el switch normal. Si hay
+         timer activo y la tecla actual es una de las del mapeo, navegamos.
+         Si no, descartamos el modo "g" y caemos al switch (la tecla actual
+         se sigue procesando para que no se "pierda" el atajo de la app). */
+      if (gTimerRef.current) {
+        clearTimeout(gTimerRef.current);
+        gTimerRef.current = null;
+        const target = NAV_SEQUENCES[e.key.toLowerCase()];
+        if (target) {
+          e.preventDefault();
+          router.push(target);
+          return;
+        }
+        /* Segunda tecla no mapeada → cae al switch de abajo. */
+      }
+
       switch (e.key) {
+        case "g":
+        case "G":
+          /* Sin modificadores: arma timer para esperar segunda tecla.
+             Si lleva Ctrl/Cmd/Alt, respetamos el atajo del navegador
+             (p. ej. Ctrl+G "buscar siguiente" en Firefox). */
+          if (e.metaKey || e.ctrlKey || e.altKey) break;
+          e.preventDefault();
+          gTimerRef.current = setTimeout(() => {
+            gTimerRef.current = null;
+          }, NAV_SEQUENCE_TIMEOUT_MS);
+          break;
         case "n":
         case "N":
           if (pathname.startsWith("/bitacora")) {
@@ -99,7 +143,13 @@ export function KeyboardShortcuts() {
       }
     }
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      if (gTimerRef.current) {
+        clearTimeout(gTimerRef.current);
+        gTimerRef.current = null;
+      }
+    };
   }, [router, pathname]);
 
   const sections = getHelpShortcutSections(pathname);

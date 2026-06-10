@@ -19,7 +19,20 @@ export function getHelpShortcutSections(pathname: string): HelpShortcutSection[]
     ],
   };
 
-  const sections: HelpShortcutSection[] = [general];
+  /* Atajos de navegación tipo Linear / GitHub: pulsar `g` y luego una letra
+     en menos de 1.5 s para saltar entre secciones sin coger el ratón. */
+  const navigation: HelpShortcutSection = {
+    title: "Navegación rápida",
+    rows: [
+      { key: "g d", desc: "Ir a Dashboard" },
+      { key: "g b", desc: "Ir a Bitácora" },
+      { key: "g p", desc: "Ir a Proyectos" },
+      { key: "g t", desc: "Ir a Traspaso" },
+      { key: "g c", desc: "Ir a Calendario" },
+    ],
+  };
+
+  const sections: HelpShortcutSection[] = [general, navigation];
 
   if (pathname.startsWith("/bitacora/dia")) {
     sections.push({
