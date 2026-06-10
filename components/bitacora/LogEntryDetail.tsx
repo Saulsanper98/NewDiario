@@ -2183,6 +2183,11 @@ export function LogEntryDetail({
           cancelLabel="Cancelar"
           variant="danger"
           loading={deletingEntry}
+          /* Exigimos teclear "ELIMINAR" para evitar borrados accidentales por
+             un usuario que tenga el foco en el botón y pulse Enter. El
+             toast Deshacer de 10s sigue actuando como red de seguridad si
+             aun asi se llega al borrado. */
+          requireText="ELIMINAR"
           onCancel={() => setDeleteEntryOpen(false)}
           onConfirm={() => void deleteEntry()}
         />

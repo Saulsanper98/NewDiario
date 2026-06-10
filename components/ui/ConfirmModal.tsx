@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { AlertTriangle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { useTheme } from "@/components/layout/ThemeProvider";
@@ -15,6 +15,19 @@ interface ConfirmModalProps {
   confirmLoadingLabel?: string;
   variant?: "danger" | "warning";
   loading?: boolean;
+  /**
+   * Si se indica, el botón de confirmación queda deshabilitado hasta que
+   * el usuario escriba EXACTAMENTE este texto (case-sensitive) en un
+   * input que aparece debajo del mensaje. Pensado para acciones realmente
+   * irreversibles donde un click accidental es caro (ej. eliminar
+   * entrada de bitácora, eliminar proyecto, eliminar usuario).
+   *
+   * Mantén el texto corto y todo en mayúsculas para distinguirlo de los
+   * controles habituales (ej. "ELIMINAR"). No uses títulos dinámicos del
+   * objeto que se está borrando: pueden contener acentos / comillas que
+   * complican el tecleo en teclados problemáticos.
+   */
+  requireText?: string;
   onConfirm: () => void;
   onCancel: () => void;
 }
@@ -27,11 +40,28 @@ export function ConfirmModal({
   confirmLoadingLabel = "Procesando…",
   variant = "danger",
   loading = false,
+  requireText,
   onConfirm,
   onCancel,
 }: ConfirmModalProps) {
   const { theme } = useTheme();
   const L = theme === "light";
+
+  const [typed, setTyped] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+  const inputId = useId();
+  const requireTextOk = !requireText || typed === requireText;
+
+  /* Cuando el modal aparece, dejamos el foco en el input para que el
+     usuario pueda empezar a teclear sin clicar. Solo aplicamos si hay
+     requireText (en su ausencia el botón Cancelar es el primer tabstop
+     natural). */
+  useEffect(() => {
+    if (requireText) {
+      const id = window.setTimeout(() => inputRef.current?.focus(), 0);
+      return () => window.clearTimeout(id);
+    }
+  }, [requireText]);
 
   const iconColor =
     variant === "danger"
@@ -124,6 +154,45 @@ export function ConfirmModal({
                 {message}
               </div>
             </div>
+            {requireText && (
+              <div className="w-full text-left space-y-1.5">
+                <label
+                  htmlFor={inputId}
+                  className={cn(
+                    "block text-[11px] font-medium",
+                    L ? "text-slate-600" : "text-white/55",
+                  )}
+                >
+                  Escribe <span className="font-mono font-semibold">{requireText}</span> para
+                  confirmar
+                </label>
+                <input
+                  ref={inputRef}
+                  id={inputId}
+                  type="text"
+                  value={typed}
+                  onChange={(e) => setTyped(e.target.value)}
+                  autoComplete="off"
+                  autoCorrect="off"
+                  autoCapitalize="off"
+                  spellCheck={false}
+                  disabled={loading}
+                  className={cn(
+                    "w-full h-9 px-3 rounded-lg text-sm font-mono tracking-wide outline-none transition-colors",
+                    "focus-visible:ring-2 focus-visible:ring-offset-2",
+                    L
+                      ? "bg-white border border-slate-300 text-slate-900 placeholder:text-slate-400 focus-visible:ring-rose-500/60 focus-visible:ring-offset-white"
+                      : "bg-white/[0.04] border border-white/12 text-white placeholder:text-white/30 focus-visible:ring-rose-500/60 focus-visible:ring-offset-[#0a0f1e]",
+                  )}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && requireTextOk && !loading) {
+                      e.preventDefault();
+                      onConfirm();
+                    }
+                  }}
+                />
+              </div>
+            )}
             <div className="flex gap-3 w-full mt-1">
               <Button
                 type="button"
@@ -137,7 +206,7 @@ export function ConfirmModal({
               </Button>
               <button
                 type="button"
-                disabled={loading}
+                disabled={loading || !requireTextOk}
                 aria-busy={loading}
                 onClick={onConfirm}
                 className={cn(

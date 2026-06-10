@@ -220,7 +220,10 @@ export default auth((req) => {
     nextUrl.pathname === "/api/features" ||
     nextUrl.pathname === "/api/branding" ||
     nextUrl.pathname === "/api/login-users" ||
-    nextUrl.pathname === "/api/login-departments";
+    nextUrl.pathname === "/api/login-departments" ||
+    /* Healthcheck público: WinSW / monitores externos lo consumen sin
+       sesión. No expone info sensible (sólo estado binario de la DB). */
+    nextUrl.pathname === "/api/health";
 
   // Construimos una NextResponse base donde inyectar Set-Cookie de limpieza.
   // Solo la usamos efectivamente si NO interceptamos con redirect / 401.
