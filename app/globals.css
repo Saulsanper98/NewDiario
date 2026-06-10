@@ -1151,6 +1151,22 @@ html:not([data-theme="light"]) .ProseMirror hr {
   animation: pulse-soft 2.4s ease-in-out infinite;
 }
 
+/* Flash breve para "ir al comentario original" en hilos. Pintamos un anillo
+   amarillo que aparece y se disipa en ~1.5s sin desplazar layout. Lo añade
+   y quita JS en LogEntryDetail/ProjectLogEntryCard/TaskDetailPanel. */
+@keyframes comment-flash {
+  0% { box-shadow: 0 0 0 0 rgba(255, 235, 102, 0); background-color: rgba(255, 235, 102, 0); }
+  18% { box-shadow: 0 0 0 4px rgba(255, 235, 102, 0.45); background-color: rgba(255, 235, 102, 0.08); }
+  100% { box-shadow: 0 0 0 0 rgba(255, 235, 102, 0); background-color: rgba(255, 235, 102, 0); }
+}
+.comment-flash {
+  animation: comment-flash 1.4s ease-out 1;
+  border-radius: 0.75rem;
+}
+@media (prefers-reduced-motion: reduce) {
+  .comment-flash { animation: none; }
+}
+
 /* Halo expansivo (timeline) para entradas no leídas */
 /* Utilidad: oculta la barra de scroll manteniendo el scroll */
 .no-scrollbar {

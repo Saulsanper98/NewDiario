@@ -5,6 +5,7 @@ import { LogEntryDetail } from "@/components/bitacora/LogEntryDetail";
 import { prisma } from "@/lib/prisma/client";
 import type { SessionUser } from "@/lib/auth/types";
 import { logEntryDetailPageInclude } from "@/lib/types/log-entry-detail";
+import { filterRelevantComments } from "@/lib/comment-thread";
 
 export default async function LogEntryPage({
   params,
@@ -23,6 +24,11 @@ export default async function LogEntryPage({
   });
 
   if (!entry) notFound();
+
+  // Comentarios: aplicamos el filtro de hilos (oculta tombstones huérfanos).
+  // Mutamos el array directamente para no romper la tipificación
+  // LogEntryDetailPage que comparte include con el endpoint API.
+  entry.comments = filterRelevantComments(entry.comments);
 
   const hasAccess =
     user.role === "SUPERADMIN" ||

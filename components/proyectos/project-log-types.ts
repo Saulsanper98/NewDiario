@@ -41,5 +41,11 @@ export interface ProjectLogCommentDTO {
   content: string;
   createdAt: string;
   updatedAt: string;
+  /** Soft-delete (tombstone). Cuando el padre con respuestas vivas se borra
+   *  el item sigue en la lista para conservar contexto del hilo. */
+  deletedAt?: string | null;
+  /** Id del comentario padre cuando es una respuesta dentro del hilo.
+   *  null = comentario raíz. */
+  parentId?: string | null;
   author: ProjectLogAuthorDTO;
 }

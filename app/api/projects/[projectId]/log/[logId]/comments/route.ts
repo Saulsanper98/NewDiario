@@ -6,6 +6,7 @@ import { hasSubstantiveLogEntryBody } from "@/lib/log-entry-body";
 import { loadProjectForMemberAccess } from "@/lib/project-log-access";
 import { projectLogCommentCreateSchema } from "@/lib/project-log-api-schema";
 import { resolveProjectLogMentionUserIds } from "@/lib/project-log-mentions";
+import { filterRelevantComments, pickValidParentId } from "@/lib/comment-thread";
 import type { SessionUser } from "@/lib/auth/types";
 
 export async function GET(
@@ -32,13 +33,18 @@ export async function GET(
     return NextResponse.json({ error: "No encontrado" }, { status: 404 });
   }
 
-  const comments = await prisma.projectLogComment.findMany({
-    where: { projectLogEntryId: logId, deletedAt: null },
+  // Cargamos TODOS los comentarios (vivos + borrados). Luego filtramos en
+  // memoria: los borrados solo sobreviven si tienen al menos una respuesta
+  // viva que los cite como padre (tombstone). Sin esto, una respuesta
+  // queda "huérfana" sin contexto del comentario al que respondía.
+  const allComments = await prisma.projectLogComment.findMany({
+    where: { projectLogEntryId: logId },
     include: {
       author: { select: { id: true, name: true, image: true } },
     },
     orderBy: { createdAt: "asc" },
   });
+  const comments = filterRelevantComments(allComments);
 
   return NextResponse.json({ comments });
 }
@@ -84,14 +90,43 @@ export async function POST(
     );
   }
 
+  // Validación del parent. Pertenece al mismo project log entry. Permitimos
+  // tombstones igual que en bitácora/tareas.
+  let parentId: string | null = null;
+  if (parsed.data.parentCommentId) {
+    const parent = await prisma.projectLogComment.findFirst({
+      where: {
+        id: parsed.data.parentCommentId,
+        projectLogEntryId: logId,
+      },
+      select: { id: true, deletedAt: true, authorId: true },
+    });
+    if (!parent) {
+      return NextResponse.json(
+        { error: "Comentario padre no encontrado" },
+        { status: 400 }
+      );
+    }
+    parentId = pickValidParentId(parsed.data.parentCommentId, parent);
+  }
+
   const comment = await prisma.projectLogComment.create({
     data: {
       projectLogEntryId: logId,
       authorId: user.id,
       content: cleanContent,
+      parentId,
     },
     include: {
       author: { select: { id: true, name: true, image: true } },
+      parent: {
+        select: {
+          id: true,
+          content: true,
+          deletedAt: true,
+          author: { select: { id: true, name: true } },
+        },
+      },
     },
   });
 
@@ -113,9 +148,19 @@ export async function POST(
     { excludeUserId: user.id }
   );
 
+  // El Map se indexa por userId; si el mismo destinatario tendría varias
+  // razones para recibir notificación, GANA la más específica (la última
+  // que pongamos). Por eso lo ordenamos: primero MENTION (la más general),
+  // luego COMMENT_REPLY (la más específica), luego "comentario en tu
+  // entrada" como fallback.
   const recipients = new Map<
     string,
-    { type: "MENTION"; title: string; message: string; link: string }
+    {
+      type: "MENTION" | "COMMENT_REPLY";
+      title: string;
+      message: string;
+      link: string;
+    }
   >();
   for (const uid of mentionedIds) {
     recipients.set(uid, {
@@ -125,8 +170,27 @@ export async function POST(
       link,
     });
   }
-  // Notificar al autor de la entrada cuando recibe un comentario (no se duplica
-  // si ya fue mencionado, porque el Map sobreescribiría con la misma key).
+  // Responder a un comentario: notifica al autor del padre si es otro
+  // usuario y el padre no está borrado. Sobreescribe la entrada de
+  // MENTION si la tuviera, porque "te respondieron" es más informativo
+  // que "te mencionaron" cuando ambas cosas son ciertas.
+  if (parentId) {
+    const parent = await prisma.projectLogComment.findUnique({
+      where: { id: parentId },
+      select: { authorId: true, deletedAt: true },
+    });
+    if (parent && !parent.deletedAt && parent.authorId !== user.id) {
+      recipients.set(parent.authorId, {
+        type: "COMMENT_REPLY",
+        title: `Respondieron a tu comentario en «${access.project.name}»`,
+        message: `${user.name} te respondió en «${entry.title || "una entrada"}»`,
+        link,
+      });
+    }
+  }
+  // Notificar al autor de la entrada cuando recibe un comentario (no se
+  // duplica si ya está en el Map por mención o por reply, porque seguimos
+  // sin pisar al destinatario más específico).
   if (entry.authorId !== user.id && !recipients.has(entry.authorId)) {
     recipients.set(entry.authorId, {
       type: "MENTION",

@@ -454,7 +454,14 @@ export function LogEntryDetail({
       const res = await fetch(`/api/log-entries/${entry.id}/comments`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: comment }),
+        body: JSON.stringify({
+          content: comment,
+          // Solo enviamos parentCommentId cuando estamos respondiendo a
+          // un comentario "real" (id no vacío). Antes startReply usaba
+          // id="" como sentinel del modo pseudo-reply, y aún convivimos
+          // con esa convención hasta que recargue la página tras el deploy.
+          parentCommentId: replyTo?.id ? replyTo.id : undefined,
+        }),
       });
       if (!res.ok) throw new Error();
       const newComment = await res.json();
@@ -463,6 +470,10 @@ export function LogEntryDetail({
       commentEditorRef.current?.clear();
       setReplyTo(null);
       toast.success("Comentario añadido");
+      // Damos un tick para que se renderice y luego saltamos al nuevo
+      // comentario para confirmarle al usuario dónde quedó publicado
+      // (útil sobre todo cuando responde a un comentario lejos del final).
+      window.setTimeout(() => jumpToComment(newComment.id), 60);
     } catch {
       toast.error("Error al añadir comentario");
     }
@@ -536,7 +547,20 @@ export function LogEntryDetail({
         body: JSON.stringify({ commentId }),
       });
       if (!res.ok) throw new Error();
-      setComments((prev) => prev.filter((c) => c.id !== commentId));
+      // Si el comentario tiene hijos vivos, lo dejamos como tombstone
+      // (igual que en backend) para no romper el hilo. Si no, lo quitamos
+      // físicamente de la lista local.
+      setComments((prev) => {
+        const hasLiveChildren = prev.some(
+          (c) => c.parentId === commentId && !c.deletedAt
+        );
+        if (hasLiveChildren) {
+          return prev.map((c) =>
+            c.id === commentId ? { ...c, deletedAt: new Date() } : c
+          );
+        }
+        return prev.filter((c) => c.id !== commentId);
+      });
       toast.success("Comentario eliminado");
     } catch {
       toast.error("No se pudo eliminar el comentario");
@@ -558,12 +582,34 @@ export function LogEntryDetail({
     }
   }
 
-  function startReply(authorName: string) {
-    setReplyTo({ id: "", name: authorName });
-    setComment(`@${authorName}: `);
+  /**
+   * Inicia una respuesta a un comentario. Antes (pre-hilos) esto sólo
+   * insertaba `@nombre:` al principio del editor, que el helper
+   * `parseLeadingReplyMention` interpretaba como pseudo-reply. Ahora
+   * guardamos también el `commentId` del padre: el composer muestra el
+   * banner "Respondiendo a…", y al enviar mandamos `parentCommentId` al
+   * backend para que el comentario se almacene como respuesta real.
+   *
+   * Mantenemos el prefijo `@nombre:` solo cuando NO había hilos (id="")
+   * — eliminarlo aquí permite separar visualmente el banner de la
+   * propia respuesta y no contamina el cuerpo del comentario con
+   * texto auto-generado.
+   */
+  function startReply(commentId: string, authorName: string) {
+    setReplyTo({ id: commentId, name: authorName });
     setTimeout(() => {
       commentEditorRef.current?.focus();
     }, 50);
+  }
+
+  /** Scroll y highlight breve para "ir al comentario original" desde un
+   *  quote-preview de respuesta. */
+  function jumpToComment(commentId: string) {
+    const el = document.getElementById(`comment-${commentId}`);
+    if (!el) return;
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+    el.classList.add("comment-flash");
+    window.setTimeout(() => el.classList.remove("comment-flash"), 1500);
   }
 
   async function toggleReaction(emoji: ReactionEmoji) {
@@ -1438,20 +1484,33 @@ export function LogEntryDetail({
           {comments.length > 0 ? (
             <div className="space-y-3.5">
               {comments.map((c: LogCommentRow) => {
+                // Si el comentario está soft-deleted pero sigue en la lista
+                // es porque tiene hijos vivos (tombstone). Lo pintamos como
+                // placeholder para preservar el contexto del hilo.
+                const isTombstone = Boolean(c.deletedAt);
                 const plainForReply = commentPlainText(c.content);
-                const replyParsed = parseLeadingReplyMention(
-                  plainForReply,
-                  mentionHighlightNames
-                );
-                const replyTarget = replyParsed?.replyTarget ?? null;
-                const bodyText = replyParsed?.bodyText ?? plainForReply;
-                const isReply = Boolean(replyTarget);
-                const structured = commentHasRichHtml(c.content);
+                // Hilo real: usamos parentId del backend. Caemos a la
+                // convención antigua `@nombre:` sólo cuando NO hay
+                // parentId, para no romper comentarios pre-migración.
+                const parentComment = c.parentId
+                  ? comments.find((p: LogCommentRow) => p.id === c.parentId) ?? null
+                  : null;
+                const replyParsed =
+                  !parentComment && !isTombstone
+                    ? parseLeadingReplyMention(plainForReply, mentionHighlightNames)
+                    : null;
+                const legacyReplyTarget = replyParsed?.replyTarget ?? null;
+                const bodyText =
+                  replyParsed?.bodyText ?? plainForReply;
+                const isReply = Boolean(parentComment) || Boolean(legacyReplyTarget);
+                const structured =
+                  !isTombstone && commentHasRichHtml(c.content);
                 return (
                   <article
                     key={c.id}
+                    id={`comment-${c.id}`}
                     className={cn(
-                      "group/comment relative flex gap-3 transition-colors duration-150",
+                      "group/comment relative flex gap-3 transition-colors duration-150 scroll-mt-24",
                       isReply && "pl-3 sm:pl-3.5"
                     )}
                   >
@@ -1486,7 +1545,8 @@ export function LogEntryDetail({
                         "flex-1 min-w-0 rounded-xl px-3 py-2.5 transition-colors duration-150 border",
                         L
                           ? "bg-white border-zinc-200/80 shadow-[0_1px_0_rgba(0,0,0,0.02)]"
-                          : "bg-white/[0.035] border-white/[0.07] group-hover/comment:bg-white/[0.05] group-hover/comment:border-white/[0.11]"
+                          : "bg-white/[0.035] border-white/[0.07] group-hover/comment:bg-white/[0.05] group-hover/comment:border-white/[0.11]",
+                        isTombstone && "opacity-60"
                       )}
                     >
                       <header className="flex items-center gap-2 mb-1.5">
@@ -1496,7 +1556,8 @@ export function LogEntryDetail({
                           image={c.author.image}
                           nameClassName={cn(
                             "text-[13px] font-semibold tracking-tight truncate",
-                            L ? "text-zinc-900" : "text-white/88"
+                            L ? "text-zinc-900" : "text-white/88",
+                            isTombstone && "line-through decoration-1"
                           )}
                         />
                         {/* Fecha discreta en línea (antes era un chip cuadrado
@@ -1509,7 +1570,7 @@ export function LogEntryDetail({
                         >
                           · {formatRelative(c.createdAt)}
                         </span>
-                        {isReply && (
+                        {isReply && !isTombstone && (
                           <span
                             className={cn(
                               "text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-md border shrink-0",
@@ -1521,39 +1582,90 @@ export function LogEntryDetail({
                             Respuesta
                           </span>
                         )}
-                        <div className="ml-auto flex items-center gap-0.5 opacity-0 group-hover/comment:opacity-100 transition-opacity duration-150 print:hidden shrink-0">
-                          <button
-                            type="button"
-                            onClick={() => startReply(c.author.name)}
-                            className={cn(
-                              "p-1 rounded-md transition-colors",
-                              L
-                                ? "text-zinc-400 hover:text-amber-700 hover:bg-amber-50"
-                                : "text-white/35 hover:text-[#ffeb66]/85 hover:bg-white/[0.06]"
-                            )}
-                            aria-label="Responder"
-                          >
-                            <CornerDownLeft className="w-3.5 h-3.5" />
-                          </button>
-                          {(currentUser.id === c.author.id || canEdit) && (
+                        {!isTombstone && (
+                          <div className="ml-auto flex items-center gap-0.5 opacity-0 group-hover/comment:opacity-100 transition-opacity duration-150 print:hidden shrink-0">
                             <button
                               type="button"
-                              onClick={() => deleteComment(c.id)}
+                              onClick={() => startReply(c.id, c.author.name)}
                               className={cn(
                                 "p-1 rounded-md transition-colors",
                                 L
-                                  ? "text-zinc-400 hover:text-red-600 hover:bg-red-50"
-                                  : "text-white/30 hover:text-red-400 hover:bg-white/[0.06]"
+                                  ? "text-zinc-400 hover:text-amber-700 hover:bg-amber-50"
+                                  : "text-white/35 hover:text-[#ffeb66]/85 hover:bg-white/[0.06]"
                               )}
-                              aria-label="Eliminar comentario"
+                              aria-label="Responder"
                             >
-                              <Trash2 className="w-3.5 h-3.5" />
+                              <CornerDownLeft className="w-3.5 h-3.5" />
                             </button>
-                          )}
-                        </div>
+                            {(currentUser.id === c.author.id || canEdit) && (
+                              <button
+                                type="button"
+                                onClick={() => deleteComment(c.id)}
+                                className={cn(
+                                  "p-1 rounded-md transition-colors",
+                                  L
+                                    ? "text-zinc-400 hover:text-red-600 hover:bg-red-50"
+                                    : "text-white/30 hover:text-red-400 hover:bg-white/[0.06]"
+                                )}
+                                aria-label="Eliminar comentario"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                          </div>
+                        )}
                       </header>
 
-                      {replyTarget && !structured && (
+                      {/* Quote-preview del comentario padre cuando es una
+                          respuesta real (parentId). Si el padre está borrado
+                          (tombstone), mostramos el placeholder en cursiva. */}
+                      {parentComment && (
+                        <button
+                          type="button"
+                          onClick={() => jumpToComment(parentComment.id)}
+                          className={cn(
+                            "w-full text-left flex items-start gap-2 mb-2 px-2.5 py-1.5 rounded-md border-l-[3px] transition-colors group/quote",
+                            L
+                              ? "bg-zinc-50 border-l-emerald-500/70 hover:bg-zinc-100"
+                              : "bg-white/[0.04] border-l-emerald-400/55 hover:bg-white/[0.07]"
+                          )}
+                          aria-label={`Ir al comentario original de ${parentComment.author.name}`}
+                        >
+                          <CornerDownLeft
+                            className={cn(
+                              "w-3 h-3 mt-0.5 shrink-0",
+                              L ? "text-emerald-700/80" : "text-emerald-300/75"
+                            )}
+                            aria-hidden
+                          />
+                          <div className="min-w-0 flex-1">
+                            <span
+                              className={cn(
+                                "text-[11px] font-semibold tracking-tight",
+                                L ? "text-emerald-800" : "text-emerald-200/85"
+                              )}
+                            >
+                              {parentComment.author.name}
+                            </span>
+                            <span
+                              className={cn(
+                                "ml-1.5 text-[11.5px] leading-snug line-clamp-2",
+                                L ? "text-zinc-500" : "text-white/45",
+                                parentComment.deletedAt && "italic opacity-70"
+                              )}
+                            >
+                              {parentComment.deletedAt
+                                ? "Comentario eliminado"
+                                : commentPlainText(parentComment.content).slice(0, 140)}
+                            </span>
+                          </div>
+                        </button>
+                      )}
+
+                      {/* Fallback retro-compatible para comentarios viejos
+                          que usaban la convención `@nombre:`. Sólo se pinta
+                          si NO hay parentId (los nuevos siempre lo tienen). */}
+                      {!parentComment && legacyReplyTarget && !structured && (
                         <div
                           className={cn(
                             "flex items-center gap-1.5 mb-1.5 text-[11.5px]",
@@ -1568,14 +1680,23 @@ export function LogEntryDetail({
                               L ? "text-indigo-700" : "text-[#ffeb66]/82"
                             )}
                           >
-                            @{replyTarget}
+                            @{legacyReplyTarget}
                           </span>
                         </div>
                       )}
 
-                      {structured && replyTarget ? (
+                      {isTombstone ? (
+                        <div
+                          className={cn(
+                            "text-[13.5px] italic",
+                            L ? "text-zinc-400" : "text-white/45"
+                          )}
+                        >
+                          Comentario eliminado
+                        </div>
+                      ) : structured && legacyReplyTarget ? (
                         commentBodyNode(c.content, true)
-                      ) : replyTarget ? (
+                      ) : legacyReplyTarget ? (
                         <div
                           className={cn(
                             "text-[13.5px] leading-relaxed whitespace-pre-wrap break-words",
@@ -1588,7 +1709,7 @@ export function LogEntryDetail({
                               L ? "text-indigo-700" : "text-[#ffeb66]/82"
                             )}
                           >
-                            @{replyTarget}:
+                            @{legacyReplyTarget}:
                           </span>{" "}
                           {commentBodyNode(bodyText, false)}
                         </div>
@@ -1729,7 +1850,12 @@ export function LogEntryDetail({
                   </span>
                   <button
                     type="button"
-                    onClick={() => { setReplyTo(null); setComment(""); }}
+                    /* Antes limpiábamos también el contenido (`setComment("")`)
+                       porque al iniciar reply se inyectaba `@nombre:` y se
+                       suponía que el cuerpo era auto-generado. Ahora el
+                       cuerpo lo escribe íntegramente el usuario, así que
+                       cancelar el reply NO debe borrar lo que ya tecleó. */
+                    onClick={() => setReplyTo(null)}
                     className={cn(
                       "ml-auto p-1 rounded-md transition-colors",
                       L

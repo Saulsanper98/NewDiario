@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma/client";
 import type { SessionUser } from "@/lib/auth/types";
 import { projectDetailInclude } from "@/lib/types/project-detail";
 import { STATUS_LABELS, getStatusColor } from "@/lib/utils";
+import { filterRelevantComments } from "@/lib/comment-thread";
 
 export default async function ProyectoPage({
   params,
@@ -24,6 +25,15 @@ export default async function ProyectoPage({
   });
 
   if (!project) notFound();
+
+  // Cada tarea trae sus comentarios. Con hilos hay que recortar los
+  // tombstones huérfanos en memoria (la query no filtra deletedAt para
+  // permitir tombstones con respuestas vivas).
+  for (const col of project.kanbanColumns) {
+    for (const task of col.tasks) {
+      task.comments = filterRelevantComments(task.comments);
+    }
+  }
 
   const hasAccess =
     user.role === "SUPERADMIN" ||

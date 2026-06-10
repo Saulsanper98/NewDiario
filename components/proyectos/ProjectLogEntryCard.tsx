@@ -14,6 +14,8 @@ import {
   Send,
   ArrowUpToLine,
   ExternalLink,
+  CornerDownLeft,
+  X,
 } from "lucide-react";
 import Link from "next/link";
 import toast from "react-hot-toast";
@@ -692,7 +694,28 @@ function ProjectLogComments({
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  /** Comentario al que se está respondiendo. null = comentario raíz. */
+  const [replyTo, setReplyTo] = useState<{ id: string; name: string } | null>(
+    null
+  );
   const editorRef = useRef<CommentEditorHandle>(null);
+
+  /** Resuelve el padre desde la lista local: si está soft-deleted lo
+   *  pintamos como tombstone; si no aparece (porque el padre fue
+   *  hard-deleted o no se cargó), no rompemos: simplemente omitimos el
+   *  quote-preview. */
+  function findParent(parentId: string | null | undefined) {
+    if (!parentId) return null;
+    return comments.find((c) => c.id === parentId) ?? null;
+  }
+
+  function jumpToComment(commentId: string) {
+    const el = document.getElementById(`comment-${commentId}`);
+    if (!el) return;
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+    el.classList.add("comment-flash");
+    window.setTimeout(() => el.classList.remove("comment-flash"), 1500);
+  }
 
   async function loadComments() {
     if (loaded || loading) return;
@@ -704,7 +727,9 @@ function ProjectLogComments({
       if (!res.ok) throw new Error();
       const data = (await res.json()) as { comments: ProjectLogCommentDTO[] };
       setComments(data.comments);
-      setCount(data.comments.length);
+      // count solo cuenta vivos: los tombstones no inflan el contador
+      // visible "X comentarios" porque conceptualmente fueron borrados.
+      setCount(data.comments.filter((c) => !c.deletedAt).length);
       setLoaded(true);
     } catch {
       toast.error("No se pudieron cargar los comentarios.");
@@ -734,7 +759,10 @@ function ProjectLogComments({
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ content: draft }),
+          body: JSON.stringify({
+            content: draft,
+            parentCommentId: replyTo?.id ?? undefined,
+          }),
         }
       );
       if (!res.ok) {
@@ -748,6 +776,8 @@ function ProjectLogComments({
       setCount((c) => c + 1);
       setDraft("");
       editorRef.current?.clear();
+      setReplyTo(null);
+      window.setTimeout(() => jumpToComment(comment.id), 60);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Error al enviar.");
     } finally {
@@ -762,14 +792,36 @@ function ProjectLogComments({
         { method: "DELETE" }
       );
       if (!res.ok) throw new Error();
-      setComments((prev) => prev.filter((c) => c.id !== id));
-      setCount((c) => Math.max(0, c - 1));
+      // Si el comentario tenía respuestas vivas, queda como tombstone
+      // en backend y debería seguir apareciendo en la lista. Para evitar
+      // mantener dos lógicas (frontend vs backend) recargamos la lista
+      // entera tras el borrado: es una petición barata y nos garantiza
+      // que tombstones aparezcan instantáneamente.
+      const reload = await fetch(
+        `/api/projects/${projectId}/log/${entryId}/comments`
+      );
+      if (reload.ok) {
+        const data = (await reload.json()) as {
+          comments: ProjectLogCommentDTO[];
+        };
+        setComments(data.comments);
+        setCount(data.comments.filter((c) => !c.deletedAt).length);
+      } else {
+        // Fallback: borrado local optimista si la recarga falla.
+        setComments((prev) => prev.filter((c) => c.id !== id));
+        setCount((c) => Math.max(0, c - 1));
+      }
       toast.success("Comentario borrado");
     } catch {
       toast.error("No se pudo borrar.");
     } finally {
       setConfirmDeleteId(null);
     }
+  }
+
+  function startReply(commentId: string, authorName: string) {
+    setReplyTo({ id: commentId, name: authorName });
+    window.setTimeout(() => editorRef.current?.focus(), 50);
   }
 
   return (
@@ -815,23 +867,39 @@ function ProjectLogComments({
               {comments.length > 0 && (
                 <ul className="flex flex-col gap-2.5">
                   {comments.map((c) => {
+                    const isTombstone = Boolean(c.deletedAt);
                     const inEditWindow =
                       Date.now() - new Date(c.createdAt).getTime() <
                       AUTHOR_EDIT_WINDOW_MS;
                     const isMine = c.authorId === currentUser.id;
                     const canDelete =
-                      currentUser.role === "SUPERADMIN" ||
-                      isProjectOwner ||
-                      (isMine && inEditWindow);
+                      !isTombstone &&
+                      (currentUser.role === "SUPERADMIN" ||
+                        isProjectOwner ||
+                        (isMine && inEditWindow));
+                    const parent = findParent(c.parentId);
+                    // Snippet plano (sin HTML) y truncado para el quote-
+                    // preview del padre. Hecho aquí en cliente para no
+                    // tener que enviar campos extra desde el endpoint.
+                    const parentSnippet = parent
+                      ? parent.deletedAt
+                        ? null
+                        : sanitizeHtml(parent.content)
+                            .replace(/<[^>]+>/g, " ")
+                            .replace(/\s+/g, " ")
+                            .trim()
+                            .slice(0, 140)
+                      : null;
                     return (
                       <li
                         key={c.id}
                         id={`comment-${c.id}`}
                         className={cn(
-                          "group rounded-lg border px-3 py-2",
+                          "group rounded-lg border px-3 py-2 scroll-mt-24",
                           L
                             ? "bg-zinc-50 border-zinc-100"
-                            : "bg-white/[0.025] border-white/[0.06]"
+                            : "bg-white/[0.025] border-white/[0.06]",
+                          isTombstone && "opacity-60"
                         )}
                       >
                         <div className="flex items-start gap-2">
@@ -846,7 +914,8 @@ function ProjectLogComments({
                               <span
                                 className={cn(
                                   "text-[12.5px] font-semibold",
-                                  L ? "text-zinc-900" : "text-white"
+                                  L ? "text-zinc-900" : "text-white",
+                                  isTombstone && "line-through decoration-1"
                                 )}
                               >
                                 {c.author.name}
@@ -868,32 +937,112 @@ function ProjectLogComments({
                                 })}
                               </span>
                             </div>
-                            <div
-                              {...bitacoraProseRootProps}
-                              className={cn(
-                                bitacoraReadingProseClass(theme),
-                                "mt-1 text-[13px]"
-                              )}
-                              dangerouslySetInnerHTML={{
-                                __html: sanitizeHtml(c.content),
-                              }}
-                            />
+
+                            {parent && (
+                              <button
+                                type="button"
+                                onClick={() => jumpToComment(parent.id)}
+                                className={cn(
+                                  "w-full text-left flex items-start gap-2 mt-1 mb-1 px-2 py-1 rounded-md border-l-[3px] transition-colors",
+                                  L
+                                    ? "bg-zinc-100/70 border-l-emerald-500/65 hover:bg-zinc-100"
+                                    : "bg-white/[0.04] border-l-emerald-400/50 hover:bg-white/[0.07]"
+                                )}
+                                aria-label={`Ir al comentario original de ${parent.author.name}`}
+                              >
+                                <CornerDownLeft
+                                  className={cn(
+                                    "w-3 h-3 mt-0.5 shrink-0",
+                                    L
+                                      ? "text-emerald-700/80"
+                                      : "text-emerald-300/75"
+                                  )}
+                                  aria-hidden
+                                />
+                                <div className="min-w-0 flex-1">
+                                  <span
+                                    className={cn(
+                                      "text-[10.5px] font-semibold",
+                                      L
+                                        ? "text-emerald-800"
+                                        : "text-emerald-200/85"
+                                    )}
+                                  >
+                                    {parent.author.name}
+                                  </span>
+                                  <span
+                                    className={cn(
+                                      "ml-1.5 text-[11px] leading-snug line-clamp-2",
+                                      L
+                                        ? "text-zinc-500"
+                                        : "text-white/45",
+                                      parent.deletedAt &&
+                                        "italic opacity-70"
+                                    )}
+                                  >
+                                    {parent.deletedAt
+                                      ? "Comentario eliminado"
+                                      : parentSnippet}
+                                  </span>
+                                </div>
+                              </button>
+                            )}
+
+                            {isTombstone ? (
+                              <div
+                                className={cn(
+                                  "mt-1 text-[12.5px] italic",
+                                  L ? "text-zinc-400" : "text-white/40"
+                                )}
+                              >
+                                Comentario eliminado
+                              </div>
+                            ) : (
+                              <div
+                                {...bitacoraProseRootProps}
+                                className={cn(
+                                  bitacoraReadingProseClass(theme),
+                                  "mt-1 text-[13px]"
+                                )}
+                                dangerouslySetInnerHTML={{
+                                  __html: sanitizeHtml(c.content),
+                                }}
+                              />
+                            )}
                           </div>
-                          {canDelete && (
-                            <button
-                              type="button"
-                              onClick={() => setConfirmDeleteId(c.id)}
-                              className={cn(
-                                "opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded",
-                                L
-                                  ? "text-zinc-400 hover:text-red-600 hover:bg-red-50"
-                                  : "text-white/40 hover:text-red-300 hover:bg-red-500/[0.1]"
+                          {!isTombstone && (
+                            <div className="flex items-start gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <button
+                                type="button"
+                                onClick={() => startReply(c.id, c.author.name)}
+                                className={cn(
+                                  "p-1 rounded",
+                                  L
+                                    ? "text-zinc-400 hover:text-emerald-700 hover:bg-emerald-50"
+                                    : "text-white/40 hover:text-emerald-300 hover:bg-emerald-500/[0.1]"
+                                )}
+                                aria-label="Responder"
+                                title="Responder"
+                              >
+                                <CornerDownLeft className="w-3.5 h-3.5" />
+                              </button>
+                              {canDelete && (
+                                <button
+                                  type="button"
+                                  onClick={() => setConfirmDeleteId(c.id)}
+                                  className={cn(
+                                    "p-1 rounded",
+                                    L
+                                      ? "text-zinc-400 hover:text-red-600 hover:bg-red-50"
+                                      : "text-white/40 hover:text-red-300 hover:bg-red-500/[0.1]"
+                                  )}
+                                  aria-label="Borrar comentario"
+                                  title="Borrar comentario"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
                               )}
-                              aria-label="Borrar comentario"
-                              title="Borrar comentario"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
+                            </div>
                           )}
                         </div>
                       </li>
@@ -903,12 +1052,57 @@ function ProjectLogComments({
               )}
 
               <div className="flex flex-col gap-2">
+                {replyTo && (
+                  <div
+                    className={cn(
+                      "flex items-center gap-2 px-2.5 py-1.5 rounded-md border-l-[3px] text-[12px]",
+                      L
+                        ? "bg-emerald-50/70 border-l-emerald-500 text-emerald-900"
+                        : "bg-white/[0.04] border-l-emerald-400/60 text-white/72"
+                    )}
+                  >
+                    <CornerDownLeft
+                      className={cn(
+                        "w-3.5 h-3.5 shrink-0",
+                        L
+                          ? "text-emerald-700/85"
+                          : "text-emerald-300/80"
+                      )}
+                      aria-hidden
+                    />
+                    <span className="min-w-0 truncate">
+                      Respondiendo a{" "}
+                      <strong
+                        className={cn("font-semibold", L ? "" : "text-white/90")}
+                      >
+                        {replyTo.name}
+                      </strong>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setReplyTo(null)}
+                      className={cn(
+                        "ml-auto p-1 rounded transition-colors",
+                        L
+                          ? "text-emerald-700 hover:bg-emerald-100"
+                          : "text-white/40 hover:text-white/75 hover:bg-white/[0.08]"
+                      )}
+                      aria-label="Cancelar respuesta"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                )}
                 <CommentEditor
                   ref={editorRef}
                   value={draft}
                   onChange={setDraft}
                   mentionDepartmentId={mentionDepartmentId}
-                  placeholder="Añadir comentario… (Enter para enviar)"
+                  placeholder={
+                    replyTo
+                      ? `Respondiendo a @${replyTo.name}…`
+                      : "Añadir comentario… (Enter para enviar)"
+                  }
                   onSubmit={() => void submitComment()}
                 />
                 <div className="flex justify-end">

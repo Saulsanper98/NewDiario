@@ -12,6 +12,7 @@ import {
 import { computePublishHints } from "@/lib/log-entry-publish-hints";
 import { logEntryDetailPageInclude } from "@/lib/types/log-entry-detail";
 import { logEntryEditSchema } from "@/lib/log-entry-api-schema";
+import { filterRelevantComments } from "@/lib/comment-thread";
 
 const followupOnlySchema = z.object({ followupDone: z.boolean() }).strict();
 
@@ -33,7 +34,10 @@ export async function GET(
       tags: true,
       attachments: true,
       comments: {
-        where: { deletedAt: null },
+        // Antes filtrábamos por `deletedAt: null` aquí, pero ahora hay
+        // hilos: si un padre fue soft-deleted necesitamos seguir
+        // devolviéndolo (como tombstone) cuando tiene respuestas vivas.
+        // Filtramos en memoria después con filterRelevantComments.
         include: { author: { select: { id: true, name: true, image: true } } },
         orderBy: { createdAt: "asc" },
       },
@@ -64,7 +68,10 @@ export async function GET(
 
   if (!hasAccess) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  return NextResponse.json(entry);
+  return NextResponse.json({
+    ...entry,
+    comments: filterRelevantComments(entry.comments),
+  });
 }
 
 export async function PATCH(

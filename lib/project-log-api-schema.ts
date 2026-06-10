@@ -55,6 +55,11 @@ export const projectLogCommentCreateSchema = z.object({
     .string()
     .min(1, "El comentario no puede estar vacío.")
     .max(20_000, "El comentario es demasiado largo."),
+  /** Id del comentario padre cuando es una respuesta. cuid() típico de
+   *  Prisma — no usamos z.cuid() porque la longitud puede variar entre
+   *  drivers; con string + min(1) basta para validar formato y la
+   *  comprobación real (pertenece al mismo log) la hace el endpoint. */
+  parentCommentId: z.string().min(1).optional().nullable(),
 });
 export type ProjectLogCommentCreateInput = z.infer<
   typeof projectLogCommentCreateSchema

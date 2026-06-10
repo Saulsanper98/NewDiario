@@ -6,6 +6,7 @@ import { hasProjectAccess } from "@/lib/auth/permissions";
 import type { SessionUser } from "@/lib/auth/types";
 import { z } from "zod";
 import { assigneeUnavailabilityWarningMessage } from "@/lib/assignee-unavailability-warning";
+import { filterRelevantComments } from "@/lib/comment-thread";
 
 const patchTaskSchema = z
   .object({
@@ -59,7 +60,10 @@ async function loadTaskWithProject(id: string) {
       },
       subtasks: true,
       comments: {
-        where: { deletedAt: null },
+        // No filtramos `deletedAt: null` aquí: con hilos, un padre
+        // borrado puede seguir apareciendo como tombstone si tiene
+        // respuestas vivas. El filtrado real lo hace
+        // filterRelevantComments tras la query.
         include: { author: { select: { id: true, name: true, image: true } } },
         orderBy: { createdAt: "asc" },
       },
@@ -89,7 +93,10 @@ export async function GET(
   if (!hasProjectAccess(user, task.project)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
-  return NextResponse.json(task);
+  return NextResponse.json({
+    ...task,
+    comments: filterRelevantComments(task.comments),
+  });
 }
 
 export async function PATCH(

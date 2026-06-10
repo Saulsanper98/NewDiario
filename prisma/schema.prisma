@@ -169,6 +169,7 @@ enum NotificationType {
   LOG_SHARED
   PROJECT_SHARED
   MENTION
+  COMMENT_REPLY
   BUG_REPORT_CLOSED
   CHAT_MESSAGE
   CHAT_RETENTION_WARNING
@@ -507,15 +508,23 @@ model LogComment {
   content    String    @db.Text
   logEntryId String
   authorId   String
+  /// Comentario padre (self-relation). Null = comentario raíz. Cuando el
+  /// padre se borra soft-delete, conservamos parentId para renderizar
+  /// "Comentario eliminado" como placeholder (tombstone). onDelete:
+  /// SetNull cubre el caso (raro) de borrado hard.
+  parentId   String?
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
   deletedAt  DateTime?
 
-  logEntry LogEntry @relation(fields: [logEntryId], references: [id], onDelete: Cascade)
-  author   User     @relation(fields: [authorId], references: [id])
+  logEntry LogEntry      @relation(fields: [logEntryId], references: [id], onDelete: Cascade)
+  author   User          @relation(fields: [authorId], references: [id])
+  parent   LogComment?   @relation("LogCommentReplies", fields: [parentId], references: [id], onDelete: SetNull)
+  replies  LogComment[]  @relation("LogCommentReplies")
 
   @@index([logEntryId])
   @@index([authorId])
+  @@index([parentId])
 }
 
 model LogEntryPoll {
@@ -921,15 +930,20 @@ model TaskComment {
   content   String    @db.Text
   taskId    String
   authorId  String
+  /// Self-relation para hilos (mismo patrón que LogComment).
+  parentId  String?
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
-  task   Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  author User @relation(fields: [authorId], references: [id])
+  task    Task           @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  author  User           @relation(fields: [authorId], references: [id])
+  parent  TaskComment?   @relation("TaskCommentReplies", fields: [parentId], references: [id], onDelete: SetNull)
+  replies TaskComment[]  @relation("TaskCommentReplies")
 
   @@index([taskId])
   @@index([authorId])
+  @@index([parentId])
 }
 
 model TaskAttachment {
@@ -1057,16 +1071,21 @@ model ProjectLogComment {
   id                String    @id @default(cuid())
   projectLogEntryId String
   authorId          String
+  /// Self-relation para hilos (mismo patrón que LogComment).
+  parentId          String?
   content           String    @db.Text
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
   deletedAt         DateTime?
 
-  logEntry ProjectLogEntry @relation(fields: [projectLogEntryId], references: [id], onDelete: Cascade)
-  author   User            @relation("ProjectLogCommentAuthor", fields: [authorId], references: [id])
+  logEntry ProjectLogEntry      @relation(fields: [projectLogEntryId], references: [id], onDelete: Cascade)
+  author   User                 @relation("ProjectLogCommentAuthor", fields: [authorId], references: [id])
+  parent   ProjectLogComment?   @relation("ProjectLogCommentReplies", fields: [parentId], references: [id], onDelete: SetNull)
+  replies  ProjectLogComment[]  @relation("ProjectLogCommentReplies")
 
   @@index([projectLogEntryId, createdAt])
   @@index([authorId])
+  @@index([parentId])
 }
 
 /**

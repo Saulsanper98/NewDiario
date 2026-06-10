@@ -17,7 +17,10 @@ export const logEntryDetailPageInclude = {
   tags: true,
   attachments: true,
   comments: {
-    where: { deletedAt: null },
+    // No filtramos `deletedAt: null` aquí: con hilos, un comentario padre
+    // soft-deleted puede tener respuestas vivas y se renderiza como
+    // tombstone para conservar el contexto del hilo. El filtrado real lo
+    // hace filterRelevantComments tras la query.
     include: {
       author: {
         select: {

@@ -48,7 +48,9 @@ export const projectDetailInclude = {
           tags: true,
           subtasks: true,
           comments: {
-            where: { deletedAt: null },
+            // Sin filtro de deletedAt: con hilos hay que devolver
+            // padres soft-deleted que tienen respuestas vivas (tombstones).
+            // El consumidor aplica filterRelevantComments al render.
             include: {
               author: { select: { id: true, name: true, image: true } },
             },

@@ -60,7 +60,10 @@ export const TaskDetailPanel = forwardRef<HTMLDivElement, TaskDetailPanelProps>(
   const L = theme === "light";
   const router = useRouter();
   const [comment,        setComment]        = useState("");
-  const [replyTo,       setReplyTo]        = useState<{ name: string } | null>(null);
+  // replyTo ahora guarda también el `id` del comentario padre. Antes era
+  // sólo `{ name }` porque la convención `@nombre:` era cosmética; con
+  // hilos reales necesitamos el id para enviarlo al backend.
+  const [replyTo,       setReplyTo]        = useState<{ id: string; name: string } | null>(null);
   const [comments,       setComments]       = useState(task.comments ?? []);
   const [subtasks,       setSubtasks]       = useState<SubtaskRow[]>(task.subtasks ?? []);
   const [submitting,     setSubmitting]     = useState(false);
@@ -339,7 +342,13 @@ export const TaskDetailPanel = forwardRef<HTMLDivElement, TaskDetailPanelProps>(
       const res = await fetch(`/api/tasks/${task.id}/comments`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: comment }),
+        body: JSON.stringify({
+          content: comment,
+          // Solo enviamos parentCommentId si replyTo.id viene relleno
+          // (cuando proviene de un comentario real). Antes startReply
+          // dejaba `replyTo` sin id porque la respuesta era cosmética.
+          parentCommentId: replyTo?.id ? replyTo.id : undefined,
+        }),
       });
       if (!res.ok) throw new Error();
       const newComment = await res.json();
@@ -348,6 +357,8 @@ export const TaskDetailPanel = forwardRef<HTMLDivElement, TaskDetailPanelProps>(
       taskCommentEditorRef.current?.clear();
       setReplyTo(null);
       router.refresh();
+      // Scroll suave al recién creado para que el usuario lo vea en su sitio.
+      window.setTimeout(() => jumpToComment(newComment.id), 60);
     } catch {
       toast.error("Error al añadir comentario");
     } finally {
@@ -355,13 +366,20 @@ export const TaskDetailPanel = forwardRef<HTMLDivElement, TaskDetailPanelProps>(
     }
   }
 
-  function startReply(authorName: string) {
+  function startReply(commentId: string, authorName: string) {
     const name = authorName.trim() || "Usuario";
-    setReplyTo({ name });
-    setComment(`@${name}: `);
+    setReplyTo({ id: commentId, name });
     setTimeout(() => {
       taskCommentEditorRef.current?.focus();
     }, 50);
+  }
+
+  function jumpToComment(commentId: string) {
+    const el = document.getElementById(`task-comment-${commentId}`);
+    if (!el) return;
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+    el.classList.add("comment-flash");
+    window.setTimeout(() => el.classList.remove("comment-flash"), 1500);
   }
 
   async function toggleSubtask(subtaskId: string, completed: boolean) {
@@ -489,7 +507,22 @@ export const TaskDetailPanel = forwardRef<HTMLDivElement, TaskDetailPanelProps>(
       method: "DELETE",
     });
     if (!res.ok) { toast.error("No se pudo eliminar el comentario"); return; }
-    setComments((prev) => prev.filter((c) => c.id !== commentId));
+    // Si el comentario tenía respuestas vivas, el backend lo deja como
+    // tombstone para preservar el contexto del hilo. En local detectamos
+    // si hay hijos vivos referenciándolo: si los hay, mantenemos el item
+    // en la lista pero marcado como deletedAt (tombstone) para que el
+    // render pinte el placeholder. Si no, lo quitamos del todo.
+    setComments((prev) => {
+      const hasLiveChildren = prev.some(
+        (c) => c.parentId === commentId && !c.deletedAt
+      );
+      if (hasLiveChildren) {
+        return prev.map((c) =>
+          c.id === commentId ? { ...c, deletedAt: new Date() } : c
+        );
+      }
+      return prev.filter((c) => c.id !== commentId);
+    });
     toast.success("Comentario eliminado");
   }
 
@@ -1184,19 +1217,42 @@ export const TaskDetailPanel = forwardRef<HTMLDivElement, TaskDetailPanelProps>(
             {comments.length > 0 && (
               <div className="space-y-3 mb-3">
                 {comments.map((c: TaskCommentRow) => {
-                  const plainForReply = commentPlainText(c.content);
-                  const replyParsed = parseLeadingReplyMention(
-                    plainForReply,
-                    taskReplyParseNames
-                  );
-                  const replyTarget = replyParsed?.replyTarget ?? null;
-                  const bodyText = replyParsed?.bodyText ?? plainForReply;
-                  const isReply = Boolean(replyTarget);
+                  const isTombstone = Boolean(c.deletedAt);
+                  // Hilos reales: parentId apunta al comentario padre por id.
+                  // Si lo encontramos en la lista, mostramos quote-preview;
+                  // si no (raro: padre hard-deleted), pintamos un placeholder.
+                  const parentComment = c.parentId
+                    ? comments.find((p) => p.id === c.parentId) ?? null
+                    : null;
+                  const plainForReply = isTombstone
+                    ? ""
+                    : commentPlainText(c.content);
+                  // La convención antigua `@nombre:` sigue como fallback para
+                  // comentarios pre-migración. Solo la aplicamos cuando NO
+                  // hay parentId real (los nuevos siempre lo traen).
+                  const replyParsed =
+                    !parentComment && !isTombstone
+                      ? parseLeadingReplyMention(plainForReply, taskReplyParseNames)
+                      : null;
+                  const legacyReplyTarget = replyParsed?.replyTarget ?? null;
+                  const bodyText =
+                    replyParsed?.bodyText ?? plainForReply;
+                  const isReply =
+                    Boolean(parentComment) || Boolean(legacyReplyTarget);
+                  const parentSnippet =
+                    parentComment && !parentComment.deletedAt
+                      ? sanitizeHtml(parentComment.content)
+                          .replace(/<[^>]+>/g, " ")
+                          .replace(/\s+/g, " ")
+                          .trim()
+                          .slice(0, 140)
+                      : null;
                   return (
                   <div
                     key={c.id}
+                    id={`task-comment-${c.id}`}
                     className={cn(
-                      "flex gap-2 group/comment",
+                      "flex gap-2 group/comment scroll-mt-24",
                       isReply &&
                         "relative pl-3 sm:pl-4 ml-0.5 border-l-[3px] border-[#4a9eff]/45 rounded-l-md"
                     )}
@@ -1212,67 +1268,94 @@ export const TaskDetailPanel = forwardRef<HTMLDivElement, TaskDetailPanelProps>(
                         "flex-1 rounded-lg p-2.5 min-w-0",
                         isReply
                           ? "bg-[#4a9eff]/[0.08] border border-[#4a9eff]/22 shadow-[inset_0_1px_0_rgba(74,158,255,0.07)]"
-                          : "bg-white/4 border border-white/6"
+                          : "bg-white/4 border border-white/6",
+                        isTombstone && "opacity-60"
                       )}
                     >
                       <div className="flex items-center justify-between gap-2 mb-1">
                         <p className="text-xs font-medium text-white/60 min-w-0 truncate flex flex-wrap items-center gap-x-2 gap-y-0.5">
-                          <span>
+                          <span className={cn(isTombstone && "line-through decoration-1")}>
                             {c.author?.name}{" "}
                             <span className="font-normal text-white/30">· {formatRelative(c.createdAt)}</span>
                           </span>
-                          {isReply && (
+                          {isReply && !isTombstone && (
                             <span className="text-[9px] font-semibold uppercase tracking-wide text-[#4a9eff]/55 px-1.5 py-0.5 rounded-md bg-[#4a9eff]/10 border border-[#4a9eff]/20 shrink-0">
                               Respuesta
                             </span>
                           )}
                         </p>
-                        <div className="flex items-center gap-0.5 shrink-0 opacity-0 group-hover/comment:opacity-100 transition-opacity duration-150">
-                          <button
-                            type="button"
-                            onClick={() => startReply(c.author?.name ?? "Usuario")}
-                            className="p-0.5 rounded text-white/25 hover:text-[#4a9eff]/80 transition-colors"
-                            aria-label="Responder"
-                            title="Responder"
-                          >
-                            <CornerDownLeft className="w-3 h-3" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => void deleteComment(c.id)}
-                            className="p-0.5 rounded text-white/20 hover:text-red-400 transition-all duration-150"
-                            aria-label="Eliminar comentario"
-                          >
-                            <Trash2 className="w-3 h-3" />
-                          </button>
-                        </div>
+                        {!isTombstone && (
+                          <div className="flex items-center gap-0.5 shrink-0 opacity-0 group-hover/comment:opacity-100 transition-opacity duration-150">
+                            <button
+                              type="button"
+                              onClick={() => startReply(c.id, c.author?.name ?? "Usuario")}
+                              className="p-0.5 rounded text-white/25 hover:text-[#4a9eff]/80 transition-colors"
+                              aria-label="Responder"
+                              title="Responder"
+                            >
+                              <CornerDownLeft className="w-3 h-3" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => void deleteComment(c.id)}
+                              className="p-0.5 rounded text-white/20 hover:text-red-400 transition-all duration-150"
+                              aria-label="Eliminar comentario"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                          </div>
+                        )}
                       </div>
-                      {replyTarget && !commentHasRichHtml(c.content) && (
+
+                      {parentComment && (
+                        <button
+                          type="button"
+                          onClick={() => jumpToComment(parentComment.id)}
+                          className="w-full text-left flex items-start gap-1.5 mb-1.5 px-2 py-1 rounded-md bg-white/[0.03] border-l-[2px] border-l-[#4a9eff]/55 hover:bg-white/[0.06] transition-colors"
+                          aria-label={`Ir al comentario original de ${parentComment.author?.name ?? "usuario"}`}
+                        >
+                          <CornerDownLeft className="w-3 h-3 mt-0.5 shrink-0 text-[#4a9eff]/55" aria-hidden />
+                          <div className="min-w-0 flex-1">
+                            <span className="text-[10px] font-semibold text-[#4a9eff]/85">
+                              {parentComment.author?.name ?? "Usuario"}
+                            </span>
+                            <span className={cn(
+                              "ml-1.5 text-[10.5px] leading-snug line-clamp-2 text-white/45",
+                              parentComment.deletedAt && "italic opacity-70"
+                            )}>
+                              {parentComment.deletedAt
+                                ? "Comentario eliminado"
+                                : parentSnippet}
+                            </span>
+                          </div>
+                        </button>
+                      )}
+
+                      {!parentComment && legacyReplyTarget && !commentHasRichHtml(c.content) && (
                         <div className="flex items-center gap-1 mb-1.5 text-[10px] text-white/35">
                           <CornerDownLeft className="w-3 h-3 shrink-0 text-[#4a9eff]/50" />
                           <span>Respondiendo a</span>
-                          <span className="text-[#4a9eff]/75 font-medium">@{replyTarget}</span>
+                          <span className="text-[#4a9eff]/75 font-medium">@{legacyReplyTarget}</span>
                         </div>
                       )}
-                      {commentHasRichHtml(c.content) ? (
+
+                      {isTombstone ? (
+                        <p className="text-xs italic text-white/40">
+                          Comentario eliminado
+                        </p>
+                      ) : commentHasRichHtml(c.content) ? (
                         <div
                           className="text-xs text-white/55 [&_span[data-type=mention]]:text-[#4a9eff] [&_span[data-type=mention]]:font-medium [&_img]:my-1 [&_img]:rounded-md [&_img]:max-h-56 [&_img]:max-w-full [&_img]:h-auto [&_p]:my-0 whitespace-pre-wrap break-words leading-relaxed"
                           dangerouslySetInnerHTML={{
                             __html: sanitizeHtml(c.content),
                           }}
                         />
-                      ) : replyTarget ? (
+                      ) : legacyReplyTarget ? (
                         <div className="text-xs text-white/55 leading-relaxed whitespace-pre-wrap break-words">
-                          <span className="text-[#4a9eff]/80 font-medium">@{replyTarget}:</span>{" "}
+                          <span className="text-[#4a9eff]/80 font-medium">@{legacyReplyTarget}:</span>{" "}
                           {renderPlainTextWithMentions(bodyText, taskMentionHighlightNames)}
                         </div>
                       ) : (
-                        // `bodyText` (== `plainForReply` cuando no hay reply)
-                        // ya pasó por `commentPlainText`, que elimina los
-                        // `<p>`/`<br>` y demás etiquetas. Si pasáramos
-                        // `c.content` directamente, React las escaparía y se
-                        // verían como texto literal: `<p>Hola</p>`. Mismo
-                        // criterio que la rama de respuesta de arriba.
                         <p className="text-xs text-white/55 leading-relaxed whitespace-pre-wrap break-words">
                           {renderPlainTextWithMentions(bodyText, taskMentionHighlightNames)}
                         </p>
@@ -1291,10 +1374,10 @@ export const TaskDetailPanel = forwardRef<HTMLDivElement, TaskDetailPanelProps>(
                 </span>
                 <button
                   type="button"
-                  onClick={() => {
-                    setReplyTo(null);
-                    setComment("");
-                  }}
+                  /* Antes vaciábamos `comment` porque startReply había
+                     inyectado `@nombre: `. Ahora el cuerpo lo escribe el
+                     usuario, así que cancelar no debería perder su texto. */
+                  onClick={() => setReplyTo(null)}
                   className="ml-auto p-0.5 rounded text-white/35 hover:text-white/70 transition-colors"
                   aria-label="Cancelar respuesta"
                 >
