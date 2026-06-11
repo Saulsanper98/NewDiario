@@ -1,5 +1,7 @@
 "use client";
 
+
+import { isLightTheme } from "@/lib/theme";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Calendar as CalendarIcon, ChevronRight, Plane, Repeat } from "lucide-react";
@@ -19,7 +21,7 @@ const MAX_ITEMS = 5;
  */
 export function UpcomingEventsCard() {
   const { theme } = useTheme();
-  const L = theme === "light";
+  const L = isLightTheme(theme);
   const [events, setEvents] = useState<CalendarOccurrenceDTO[] | null>(null);
 
   useEffect(() => {

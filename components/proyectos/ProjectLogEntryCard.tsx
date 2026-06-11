@@ -1,5 +1,7 @@
 "use client";
 
+
+import { isLightTheme } from "@/lib/theme";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { formatDistanceToNow, format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -64,7 +66,7 @@ export function ProjectLogEntryCard({
   highlight,
 }: ProjectLogEntryCardProps) {
   const { theme } = useTheme();
-  const L = theme === "light";
+  const L = isLightTheme(theme);
   const palette = getProjectLogTypePalette(entry.type, L ? "light" : "dark");
   const TypeIcon = palette.icon;
 
@@ -685,7 +687,7 @@ function ProjectLogComments({
   isProjectOwner,
 }: ProjectLogCommentsProps) {
   const { theme } = useTheme();
-  const L = theme === "light";
+  const L = isLightTheme(theme);
   const [open, setOpen] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [loading, setLoading] = useState(false);

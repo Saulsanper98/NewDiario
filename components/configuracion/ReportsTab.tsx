@@ -1,5 +1,7 @@
 "use client";
 
+
+import { isLightTheme } from "@/lib/theme";
 import { useState } from "react";
 import Link from "next/link";
 import {
@@ -17,7 +19,7 @@ import { useTheme } from "@/components/layout/ThemeProvider";
 
 export function ReportsTab() {
   const { theme } = useTheme();
-  const L = theme === "light";
+  const L = isLightTheme(theme);
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
 

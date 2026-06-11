@@ -1,5 +1,7 @@
 "use client";
 
+
+import { isLightTheme } from "@/lib/theme";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
@@ -36,7 +38,7 @@ export function BitacoraDatePopover({
   onSelect,
 }: BitacoraDatePopoverProps) {
   const { theme } = useTheme();
-  const isLight = theme === "light";
+  const isLight = isLightTheme(theme);
 
   const [open, setOpen] = useState(false);
   const [coords, setCoords] = useState({ top: 0, left: 0 });

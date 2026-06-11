@@ -1,5 +1,7 @@
 "use client";
 
+
+import { isLightTheme } from "@/lib/theme";
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -209,7 +211,7 @@ function ConfirmCancelDialog({
       <div
         className={cn(
           "rounded-2xl p-6 max-w-sm w-full space-y-4 animate-in fade-in zoom-in-95 duration-200",
-          theme === "light"
+          isLightTheme(theme)
             ? "glass-3 border border-white/55"
             : "glass-4"
         )}
@@ -218,20 +220,20 @@ function ConfirmCancelDialog({
           <div
             className={cn(
               "w-9 h-9 rounded-full border flex items-center justify-center shrink-0",
-              theme === "light"
+              isLightTheme(theme)
                 ? "bg-amber-100/90 border-amber-300/60"
                 : "bg-amber-500/15 border-amber-500/25"
             )}
           >
             <AlertTriangle
-              className={cn("w-4 h-4", theme === "light" ? "text-amber-700" : "text-amber-400")}
+              className={cn("w-4 h-4", isLightTheme(theme) ? "text-amber-700" : "text-amber-400")}
             />
           </div>
           <div>
             <p
               className={cn(
                 "text-sm font-semibold",
-                theme === "light" ? "text-zinc-900" : "text-white"
+                isLightTheme(theme) ? "text-zinc-900" : "text-white"
               )}
             >
               ¿Descartar cambios?
@@ -239,7 +241,7 @@ function ConfirmCancelDialog({
             <p
               className={cn(
                 "text-xs mt-0.5",
-                theme === "light" ? "text-zinc-500" : "text-white/45"
+                isLightTheme(theme) ? "text-zinc-500" : "text-white/45"
               )}
             >
               Tienes cambios sin guardar.
@@ -768,7 +770,7 @@ export function NewLogEntryForm({
       data-bitacora-entry-form
       className={cn(
         "max-w-3xl mx-auto",
-        theme === "light"
+        isLightTheme(theme)
           ? "space-y-6 p-5 sm:p-8 sm:space-y-7 rounded-2xl sm:rounded-3xl border border-white/55 bg-gradient-to-br from-white/78 via-white/52 to-zinc-100/35 backdrop-blur-2xl shadow-[0_14px_48px_-10px_rgba(15,23,42,0.11),0_4px_18px_-4px_rgba(15,23,42,0.07),inset_0_1px_0_rgba(255,255,255,0.92)] ring-1 ring-white/35"
           : "space-y-5 p-4 sm:p-6"
       )}
@@ -777,13 +779,13 @@ export function NewLogEntryForm({
         <div
           className={cn(
             "rounded-xl border px-3.5 py-2.5 text-sm",
-            theme === "light"
+            isLightTheme(theme)
               ? "border-amber-300/50 bg-amber-50/90 text-amber-950/90"
               : "border-amber-400/25 bg-amber-400/10 text-amber-100/90"
           )}
         >
           <p className="font-medium">Fecha de la entrada</p>
-          <p className={cn("text-xs mt-0.5", theme === "light" ? "text-amber-900/75" : "text-amber-100/65")}>
+          <p className={cn("text-xs mt-0.5", isLightTheme(theme) ? "text-amber-900/75" : "text-amber-100/65")}>
             Se guardará con registro del día <strong>{backdateBannerLabel}</strong> (turno
             seleccionado). La hora mostrada en listados corresponde a ese día.
           </p>
@@ -794,7 +796,7 @@ export function NewLogEntryForm({
         <h1
           className={cn(
             "font-semibold tracking-tight",
-            theme === "light"
+            isLightTheme(theme)
               ? "text-2xl sm:text-[1.65rem] text-zinc-900 [text-shadow:0_1px_0_rgba(255,255,255,0.6)]"
               : "text-xl text-white"
           )}
@@ -806,7 +808,7 @@ export function NewLogEntryForm({
         <div
           className={cn(
             "flex items-center gap-3 text-xs",
-            theme === "light" ? "text-zinc-500" : "text-white/30"
+            isLightTheme(theme) ? "text-zinc-500" : "text-white/30"
           )}
         >
           {lastSaved && !editingEntry && (
@@ -820,7 +822,7 @@ export function NewLogEntryForm({
             <span
               className={cn(
                 "flex items-center gap-1",
-                theme === "light" ? "text-zinc-500" : "text-white/30"
+                isLightTheme(theme) ? "text-zinc-500" : "text-white/30"
               )}
             >
               <Clock className="w-3 h-3" />
@@ -835,7 +837,7 @@ export function NewLogEntryForm({
         <div
           className={cn(
             "rounded-xl p-4 border flex items-center gap-4",
-            theme === "light"
+            isLightTheme(theme)
               ? "bg-amber-50/75 border-amber-200/70 backdrop-blur-md shadow-[0_4px_22px_rgba(245,158,11,0.09)]"
               : "glass border-amber-500/20"
           )}
@@ -843,14 +845,14 @@ export function NewLogEntryForm({
           <AlertTriangle
             className={cn(
               "w-4 h-4 shrink-0",
-              theme === "light" ? "text-amber-600" : "text-amber-400"
+              isLightTheme(theme) ? "text-amber-600" : "text-amber-400"
             )}
           />
           <div className="flex-1 min-w-0">
             <p
               className={cn(
                 "text-sm",
-                theme === "light" ? "text-zinc-800" : "text-white/70"
+                isLightTheme(theme) ? "text-zinc-800" : "text-white/70"
               )}
             >
               Hay un borrador guardado de esta entrada
@@ -858,7 +860,7 @@ export function NewLogEntryForm({
             <p
               className={cn(
                 "text-xs mt-0.5 truncate",
-                theme === "light" ? "text-zinc-500" : "text-white/35"
+                isLightTheme(theme) ? "text-zinc-500" : "text-white/35"
               )}
             >
               Título: &quot;{draftRestoreData.title || "(sin título)"}&quot;
@@ -875,7 +877,7 @@ export function NewLogEntryForm({
 
       <form
         onSubmit={handleSubmit(onSubmit)}
-        className={cn(theme === "light" ? "space-y-6 sm:space-y-7" : "space-y-5")}
+        className={cn(isLightTheme(theme) ? "space-y-6 sm:space-y-7" : "space-y-5")}
       >
 
         {/* Title — B34, B37, B40 */}
@@ -894,7 +896,7 @@ export function NewLogEntryForm({
                   onClick={() => setTemplateModalOpen(true)}
                   className={cn(
                     "inline-flex items-center gap-1 text-[11.5px] font-medium px-2 py-0.5 rounded-md border transition-colors",
-                    theme === "light"
+                    isLightTheme(theme)
                       ? "text-zinc-600 bg-white border-zinc-200 hover:bg-zinc-50 hover:border-zinc-300"
                       : "text-white/65 bg-white/[0.04] border-white/[0.1] hover:bg-white/[0.07] hover:text-white/85"
                   )}
@@ -918,14 +920,14 @@ export function NewLogEntryForm({
             placeholder={TYPE_PLACEHOLDER[typeValue] ?? "Resumen breve de la entrada..."}
             error={errors.title?.message}
             maxLength={LOG_ENTRY_TITLE_MAX}
-            className={theme === "light" ? lightTitleInputClass : undefined}
+            className={isLightTheme(theme) ? lightTitleInputClass : undefined}
             {...register("title")}
           />
           {!editingEntry && (
             <p
               className={cn(
                 "mt-1.5 text-[11px] leading-relaxed",
-                theme === "light" ? "text-zinc-500" : "text-white/35"
+                isLightTheme(theme) ? "text-zinc-500" : "text-white/35"
               )}
             >
               Opcional si la entrada es solo encuestas: puedes dejar el título vacío y usaremos la
@@ -948,12 +950,12 @@ export function NewLogEntryForm({
                   onClick={() => setValue("type", type as FormData["type"], { shouldValidate: true })}
                   className={cn(
                     "flex flex-col items-center gap-1.5 px-3 py-2.5 rounded-xl border transition-all duration-200 text-center",
-                    theme === "light" && "shadow-[inset_0_1px_0_rgba(255,255,255,0.55)]",
+                    isLightTheme(theme) && "shadow-[inset_0_1px_0_rgba(255,255,255,0.55)]",
                     isActive
-                      ? theme === "light"
+                      ? isLightTheme(theme)
                         ? TYPE_ACTIVE_LIGHT[type] ?? `${cfg.activeBg} ${cfg.activeBorder} ${cfg.activeText}`
                         : `${cfg.activeBg} ${cfg.activeBorder} ${cfg.activeText}`
-                      : theme === "light"
+                      : isLightTheme(theme)
                         ? TYPE_SHIFT_INACTIVE_LIGHT
                         : "border-white/8 bg-white/3 text-white/40 hover:border-white/16 hover:text-white/70 hover:bg-white/6"
                   )}
@@ -983,12 +985,12 @@ export function NewLogEntryForm({
                   onClick={() => setValue("shift", shift, { shouldValidate: true })}
                   className={cn(
                     "flex flex-col items-center gap-1 px-3 py-2.5 rounded-xl border transition-all duration-200",
-                    theme === "light" && "shadow-[inset_0_1px_0_rgba(255,255,255,0.55)]",
+                    isLightTheme(theme) && "shadow-[inset_0_1px_0_rgba(255,255,255,0.55)]",
                     isActive
-                      ? theme === "light"
+                      ? isLightTheme(theme)
                         ? SHIFT_BTN_LIGHT_ACTIVE[shift]
                         : cfg.activeCl
-                      : theme === "light"
+                      : isLightTheme(theme)
                         ? TYPE_SHIFT_INACTIVE_LIGHT
                         : "border-white/8 bg-white/3 text-white/40 hover:border-white/16 hover:text-white/70 hover:bg-white/6"
                   )}
@@ -1011,7 +1013,7 @@ export function NewLogEntryForm({
               onClick={() => setShowPreview((v) => !v)}
               className={cn(
                 "flex items-center gap-1.5 text-xs transition-colors",
-                theme === "light"
+                isLightTheme(theme)
                   ? "text-zinc-500 hover:text-zinc-800"
                   : "text-white/40 hover:text-white/70"
               )}
@@ -1025,7 +1027,7 @@ export function NewLogEntryForm({
             <div
               className={cn(
                 "border rounded-xl p-4 min-h-[200px]",
-                theme === "light"
+                isLightTheme(theme)
                   ? "border-white/55 bg-white/45 backdrop-blur-md shadow-[inset_0_1px_0_rgba(255,255,255,0.75),0_2px_12px_rgba(15,23,42,0.05)]"
                   : "border-white/10 bg-white/3"
               )}
@@ -1041,7 +1043,7 @@ export function NewLogEntryForm({
                 <p
                   className={cn(
                     "text-sm italic",
-                    theme === "light" ? "text-zinc-400" : "text-white/20"
+                    isLightTheme(theme) ? "text-zinc-400" : "text-white/20"
                   )}
                 >
                   Sin contenido aún.
@@ -1078,7 +1080,7 @@ export function NewLogEntryForm({
         <div
           className={cn(
             "rounded-2xl border p-4 sm:p-5",
-            theme === "light"
+            isLightTheme(theme)
               ? "border-white/50 bg-white/42 backdrop-blur-xl shadow-[0_4px_28px_rgba(15,23,42,0.06),inset_0_1px_0_rgba(255,255,255,0.8)]"
               : "border-white/10 bg-white/[0.03]"
           )}
@@ -1090,7 +1092,7 @@ export function NewLogEntryForm({
             <p
               className={cn(
                 "text-xs mt-1.5 leading-relaxed max-w-2xl",
-                theme === "light" ? "text-zinc-500" : "text-white/35"
+                isLightTheme(theme) ? "text-zinc-500" : "text-white/35"
               )}
             >
               KPI o dato breve para contexto (no sustituye el cuerpo de la entrada).
@@ -1109,7 +1111,7 @@ export function NewLogEntryForm({
                 htmlFor="metric-anchor-label"
                 className={cn(
                   "text-xs font-medium",
-                  theme === "light" ? "text-zinc-600" : "text-white/50"
+                  isLightTheme(theme) ? "text-zinc-600" : "text-white/50"
                 )}
               >
                 Etiqueta
@@ -1120,7 +1122,7 @@ export function NewLogEntryForm({
                 onChange={(e) => setMetricLabel(e.target.value)}
                 maxLength={160}
                 placeholder="Ej: Incidencias abiertas"
-                className={theme === "light" ? lightTitleInputClass : undefined}
+                className={isLightTheme(theme) ? lightTitleInputClass : undefined}
               />
             </div>
             <div className="flex min-w-0 flex-col gap-1.5">
@@ -1128,7 +1130,7 @@ export function NewLogEntryForm({
                 htmlFor="metric-anchor-value"
                 className={cn(
                   "text-xs font-medium",
-                  theme === "light" ? "text-zinc-600" : "text-white/50"
+                  isLightTheme(theme) ? "text-zinc-600" : "text-white/50"
                 )}
               >
                 Valor
@@ -1139,7 +1141,7 @@ export function NewLogEntryForm({
                 onChange={(e) => setMetricValue(e.target.value)}
                 maxLength={120}
                 placeholder="Ej: 12"
-                className={theme === "light" ? lightTitleInputClass : undefined}
+                className={isLightTheme(theme) ? lightTitleInputClass : undefined}
               />
             </div>
             <div className="flex min-w-0 flex-col gap-1.5">
@@ -1147,7 +1149,7 @@ export function NewLogEntryForm({
                 htmlFor="metric-anchor-trend"
                 className={cn(
                   "text-xs font-medium",
-                  theme === "light" ? "text-zinc-600" : "text-white/50"
+                  isLightTheme(theme) ? "text-zinc-600" : "text-white/50"
                 )}
               >
                 Tendencia
@@ -1163,7 +1165,7 @@ export function NewLogEntryForm({
                   { value: "DOWN", label: "Baja" },
                   { value: "FLAT", label: "Estable" },
                 ]}
-                light={theme === "light"}
+                light={isLightTheme(theme)}
                 ariaLabel="Tendencia de la métrica"
               />
             </div>
@@ -1176,7 +1178,7 @@ export function NewLogEntryForm({
           <div
             className={cn(
               "tags-composer-shell flex flex-wrap gap-1.5 p-2.5 rounded-xl min-h-9 transition-[border-color,box-shadow] duration-150",
-              theme === "light"
+              isLightTheme(theme)
                 ? "border border-white/55 bg-white/45 backdrop-blur-md shadow-[inset_0_1px_0_rgba(255,255,255,0.75),0_1px_3px_rgba(15,23,42,0.04)] focus-within:border-[#c4ae16]/55 focus-within:ring-2 focus-within:ring-[#d4bc1a]/18"
                 : "bg-white/3 border border-white/10 focus-within:border-[#ffeb66]/38 focus-within:ring-2 focus-within:ring-[#ffeb66]/14"
             )}
@@ -1186,7 +1188,7 @@ export function NewLogEntryForm({
                 key={tag}
                 className={cn(
                   "flex items-center gap-1 text-xs px-2 py-0.5 rounded-md border",
-                  theme === "light"
+                  isLightTheme(theme)
                     ? "bg-white/70 text-zinc-800 border-zinc-200/70 backdrop-blur-sm shadow-sm"
                     : "bg-white/8 text-white/60 border-white/10"
                 )}
@@ -1197,7 +1199,7 @@ export function NewLogEntryForm({
                   onClick={() => removeTag(tag)}
                   className={cn(
                     "transition-colors",
-                    theme === "light" ? "text-zinc-400 hover:text-zinc-700" : "text-white/30 hover:text-white/60"
+                    isLightTheme(theme) ? "text-zinc-400 hover:text-zinc-700" : "text-white/30 hover:text-white/60"
                   )}
                 >
                   <X className="w-3 h-3" />
@@ -1212,7 +1214,7 @@ export function NewLogEntryForm({
               placeholder={tags.length === 0 ? "Añadir etiqueta (Enter)..." : ""}
               className={cn(
                 "bg-transparent text-sm min-w-24 flex-1 focus:outline-none focus-visible:outline-none",
-                theme === "light"
+                isLightTheme(theme)
                   ? "text-zinc-800 placeholder:text-zinc-400"
                   : "text-white/70 placeholder:text-white/25"
               )}
@@ -1221,7 +1223,7 @@ export function NewLogEntryForm({
           <p
             className={cn(
               "text-[11px]",
-              theme === "light" ? "text-zinc-500" : "text-white/25"
+              isLightTheme(theme) ? "text-zinc-500" : "text-white/25"
             )}
           >
             Pulsa Enter para añadir cada etiqueta
@@ -1232,7 +1234,7 @@ export function NewLogEntryForm({
         <Card
           className={cn(
             "p-4 sm:p-5",
-            theme === "light" &&
+            isLightTheme(theme) &&
               "border border-amber-200/45 bg-gradient-to-br from-amber-50/55 via-white/40 to-white/30 backdrop-blur-lg shadow-[inset_0_1px_0_rgba(255,255,255,0.75),0_4px_20px_rgba(245,158,11,0.08)]"
           )}
         >
@@ -1244,7 +1246,7 @@ export function NewLogEntryForm({
                 <Switch
                   checked={Boolean(field.value)}
                   onCheckedChange={(checked) => field.onChange(checked)}
-                  light={theme === "light"}
+                  light={isLightTheme(theme)}
                   label="Requiere seguimiento"
                 />
               )}
@@ -1253,13 +1255,13 @@ export function NewLogEntryForm({
               <p
                 className={cn(
                   "text-sm font-medium flex items-center gap-2",
-                  theme === "light" ? "text-zinc-900" : "text-white"
+                  isLightTheme(theme) ? "text-zinc-900" : "text-white"
                 )}
               >
                 <AlertTriangle
                   className={cn(
                     "w-3.5 h-3.5",
-                    theme === "light" ? "text-amber-600" : "text-yellow-400"
+                    isLightTheme(theme) ? "text-amber-600" : "text-yellow-400"
                   )}
                 />
                 Requiere seguimiento
@@ -1267,7 +1269,7 @@ export function NewLogEntryForm({
               <p
                 className={cn(
                   "text-xs mt-0.5",
-                  theme === "light" ? "text-zinc-600" : "text-white/40"
+                  isLightTheme(theme) ? "text-zinc-600" : "text-white/40"
                 )}
               >
                 Esta entrada quedará marcada para atención posterior
@@ -1304,7 +1306,7 @@ export function NewLogEntryForm({
                       "flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs transition-all duration-200 border",
                       shared
                         ? ""
-                        : theme === "light"
+                        : isLightTheme(theme)
                           ? "border border-white/55 bg-white/45 text-zinc-600 backdrop-blur-md shadow-[inset_0_1px_0_rgba(255,255,255,0.65)] hover:border-zinc-200/90 hover:bg-white/60 hover:text-zinc-900"
                           : "border-white/10 bg-white/4 text-white/50 hover:border-white/20 hover:text-white/70"
                     )}
@@ -1359,7 +1361,7 @@ export function NewLogEntryForm({
                 <span
                   className={cn(
                     "absolute -bottom-5 right-0 text-[10px] whitespace-nowrap",
-                    theme === "light" ? "text-zinc-500" : "text-white/20"
+                    isLightTheme(theme) ? "text-zinc-500" : "text-white/20"
                   )}
                 >
                   Ctrl+Enter

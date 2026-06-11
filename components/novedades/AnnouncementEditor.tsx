@@ -1,5 +1,7 @@
 "use client";
 
+
+import { isLightTheme } from "@/lib/theme";
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { Trash2, RotateCcw } from "lucide-react";
@@ -31,7 +33,7 @@ export function AnnouncementEditor({
   onSaved,
 }: AnnouncementEditorProps) {
   const { theme } = useTheme();
-  const isLight = theme === "light";
+  const isLight = isLightTheme(theme);
 
   const [title, setTitle] = useState("");
   const [message, setMessage] = useState("");

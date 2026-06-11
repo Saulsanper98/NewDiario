@@ -1,5 +1,7 @@
 "use client";
 
+
+import { isLightTheme } from "@/lib/theme";
 import { useMemo } from "react";
 import { useTheme } from "@/components/layout/ThemeProvider";
 import { softenChillAccent } from "@/lib/accent-display";
@@ -19,7 +21,7 @@ function normalizeHex6(hex: string): string {
  */
 export function useAccentForUi() {
   const { theme } = useTheme();
-  const isLight = theme === "light";
+  const isLight = isLightTheme(theme);
 
   return useMemo(() => {
     function accent(c?: string | null): string {

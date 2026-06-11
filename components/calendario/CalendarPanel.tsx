@@ -1,5 +1,7 @@
 "use client";
 
+
+import { isLightTheme } from "@/lib/theme";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Calendar as CalendarIcon,
@@ -36,7 +38,7 @@ const FILTERS_STORAGE_KEY = "calendario:overlayFilters";
 
 export function CalendarPanel({ department }: CalendarPanelProps) {
   const { theme } = useTheme();
-  const L = theme === "light";
+  const L = isLightTheme(theme);
 
   const [view, setView] = useState<CalendarView>(() => {
     if (typeof window === "undefined") return "month";

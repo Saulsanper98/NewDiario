@@ -1,5 +1,7 @@
 "use client";
 
+
+import { isLightTheme } from "@/lib/theme";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   AtSign,
@@ -143,7 +145,7 @@ const CATEGORY_META: Record<
  */
 export function SoundLibraryCard() {
   const { theme } = useTheme();
-  const L = theme === "light";
+  const L = isLightTheme(theme);
 
   const [prefs, setPrefs] = useState<SoundPreferences>({});
   const [, setLoading] = useState(true);

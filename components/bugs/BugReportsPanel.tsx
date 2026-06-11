@@ -1,5 +1,7 @@
 "use client";
 
+
+import { isLightTheme } from "@/lib/theme";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -179,7 +181,7 @@ const PRIORITY_ORDER: BugReportPriority[] = ["LOW", "MEDIUM", "HIGH"];
 
 export function BugReportsPanel() {
   const { theme } = useTheme();
-  const L = theme === "light";
+  const L = isLightTheme(theme);
   const router = useRouter();
 
   const [reports, setReports] = useState<BugReportRow[]>([]);

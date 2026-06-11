@@ -1,5 +1,7 @@
 "use client";
 
+
+import { isLightTheme } from "@/lib/theme";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
@@ -38,7 +40,7 @@ type SortKey = "title" | "priority" | "dueDate" | "assignee" | "status";
 
 export function TaskListView({ columns, projectId }: TaskListViewProps) {
   const { theme } = useTheme();
-  const L = theme === "light";
+  const L = isLightTheme(theme);
   const router = useRouter();
   const [sortKey, setSortKey] = useState<SortKey>("priority");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");

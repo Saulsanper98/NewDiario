@@ -1,5 +1,7 @@
 "use client";
 
+
+import { isLightTheme } from "@/lib/theme";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Camera, ChevronDown, ChevronRight, Loader2, Trash2 } from "lucide-react";
@@ -36,7 +38,7 @@ export function BoardSnapshotPanel({
 }: BoardSnapshotPanelProps) {
   const router = useRouter();
   const { theme } = useTheme();
-  const L = theme === "light";
+  const L = isLightTheme(theme);
   const [open, setOpen] = useState(false);
   const [snapshots, setSnapshots] = useState(initialSnapshots);
 

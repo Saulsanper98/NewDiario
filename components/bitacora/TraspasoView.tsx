@@ -1,5 +1,7 @@
 "use client";
 
+
+import { isLightTheme } from "@/lib/theme";
 import { useRef, type ReactNode } from "react";
 import {
   BookOpen,
@@ -277,7 +279,7 @@ export function TraspasoView({
   shiftCounts,
 }: TraspasoViewProps) {
   const { theme } = useTheme();
-  const isLight = theme === "light";
+  const isLight = isLightTheme(theme);
   const printRef = useRef<HTMLDivElement>(null);
   const now = new Date();
 

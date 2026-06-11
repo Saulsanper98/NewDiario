@@ -1,5 +1,7 @@
 "use client";
 
+
+import { isLightTheme } from "@/lib/theme";
 import { useEffect, useRef, useState, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { useFocusTrap } from "@/lib/hooks/useFocusTrap";
@@ -35,7 +37,7 @@ export function Modal({
   className,
 }: ModalProps) {
   const { theme } = useTheme();
-  const isLight = theme === "light";
+  const isLight = isLightTheme(theme);
   const dialogRef = useRef<HTMLDivElement>(null);
   const [mounted, setMounted] = useState(false);
   const [closing, setClosing] = useState(false);

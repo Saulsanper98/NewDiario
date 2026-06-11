@@ -1,5 +1,7 @@
 "use client";
 
+
+import { isLightTheme } from "@/lib/theme";
 import { useEffect, useState } from "react";
 import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
@@ -76,7 +78,7 @@ export function MobileNav({
   unreadReleaseNotes = 0,
 }: MobileNavProps) {
   const { theme, setTheme } = useTheme();
-  const L = theme === "light";
+  const L = isLightTheme(theme);
   const pathname = usePathname();
   const [moreOpen, setMoreOpen] = useState(false);
 

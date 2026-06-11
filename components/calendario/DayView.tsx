@@ -1,5 +1,7 @@
 "use client";
 
+
+import { isLightTheme } from "@/lib/theme";
 import { useMemo } from "react";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/components/layout/ThemeProvider";
@@ -22,7 +24,7 @@ interface Props {
  */
 export function DayView({ cursor, events, overlays, loading, onCreate, onPickEvent }: Props) {
   const { theme } = useTheme();
-  const L = theme === "light";
+  const L = isLightTheme(theme);
 
   const { allDay, timed } = useMemo(() => {
     const a: CalendarOccurrenceDTO[] = [];

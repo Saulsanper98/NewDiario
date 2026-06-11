@@ -1,5 +1,7 @@
 "use client";
 
+
+import { isLightTheme } from "@/lib/theme";
 import type { ReactNode } from "react";
 import { AlertTriangle, type LucideIcon } from "lucide-react";
 import { useTheme } from "@/components/layout/ThemeProvider";
@@ -35,7 +37,7 @@ export function ErrorShell({
   footer,
 }: ErrorShellProps) {
   const { theme } = useTheme();
-  const L = theme === "light";
+  const L = isLightTheme(theme);
 
   const iconTone =
     tone === "danger"

@@ -1,5 +1,7 @@
 "use client";
 
+
+import { isLightTheme } from "@/lib/theme";
 import { useState } from "react";
 import { usePathname } from "next/navigation";
 import { Bug } from "lucide-react";
@@ -10,7 +12,7 @@ import { ReportBugDialog } from "./ReportBugDialog";
 /** Acceso discreto en la barra superior (no compite con el FAB «Nueva entrada»). */
 export function ReportBugHeaderButton() {
   const { theme } = useTheme();
-  const isLight = theme === "light";
+  const isLight = isLightTheme(theme);
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
 

@@ -1,4 +1,8 @@
 import { Mention } from "@tiptap/extension-mention";
+// Renombrado en el import para no colisionar con la función local
+// `isLightTheme()` que lee el modo desde el DOM (este módulo se usa fuera
+// del árbol de React).
+import { isLightTheme as isLightThemeMode, type ThemeMode } from "@/lib/theme";
 import type { Editor } from "@tiptap/core";
 import type { SuggestionProps } from "@tiptap/suggestion";
 import { exitSuggestion } from "@tiptap/suggestion";
@@ -73,7 +77,8 @@ async function fetchMentionItemsWithDeptOption(
 
 function isLightTheme(): boolean {
   if (typeof document === "undefined") return false;
-  return document.documentElement.dataset.theme === "light";
+  const mode = (document.documentElement.dataset.theme ?? "aurora") as ThemeMode;
+  return isLightThemeMode(mode);
 }
 
 function shellClass(): string {

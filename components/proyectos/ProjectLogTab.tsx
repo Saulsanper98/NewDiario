@@ -1,5 +1,7 @@
 "use client";
 
+
+import { isLightTheme } from "@/lib/theme";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
@@ -46,7 +48,7 @@ export function ProjectLogTab({
   onReadStateChange,
 }: ProjectLogTabProps) {
   const { theme } = useTheme();
-  const L = theme === "light";
+  const L = isLightTheme(theme);
   const { data: session } = useSession();
   const currentUser = session?.user as SessionUser | undefined;
   const searchParams = useSearchParams();

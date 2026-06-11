@@ -1,5 +1,7 @@
 "use client";
 
+
+import { isLightTheme } from "@/lib/theme";
 import { useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import {
@@ -95,7 +97,7 @@ export function LogTemplateModal({
   currentUserId,
 }: LogTemplateModalProps) {
   const { theme } = useTheme();
-  const L = theme === "light";
+  const L = isLightTheme(theme);
 
   const [mode, setMode] = useState<Mode>({ kind: "list" });
   const [items, setItems] = useState<LogTemplateDTO[]>([]);
@@ -388,7 +390,7 @@ function TemplateList({
   onRetry,
 }: TemplateListProps) {
   const { theme } = useTheme();
-  const L = theme === "light";
+  const L = isLightTheme(theme);
 
   if (loading) {
     return (
@@ -504,7 +506,7 @@ function TemplateGroup({
   onDelete,
 }: TemplateGroupProps) {
   const { theme } = useTheme();
-  const L = theme === "light";
+  const L = isLightTheme(theme);
   return (
     <section>
       <h3
@@ -547,7 +549,7 @@ function TemplateRow({
   onDelete,
 }: TemplateRowProps) {
   const { theme } = useTheme();
-  const L = theme === "light";
+  const L = isLightTheme(theme);
   const isMine =
     template.ownerUserId !== null && template.ownerUserId === currentUserId;
   const isDept = template.departmentId !== null;
@@ -759,7 +761,7 @@ function TemplateEditor({
   onSaved,
 }: TemplateEditorProps) {
   const { theme } = useTheme();
-  const L = theme === "light";
+  const L = isLightTheme(theme);
 
   const [name, setName] = useState(existing?.name ?? "");
   const [description, setDescription] = useState(existing?.description ?? "");
@@ -1130,7 +1132,7 @@ function TemplateEditor({
    del editor para que el usuario sepa qué puede escribir. */
 function PlaceholderHelper() {
   const { theme } = useTheme();
-  const L = theme === "light";
+  const L = isLightTheme(theme);
   return (
     <details
       className={cn(

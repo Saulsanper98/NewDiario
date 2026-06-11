@@ -1,5 +1,7 @@
 "use client";
 
+
+import { isLightTheme } from "@/lib/theme";
 import { useState, useTransition, useCallback, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -372,7 +374,7 @@ function ShiftHeader({
 export function BitacoraDayView({ logs, selectedDate, departmentName }: BitacoraDayViewProps) {
   const router = useRouter();
   const { theme } = useTheme();
-  const isLight = theme === "light";
+  const isLight = isLightTheme(theme);
   const shiftPalette = isLight ? SHIFT_STYLE_LIGHT : SHIFT_STYLE_DARK;
   const [, startTransition] = useTransition();
   const [viewMode, setViewMode]     = useState<ViewMode>("list");

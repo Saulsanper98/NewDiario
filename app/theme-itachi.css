@@ -55,6 +55,68 @@ html[data-theme="itachi"] {
   --card-isolation: auto;
 
   color-scheme: dark;
+
+  /* ── Tokens de armonización tributo (consumidos por
+   *    `theme-tributes-armonization.css`). Paleta Itachi: ceniza profunda
+   *    con rojo sangre. Mañana = ámbar quemado (la luna a través del
+   *    humo), Tarde = brasa, Noche = ceniza azulada (Tsukuyomi). */
+  --tribute-surface-1:        rgba(28, 10, 12, 0.58);
+  --tribute-surface-2:        rgba(30, 10, 12, 0.64);
+  --tribute-surface-3:        rgba(34, 12, 14, 0.68);
+  --tribute-surface-4:        rgba(38, 14, 16, 0.72);
+  --tribute-surface-5:        rgba(48, 18, 22, 0.76);
+  --tribute-surface-hover:    rgba(42, 16, 18, 0.80);
+  --tribute-surface-hover-strong: rgba(60, 22, 28, 0.86);
+
+  --tribute-card-solid: linear-gradient(160deg,
+    rgba(36, 14, 18, 0.94) 0%,
+    rgba(22, 8, 12, 0.96) 55%,
+    rgba(14, 5, 7, 0.97) 100%);
+  --tribute-card-border: rgba(214, 52, 58, 0.18);
+  --tribute-card-shadow:
+    0 1px 0 rgba(214, 52, 58, 0.05) inset,
+    0 10px 28px rgba(0, 0, 0, 0.60),
+    0 18px 60px rgba(214, 52, 58, 0.06);
+
+  --tribute-cta-text:           #ff7780;
+  --tribute-cta-border-soft:    rgba(214, 52, 58, 0.30);
+  --tribute-cta-border:         rgba(214, 52, 58, 0.42);
+  --tribute-cta-soft-bg:        rgba(214, 52, 58, 0.10);
+  --tribute-cta-soft-bg-strong: rgba(214, 52, 58, 0.18);
+
+  /* Mañana = ámbar de luna a través del humo. */
+  --tribute-shift-m-text:           #d4a05c;
+  --tribute-shift-m-text-soft:      #ffe5c0;
+  --tribute-shift-m-bg:             rgba(212, 160, 92, 0.10);
+  --tribute-shift-m-bg-strong:      rgba(212, 160, 92, 0.22);
+  --tribute-shift-m-border:         rgba(212, 160, 92, 0.32);
+  --tribute-shift-m-border-strong:  rgba(212, 160, 92, 0.55);
+
+  /* Tarde = brasa cobriza. */
+  --tribute-shift-t-text:           #d68064;
+  --tribute-shift-t-text-soft:      #ffd5c8;
+  --tribute-shift-t-bg:             rgba(214, 128, 100, 0.10);
+  --tribute-shift-t-bg-strong:      rgba(214, 128, 100, 0.22);
+  --tribute-shift-t-border:         rgba(214, 128, 100, 0.32);
+  --tribute-shift-t-border-strong:  rgba(214, 128, 100, 0.55);
+
+  /* Noche = ceniza azulada Tsukuyomi (sin saturación, frío sobre rojo). */
+  --tribute-shift-n-text:           #a298b8;
+  --tribute-shift-n-text-soft:      #d8d2e0;
+  --tribute-shift-n-bg:             rgba(140, 130, 175, 0.10);
+  --tribute-shift-n-bg-strong:      rgba(140, 130, 175, 0.22);
+  --tribute-shift-n-border:         rgba(140, 130, 175, 0.32);
+  --tribute-shift-n-border-strong:  rgba(140, 130, 175, 0.55);
+
+  /* "Vencidos" distinto del rojo Itachi: violeta-burdeos. */
+  --tribute-danger-text:        #c46878;
+  --tribute-danger-bg:          rgba(190, 70, 90, 0.16);
+  --tribute-danger-bg-strong:   rgba(190, 70, 90, 0.26);
+  --tribute-danger-border:      rgba(190, 70, 90, 0.46);
+
+  --tribute-divider:        rgba(214, 52, 58, 0.16);
+  --tribute-divider-soft:   rgba(214, 52, 58, 0.08);
+  --tribute-chip-neutral:   rgba(214, 52, 58, 0.08);
 }
 
 html[data-theme="itachi"] body {

@@ -1,5 +1,7 @@
 "use client";
 
+
+import { isLightTheme } from "@/lib/theme";
 import { useState, useCallback, useMemo, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useVisibleRefresh } from "@/hooks/use-visible-refresh";
@@ -136,7 +138,7 @@ interface KanbanBoardProps {
 
 export function KanbanBoard({ project, allUsers }: KanbanBoardProps) {
   const { theme } = useTheme();
-  const L = theme === "light";
+  const L = isLightTheme(theme);
   const router = useRouter();
   // Polling visible-only para captar cambios de compañeros en el tablero
   // (nuevas tareas, drag de otros, subtareas, comentarios). El KanbanBoard

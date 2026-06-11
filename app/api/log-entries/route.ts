@@ -18,6 +18,7 @@ import {
 import { LogEntryPollResponseScope } from "@/app/generated/prisma/enums";
 import { stripLogEntryBodyText } from "@/lib/log-entry-body";
 import { logEntryCreateSchema } from "@/lib/log-entry-api-schema";
+import { bitacoraFeedInclude } from "@/lib/types/bitacora";
 
 export async function GET(req: NextRequest) {
   const session = await auth();
@@ -44,15 +45,7 @@ export async function GET(req: NextRequest) {
   const [rows, total] = await Promise.all([
     prisma.logEntry.findMany({
       where,
-      include: {
-        author: { select: { id: true, name: true, image: true } },
-        tags: true,
-        reactions: { select: { emoji: true } },
-        shares: {
-          include: { department: { select: { name: true, accentColor: true } } },
-        },
-        _count: { select: { comments: true, attachments: true, reactions: true } },
-      },
+      include: bitacoraFeedInclude,
       orderBy: { createdAt: "desc" },
       skip,
       take: limit + 1,

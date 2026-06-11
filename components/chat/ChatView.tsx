@@ -1,5 +1,7 @@
 "use client";
 
+
+import { isLightTheme } from "@/lib/theme";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
@@ -1491,7 +1493,7 @@ function formatListTime(iso: string) {
 
 export function ChatView() {
   const { theme } = useTheme();
-  const L = theme === "light";
+  const L = isLightTheme(theme);
   // El chat usaba la misma rama para Aurora, Cristal, Slate y Dark. Esto se
   // notaba en Cristal (caja navy opaca sobre fondo violeta cristal) y un
   // poco en Slate (tonos navy en lugar de slate-acero). Estas dos

@@ -1,5 +1,7 @@
 "use client";
 
+
+import { isLightTheme } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 import type { HTMLAttributes } from "react";
 import { useTheme } from "@/components/layout/ThemeProvider";
@@ -15,7 +17,7 @@ interface CardProps extends HTMLAttributes<HTMLDivElement> {
 
 export function Card({ className, hover, light, children, ...props }: CardProps) {
   const { theme } = useTheme();
-  const L = light ?? theme === "light";
+  const L = light ?? isLightTheme(theme);
   return (
     <div
       className={cn(
@@ -54,7 +56,7 @@ export function CardTitle({
   ...props
 }: HTMLAttributes<HTMLHeadingElement>) {
   const { theme } = useTheme();
-  const L = theme === "light";
+  const L = isLightTheme(theme);
   return (
     <h3
       className={cn(

@@ -1,5 +1,7 @@
 "use client";
 
+
+import { isLightTheme } from "@/lib/theme";
 import Link from "next/link";
 import { SidebarProfileMenu } from "@/components/layout/SidebarProfileMenu";
 import { AccountSwitchButton } from "@/components/layout/AccountSwitchButton";
@@ -23,7 +25,11 @@ import {
   PanelLeftClose,
   Sparkles,
   Megaphone,
+  Package,
+  Handshake,
+  Wrench,
 } from "lucide-react";
+import { canAccessRoomTech } from "@/lib/permissions/roomtech";
 import { signOut } from "next-auth/react";
 import { cn } from "@/lib/utils";
 import { Logo } from "@/components/ui/Logo";
@@ -122,7 +128,7 @@ export function Sidebar({
   unreadReleaseNotes = 0,
 }: SidebarProps) {
   const { theme } = useTheme();
-  const isLight = theme === "light";
+  const isLight = isLightTheme(theme);
   const pathname = usePathname();
   const [mode, setMode] = useState<SidebarMode>("smart");
   const [hovered, setHovered] = useState(false);
@@ -352,8 +358,24 @@ export function Sidebar({
               },
             ];
           } else {
+            // Sección "Sala técnica": visible solo para miembros del depto
+            // `tecnicos-sala` + admins globales. Centraliza inventario,
+            // préstamos e incidencias de equipos en un único bloque para que
+            // no se mezcle con la operativa general.
+            const roomTechSection: NavSection | null = canAccessRoomTech(user)
+              ? {
+                  title: "Sala técnica",
+                  items: [
+                    { label: "Inventario", href: "/inventario", icon: Package, exact: true },
+                    { label: "Préstamos", href: "/prestamos", icon: Handshake, exact: true },
+                    { label: "Incidencias equipos", href: "/equipos-incidencias", icon: Wrench },
+                  ],
+                }
+              : null;
+
             sections = [
               ...navSections,
+              ...(roomTechSection ? [roomTechSection] : []),
               {
                 title: "Sistema",
                 items: [

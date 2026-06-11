@@ -1,5 +1,7 @@
 "use client";
 
+
+import { isLightTheme } from "@/lib/theme";
 import {
   useCallback,
   useEffect,
@@ -44,7 +46,7 @@ export function UserProfilePopover({
   nameClassName,
 }: UserProfilePopoverProps) {
   const { theme } = useTheme();
-  const isLight = theme === "light";
+  const isLight = isLightTheme(theme);
   const avatarEffect = useAvatarFrameEffect();
   const cardBg = isLight ? "#f4f4f5" : "#0d1427";
   const triggerRef = useRef<HTMLButtonElement>(null);

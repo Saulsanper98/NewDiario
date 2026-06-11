@@ -1,5 +1,7 @@
 "use client";
 
+
+import { isLightTheme } from "@/lib/theme";
 import { Cloud, Lock, Mail, CalendarDays, MessageSquare } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Switch } from "@/components/ui/Switch";
@@ -85,7 +87,7 @@ function DisabledRow({
 
 export function MicrosoftIntegrationTab() {
   const { theme } = useTheme();
-  const L = theme === "light";
+  const L = isLightTheme(theme);
 
   return (
     <div className="config-microsoft-root space-y-5 max-w-3xl">

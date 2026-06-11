@@ -1,5 +1,7 @@
 "use client";
 
+
+import { isLightTheme } from "@/lib/theme";
 import { useState, useEffect, useMemo } from "react";
 import {
   Users,
@@ -260,7 +262,7 @@ export function ConfigTabs({
   isAdmin,
 }: ConfigTabsProps) {
   const { theme } = useTheme();
-  const L = theme === "light";
+  const L = isLightTheme(theme);
 
   /* En modo Datawall (kiosko) forzamos "profile" como tab activa por defecto:
      el resto del menú está oculto en el sidebar y aquí debe ser coherente. */

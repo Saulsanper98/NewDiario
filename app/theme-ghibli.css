@@ -13,6 +13,71 @@ html[data-theme="ghibli"] {
   --font-ui: var(--font-akatsuki-ui), "Zen Kaku Gothic New", sans-serif;
   --app-canvas-color: transparent; --app-canvas-image: none; --card-isolation: auto;
   color-scheme: light;
+
+  /* ── Tokens de armonización tributo (consumidos por
+   *    `theme-tributes-armonization.css`). Ghibli es un tema LIGHT (sus
+   *    componentes JS pintan text-zinc-800 sobre fondo claro gracias al
+   *    helper `isLightTheme()`), así que las "superficies" son blancas
+   *    crema con tinte cielo, no oscuras.
+   *    Mañana = girasol cálido, Tarde = teja terracota, Noche = índigo. */
+  --tribute-surface-1:        rgba(255, 252, 245, 0.72);
+  --tribute-surface-2:        rgba(255, 252, 245, 0.80);
+  --tribute-surface-3:        rgba(252, 248, 240, 0.84);
+  --tribute-surface-4:        rgba(248, 244, 232, 0.86);
+  --tribute-surface-5:        rgba(240, 236, 224, 0.90);
+  --tribute-surface-hover:    rgba(248, 244, 232, 0.94);
+  --tribute-surface-hover-strong: rgba(235, 228, 208, 0.96);
+
+  --tribute-card-solid: linear-gradient(160deg,
+    rgba(255, 254, 248, 0.96) 0%,
+    rgba(252, 248, 238, 0.97) 55%,
+    rgba(248, 242, 226, 0.98) 100%);
+  --tribute-card-border: rgba(42, 140, 94, 0.18);
+  --tribute-card-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.65) inset,
+    0 6px 18px rgba(42, 140, 94, 0.10),
+    0 14px 42px rgba(245, 210, 58, 0.10);
+
+  /* Botón outline: en ghibli usamos el verde-pradera (accent del tema). */
+  --tribute-cta-text:           #1f7a4d;
+  --tribute-cta-border-soft:    rgba(42, 140, 94, 0.35);
+  --tribute-cta-border:         rgba(42, 140, 94, 0.50);
+  --tribute-cta-soft-bg:        rgba(42, 140, 94, 0.10);
+  --tribute-cta-soft-bg-strong: rgba(42, 140, 94, 0.18);
+
+  --tribute-divider:        rgba(42, 140, 94, 0.22);
+  --tribute-divider-soft:   rgba(42, 140, 94, 0.12);
+  --tribute-chip-neutral:   rgba(42, 140, 94, 0.08);
+
+  /* Mañana = girasol cálido (oro Ghibli). */
+  --tribute-shift-m-text:           #a87b14;
+  --tribute-shift-m-text-soft:      #6f5208;
+  --tribute-shift-m-bg:             rgba(245, 210, 58, 0.18);
+  --tribute-shift-m-bg-strong:      rgba(245, 210, 58, 0.32);
+  --tribute-shift-m-border:         rgba(190, 158, 30, 0.42);
+  --tribute-shift-m-border-strong:  rgba(190, 158, 30, 0.65);
+
+  /* Tarde = teja terracota (atardecer Ghibli). */
+  --tribute-shift-t-text:           #a04a1c;
+  --tribute-shift-t-text-soft:      #6b2f10;
+  --tribute-shift-t-bg:             rgba(214, 102, 50, 0.14);
+  --tribute-shift-t-bg-strong:      rgba(214, 102, 50, 0.26);
+  --tribute-shift-t-border:         rgba(180, 80, 40, 0.42);
+  --tribute-shift-t-border-strong:  rgba(180, 80, 40, 0.62);
+
+  /* Noche = índigo paisaje (cielo nocturno). */
+  --tribute-shift-n-text:           #3a4c8a;
+  --tribute-shift-n-text-soft:      #1f2a55;
+  --tribute-shift-n-bg:             rgba(80, 100, 180, 0.14);
+  --tribute-shift-n-bg-strong:      rgba(80, 100, 180, 0.26);
+  --tribute-shift-n-border:         rgba(80, 100, 180, 0.40);
+  --tribute-shift-n-border-strong:  rgba(80, 100, 180, 0.60);
+
+  /* "Vencidos" en un coral cálido para no chocar con la paleta natural. */
+  --tribute-danger-text:        #b03038;
+  --tribute-danger-bg:          rgba(214, 70, 80, 0.14);
+  --tribute-danger-bg-strong:   rgba(214, 70, 80, 0.24);
+  --tribute-danger-border:      rgba(214, 70, 80, 0.40);
 }
 html[data-theme="ghibli"] body { min-height: 100vh; }
 html[data-theme="ghibli"] .app-sidebar-shell, html[data-theme="ghibli"] .app-top-header { isolation: auto !important; }

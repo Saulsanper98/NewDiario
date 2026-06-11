@@ -1,5 +1,7 @@
 "use client";
 
+
+import { isLightTheme } from "@/lib/theme";
 import { useEffect, useMemo, useState } from "react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -33,7 +35,7 @@ interface Props {
 
 export function EventDetailModal({ occurrence: ev, onClose, onEdit, onDeleted }: Props) {
   const { theme } = useTheme();
-  const L = theme === "light";
+  const L = isLightTheme(theme);
   const tokens = getCalendarColorTokens(ev.color, L ? "light" : "dark");
 
   const [deleting, setDeleting] = useState(false);

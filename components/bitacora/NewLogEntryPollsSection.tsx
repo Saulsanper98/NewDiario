@@ -1,5 +1,7 @@
 "use client";
 
+
+import { isLightTheme } from "@/lib/theme";
 import { useMemo } from "react";
 import { BarChart3, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
@@ -99,7 +101,7 @@ export function NewLogEntryPollsSection({
     <div
       className={cn(
         "rounded-2xl border p-5 sm:p-6 shadow-sm",
-        theme === "light"
+        isLightTheme(theme)
           ? "border-white/50 bg-white/42 backdrop-blur-xl shadow-[0_4px_28px_rgba(15,23,42,0.06),inset_0_1px_0_rgba(255,255,255,0.8)]"
           : "border-white/[0.09] bg-gradient-to-b from-white/[0.055] to-white/[0.02] shadow-black/20 ring-1 ring-inset ring-white/[0.04]"
       )}
@@ -107,14 +109,14 @@ export function NewLogEntryPollsSection({
       <div
         className={cn(
           "flex flex-wrap items-start justify-between gap-4 border-b pb-4",
-          theme === "light" ? "border-zinc-200/70" : "border-white/[0.06]"
+          isLightTheme(theme) ? "border-zinc-200/70" : "border-white/[0.06]"
         )}
       >
         <div className="flex min-w-0 items-start gap-3">
           <span
             className={cn(
               "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border shadow-sm",
-              theme === "light"
+              isLightTheme(theme)
                 ? "border-[#c4ae16]/35 bg-amber-50/90 shadow-amber-900/5"
                 : "border-[#ffeb66]/28 bg-[#ffeb66]/[0.09] shadow-[#ffeb66]/5"
             )}
@@ -122,7 +124,7 @@ export function NewLogEntryPollsSection({
             <BarChart3
               className={cn(
                 "h-[18px] w-[18px]",
-                theme === "light" ? "text-amber-800/90" : "text-[#ffeb66]"
+                isLightTheme(theme) ? "text-amber-800/90" : "text-[#ffeb66]"
               )}
               aria-hidden
             />
@@ -131,14 +133,14 @@ export function NewLogEntryPollsSection({
             <h3
               className={cn(
                 "text-[15px] font-semibold tracking-tight",
-                theme === "light" ? "text-zinc-900" : "text-white"
+                isLightTheme(theme) ? "text-zinc-900" : "text-white"
               )}
             >
               Encuestas{" "}
               <span
                 className={cn(
                   "font-normal",
-                  theme === "light" ? "text-zinc-400" : "text-white/40"
+                  isLightTheme(theme) ? "text-zinc-400" : "text-white/40"
                 )}
               >
                 (opcional)
@@ -147,7 +149,7 @@ export function NewLogEntryPollsSection({
             <p
               className={cn(
                 "max-w-xl text-[13px] leading-relaxed",
-                theme === "light" ? "text-zinc-500" : "text-white/42"
+                isLightTheme(theme) ? "text-zinc-500" : "text-white/42"
               )}
             >
               Publica encuestas con o sin texto en el cuerpo. Si el título va vacío o muy corto,
@@ -161,7 +163,7 @@ export function NewLogEntryPollsSection({
           size="sm"
           className={cn(
             "shrink-0 border-dashed",
-            theme === "light"
+            isLightTheme(theme)
               ? "border-zinc-300/90 text-zinc-700 hover:bg-zinc-100/80"
               : "border-[#ffeb66]/35 text-[#ffeb66]/95 hover:bg-[#ffeb66]/10"
           )}
@@ -177,7 +179,7 @@ export function NewLogEntryPollsSection({
           <div
             className={cn(
               "rounded-xl border border-dashed px-4 py-8 text-center",
-              theme === "light"
+              isLightTheme(theme)
                 ? "border-zinc-200/90 bg-zinc-50/50"
                 : "border-white/[0.1] bg-black/15"
             )}
@@ -185,14 +187,14 @@ export function NewLogEntryPollsSection({
             <BarChart3
               className={cn(
                 "mx-auto mb-2 h-8 w-8 opacity-25",
-                theme === "light" ? "text-zinc-400" : "text-white"
+                isLightTheme(theme) ? "text-zinc-400" : "text-white"
               )}
               aria-hidden
             />
-            <p className={cn("text-sm", theme === "light" ? "text-zinc-500" : "text-white/38")}>
+            <p className={cn("text-sm", isLightTheme(theme) ? "text-zinc-500" : "text-white/38")}>
               Aún no hay encuestas en esta entrada.
             </p>
-            <p className={cn("mt-1 text-xs", theme === "light" ? "text-zinc-400" : "text-white/28")}>
+            <p className={cn("mt-1 text-xs", isLightTheme(theme) ? "text-zinc-400" : "text-white/28")}>
               Usa el botón de arriba para añadir la primera.
             </p>
           </div>
@@ -203,7 +205,7 @@ export function NewLogEntryPollsSection({
                 key={d.id}
                 className={cn(
                   "overflow-hidden rounded-2xl border shadow-md",
-                  theme === "light"
+                  isLightTheme(theme)
                     ? "border-zinc-200/90 bg-white/70 shadow-zinc-900/[0.04]"
                     : "border-white/[0.09] bg-black/25 shadow-black/30 ring-1 ring-inset ring-white/[0.03]"
                 )}
@@ -211,14 +213,14 @@ export function NewLogEntryPollsSection({
                 <div
                   className={cn(
                     "flex items-center justify-between gap-2 border-b px-4 py-3 sm:px-5",
-                    theme === "light" ? "border-zinc-200/70 bg-zinc-50/60" : "border-white/[0.06] bg-white/[0.03]"
+                    isLightTheme(theme) ? "border-zinc-200/70 bg-zinc-50/60" : "border-white/[0.06] bg-white/[0.03]"
                   )}
                 >
                   <div className="flex items-center gap-2.5">
                     <span
                       className={cn(
                         "flex h-7 min-w-[1.75rem] items-center justify-center rounded-lg text-xs font-semibold tabular-nums",
-                        theme === "light"
+                        isLightTheme(theme)
                           ? "bg-amber-100/90 text-amber-950 ring-1 ring-amber-200/80"
                           : "bg-[#ffeb66]/15 text-[#ffeb66] ring-1 ring-[#ffeb66]/25"
                       )}
@@ -228,7 +230,7 @@ export function NewLogEntryPollsSection({
                     <span
                       className={cn(
                         "text-xs font-medium uppercase tracking-wide",
-                        theme === "light" ? "text-zinc-500" : "text-white/45"
+                        isLightTheme(theme) ? "text-zinc-500" : "text-white/45"
                       )}
                     >
                       Borrador de encuesta
@@ -239,7 +241,7 @@ export function NewLogEntryPollsSection({
                     onClick={() => removeDraft(d.id)}
                     className={cn(
                       "inline-flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-medium transition-colors",
-                      theme === "light"
+                      isLightTheme(theme)
                         ? "text-zinc-500 hover:bg-red-50 hover:text-red-600"
                         : "text-white/40 hover:bg-red-500/10 hover:text-red-300"
                     )}
@@ -261,7 +263,7 @@ export function NewLogEntryPollsSection({
                   <div
                     className={cn(
                       "rounded-xl border p-4",
-                      theme === "light"
+                      isLightTheme(theme)
                         ? "border-zinc-200/70 bg-zinc-50/40"
                         : "border-white/[0.07] bg-white/[0.02]"
                     )}
@@ -271,7 +273,7 @@ export function NewLogEntryPollsSection({
                       <label
                         className={cn(
                           "flex cursor-pointer items-start gap-3 rounded-lg border px-3 py-2.5 transition-colors",
-                          theme === "light"
+                          isLightTheme(theme)
                             ? d.scope === LogEntryPollResponseScope.DEPARTMENT_ALL
                               ? "border-amber-300/70 bg-amber-50/50"
                               : "border-transparent hover:border-zinc-200/80 hover:bg-white/60"
@@ -289,11 +291,11 @@ export function NewLogEntryPollsSection({
                             updateDraft(d.id, { scope: LogEntryPollResponseScope.DEPARTMENT_ALL })
                           }
                         />
-                        <span className={cn("text-sm", theme === "light" ? "text-zinc-700" : "text-white/75")}>
-                          <strong className={theme === "light" ? "text-zinc-900" : "text-white"}>
+                        <span className={cn("text-sm", isLightTheme(theme) ? "text-zinc-700" : "text-white/75")}>
+                          <strong className={isLightTheme(theme) ? "text-zinc-900" : "text-white"}>
                             Todo el departamento
                           </strong>
-                          <span className={theme === "light" ? "text-zinc-500" : "text-white/45"}>
+                          <span className={isLightTheme(theme) ? "text-zinc-500" : "text-white/45"}>
                             {" "}
                             — miembros activos con acceso a la bitácora.
                           </span>
@@ -302,7 +304,7 @@ export function NewLogEntryPollsSection({
                       <label
                         className={cn(
                           "flex cursor-pointer items-start gap-3 rounded-lg border px-3 py-2.5 transition-colors",
-                          theme === "light"
+                          isLightTheme(theme)
                             ? d.scope === LogEntryPollResponseScope.SELECTED_USERS
                               ? "border-amber-300/70 bg-amber-50/50"
                               : "border-transparent hover:border-zinc-200/80 hover:bg-white/60"
@@ -320,11 +322,11 @@ export function NewLogEntryPollsSection({
                             updateDraft(d.id, { scope: LogEntryPollResponseScope.SELECTED_USERS })
                           }
                         />
-                        <span className={cn("text-sm", theme === "light" ? "text-zinc-700" : "text-white/75")}>
-                          <strong className={theme === "light" ? "text-zinc-900" : "text-white"}>
+                        <span className={cn("text-sm", isLightTheme(theme) ? "text-zinc-700" : "text-white/75")}>
+                          <strong className={isLightTheme(theme) ? "text-zinc-900" : "text-white"}>
                             Solo compañeros elegidos
                           </strong>
-                          <span className={theme === "light" ? "text-zinc-500" : "text-white/45"}>
+                          <span className={isLightTheme(theme) ? "text-zinc-500" : "text-white/45"}>
                             {" "}
                             — reciben notificación.
                           </span>
@@ -337,7 +339,7 @@ export function NewLogEntryPollsSection({
                     <div
                       className={cn(
                         "max-h-48 space-y-1 overflow-y-auto rounded-xl border p-3 sm:grid sm:max-h-none sm:grid-cols-2 sm:gap-1.5 sm:space-y-0",
-                        theme === "light"
+                        isLightTheme(theme)
                           ? "border-zinc-200/80 bg-white/60"
                           : "border-white/[0.08] bg-black/20"
                       )}
@@ -345,7 +347,7 @@ export function NewLogEntryPollsSection({
                       <p
                         className={cn(
                           "mb-1 text-[10px] font-medium uppercase tracking-wide sm:col-span-2",
-                          theme === "light" ? "text-zinc-400" : "text-white/38"
+                          isLightTheme(theme) ? "text-zinc-400" : "text-white/38"
                         )}
                       >
                         Miembros del departamento
@@ -360,7 +362,7 @@ export function NewLogEntryPollsSection({
                               key={m.id}
                               className={cn(
                                 "flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-xs transition-colors",
-                                theme === "light"
+                                isLightTheme(theme)
                                   ? checked
                                     ? "bg-amber-50/90 ring-1 ring-amber-200/80"
                                     : "hover:bg-zinc-100/80"
@@ -392,7 +394,7 @@ export function NewLogEntryPollsSection({
                   <label
                     className={cn(
                       "flex cursor-pointer items-center gap-2.5 rounded-lg border px-3 py-2.5 text-sm transition-colors",
-                      theme === "light"
+                      isLightTheme(theme)
                         ? "border-zinc-200/60 bg-zinc-50/30 hover:border-zinc-300/80"
                         : "border-white/[0.07] bg-white/[0.02] hover:border-white/12"
                     )}
@@ -403,8 +405,8 @@ export function NewLogEntryPollsSection({
                       className="rounded border-white/25 accent-[#ffeb66]"
                       onChange={(e) => updateDraft(d.id, { allowMultiple: e.target.checked })}
                     />
-                    <span className={theme === "light" ? "text-zinc-700" : "text-white/70"}>
-                      Permitir <strong className={theme === "light" ? "text-zinc-900" : "text-white"}>varias</strong>{" "}
+                    <span className={isLightTheme(theme) ? "text-zinc-700" : "text-white/70"}>
+                      Permitir <strong className={isLightTheme(theme) ? "text-zinc-900" : "text-white"}>varias</strong>{" "}
                       opciones a la vez
                     </span>
                   </label>
@@ -412,7 +414,7 @@ export function NewLogEntryPollsSection({
                   <div
                     className={cn(
                       "rounded-xl border p-4",
-                      theme === "light"
+                      isLightTheme(theme)
                         ? "border-zinc-200/70 bg-zinc-50/30"
                         : "border-white/[0.07] bg-white/[0.02]"
                     )}
@@ -440,7 +442,7 @@ export function NewLogEntryPollsSection({
                         size="sm"
                         className={cn(
                           "mt-2 -ml-1 text-xs",
-                          theme === "light" ? "text-zinc-600" : "text-white/45"
+                          isLightTheme(theme) ? "text-zinc-600" : "text-white/45"
                         )}
                         onClick={() =>
                           updateDraft(d.id, { optionDrafts: [...d.optionDrafts, ""] })

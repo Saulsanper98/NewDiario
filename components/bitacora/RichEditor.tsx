@@ -1,5 +1,7 @@
 "use client";
 
+
+import { isLightTheme } from "@/lib/theme";
 import { useEditor, EditorContent } from "@tiptap/react";
 import { BubbleMenu } from "@tiptap/react/menus";
 import { StarterKit } from "@tiptap/starter-kit";
@@ -444,10 +446,10 @@ export function RichEditor({
         "p-2 sm:p-1.5 rounded-md text-sm transition-all duration-150 disabled:opacity-30 disabled:cursor-not-allowed shrink-0 inline-flex items-center justify-center",
         hideOnMobile && "hidden sm:inline-flex",
         active
-          ? theme === "light"
+          ? isLightTheme(theme)
             ? "bg-[rgba(212,188,26,0.22)] text-zinc-900 ring-1 ring-inset ring-[rgba(165,145,20,0.28)]"
             : "bg-[#ffeb66]/15 text-[#ffeb66]"
-          : theme === "light"
+          : isLightTheme(theme)
             ? "text-zinc-600 hover:text-zinc-900 hover:bg-white/55"
             : "text-white/50 hover:text-white hover:bg-white/6"
       )}
@@ -470,7 +472,7 @@ export function RichEditor({
       className={cn(
         "p-2 sm:p-1.5 rounded-md text-sm transition-all duration-150 shrink-0 cursor-pointer inline-flex items-center justify-center",
         hideOnMobile && "hidden sm:inline-flex",
-        theme === "light"
+        isLightTheme(theme)
           ? "text-zinc-600 hover:text-zinc-900 hover:bg-white/55"
           : "text-white/50 hover:text-white hover:bg-white/6",
         disabled && "opacity-30 cursor-not-allowed pointer-events-none"
@@ -486,7 +488,7 @@ export function RichEditor({
       className={cn(
         "w-px h-4 mx-0.5 self-center shrink-0",
         hideOnMobile && "hidden sm:block",
-        theme === "light" ? "bg-zinc-200" : "bg-white/10"
+        isLightTheme(theme) ? "bg-zinc-200" : "bg-white/10"
       )}
     />
   );
@@ -497,7 +499,7 @@ export function RichEditor({
       data-rich-editor
       className={cn(
         "border transition-all duration-200",
-        theme === "light"
+        isLightTheme(theme)
           ? "rounded-xl sm:rounded-2xl border-white/55 bg-white/48 shadow-[inset_0_1px_0_rgba(255,255,255,0.78),0_2px_14px_rgba(15,23,42,0.06)] backdrop-blur-xl focus-within:border-[#c4ae16]/52 focus-within:ring-2 focus-within:ring-[#d4bc1a]/14"
           : "rounded-lg border-white/10 bg-white/3 focus-within:border-[#ffeb66]/40 focus-within:ring-1 focus-within:ring-[#ffeb66]/15",
         focusMode
@@ -532,7 +534,7 @@ export function RichEditor({
         <div
           className={cn(
             "rich-editor-toolbar sticky top-0 z-20 flex items-center gap-0.5 px-2 py-1.5 border-b flex-wrap backdrop-blur-md",
-            theme === "light"
+            isLightTheme(theme)
               ? "rounded-t-xl sm:rounded-t-2xl border-zinc-200/65 bg-white/58 supports-[backdrop-filter]:bg-white/48"
               : "rounded-t-lg border-white/8 bg-[#0a0f1e]/88 supports-[backdrop-filter]:bg-[#0a0f1e]/72"
           )}
@@ -591,10 +593,10 @@ export function RichEditor({
               className={cn(
                 "p-2 sm:p-1.5 rounded-md text-sm transition-all duration-150 flex items-center gap-0.5",
                 showExtended
-                  ? theme === "light"
+                  ? isLightTheme(theme)
                     ? "bg-[rgba(212,188,26,0.18)] text-zinc-900 ring-1 ring-inset ring-[rgba(165,145,20,0.22)]"
                     : "bg-white/8 text-white"
-                  : theme === "light"
+                  : isLightTheme(theme)
                     ? "text-zinc-600 hover:text-zinc-900 hover:bg-white/55"
                     : "text-white/40 hover:text-white hover:bg-white/6"
               )}
@@ -612,7 +614,7 @@ export function RichEditor({
               aria-label="Modo escritura"
               className={cn(
                 "hidden sm:inline-flex p-2 sm:p-1.5 rounded-md text-sm transition-all duration-150",
-                theme === "light"
+                isLightTheme(theme)
                   ? "text-zinc-600 hover:text-zinc-900 hover:bg-white/55"
                   : "text-white/40 hover:text-white hover:bg-white/6"
               )}
@@ -632,7 +634,7 @@ export function RichEditor({
         <div
           className={cn(
             "flex items-center gap-0.5 px-2 py-1.5 border-b flex-wrap",
-            theme === "light"
+            isLightTheme(theme)
               ? "border-zinc-200/60 bg-white/42 backdrop-blur-md"
               : "border-white/6 bg-white/1"
           )}
@@ -679,7 +681,7 @@ export function RichEditor({
         <div
           className={cn(
             "flex items-center gap-0.5 px-2 py-1 border-b flex-wrap",
-            theme === "light"
+            isLightTheme(theme)
               ? "border-indigo-200/55 bg-indigo-50/85"
               : "border-indigo-400/15 bg-indigo-400/[0.04]"
           )}
@@ -687,7 +689,7 @@ export function RichEditor({
           <span
             className={cn(
               "text-[10px] mr-1",
-              theme === "light" ? "text-indigo-800/75" : "text-indigo-300/60"
+              isLightTheme(theme) ? "text-indigo-800/75" : "text-indigo-300/60"
             )}
           >
             Tabla:
@@ -709,7 +711,7 @@ export function RichEditor({
         <div
           className={cn(
             "flex items-center justify-between px-4 py-2 border-b shrink-0",
-            theme === "light"
+            isLightTheme(theme)
               ? "border-zinc-200/70 bg-white/55 backdrop-blur-lg"
               : "border-white/8 bg-white/2"
           )}
@@ -728,7 +730,7 @@ export function RichEditor({
             onClick={() => setFocusMode(false)}
             className={cn(
               "flex items-center gap-1.5 text-xs transition-colors px-2 py-1 rounded-md",
-                theme === "light"
+                isLightTheme(theme)
                 ? "text-zinc-600 hover:text-zinc-900 hover:bg-white/55"
                 : "text-white/40 hover:text-white hover:bg-white/6"
               )}
@@ -748,7 +750,7 @@ export function RichEditor({
         <div
           className={cn(
             "rich-editor-bubble-menu flex items-center gap-0.5 px-1.5 py-1 rounded-lg shadow-xl backdrop-blur-md",
-            theme === "light"
+            isLightTheme(theme)
               ? "border border-zinc-200/95 bg-white/98"
               : "border border-white/18 bg-[#0d1324]/96 supports-[backdrop-filter]:bg-[#0d1324]/92"
           )}
@@ -789,8 +791,8 @@ export function RichEditor({
         className={cn(
           "flex items-center justify-between px-4 py-1.5 border-t shrink-0",
           !focusMode &&
-            (theme === "light" ? "rounded-b-xl sm:rounded-b-2xl" : "rounded-b-lg"),
-          theme === "light"
+            (isLightTheme(theme) ? "rounded-b-xl sm:rounded-b-2xl" : "rounded-b-lg"),
+          isLightTheme(theme)
             ? "border-zinc-200/65 bg-white/42 backdrop-blur-md"
             : "border-white/6 bg-white/1"
         )}
@@ -798,11 +800,11 @@ export function RichEditor({
         <div
           className={cn(
             "text-[10px]",
-            theme === "light" ? "text-zinc-500" : "text-white/20"
+            isLightTheme(theme) ? "text-zinc-500" : "text-white/20"
           )}
         >
           {focusMode && (
-            <span className={theme === "light" ? "text-indigo-600/70" : "text-indigo-300/50"}>
+            <span className={isLightTheme(theme) ? "text-indigo-600/70" : "text-indigo-300/50"}>
               Modo enfoque activo
             </span>
           )}
@@ -812,7 +814,7 @@ export function RichEditor({
             "text-[10px] tabular-nums",
             charCount > maxLength * 0.9
               ? "text-amber-500"
-              : theme === "light"
+              : isLightTheme(theme)
                 ? "text-zinc-500"
                 : "text-white/20"
           )}
@@ -857,7 +859,7 @@ export function RichEditor({
             aria-labelledby="rich-editor-link-title"
             className={cn(
               "w-full max-w-md rounded-xl border p-4 shadow-xl",
-              theme === "light"
+              isLightTheme(theme)
                 ? "border-zinc-200 bg-white text-zinc-900"
                 : "border-white/12 bg-[#0f1524] text-zinc-100"
             )}
@@ -869,7 +871,7 @@ export function RichEditor({
             <p
               className={cn(
                 "text-xs mb-3",
-                theme === "light" ? "text-zinc-500" : "text-white/45"
+                isLightTheme(theme) ? "text-zinc-500" : "text-white/45"
               )}
             >
               Deja la URL vacía y acepta para quitar el enlace del texto seleccionado.
@@ -890,7 +892,7 @@ export function RichEditor({
               }}
               className={cn(
                 "w-full rounded-lg border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#ffeb66]/35",
-                theme === "light"
+                isLightTheme(theme)
                   ? "border-zinc-200 bg-white text-zinc-900"
                   : "border-white/12 bg-[#060a12] text-white"
               )}
@@ -903,7 +905,7 @@ export function RichEditor({
                 onClick={() => setLinkDialogOpen(false)}
                 className={cn(
                   "px-3 py-1.5 rounded-lg text-sm transition-colors",
-                  theme === "light"
+                  isLightTheme(theme)
                     ? "text-zinc-700 hover:bg-zinc-100"
                     : "text-white/70 hover:bg-white/8"
                 )}
@@ -934,7 +936,7 @@ export function RichEditor({
             aria-labelledby="rich-editor-media-url-title"
             className={cn(
               "w-full max-w-md rounded-xl border p-4 shadow-xl",
-              theme === "light"
+              isLightTheme(theme)
                 ? "border-zinc-200 bg-white text-zinc-900"
                 : "border-white/12 bg-[#0f1524] text-zinc-100"
             )}
@@ -946,7 +948,7 @@ export function RichEditor({
             <p
               className={cn(
                 "text-xs mb-3",
-                theme === "light" ? "text-zinc-500" : "text-white/45"
+                isLightTheme(theme) ? "text-zinc-500" : "text-white/45"
               )}
             >
               Soporta enlaces directos a JPG, PNG, GIF, WebP, MP4, WebM o MOV.
@@ -964,7 +966,7 @@ export function RichEditor({
               }}
               className={cn(
                 "w-full rounded-lg border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#ffeb66]/35",
-                theme === "light"
+                isLightTheme(theme)
                   ? "border-zinc-200 bg-white text-zinc-900"
                   : "border-white/12 bg-[#060a12] text-white"
               )}
@@ -977,7 +979,7 @@ export function RichEditor({
                 onClick={() => setMediaUrlDialogOpen(false)}
                 className={cn(
                   "px-3 py-1.5 rounded-lg text-sm transition-colors",
-                  theme === "light"
+                  isLightTheme(theme)
                     ? "text-zinc-700 hover:bg-zinc-100"
                     : "text-white/70 hover:bg-white/8"
                 )}

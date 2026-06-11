@@ -1,5 +1,7 @@
 "use client";
 
+
+import { isLightTheme } from "@/lib/theme";
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { createPortal } from "react-dom";
 import {
@@ -1389,7 +1391,7 @@ function SortBar({ sort, onSort, isLight }: { sort: SortOrder; onSort: (s: SortO
 
 export function ProjectDocs({ projectId }: ProjectDocsProps) {
   const { theme } = useTheme();
-  const isLight = theme === "light";
+  const isLight = isLightTheme(theme);
   const [docs, setDocs]               = useState<ProjectDoc[]>([]);
   const [loading, setLoading]         = useState(true);
   const [showModal, setShowModal]     = useState(false);

@@ -1,5 +1,7 @@
 "use client";
 
+
+import { isLightTheme } from "@/lib/theme";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm, Controller } from "react-hook-form";
@@ -52,7 +54,7 @@ export function NewProjectForm({
   parentName,
 }: NewProjectFormProps) {
   const { theme } = useTheme();
-  const L = theme === "light";
+  const L = isLightTheme(theme);
   const { accent } = useAccentForUi();
   const router = useRouter();
   const [extraMemberIds, setExtraMemberIds] = useState<Set<string>>(new Set());

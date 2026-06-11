@@ -1,5 +1,7 @@
 "use client";
 
+
+import { isLightTheme } from "@/lib/theme";
 import { useId, useRef, useState } from "react";
 import { Send, Loader2 } from "lucide-react";
 import toast from "react-hot-toast";
@@ -27,7 +29,7 @@ export function ProjectLogComposer({
   onCreated,
 }: ProjectLogComposerProps) {
   const { theme } = useTheme();
-  const L = theme === "light";
+  const L = isLightTheme(theme);
   const titleId = useId();
   const editorRef = useRef<CommentEditorHandle>(null);
 

@@ -1,7 +1,9 @@
 "use client";
 
+
+import { isLightTheme } from "@/lib/theme";
 import { useMemo, useRef, useState } from "react";
-import { useSession } from "next-auth/react";
+import { signOut, useSession } from "next-auth/react";
 import {
   Camera,
   Check,
@@ -54,7 +56,7 @@ interface MyProfileTabProps {
 
 export function MyProfileTab({ currentUser }: MyProfileTabProps) {
   const { theme } = useTheme();
-  const L = theme === "light";
+  const L = isLightTheme(theme);
   const { update } = useSession();
   const avatarEffect = useAvatarFrameEffect();
 
@@ -77,6 +79,12 @@ export function MyProfileTab({ currentUser }: MyProfileTabProps) {
   );
   const [password, setPassword] = useState("");
   const [password2, setPassword2] = useState("");
+  /**
+   * Contraseña actual: la pide el backend cuando un usuario cambia su
+   * propia password (mitigación H2 del audit). Sin este campo en la UI el
+   * usuario no tiene dónde introducirla y el PATCH falla con 400.
+   */
+  const [currentPassword, setCurrentPassword] = useState("");
   const [birthday, setBirthday] = useState(currentUser.birthday ?? "");
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -188,6 +196,12 @@ export function MyProfileTab({ currentUser }: MyProfileTabProps) {
     e.preventDefault();
 
     if (password) {
+      if (!currentPassword.trim()) {
+        toast.error(
+          "Introduce tu contraseña actual para confirmar el cambio"
+        );
+        return;
+      }
       if (password.length < MIN_PASSWORD_LENGTH) {
         toast.error(
           `La contraseña debe tener al menos ${MIN_PASSWORD_LENGTH} caracteres`
@@ -232,7 +246,10 @@ export function MyProfileTab({ currentUser }: MyProfileTabProps) {
       const body: Record<string, string | null> = {};
       if (nameDirty) body.name = trimmedName;
       if (imageDirty) body.image = trimmedImage;
-      if (password) body.password = password;
+      if (password) {
+        body.password = password;
+        body.currentPassword = currentPassword;
+      }
       if (birthdayDirty) body.birthday = birthday || null;
 
       const res = await fetch(`/api/users/${currentUser.id}`, {
@@ -259,7 +276,21 @@ export function MyProfileTab({ currentUser }: MyProfileTabProps) {
       }
       setPassword("");
       setPassword2("");
-      toast.success(password ? "Contraseña actualizada" : "Cambios guardados");
+      setCurrentPassword("");
+
+      if (password) {
+        /* Cuando se cambia la contraseña propia, el backend invalida el
+         * JWT actual (passwordChangedAt). Si el cliente sigue navegando
+         * con la cookie vieja, el SSR la invalida → redirige a /login →
+         * el middleware Edge no puede comprobar BD y lo manda otra vez a
+         * /dashboard → bucle de redirects. La solución es hacer logout
+         * proactivo: NextAuth borra la cookie limpia y el usuario entra
+         * a /login sin ambigüedades para reautenticarse con la nueva pw. */
+        toast.success("Contraseña actualizada. Vuelve a iniciar sesión.");
+        await signOut({ callbackUrl: "/login?reason=password_changed" });
+        return;
+      }
+      toast.success("Cambios guardados");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Error al guardar");
     } finally {
@@ -660,7 +691,7 @@ export function MyProfileTab({ currentUser }: MyProfileTabProps) {
             icon={KeyRound}
             tone="amber"
             title="Contraseña"
-            description="Déjala vacía si no quieres cambiarla."
+            description="Déjala vacía si no quieres cambiarla. Si la cambias, tendrás que confirmar tu contraseña actual."
           />
 
           <div className="grid gap-3 sm:grid-cols-2">
@@ -684,6 +715,27 @@ export function MyProfileTab({ currentUser }: MyProfileTabProps) {
               autoComplete="new-password"
             />
           </div>
+
+          {/* Contraseña actual: se muestra solo cuando el usuario empieza a
+              escribir una nueva. Es la prueba de identidad que pide el
+              backend (mitigación H2 del audit) antes de aceptar el cambio. */}
+          {password.length > 0 && (
+            <div className="sm:max-w-[50%]">
+              <Input
+                light={L}
+                label="Contraseña actual"
+                type="password"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                autoComplete="current-password"
+                placeholder="Tu contraseña actual"
+                required
+              />
+              <p className={cn("mt-1.5 text-xs", L ? "text-zinc-500" : "text-white/45")}>
+                Por seguridad necesitamos confirmar tu identidad antes de cambiar la contraseña.
+              </p>
+            </div>
+          )}
 
           <PasswordRequirements
             L={L}

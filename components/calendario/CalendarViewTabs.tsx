@@ -1,5 +1,7 @@
 "use client";
 
+
+import { isLightTheme } from "@/lib/theme";
 import { CalendarDays, CalendarRange, ListChecks, Sun } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/components/layout/ThemeProvider";
@@ -19,7 +21,7 @@ const TABS: Array<{ value: CalendarView; label: string; mobileLabel: string; Ico
 
 export function CalendarViewTabs({ value, onChange }: Props) {
   const { theme } = useTheme();
-  const L = theme === "light";
+  const L = isLightTheme(theme);
   return (
     <div
       className={cn(

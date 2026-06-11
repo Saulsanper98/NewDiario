@@ -40,6 +40,11 @@ import "./theme-ghibli.css";
 import "./theme-itachi.css";
 import "./theme-amegakure.css";
 import "./theme-sololeveling.css";
+// Armonización común para los 6 temas tributo: superficies translúcidas,
+// botón outline, paleta semántica (turnos/vencidos) y divisores con el
+// tinte de cada tema. Debe ir DESPUÉS de los archivos individuales para
+// que las variables `--tribute-*` ya estén definidas al evaluar las reglas.
+import "./theme-tributes-armonization.css";
 
 const sora = Sora({
   subsets: ["latin"],

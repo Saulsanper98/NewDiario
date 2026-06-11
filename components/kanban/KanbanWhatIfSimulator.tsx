@@ -1,5 +1,7 @@
 "use client";
 
+
+import { isLightTheme } from "@/lib/theme";
 import { useState, useMemo } from "react";
 import { X, FlaskConical } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -16,7 +18,7 @@ export function KanbanWhatIfSimulator({
   onClose: () => void;
 }) {
   const { theme } = useTheme();
-  const L = theme === "light";
+  const L = isLightTheme(theme);
   const [closed, setClosed] = useState<Set<string>>(() => new Set());
 
   const projection = useMemo(() => {

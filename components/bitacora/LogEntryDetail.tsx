@@ -1,5 +1,7 @@
 "use client";
 
+
+import { isLightTheme } from "@/lib/theme";
 import { useState, useMemo, useEffect, useLayoutEffect, useRef, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
@@ -253,7 +255,7 @@ export function LogEntryDetail({
 }: LogEntryDetailProps) {
   const { accent, withAlpha } = useAccentForUi();
   const { theme } = useTheme();
-  const L = theme === "light";
+  const L = isLightTheme(theme);
   const typePalette = getTypePalette(entry.type, L ? "light" : "dark");
   const router = useRouter();
   // Polling visible-only para captar comentarios y reacciones nuevos de

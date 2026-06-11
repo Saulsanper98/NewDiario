@@ -9,10 +9,97 @@ html[data-theme="sith"] {
   --accent: #ff1818; --accent-bright: #ff5050; --accent-glow: rgba(255, 24, 24, 0.45);
   --text: #f4ecec; --text-soft: #d6c2c2; --muted: #9a8585;
   --ok: #6ef0a0; --gold-relic: #f7c25e;
+
+  /* Cards mas solidas que en la version original (alpha ~0.90) para que el
+   * pasillo arquitrabe del fondo se intuya pero no atraviese el contenido. */
+  --card-bg: linear-gradient(160deg,
+    rgba(22, 8, 12, 0.90) 0%,
+    rgba(12, 4, 8, 0.93) 55%,
+    rgba(6, 2, 4, 0.95) 100%);
+  --card-bg-hover: linear-gradient(160deg,
+    rgba(30, 10, 14, 0.94) 0%,
+    rgba(18, 6, 10, 0.96) 55%,
+    rgba(10, 4, 6, 0.97) 100%);
+  --card-blur: 18px;
+  --card-border: 1px solid rgba(255, 24, 24, 0.18);
+  --card-border-hover: 1px solid rgba(255, 60, 60, 0.32);
+  --card-shadow:
+    0 1px 0 rgba(255, 24, 24, 0.05) inset,
+    0 10px 24px rgba(0, 0, 0, 0.55),
+    0 18px 60px rgba(255, 24, 24, 0.08);
+  --card-shadow-hover:
+    0 1px 0 rgba(255, 60, 60, 0.10) inset,
+    0 14px 32px rgba(0, 0, 0, 0.65),
+    0 20px 72px rgba(255, 24, 24, 0.14);
+
   --font-display: var(--font-akatsuki-display), "Shippori Mincho", serif;
   --font-ui: var(--font-akatsuki-ui), "Zen Kaku Gothic New", sans-serif;
   --app-canvas-color: transparent; --app-canvas-image: none; --card-isolation: auto;
   color-scheme: dark;
+
+  /* ── Tokens de armonización tributo (consumidos por
+   *    `theme-tributes-armonization.css`). Paleta Sith: obsidiana profunda
+   *    con acentos rojo Sith. Mañana = bronce cálido, Tarde = sangría,
+   *    Noche = grafito frío. "Vencidos" en rojo oscuro distinguible del
+   *    rojo Sith del accent. */
+  --tribute-surface-1:        rgba(18, 6, 10, 0.55);
+  --tribute-surface-2:        rgba(20, 6, 10, 0.62);
+  --tribute-surface-3:        rgba(22, 8, 12, 0.66);
+  --tribute-surface-4:        rgba(26, 10, 14, 0.70);
+  --tribute-surface-5:        rgba(40, 14, 20, 0.74);
+  --tribute-surface-hover:    rgba(30, 10, 16, 0.78);
+  --tribute-surface-hover-strong: rgba(50, 18, 26, 0.86);
+
+  --tribute-card-solid: linear-gradient(160deg,
+    rgba(28, 10, 14, 0.94) 0%,
+    rgba(18, 6, 10, 0.96) 55%,
+    rgba(10, 4, 6, 0.97) 100%);
+  --tribute-card-border: rgba(255, 24, 24, 0.18);
+  --tribute-card-shadow:
+    0 1px 0 rgba(255, 24, 24, 0.05) inset,
+    0 10px 28px rgba(0, 0, 0, 0.65),
+    0 18px 60px rgba(255, 24, 24, 0.06);
+
+  --tribute-cta-text:           #ff5050;
+  --tribute-cta-border-soft:    rgba(255, 24, 24, 0.30);
+  --tribute-cta-border:         rgba(255, 24, 24, 0.40);
+  --tribute-cta-soft-bg:        rgba(255, 24, 24, 0.10);
+  --tribute-cta-soft-bg-strong: rgba(255, 24, 24, 0.18);
+
+  /* Mañana = bronce/cobre quemado (NO amarillo: el amarillo se asocia a Jedi,
+   * rompe el tono Sith). */
+  --tribute-shift-m-text:           #c98f4a;
+  --tribute-shift-m-text-soft:      #ffe0b0;
+  --tribute-shift-m-bg:             rgba(201, 143, 74, 0.10);
+  --tribute-shift-m-bg-strong:      rgba(201, 143, 74, 0.22);
+  --tribute-shift-m-border:         rgba(201, 143, 74, 0.30);
+  --tribute-shift-m-border-strong:  rgba(201, 143, 74, 0.50);
+
+  /* Tarde = sangría (rojo profundo apagado). */
+  --tribute-shift-t-text:           #c46060;
+  --tribute-shift-t-text-soft:      #ffd0d0;
+  --tribute-shift-t-bg:             rgba(196, 96, 96, 0.10);
+  --tribute-shift-t-bg-strong:      rgba(196, 96, 96, 0.22);
+  --tribute-shift-t-border:         rgba(196, 96, 96, 0.30);
+  --tribute-shift-t-border-strong:  rgba(196, 96, 96, 0.50);
+
+  /* Noche = grafito frío con ligero tinte azul-violeta. */
+  --tribute-shift-n-text:           #9a90c0;
+  --tribute-shift-n-text-soft:      #d4cae0;
+  --tribute-shift-n-bg:             rgba(120, 110, 160, 0.10);
+  --tribute-shift-n-bg-strong:      rgba(120, 110, 160, 0.22);
+  --tribute-shift-n-border:         rgba(120, 110, 160, 0.30);
+  --tribute-shift-n-border-strong:  rgba(120, 110, 160, 0.50);
+
+  /* "Vencidos" en un rojo más oscuro y desaturado, separado del accent Sith. */
+  --tribute-danger-text:        #c95560;
+  --tribute-danger-bg:          rgba(165, 50, 60, 0.18);
+  --tribute-danger-bg-strong:   rgba(165, 50, 60, 0.28);
+  --tribute-danger-border:      rgba(165, 50, 60, 0.45);
+
+  --tribute-divider:        rgba(255, 24, 24, 0.16);
+  --tribute-divider-soft:   rgba(255, 24, 24, 0.08);
+  --tribute-chip-neutral:   rgba(255, 24, 24, 0.08);
 }
 html[data-theme="sith"] body { min-height: 100vh; }
 html[data-theme="sith"] .app-sidebar-shell, html[data-theme="sith"] .app-top-header { isolation: auto !important; }

@@ -1,5 +1,7 @@
 "use client";
 
+
+import { isLightTheme } from "@/lib/theme";
 import { useState, useRef, useEffect, useMemo, forwardRef } from "react";
 import { createPortal } from "react-dom";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -60,7 +62,7 @@ const PRIORITY_OPTIONS = Object.entries(PRIORITY_LABELS) as [keyof typeof PRIORI
 export function ProjectView({ project, allUsers }: ProjectViewProps) {
   const { accent } = useAccentForUi();
   const { theme } = useTheme();
-  const isLight = theme === "light";
+  const isLight = isLightTheme(theme);
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();

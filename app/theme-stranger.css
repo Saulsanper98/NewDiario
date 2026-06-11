@@ -56,19 +56,22 @@ html[data-theme="stranger"] {
   --gold-relic: #f7c25e;
 
   /* Card overrides: las cards de Aurora son casi transparentes y se
-   * pierden sobre el cielo. En stranger las hacemos más sólidas con un
-   * tinte violeta nocturno y un blur generoso. */
+   * pierden sobre el cielo. En stranger las hacemos sólidas con un
+   * tinte violeta nocturno (balanced ~0.86 alpha) y un blur generoso.
+   * Suben respecto a la primera versión porque el fondo Stranger es
+   * más cargado y los detalles (cartel HAWKINS, personajes) se veían
+   * a través del contenido. */
   --card-bg: linear-gradient(
     160deg,
-    rgba(22, 14, 38, 0.78) 0%,
-    rgba(12, 8, 24, 0.82) 55%,
-    rgba(8, 4, 18, 0.86) 100%
+    rgba(22, 14, 38, 0.88) 0%,
+    rgba(12, 8, 24, 0.91) 55%,
+    rgba(8, 4, 18, 0.93) 100%
   );
   --card-bg-hover: linear-gradient(
     160deg,
-    rgba(28, 18, 46, 0.86) 0%,
-    rgba(16, 10, 30, 0.88) 55%,
-    rgba(10, 6, 22, 0.90) 100%
+    rgba(28, 18, 46, 0.92) 0%,
+    rgba(16, 10, 30, 0.94) 55%,
+    rgba(10, 6, 22, 0.96) 100%
   );
   --card-blur: 18px;
   --card-border: 1px solid rgba(255, 110, 61, 0.16);
@@ -90,6 +93,64 @@ html[data-theme="stranger"] {
   --app-canvas-image: none;
   --card-isolation: auto;
   color-scheme: dark;
+
+  /* ── Tokens de armonización tributo (consumidos por
+   *    `theme-tributes-armonization.css`). Paleta Stranger: violeta nocturno
+   *    + Hellfire para CTAs y "vencidos". Mañana = ámbar quemado; Tarde =
+   *    cobre; Noche = violeta Upside. */
+  --tribute-surface-1:        rgba(20, 14, 36, 0.55);
+  --tribute-surface-2:        rgba(22, 14, 38, 0.62);
+  --tribute-surface-3:        rgba(22, 14, 38, 0.66);
+  --tribute-surface-4:        rgba(24, 16, 42, 0.70);
+  --tribute-surface-5:        rgba(36, 24, 60, 0.74);
+  --tribute-surface-hover:    rgba(30, 20, 52, 0.78);
+  --tribute-surface-hover-strong: rgba(44, 30, 74, 0.86);
+
+  --tribute-card-solid: linear-gradient(160deg,
+    rgba(24, 16, 42, 0.92) 0%,
+    rgba(14, 10, 28, 0.94) 55%,
+    rgba(10, 6, 20, 0.96) 100%);
+  --tribute-card-border: rgba(255, 110, 61, 0.18);
+  --tribute-card-shadow:
+    0 1px 0 rgba(255, 110, 61, 0.05) inset,
+    0 10px 28px rgba(0, 0, 0, 0.55),
+    0 18px 60px rgba(74, 45, 255, 0.06);
+
+  --tribute-cta-text:           #ff5a64;
+  --tribute-cta-border-soft:    rgba(255, 46, 60, 0.36);
+  --tribute-cta-border:         rgba(255, 46, 60, 0.45);
+  --tribute-cta-soft-bg:        rgba(255, 46, 60, 0.14);
+  --tribute-cta-soft-bg-strong: rgba(255, 46, 60, 0.20);
+
+  --tribute-shift-m-text:           #d99757;
+  --tribute-shift-m-text-soft:      #ffe0c2;
+  --tribute-shift-m-bg:             rgba(217, 151, 87, 0.10);
+  --tribute-shift-m-bg-strong:      rgba(217, 151, 87, 0.22);
+  --tribute-shift-m-border:         rgba(217, 151, 87, 0.32);
+  --tribute-shift-m-border-strong:  rgba(217, 151, 87, 0.55);
+
+  --tribute-shift-t-text:           #c98554;
+  --tribute-shift-t-text-soft:      #ffd9c2;
+  --tribute-shift-t-bg:             rgba(201, 133, 84, 0.10);
+  --tribute-shift-t-bg-strong:      rgba(201, 133, 84, 0.22);
+  --tribute-shift-t-border:         rgba(201, 133, 84, 0.32);
+  --tribute-shift-t-border-strong:  rgba(201, 133, 84, 0.55);
+
+  --tribute-shift-n-text:           #b3a3ff;
+  --tribute-shift-n-text-soft:      #ddd4ff;
+  --tribute-shift-n-bg:             rgba(122, 96, 255, 0.10);
+  --tribute-shift-n-bg-strong:      rgba(122, 96, 255, 0.22);
+  --tribute-shift-n-border:         rgba(122, 96, 255, 0.32);
+  --tribute-shift-n-border-strong:  rgba(122, 96, 255, 0.55);
+
+  --tribute-danger-text:        #d97078;
+  --tribute-danger-bg:          rgba(170, 56, 70, 0.16);
+  --tribute-danger-bg-strong:   rgba(170, 56, 70, 0.26);
+  --tribute-danger-border:      rgba(170, 56, 70, 0.46);
+
+  --tribute-divider:        rgba(255, 110, 61, 0.16);
+  --tribute-divider-soft:   rgba(255, 110, 61, 0.10);
+  --tribute-chip-neutral:   rgba(74, 45, 255, 0.10);
 }
 html[data-theme="stranger"] body { min-height: 100vh; }
 html[data-theme="stranger"] .app-sidebar-shell,
@@ -210,9 +271,10 @@ html[data-theme="stranger"] .stranger-image {
   background-position: center 45%;
   background-repeat: no-repeat;
   background-color: #060410;
-  /* Subimos un poco más el contraste y bajamos brillo: la imagen es muy
-   * saturada de serie, así las cards se leen mejor encima. */
-  filter: saturate(1.08) contrast(1.10) brightness(0.86);
+  /* Bajamos brightness y saturación: la imagen es muy intensa de serie
+   * (rojo a la izquierda, violeta a la derecha). En "tone_down" la
+   * dejamos como atmósfera, no como muralla cromática. */
+  filter: saturate(0.88) contrast(1.04) brightness(0.62);
   animation: stranger-kenburns 44s ease-in-out infinite alternate;
   transform-origin: 50% 60%;
   will-change: transform;
@@ -225,56 +287,59 @@ html[data-theme="stranger"] .stranger-image {
   100% { transform: translateZ(0) scale(1.04) translate(0.6%, 0.2%); }
 }
 
+/* Glows del cielo: ahora son apuntes atmosféricos, no manchones que
+ * dominan el viewport. Reducimos tamaño, opacidad y los movemos a
+ * esquinas para que no compitan con el contenido central. */
 html[data-theme="stranger"] .stranger-glow-1 {
   position: absolute;
-  left: 18%;
-  top: 35%;
-  width: 32vw;
-  height: 32vw;
-  max-width: 460px;
-  max-height: 460px;
+  left: 8%;
+  top: 18%;
+  width: 22vw;
+  height: 22vw;
+  max-width: 320px;
+  max-height: 320px;
   transform: translate(-50%, -50%);
   border-radius: 50%;
   background: radial-gradient(
     circle,
-    rgba(255, 220, 180, 0.42) 0%,
-    rgba(255, 110, 61, 0.28) 22%,
-    rgba(180, 60, 20, 0.12) 45%,
+    rgba(255, 220, 180, 0.22) 0%,
+    rgba(255, 110, 61, 0.14) 22%,
+    rgba(180, 60, 20, 0.06) 45%,
     transparent 70%
   );
-  filter: blur(20px);
+  filter: blur(24px);
   mix-blend-mode: screen;
   animation: stranger-pulse-1 7.5s ease-in-out infinite;
 }
 @keyframes stranger-pulse-1 {
-  0%, 100% { opacity: 0.78; transform: translate(-50%, -50%) scale(1); }
-  50%      { opacity: 1.00; transform: translate(-50%, -50%) scale(1.06); }
+  0%, 100% { opacity: 0.42; transform: translate(-50%, -50%) scale(1); }
+  50%      { opacity: 0.60; transform: translate(-50%, -50%) scale(1.05); }
 }
 
 html[data-theme="stranger"] .stranger-glow-2 {
   position: absolute;
-  left: 80%;
-  top: 30%;
-  width: 30vw;
-  height: 30vw;
-  max-width: 420px;
-  max-height: 420px;
+  left: 92%;
+  top: 14%;
+  width: 22vw;
+  height: 22vw;
+  max-width: 300px;
+  max-height: 300px;
   transform: translate(-50%, -50%);
   border-radius: 50%;
   background: radial-gradient(
     circle,
-    rgba(180, 200, 255, 0.32) 0%,
-    rgba(74, 45, 255, 0.22) 25%,
-    rgba(40, 24, 180, 0.10) 50%,
+    rgba(180, 200, 255, 0.18) 0%,
+    rgba(74, 45, 255, 0.12) 25%,
+    rgba(40, 24, 180, 0.06) 50%,
     transparent 72%
   );
-  filter: blur(22px);
+  filter: blur(26px);
   mix-blend-mode: screen;
   animation: stranger-pulse-2 9.3s ease-in-out infinite;
 }
 @keyframes stranger-pulse-2 {
-  0%, 100% { opacity: 0.72; transform: translate(-50%, -50%) scale(1); }
-  50%      { opacity: 1.00; transform: translate(-50%, -50%) scale(1.05); }
+  0%, 100% { opacity: 0.38; transform: translate(-50%, -50%) scale(1); }
+  50%      { opacity: 0.55; transform: translate(-50%, -50%) scale(1.04); }
 }
 
 /* ── 4. ATMÓSFERA: rayos, skyflash, mástil, morse SOS, glitch VHS ─────────── */
@@ -489,16 +554,20 @@ html[data-theme="stranger"] .stranger-glitch {
   99.8%             { opacity: 0.25; transform: translateX(0); }
 }
 
+/* Vignette suave centrado abajo: oscurece bordes inferiores y esquinas
+ * sin invadir el centro. En esta iteración (tone_down) los bordes
+ * laterales se oscurecen más rápido, así el "muro rojo/violeta" deja
+ * paso a un degradado más narrativo. */
 html[data-theme="stranger"] .stranger-vignette-soft {
   position: absolute;
   inset: 0;
   background: radial-gradient(
-    ellipse at 50% 65%,
+    ellipse 130% 90% at 50% 60%,
     transparent 0%,
-    transparent 30%,
-    rgba(0,0,0,0.25) 55%,
-    rgba(0,0,0,0.55) 85%,
-    rgba(0,0,0,0.70) 100%
+    transparent 32%,
+    rgba(0,0,0,0.30) 58%,
+    rgba(0,0,0,0.62) 82%,
+    rgba(0,0,0,0.78) 100%
   );
 }
 
@@ -570,14 +639,17 @@ html[data-theme="stranger"] .stranger-grain {
   opacity: 0.18;
   mix-blend-mode: overlay;
 }
+/* Vignette duro de bordes: complemento para "apagar" las esquinas. En
+ * esta iteración lo reforzamos algo más para amortiguar los rojos del
+ * lateral izquierdo y los violetas del derecho. */
 html[data-theme="stranger"] .stranger-vignette-edge {
   position: absolute;
   inset: 0;
   background: radial-gradient(
-    ellipse at 50% 50%,
-    transparent 45%,
-    rgba(0,0,0,0.35) 78%,
-    rgba(0,0,0,0.75) 100%
+    ellipse 105% 100% at 50% 50%,
+    transparent 38%,
+    rgba(0,0,0,0.40) 72%,
+    rgba(0,0,0,0.82) 100%
   );
 }
 
@@ -773,8 +845,8 @@ html[data-theme="stranger"] #theme-selector-panel input:focus {
 
 @media (max-width: 640px) {
   html[data-theme="stranger"] .stranger-image { background-position: 50% 50%; }
-  html[data-theme="stranger"] .stranger-glow-1 { width: 60vw; height: 60vw; }
-  html[data-theme="stranger"] .stranger-glow-2 { width: 55vw; height: 55vw; }
+  html[data-theme="stranger"] .stranger-glow-1 { width: 40vw; height: 40vw; }
+  html[data-theme="stranger"] .stranger-glow-2 { width: 38vw; height: 38vw; }
   html[data-theme="stranger"] .stranger-spark-3,
   html[data-theme="stranger"] .stranger-spark-5,
   html[data-theme="stranger"] .stranger-rune-3,
@@ -783,4 +855,24 @@ html[data-theme="stranger"] #theme-selector-panel input:focus {
    * la zona donde están las cards principales. */
   html[data-theme="stranger"] .stranger-bolt-1 { height: 30vh; }
   html[data-theme="stranger"] .stranger-bolt-2 { height: 28vh; }
+}
+
+/* ── 12. ARMONIZACIÓN FINA ────────────────────────────────────────────────
+ *
+ * Movida al archivo común `app/theme-tributes-armonization.css` desde el
+ * pase #3. Aquí dejamos solo los tokens `--tribute-*` en el bloque 1, y el
+ * archivo común aplica las reglas para los 6 temas tributo.
+ *
+ * Si necesitas ajustar SOLO stranger sin afectar al resto, hazlo:
+ *   · cambiando los `--tribute-*` en el bloque 1 (afecta solo a stranger),
+ *   · o añadiendo overrides aquí debajo con `!important` para anular el
+ *     común (no recomendado: rompe la coherencia).
+ * ───────────────────────────────────────────────────────────────────────── */
+
+/* Stranger-only: el borde amber de notas críticas (`bg-[#0d1428]/95`) se
+ * tiñe a la franja naranja-brasa del tema. No está en el común porque el
+ * tinte cambia con cada tributo. */
+html[data-theme="stranger"] .border-amber-500\/20,
+html[data-theme="stranger"] .border-amber-500\/25 {
+  border-color: rgba(255, 110, 61, 0.28) !important;
 }

@@ -1,5 +1,7 @@
 "use client";
 
+
+import { isLightTheme } from "@/lib/theme";
 import { useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/Button";
 import { ErrorShell } from "@/components/ui/ErrorShell";
@@ -27,7 +29,7 @@ export default function DashboardError({
 }) {
   const chunkFailed = useMemo(() => isChunkLoadFailure(error), [error]);
   const { theme } = useTheme();
-  const L = theme === "light";
+  const L = isLightTheme(theme);
 
   useEffect(() => {
     console.error("[dashboard]", error);

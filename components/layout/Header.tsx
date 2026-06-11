@@ -1,5 +1,7 @@
 "use client";
 
+
+import { isLightTheme } from "@/lib/theme";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
@@ -77,7 +79,7 @@ const ROUTE_FALLBACK_TITLE: Record<string, string> = {
 
 export function Header({ user, breadcrumb }: HeaderProps) {
   const { theme } = useTheme();
-  const isLight = theme === "light";
+  const isLight = isLightTheme(theme);
   const { accent } = useAccentForUi();
   const router = useRouter();
   const pathname = usePathname();

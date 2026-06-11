@@ -1,5 +1,7 @@
 "use client";
 
+
+import { isLightTheme } from "@/lib/theme";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -58,7 +60,7 @@ export function LogEntryLinksCard({
 }: LogEntryLinksCardProps) {
   const router = useRouter();
   const { theme } = useTheme();
-  const L = theme === "light";
+  const L = isLightTheme(theme);
   const [outgoing, setOutgoing] = useState(initialOutgoing);
   const [incoming, setIncoming] = useState(initialIncoming);
   const [toId, setToId] = useState("");

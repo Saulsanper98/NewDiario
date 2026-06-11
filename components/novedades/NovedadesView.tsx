@@ -1,5 +1,7 @@
 "use client";
 
+
+import { isLightTheme } from "@/lib/theme";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import {
@@ -67,7 +69,7 @@ export function NovedadesView({
   initialAnnouncements,
 }: NovedadesViewProps) {
   const { theme } = useTheme();
-  const isLight = theme === "light";
+  const isLight = isLightTheme(theme);
   const router = useRouter();
   const [tab, setTab] = useState<Tab>("novedades");
   const [items, setItems] = useState<ReleaseNoteItem[]>(initialItems);

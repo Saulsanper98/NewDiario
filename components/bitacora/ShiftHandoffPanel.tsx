@@ -1,5 +1,7 @@
 "use client";
 
+
+import { isLightTheme } from "@/lib/theme";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -43,7 +45,7 @@ export function ShiftHandoffPanel({
 }: ShiftHandoffPanelProps) {
   const router = useRouter();
   const { theme } = useTheme();
-  const L = theme === "light";
+  const L = isLightTheme(theme);
   const [handoff, setHandoff] = useState<ShiftHandoffActive | null>(
     initialHandoff
   );

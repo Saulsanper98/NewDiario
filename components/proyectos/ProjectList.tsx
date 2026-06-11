@@ -1,5 +1,7 @@
 "use client";
 
+
+import { isLightTheme } from "@/lib/theme";
 import { useState, useMemo, useEffect, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -215,7 +217,7 @@ export function ProjectList({
   initialFilters = {},
 }: ProjectListProps) {
   const { theme } = useTheme();
-  const L = theme === "light";
+  const L = isLightTheme(theme);
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [statusFilter, setStatusFilter] = useState(

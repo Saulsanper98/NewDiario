@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import { isLightTheme } from "@/lib/theme";
 import type { ThemeMode } from "@/lib/theme";
 
 /* Márgenes entre párrafos: solo en globals.css --bitacora-p-gap ([data-bitacora-prose]). */
@@ -9,7 +10,7 @@ const readingBase =
 export function bitacoraReadingProseClass(theme: ThemeMode) {
   return cn(
     readingBase,
-    theme === "light"
+    isLightTheme(theme)
       ? "prose-zinc max-w-none text-zinc-800 [&_a]:decoration-zinc-300 hover:[&_a]:decoration-blue-600 hover:[&_a]:text-blue-800"
       : "prose-invert max-w-none text-white/75 [&_a]:decoration-white/25 hover:[&_a]:decoration-[#ffeb66]/60"
   );
@@ -19,7 +20,7 @@ export function bitacoraReadingProseClass(theme: ThemeMode) {
 export function bitacoraPreviewProseClass(theme: ThemeMode) {
   return cn(
     "prose prose-read-width mx-auto w-full max-w-none text-sm leading-relaxed",
-    theme === "light" ? "prose-zinc text-zinc-800" : "prose-invert text-white/75"
+    isLightTheme(theme) ? "prose-zinc text-zinc-800" : "prose-invert text-white/75"
   );
 }
 
@@ -27,6 +28,6 @@ export function bitacoraPreviewProseClass(theme: ThemeMode) {
 export function richEditorBodyProseClass(theme: ThemeMode) {
   return cn(
     "prose max-w-none text-sm focus:outline-none min-h-[200px] p-4 leading-relaxed",
-    theme === "light" ? "prose-zinc text-zinc-800" : "prose-invert text-white/80"
+    isLightTheme(theme) ? "prose-zinc text-zinc-800" : "prose-invert text-white/80"
   );
 }

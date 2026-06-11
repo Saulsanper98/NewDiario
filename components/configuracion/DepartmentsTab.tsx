@@ -1,5 +1,7 @@
 "use client";
 
+
+import { isLightTheme } from "@/lib/theme";
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
@@ -46,7 +48,7 @@ export function DepartmentsTab({
 }: DepartmentsTabProps) {
   const { accent, withAlpha } = useAccentForUi();
   const { theme } = useTheme();
-  const L = theme === "light";
+  const L = isLightTheme(theme);
   const router = useRouter();
   const [modalOpen, setModalOpen] = useState(false);
   const [saving, setSaving] = useState(false);

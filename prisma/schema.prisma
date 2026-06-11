@@ -274,6 +274,14 @@ model User {
   logTemplatesCreated   LogTemplate[]        @relation("LogTemplateCreatedBy")
   calendarEvents        CalendarEvent[]      @relation("CalendarEventAuthor")
   calendarTemplates     CalendarEventTemplate[] @relation("CalendarTemplateAuthor")
+  // Módulo Técnicos de Sala (inventario + préstamos + incidencias de equipos)
+  itemsCreated                  Item[]                        @relation("ItemCreatedBy")
+  loansAsBorrower               Loan[]                        @relation("LoanBorrower")
+  loansAsLender                 Loan[]                        @relation("LoanLender")
+  equipmentIncidentsReported    EquipmentIncident[]           @relation("IncidentReporter")
+  equipmentIncidentsAssigned    EquipmentIncident[]           @relation("IncidentAssignee")
+  equipmentIncidentComments     EquipmentIncidentComment[]    @relation("IncidentCommentAuthor")
+  equipmentIncidentAttachments  EquipmentIncidentAttachment[] @relation("IncidentAttachmentUploader")
 
   /**
    * Preferencias de sonido del usuario. Mapa categoría -> identificador del
@@ -1607,4 +1615,242 @@ model AnnouncementDismissal {
 
   @@unique([announcementId, userId])
   @@index([userId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Módulo Técnicos de Sala
+//
+//   Inventario compartido (Item) + Préstamos (Loan) + Incidencias de equipos
+//   (EquipmentIncident).
+//
+//   Cada `Item` puede ser PRESTABLE (un portátil, un cable, un disco USB) o
+//   FIJO (un servidor, un switch, un rack) según `loanable`. En cualquier
+//   caso puede tener incidencias asociadas (un servidor caído, un cable
+//   estropeado…). Cuando `loanable = false` no aparece en el selector de
+//   préstamos pero sí en el selector de incidencias.
+//
+//   Visibilidad: por defecto el módulo solo lo ven Técnicos de Sala +
+//   Admins (`lib/permissions/roomtech.ts`). No hay shares con otros
+//   departamentos en esta primera versión.
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum ItemCategory {
+  PORTATIL     // portátiles, tablets
+  PERIFERICO   // ratón, teclado, monitor, webcam
+  CABLE        // HDMI, USB-C, alimentación
+  DISCO        // discos externos, USB
+  HERRAMIENTA  // destornilladores, multímetros, soldadores
+  RED          // switches, routers, APs
+  SERVIDOR     // servidores, NAS
+  RACK         // racks, bandejas
+  AUDIO_VIDEO  // cámaras, altavoces, micrófonos
+  IMPRESORA
+  OTRO
+}
+
+enum ItemStatus {
+  AVAILABLE   // disponible en almacén / sala
+  LOANED      // prestado actualmente (hay Loan ACTIVE)
+  IN_REPAIR   // tiene incidencia abierta / en curso
+  RETIRED     // baja: dado de baja del inventario
+  LOST        // perdido
+}
+
+enum LoanStatus {
+  ACTIVE     // en préstamo, no devuelto
+  RETURNED   // devuelto sin novedad
+  OVERDUE    // activo pero ha pasado dueAt (se computa en cliente; aquí solo
+             // se setea si se quiere fijar manualmente)
+  LOST       // se da por perdido
+  DAMAGED    // devuelto pero con daños
+}
+
+enum IncidentSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum IncidentStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+  CANCELLED
+}
+
+/**
+ * Catálogo de material/equipos.
+ *
+ * Un item es prestable (`loanable=true`) o fijo (`loanable=false`). En ambos
+ * casos puede tener incidencias.
+ *
+ * El campo `status` se mantiene de forma laxa: representa el estado
+ * "operativo" actual. Cuando se crea un `Loan` ACTIVE pasamos a LOANED;
+ * cuando se devuelve volvemos a AVAILABLE. Cuando hay una incidencia
+ * abierta podemos marcarlo IN_REPAIR para que no se preste. Esta lógica
+ * vive en las rutas API correspondientes para mantener la BD consistente.
+ */
+model Item {
+  id          String       @id @default(cuid())
+  /** Nombre legible (ej. "Portátil Dell Latitude 5420"). */
+  name        String       @db.VarChar(140)
+  /** Código corto, único: etiqueta física del item. Si es null se genera al crear. */
+  code        String?      @unique @db.VarChar(40)
+  category    ItemCategory @default(OTRO)
+  brand       String?      @db.VarChar(80)
+  model       String?      @db.VarChar(120)
+  serial      String?      @db.VarChar(120)
+  /** Ubicación habitual: "Sala A, armario 2". */
+  location    String?      @db.VarChar(160)
+  notes       String?      @db.Text
+  status      ItemStatus   @default(AVAILABLE)
+  /** Si false: el item NO aparece en el flujo de préstamos (servidor, switch...). */
+  loanable    Boolean      @default(true)
+
+  createdById String
+  createdBy   User         @relation("ItemCreatedBy", fields: [createdById], references: [id])
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  deletedAt   DateTime?
+
+  loans     Loan[]
+  incidents EquipmentIncident[]
+
+  @@index([status])
+  @@index([category])
+  @@index([loanable])
+  @@index([deletedAt])
+}
+
+/**
+ * Préstamo de un item a un destinatario.
+ *
+ * El destinatario puede ser un usuario interno (`borrowerUserId`) o, para
+ * externos (proveedores, técnicos de fuera), un nombre libre
+ * (`borrowerName`). Al menos uno de los dos campos debe estar relleno
+ * (lo valida la API).
+ */
+model Loan {
+  id             String     @id @default(cuid())
+  itemId         String
+  item           Item       @relation(fields: [itemId], references: [id])
+
+  borrowerUserId String?
+  borrowerUser   User?      @relation("LoanBorrower", fields: [borrowerUserId], references: [id])
+  /** Nombre libre del receptor (cuando no es un usuario del sistema). */
+  borrowerName   String?    @db.VarChar(160)
+
+  /** Técnico que entrega el material (siempre debe ser usuario del sistema). */
+  lenderUserId   String
+  lender         User       @relation("LoanLender", fields: [lenderUserId], references: [id])
+
+  lentAt         DateTime   @default(now())
+  /** Plazo de devolución previsto. Si null = sin plazo. */
+  dueAt          DateTime?
+  /** Cuando se devolvió (null si sigue activo). */
+  returnedAt     DateTime?
+  /** Notas de la entrega. */
+  notes          String?    @db.Text
+  /** Notas al devolver (estado del material, daños observados, etc.). */
+  returnNotes    String?    @db.Text
+
+  status         LoanStatus @default(ACTIVE)
+
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  @@index([itemId])
+  @@index([status])
+  @@index([borrowerUserId])
+  @@index([lenderUserId])
+  @@index([dueAt])
+}
+
+/**
+ * Incidencia sobre un equipo. Tiene workflow propio:
+ *   OPEN → IN_PROGRESS → RESOLVED → CLOSED
+ * (con `CANCELLED` como salida lateral cualquier momento).
+ *
+ * El item puede ser de catálogo (`itemId`) o texto libre (`itemDescription`)
+ * cuando todavía no se ha catalogado. La API valida que uno de los dos
+ * esté presente.
+ */
+model EquipmentIncident {
+  id              String           @id @default(cuid())
+  itemId          String?
+  item            Item?            @relation(fields: [itemId], references: [id])
+  /** Descripción libre del equipo si no está en catálogo. */
+  itemDescription String?          @db.VarChar(200)
+
+  title           String           @db.VarChar(180)
+  description     String           @db.Text
+  severity        IncidentSeverity @default(MEDIUM)
+  status          IncidentStatus   @default(OPEN)
+
+  reportedById    String
+  reportedBy      User             @relation("IncidentReporter", fields: [reportedById], references: [id])
+
+  assignedToId    String?
+  assignedTo      User?            @relation("IncidentAssignee", fields: [assignedToId], references: [id])
+
+  /** Marca temporal cuando el estado pasa a RESOLVED. */
+  resolvedAt      DateTime?
+  /** Marca temporal cuando el estado pasa a CLOSED (post-verificación). */
+  closedAt        DateTime?
+  /** Notas de cierre / resolución. */
+  resolutionNotes String?          @db.Text
+
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  deletedAt       DateTime?
+
+  comments    EquipmentIncidentComment[]
+  attachments EquipmentIncidentAttachment[]
+
+  @@index([itemId])
+  @@index([status])
+  @@index([severity])
+  @@index([assignedToId])
+  @@index([reportedById])
+  @@index([deletedAt])
+}
+
+/**
+ * Comentarios en la incidencia. Soft-delete por consistencia con
+ * `LogComment` (las respuestas hijas siguen visibles como tombstone).
+ */
+model EquipmentIncidentComment {
+  id          String            @id @default(cuid())
+  incidentId  String
+  incident    EquipmentIncident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+  authorId    String
+  author      User              @relation("IncidentCommentAuthor", fields: [authorId], references: [id])
+  body        String            @db.Text
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  deletedAt   DateTime?
+
+  @@index([incidentId])
+  @@index([authorId])
+}
+
+/**
+ * Adjunto (foto del equipo dañado, factura, manual, etc.). El archivo en sí
+ * vive en `/api/media/<url>` (mismo storage que `LogAttachment`).
+ */
+model EquipmentIncidentAttachment {
+  id           String            @id @default(cuid())
+  incidentId   String
+  incident     EquipmentIncident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+  filename     String            @db.VarChar(255)
+  url          String            @db.VarChar(500)
+  mimeType     String            @db.VarChar(120)
+  size         Int
+  uploadedById String
+  uploadedBy   User              @relation("IncidentAttachmentUploader", fields: [uploadedById], references: [id])
+  createdAt    DateTime          @default(now())
+
+  @@index([incidentId])
 }

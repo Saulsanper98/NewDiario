@@ -25,10 +25,12 @@ import {
 } from "lucide-react";
 import { useTheme } from "@/components/layout/ThemeProvider";
 import {
+  
   DESKTOP_ONLY_THEMES,
   DESKTOP_ONLY_MIN_WIDTH,
   isThemeAvailable,
   type ThemeMode,
+  isLightTheme,
 } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 
@@ -320,7 +322,7 @@ export function ThemeSelector() {
 
   const current = OPTIONS.find((o) => o.id === theme) ?? OPTIONS[0];
   const ActiveIcon = current.Icon;
-  const isLt = theme === "light";
+  const isLt = isLightTheme(theme);
 
   const panelDarkBg =
     "linear-gradient(155deg, rgb(13, 20, 40) 0%, rgb(10, 15, 28) 100%)";

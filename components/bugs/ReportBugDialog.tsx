@@ -1,5 +1,7 @@
 "use client";
 
+
+import { isLightTheme } from "@/lib/theme";
 import { useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import toast from "react-hot-toast";
@@ -90,7 +92,7 @@ const MIN_DESCRIPTION = 10;
 
 export function ReportBugDialog({ open, onClose }: ReportBugDialogProps) {
   const { theme } = useTheme();
-  const L = theme === "light";
+  const L = isLightTheme(theme);
   const pathname = usePathname();
   const router = useRouter();
 

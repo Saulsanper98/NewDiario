@@ -1,5 +1,7 @@
 "use client";
 
+
+import { isLightTheme } from "@/lib/theme";
 import Link from "next/link";
 import { Compass } from "lucide-react";
 import { Logo } from "@/components/ui/Logo";
@@ -8,7 +10,7 @@ import { cn } from "@/lib/utils";
 
 export default function NotFound() {
   const { theme } = useTheme();
-  const L = theme === "light";
+  const L = isLightTheme(theme);
 
   return (
     <div

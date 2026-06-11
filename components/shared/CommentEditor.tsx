@@ -1,5 +1,7 @@
 "use client";
 
+
+import { isLightTheme } from "@/lib/theme";
 /**
  * Editor de comentarios ligero (TipTap) con soporte de:
  *  • Texto y saltos de línea (Enter envía, Shift+Enter = nueva línea).
@@ -92,7 +94,7 @@ export function CommentEditor({
   ref,
 }: CommentEditorProps) {
   const { theme } = useTheme();
-  const L = theme === "light";
+  const L = isLightTheme(theme);
   const inputId = useId();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);

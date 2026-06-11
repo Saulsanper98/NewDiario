@@ -1,0 +1,750 @@
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║  ARMONIZACIÓN COMÚN DE TEMAS TRIBUTO                                     ║
+ * ║                                                                          ║
+ * ║  Los 6 temas tributo (sith · stranger · ghibli · itachi · amegakure ·  ║
+ * ║  sololeveling) comparten los mismos puntos de fricción cuando se        ║
+ * ║  combinan con utilidades Tailwind del resto de la app:                  ║
+ * ║                                                                          ║
+ * ║    1. Superficies translúcidas (`bg-white/3`, `bg-white/4`, …) que en   ║
+ * ║       Aurora dejan ver un fondo neutro pero sobre las imágenes 4K de    ║
+ * ║       los tributos se vuelven ilegibles (el editor TipTap, kanban,      ║
+ * ║       paneles laterales, formularios, …).                               ║
+ * ║                                                                          ║
+ * ║    2. Botón `outline` y botón "Plantilla" del editor, que usan          ║
+ * ║       literales `#ffeb66` (amarillo CCMGC). Sobre la paleta de cada     ║
+ * ║       tributo el amarillo desentona con el accent del tema.             ║
+ * ║                                                                          ║
+ * ║    3. Chips de turno (mañana/tarde/noche) y de estado (Vencidos,        ║
+ * ║       urgente, …) con colores Tailwind que pueden chocar con el accent  ║
+ * ║       del tema (sobre todo en temas con rojo dominante).                ║
+ * ║                                                                          ║
+ * ║  En lugar de duplicar 100 líneas de CSS en cada archivo, definimos      ║
+ * ║  AQUÍ las reglas UNA sola vez usando variables `--tribute-*`. Cada      ║
+ * ║  tema tributo solo necesita declarar esas variables con los valores     ║
+ * ║  que mejor armonicen con su paleta. Esto:                               ║
+ * ║                                                                          ║
+ * ║    · Centraliza el mantenimiento (un cambio aquí afecta a todos).       ║
+ * ║    · Garantiza coherencia (todos los tributos pasan por la misma rejilla║
+ * ║      de armonización).                                                  ║
+ * ║    · Permite añadir nuevos tributos con solo declarar las vars.         ║
+ * ║                                                                          ║
+ * ║  La carga DEBE ir DESPUÉS de los archivos individuales de cada tema     ║
+ * ║  en `app/layout.tsx` para que las variables ya estén definidas cuando   ║
+ * ║  estas reglas se evalúan.                                               ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+
+/* ── 1. SUPERFICIES TRANSLÚCIDAS · cards interiores, editor, kanban ─────────
+ *
+ * Cubre las utilidades Tailwind con alpha bajo que se usan a lo ancho de la
+ * app para "panels secundarios" sobre el card principal. En modos clásicos
+ * (Aurora) son sutiles; sobre una imagen 4K se vuelven invisibles.
+ *
+ * Cada tema tributo define `--tribute-surface-{X}` con el tono propio.
+ * `surface-1..6` van de menos a más opaco. `surface-6` se usa para
+ * superficies casi sólidas (e.g. botón secondary).
+ * ───────────────────────────────────────────────────────────────────────── */
+
+/* NOTA · Ghibli es el único tributo en modo "light" (text-zinc sobre crema).
+ * Los componentes JS lo respetan vía `isLightTheme()` (que considera light
+ * tanto al tema "light" como a "ghibli"). Por eso entra en TODOS los
+ * overrides (incluidos `bg-white/X` y outline). */
+
+html[data-theme="sith"] .bg-white\/1,
+html[data-theme="stranger"] .bg-white\/1,
+html[data-theme="ghibli"] .bg-white\/1,
+html[data-theme="itachi"] .bg-white\/1,
+html[data-theme="amegakure"] .bg-white\/1,
+html[data-theme="sololeveling"] .bg-white\/1 {
+  background-color: var(--tribute-surface-1) !important;
+}
+
+html[data-theme="sith"] .bg-white\/3,
+html[data-theme="stranger"] .bg-white\/3,
+html[data-theme="ghibli"] .bg-white\/3,
+html[data-theme="itachi"] .bg-white\/3,
+html[data-theme="amegakure"] .bg-white\/3,
+html[data-theme="sololeveling"] .bg-white\/3 {
+  background-color: var(--tribute-surface-2) !important;
+}
+
+html[data-theme="sith"] .bg-white\/4,
+html[data-theme="stranger"] .bg-white\/4,
+html[data-theme="ghibli"] .bg-white\/4,
+html[data-theme="itachi"] .bg-white\/4,
+html[data-theme="amegakure"] .bg-white\/4,
+html[data-theme="sololeveling"] .bg-white\/4 {
+  background-color: var(--tribute-surface-3) !important;
+}
+
+html[data-theme="sith"] .bg-white\/6,
+html[data-theme="stranger"] .bg-white\/6,
+html[data-theme="ghibli"] .bg-white\/6,
+html[data-theme="itachi"] .bg-white\/6,
+html[data-theme="amegakure"] .bg-white\/6,
+html[data-theme="sololeveling"] .bg-white\/6 {
+  background-color: var(--tribute-surface-4) !important;
+}
+
+html[data-theme="sith"] .bg-white\/8,
+html[data-theme="stranger"] .bg-white\/8,
+html[data-theme="ghibli"] .bg-white\/8,
+html[data-theme="itachi"] .bg-white\/8,
+html[data-theme="amegakure"] .bg-white\/8,
+html[data-theme="sololeveling"] .bg-white\/8 {
+  background-color: var(--tribute-surface-5) !important;
+}
+
+html[data-theme="sith"] .hover\:bg-white\/6:hover,
+html[data-theme="stranger"] .hover\:bg-white\/6:hover,
+html[data-theme="ghibli"] .hover\:bg-white\/6:hover,
+html[data-theme="itachi"] .hover\:bg-white\/6:hover,
+html[data-theme="amegakure"] .hover\:bg-white\/6:hover,
+html[data-theme="sololeveling"] .hover\:bg-white\/6:hover {
+  background-color: var(--tribute-surface-hover) !important;
+}
+
+html[data-theme="sith"] .hover\:bg-white\/8:hover,
+html[data-theme="stranger"] .hover\:bg-white\/8:hover,
+html[data-theme="ghibli"] .hover\:bg-white\/8:hover,
+html[data-theme="itachi"] .hover\:bg-white\/8:hover,
+html[data-theme="amegakure"] .hover\:bg-white\/8:hover,
+html[data-theme="sololeveling"] .hover\:bg-white\/8:hover {
+  background-color: var(--tribute-surface-hover) !important;
+}
+
+html[data-theme="sith"] .hover\:bg-white\/12:hover,
+html[data-theme="stranger"] .hover\:bg-white\/12:hover,
+html[data-theme="ghibli"] .hover\:bg-white\/12:hover,
+html[data-theme="itachi"] .hover\:bg-white\/12:hover,
+html[data-theme="amegakure"] .hover\:bg-white\/12:hover,
+html[data-theme="sololeveling"] .hover\:bg-white\/12:hover {
+  background-color: var(--tribute-surface-hover-strong) !important;
+}
+
+
+/* ── 2. CARDS GLASS · refuerzo de opacidad ──────────────────────────────────
+ *
+ * `.glass` toma su fondo desde `--card-bg`, así que cada tema ya controla la
+ * opacidad. Aquí solo armonizamos el ::before (wash de luz) y el borde, que
+ * los temas no siempre cubren. También garantizamos que `.glass-opaque-bitacora`
+ * tenga el tinte del tema.
+ * ───────────────────────────────────────────────────────────────────────── */
+
+html[data-theme="sith"] .glass-opaque-bitacora,
+html[data-theme="stranger"] .glass-opaque-bitacora,
+html[data-theme="ghibli"] .glass-opaque-bitacora,
+html[data-theme="itachi"] .glass-opaque-bitacora,
+html[data-theme="amegakure"] .glass-opaque-bitacora,
+html[data-theme="sololeveling"] .glass-opaque-bitacora {
+  background: var(--tribute-card-solid) !important;
+  border-color: var(--tribute-card-border) !important;
+  box-shadow: var(--tribute-card-shadow) !important;
+}
+
+
+/* ── 3. BOTÓN OUTLINE · "Corregir ortografía", "Plantilla", chips Hellfire ──
+ *
+ * En `Button.tsx`, el variant `outline` (dark) usa literales `#ffeb66`. En
+ * cada tributo, el accent del tema sustituye al amarillo CCMGC genérico
+ * gracias a estas reglas (ya teníamos `text-[#ffeb66]` en stranger; aquí
+ * cubrimos las variantes con alpha que faltaban).
+ * ───────────────────────────────────────────────────────────────────────── */
+
+html[data-theme="sith"] .text-\[\#ffeb66\],
+html[data-theme="stranger"] .text-\[\#ffeb66\],
+html[data-theme="ghibli"] .text-\[\#ffeb66\],
+html[data-theme="itachi"] .text-\[\#ffeb66\],
+html[data-theme="amegakure"] .text-\[\#ffeb66\],
+html[data-theme="sololeveling"] .text-\[\#ffeb66\] {
+  color: var(--tribute-cta-text) !important;
+}
+
+html[data-theme="sith"] .text-\[\#ffe440\],
+html[data-theme="stranger"] .text-\[\#ffe440\],
+html[data-theme="ghibli"] .text-\[\#ffe440\],
+html[data-theme="itachi"] .text-\[\#ffe440\],
+html[data-theme="amegakure"] .text-\[\#ffe440\],
+html[data-theme="sololeveling"] .text-\[\#ffe440\] {
+  color: var(--tribute-cta-text) !important;
+}
+
+html[data-theme="sith"] .border-\[\#ffeb66\]\/30,
+html[data-theme="stranger"] .border-\[\#ffeb66\]\/30,
+html[data-theme="ghibli"] .border-\[\#ffeb66\]\/30,
+html[data-theme="itachi"] .border-\[\#ffeb66\]\/30,
+html[data-theme="amegakure"] .border-\[\#ffeb66\]\/30,
+html[data-theme="sololeveling"] .border-\[\#ffeb66\]\/30 {
+  border-color: var(--tribute-cta-border-soft) !important;
+}
+
+html[data-theme="sith"] .border-\[\#ffeb66\]\/40,
+html[data-theme="stranger"] .border-\[\#ffeb66\]\/40,
+html[data-theme="ghibli"] .border-\[\#ffeb66\]\/40,
+html[data-theme="itachi"] .border-\[\#ffeb66\]\/40,
+html[data-theme="amegakure"] .border-\[\#ffeb66\]\/40,
+html[data-theme="sololeveling"] .border-\[\#ffeb66\]\/40 {
+  border-color: var(--tribute-cta-border) !important;
+}
+
+html[data-theme="sith"] .bg-\[\#ffeb66\]\/10,
+html[data-theme="stranger"] .bg-\[\#ffeb66\]\/10,
+html[data-theme="ghibli"] .bg-\[\#ffeb66\]\/10,
+html[data-theme="itachi"] .bg-\[\#ffeb66\]\/10,
+html[data-theme="amegakure"] .bg-\[\#ffeb66\]\/10,
+html[data-theme="sololeveling"] .bg-\[\#ffeb66\]\/10 {
+  background-color: var(--tribute-cta-soft-bg) !important;
+}
+
+html[data-theme="sith"] .bg-\[\#ffeb66\]\/18,
+html[data-theme="stranger"] .bg-\[\#ffeb66\]\/18,
+html[data-theme="ghibli"] .bg-\[\#ffeb66\]\/18,
+html[data-theme="itachi"] .bg-\[\#ffeb66\]\/18,
+html[data-theme="amegakure"] .bg-\[\#ffeb66\]\/18,
+html[data-theme="sololeveling"] .bg-\[\#ffeb66\]\/18 {
+  background-color: var(--tribute-cta-soft-bg-strong) !important;
+}
+
+html[data-theme="sith"] .hover\:bg-\[\#ffeb66\]\/10:hover,
+html[data-theme="stranger"] .hover\:bg-\[\#ffeb66\]\/10:hover,
+html[data-theme="ghibli"] .hover\:bg-\[\#ffeb66\]\/10:hover,
+html[data-theme="itachi"] .hover\:bg-\[\#ffeb66\]\/10:hover,
+html[data-theme="amegakure"] .hover\:bg-\[\#ffeb66\]\/10:hover,
+html[data-theme="sololeveling"] .hover\:bg-\[\#ffeb66\]\/10:hover {
+  background-color: var(--tribute-cta-soft-bg) !important;
+}
+
+html[data-theme="sith"] .active\:bg-\[\#ffeb66\]\/18:active,
+html[data-theme="stranger"] .active\:bg-\[\#ffeb66\]\/18:active,
+html[data-theme="ghibli"] .active\:bg-\[\#ffeb66\]\/18:active,
+html[data-theme="itachi"] .active\:bg-\[\#ffeb66\]\/18:active,
+html[data-theme="amegakure"] .active\:bg-\[\#ffeb66\]\/18:active,
+html[data-theme="sololeveling"] .active\:bg-\[\#ffeb66\]\/18:active {
+  background-color: var(--tribute-cta-soft-bg-strong) !important;
+}
+
+
+/* ── 4. CTA PRIMARIO · botón amarillo (`bg-[#ffeb66]`) ──────────────────────
+ *
+ * Cada tema ya puede haber overrideado este botón en su archivo (stranger lo
+ * pasa a Hellfire). Si NO lo ha hecho, este fallback lo pasa al accent. Eso
+ * solo dispara si el tema declara la variable; si no, NO sobreescribimos.
+ * ───────────────────────────────────────────────────────────────────────── */
+
+
+/* ── 5. PALETA SEMÁNTICA · turnos (mañana/tarde/noche) ──────────────────────
+ *
+ * Los chips de turno usan `text-amber-300`, `bg-amber-400/6`, `text-orange-300`,
+ * `text-indigo-300`, etc. En cada tributo definimos un set de 3 tonos que
+ * armonicen con el tema. Si no se declaran los tokens, no se aplica nada
+ * (los tributos sin tokens muestran la paleta Tailwind original).
+ *
+ * El criterio: mantener la **semántica** (mañana cálida, noche fría) pero
+ * en una variante del tema (saturación bajada, hue trasladado al tono propio).
+ * ───────────────────────────────────────────────────────────────────────── */
+
+/* MAÑANA — amber */
+html[data-theme="sith"] .text-amber-300,
+html[data-theme="stranger"] .text-amber-300,
+html[data-theme="itachi"] .text-amber-300,
+html[data-theme="amegakure"] .text-amber-300,
+html[data-theme="sololeveling"] .text-amber-300 {
+  color: var(--tribute-shift-m-text) !important;
+}
+html[data-theme="sith"] .text-amber-100,
+html[data-theme="stranger"] .text-amber-100,
+html[data-theme="itachi"] .text-amber-100,
+html[data-theme="amegakure"] .text-amber-100,
+html[data-theme="sololeveling"] .text-amber-100 {
+  color: var(--tribute-shift-m-text-soft) !important;
+}
+html[data-theme="sith"] .bg-amber-400\/6,
+html[data-theme="sith"] .bg-amber-400\/10,
+html[data-theme="stranger"] .bg-amber-400\/6,
+html[data-theme="stranger"] .bg-amber-400\/10,
+html[data-theme="itachi"] .bg-amber-400\/6,
+html[data-theme="itachi"] .bg-amber-400\/10,
+html[data-theme="amegakure"] .bg-amber-400\/6,
+html[data-theme="amegakure"] .bg-amber-400\/10,
+html[data-theme="sololeveling"] .bg-amber-400\/6,
+html[data-theme="sololeveling"] .bg-amber-400\/10 {
+  background-color: var(--tribute-shift-m-bg) !important;
+}
+html[data-theme="sith"] .bg-amber-500\/20,
+html[data-theme="stranger"] .bg-amber-500\/20,
+html[data-theme="itachi"] .bg-amber-500\/20,
+html[data-theme="amegakure"] .bg-amber-500\/20,
+html[data-theme="sololeveling"] .bg-amber-500\/20 {
+  background-color: var(--tribute-shift-m-bg-strong) !important;
+}
+html[data-theme="sith"] .border-amber-400\/18,
+html[data-theme="sith"] .border-amber-400\/30,
+html[data-theme="stranger"] .border-amber-400\/18,
+html[data-theme="stranger"] .border-amber-400\/30,
+html[data-theme="itachi"] .border-amber-400\/18,
+html[data-theme="itachi"] .border-amber-400\/30,
+html[data-theme="amegakure"] .border-amber-400\/18,
+html[data-theme="amegakure"] .border-amber-400\/30,
+html[data-theme="sololeveling"] .border-amber-400\/18,
+html[data-theme="sololeveling"] .border-amber-400\/30 {
+  border-color: var(--tribute-shift-m-border) !important;
+}
+html[data-theme="sith"] .border-amber-400\/55,
+html[data-theme="sith"] .border-l-amber-400\/55,
+html[data-theme="stranger"] .border-amber-400\/55,
+html[data-theme="stranger"] .border-l-amber-400\/55,
+html[data-theme="itachi"] .border-amber-400\/55,
+html[data-theme="itachi"] .border-l-amber-400\/55,
+html[data-theme="amegakure"] .border-amber-400\/55,
+html[data-theme="amegakure"] .border-l-amber-400\/55,
+html[data-theme="sololeveling"] .border-amber-400\/55,
+html[data-theme="sololeveling"] .border-l-amber-400\/55 {
+  border-color: var(--tribute-shift-m-border-strong) !important;
+}
+
+/* TARDE — orange */
+html[data-theme="sith"] .text-orange-300,
+html[data-theme="stranger"] .text-orange-300,
+html[data-theme="itachi"] .text-orange-300,
+html[data-theme="amegakure"] .text-orange-300,
+html[data-theme="sololeveling"] .text-orange-300 {
+  color: var(--tribute-shift-t-text) !important;
+}
+html[data-theme="sith"] .text-orange-100,
+html[data-theme="stranger"] .text-orange-100,
+html[data-theme="itachi"] .text-orange-100,
+html[data-theme="amegakure"] .text-orange-100,
+html[data-theme="sololeveling"] .text-orange-100 {
+  color: var(--tribute-shift-t-text-soft) !important;
+}
+html[data-theme="sith"] .bg-orange-400\/6,
+html[data-theme="sith"] .bg-orange-400\/10,
+html[data-theme="stranger"] .bg-orange-400\/6,
+html[data-theme="stranger"] .bg-orange-400\/10,
+html[data-theme="itachi"] .bg-orange-400\/6,
+html[data-theme="itachi"] .bg-orange-400\/10,
+html[data-theme="amegakure"] .bg-orange-400\/6,
+html[data-theme="amegakure"] .bg-orange-400\/10,
+html[data-theme="sololeveling"] .bg-orange-400\/6,
+html[data-theme="sololeveling"] .bg-orange-400\/10 {
+  background-color: var(--tribute-shift-t-bg) !important;
+}
+html[data-theme="sith"] .bg-orange-500\/20,
+html[data-theme="stranger"] .bg-orange-500\/20,
+html[data-theme="itachi"] .bg-orange-500\/20,
+html[data-theme="amegakure"] .bg-orange-500\/20,
+html[data-theme="sololeveling"] .bg-orange-500\/20 {
+  background-color: var(--tribute-shift-t-bg-strong) !important;
+}
+html[data-theme="sith"] .border-orange-400\/18,
+html[data-theme="sith"] .border-orange-400\/26,
+html[data-theme="stranger"] .border-orange-400\/18,
+html[data-theme="stranger"] .border-orange-400\/26,
+html[data-theme="itachi"] .border-orange-400\/18,
+html[data-theme="itachi"] .border-orange-400\/26,
+html[data-theme="amegakure"] .border-orange-400\/18,
+html[data-theme="amegakure"] .border-orange-400\/26,
+html[data-theme="sololeveling"] .border-orange-400\/18,
+html[data-theme="sololeveling"] .border-orange-400\/26 {
+  border-color: var(--tribute-shift-t-border) !important;
+}
+html[data-theme="sith"] .border-orange-400\/50,
+html[data-theme="sith"] .border-orange-400\/55,
+html[data-theme="sith"] .border-l-orange-400\/55,
+html[data-theme="sith"] .border-l-orange-500\/60,
+html[data-theme="stranger"] .border-orange-400\/50,
+html[data-theme="stranger"] .border-orange-400\/55,
+html[data-theme="stranger"] .border-l-orange-400\/55,
+html[data-theme="stranger"] .border-l-orange-500\/60,
+html[data-theme="itachi"] .border-orange-400\/50,
+html[data-theme="itachi"] .border-orange-400\/55,
+html[data-theme="itachi"] .border-l-orange-400\/55,
+html[data-theme="itachi"] .border-l-orange-500\/60,
+html[data-theme="amegakure"] .border-orange-400\/50,
+html[data-theme="amegakure"] .border-orange-400\/55,
+html[data-theme="amegakure"] .border-l-orange-400\/55,
+html[data-theme="amegakure"] .border-l-orange-500\/60,
+html[data-theme="sololeveling"] .border-orange-400\/50,
+html[data-theme="sololeveling"] .border-orange-400\/55,
+html[data-theme="sololeveling"] .border-l-orange-400\/55,
+html[data-theme="sololeveling"] .border-l-orange-500\/60 {
+  border-color: var(--tribute-shift-t-border-strong) !important;
+}
+
+/* NOCHE — indigo */
+html[data-theme="sith"] .text-indigo-300,
+html[data-theme="stranger"] .text-indigo-300,
+html[data-theme="itachi"] .text-indigo-300,
+html[data-theme="amegakure"] .text-indigo-300,
+html[data-theme="sololeveling"] .text-indigo-300 {
+  color: var(--tribute-shift-n-text) !important;
+}
+html[data-theme="sith"] .text-indigo-100,
+html[data-theme="stranger"] .text-indigo-100,
+html[data-theme="itachi"] .text-indigo-100,
+html[data-theme="amegakure"] .text-indigo-100,
+html[data-theme="sololeveling"] .text-indigo-100 {
+  color: var(--tribute-shift-n-text-soft) !important;
+}
+html[data-theme="sith"] .bg-indigo-400\/6,
+html[data-theme="sith"] .bg-indigo-400\/10,
+html[data-theme="stranger"] .bg-indigo-400\/6,
+html[data-theme="stranger"] .bg-indigo-400\/10,
+html[data-theme="itachi"] .bg-indigo-400\/6,
+html[data-theme="itachi"] .bg-indigo-400\/10,
+html[data-theme="amegakure"] .bg-indigo-400\/6,
+html[data-theme="amegakure"] .bg-indigo-400\/10,
+html[data-theme="sololeveling"] .bg-indigo-400\/6,
+html[data-theme="sololeveling"] .bg-indigo-400\/10 {
+  background-color: var(--tribute-shift-n-bg) !important;
+}
+html[data-theme="sith"] .bg-indigo-500\/20,
+html[data-theme="stranger"] .bg-indigo-500\/20,
+html[data-theme="itachi"] .bg-indigo-500\/20,
+html[data-theme="amegakure"] .bg-indigo-500\/20,
+html[data-theme="sololeveling"] .bg-indigo-500\/20 {
+  background-color: var(--tribute-shift-n-bg-strong) !important;
+}
+html[data-theme="sith"] .border-indigo-400\/18,
+html[data-theme="sith"] .border-indigo-400\/26,
+html[data-theme="stranger"] .border-indigo-400\/18,
+html[data-theme="stranger"] .border-indigo-400\/26,
+html[data-theme="itachi"] .border-indigo-400\/18,
+html[data-theme="itachi"] .border-indigo-400\/26,
+html[data-theme="amegakure"] .border-indigo-400\/18,
+html[data-theme="amegakure"] .border-indigo-400\/26,
+html[data-theme="sololeveling"] .border-indigo-400\/18,
+html[data-theme="sololeveling"] .border-indigo-400\/26 {
+  border-color: var(--tribute-shift-n-border) !important;
+}
+html[data-theme="sith"] .border-indigo-400\/50,
+html[data-theme="sith"] .border-indigo-400\/55,
+html[data-theme="sith"] .border-l-indigo-400\/55,
+html[data-theme="sith"] .border-l-indigo-500\/72,
+html[data-theme="stranger"] .border-indigo-400\/50,
+html[data-theme="stranger"] .border-indigo-400\/55,
+html[data-theme="stranger"] .border-l-indigo-400\/55,
+html[data-theme="stranger"] .border-l-indigo-500\/72,
+html[data-theme="itachi"] .border-indigo-400\/50,
+html[data-theme="itachi"] .border-indigo-400\/55,
+html[data-theme="itachi"] .border-l-indigo-400\/55,
+html[data-theme="itachi"] .border-l-indigo-500\/72,
+html[data-theme="amegakure"] .border-indigo-400\/50,
+html[data-theme="amegakure"] .border-indigo-400\/55,
+html[data-theme="amegakure"] .border-l-indigo-400\/55,
+html[data-theme="amegakure"] .border-l-indigo-500\/72,
+html[data-theme="sololeveling"] .border-indigo-400\/50,
+html[data-theme="sololeveling"] .border-indigo-400\/55,
+html[data-theme="sololeveling"] .border-l-indigo-400\/55,
+html[data-theme="sololeveling"] .border-l-indigo-500\/72 {
+  border-color: var(--tribute-shift-n-border-strong) !important;
+}
+
+
+/* ── 6. ESTADO "URGENTE / VENCIDOS" · rojo Tailwind ─────────────────────────
+ *
+ * En temas dominados por el rojo (sith, itachi, stranger) el rojo brillante
+ * de "Vencidos" / "Urgente" choca con el accent. Cada tema declara un rojo
+ * adaptado.
+ * ───────────────────────────────────────────────────────────────────────── */
+
+html[data-theme="sith"] .text-red-300,
+html[data-theme="sith"] .text-red-400,
+html[data-theme="stranger"] .text-red-300,
+html[data-theme="stranger"] .text-red-400,
+html[data-theme="itachi"] .text-red-300,
+html[data-theme="itachi"] .text-red-400,
+html[data-theme="amegakure"] .text-red-300,
+html[data-theme="amegakure"] .text-red-400,
+html[data-theme="sololeveling"] .text-red-300,
+html[data-theme="sololeveling"] .text-red-400 {
+  color: var(--tribute-danger-text) !important;
+}
+html[data-theme="sith"] .bg-red-500\/10,
+html[data-theme="stranger"] .bg-red-500\/10,
+html[data-theme="itachi"] .bg-red-500\/10,
+html[data-theme="amegakure"] .bg-red-500\/10,
+html[data-theme="sololeveling"] .bg-red-500\/10 {
+  background-color: var(--tribute-danger-bg) !important;
+}
+html[data-theme="sith"] .bg-red-500\/20,
+html[data-theme="stranger"] .bg-red-500\/20,
+html[data-theme="itachi"] .bg-red-500\/20,
+html[data-theme="amegakure"] .bg-red-500\/20,
+html[data-theme="sololeveling"] .bg-red-500\/20 {
+  background-color: var(--tribute-danger-bg-strong) !important;
+}
+html[data-theme="sith"] .border-red-400\/30,
+html[data-theme="sith"] .border-red-400\/55,
+html[data-theme="stranger"] .border-red-400\/30,
+html[data-theme="stranger"] .border-red-400\/55,
+html[data-theme="itachi"] .border-red-400\/30,
+html[data-theme="itachi"] .border-red-400\/55,
+html[data-theme="amegakure"] .border-red-400\/30,
+html[data-theme="amegakure"] .border-red-400\/55,
+html[data-theme="sololeveling"] .border-red-400\/30,
+html[data-theme="sololeveling"] .border-red-400\/55 {
+  border-color: var(--tribute-danger-border) !important;
+}
+
+
+/* ── 7. BORDES BLANDOS · divisores y tarjetas neutras ──────────────────────
+ *
+ * `border-white/10` y `border-white/5` se usan para separadores sutiles. En
+ * temas dark sobre imagen los blancos producen un halo desagradable. Los
+ * reemplazamos por el tinte propio de cada tema.
+ * ───────────────────────────────────────────────────────────────────────── */
+
+html[data-theme="sith"] .border-white\/10,
+html[data-theme="stranger"] .border-white\/10,
+html[data-theme="ghibli"] .border-white\/10,
+html[data-theme="itachi"] .border-white\/10,
+html[data-theme="amegakure"] .border-white\/10,
+html[data-theme="sololeveling"] .border-white\/10 {
+  border-color: var(--tribute-divider) !important;
+}
+html[data-theme="sith"] .border-white\/5,
+html[data-theme="stranger"] .border-white\/5,
+html[data-theme="ghibli"] .border-white\/5,
+html[data-theme="itachi"] .border-white\/5,
+html[data-theme="amegakure"] .border-white\/5,
+html[data-theme="sololeveling"] .border-white\/5 {
+  border-color: var(--tribute-divider-soft) !important;
+}
+
+
+/* ── 8. CHIPS NEUTROS `bg-white/5` ─────────────────────────────────────────
+ *
+ * Algunos chips genéricos (estado "pendiente neutro") usan `bg-white/5`.
+ * Lo pasamos al tinte del tema para que tengan identidad y no parezcan
+ * pegados sobre la imagen.
+ * ───────────────────────────────────────────────────────────────────────── */
+
+html[data-theme="sith"] .bg-white\/5,
+html[data-theme="stranger"] .bg-white\/5,
+html[data-theme="ghibli"] .bg-white\/5,
+html[data-theme="itachi"] .bg-white\/5,
+html[data-theme="amegakure"] .bg-white\/5,
+html[data-theme="sololeveling"] .bg-white\/5 {
+  background-color: var(--tribute-chip-neutral) !important;
+}
+
+
+/* ── 9. MÓDULO TÉCNICOS DE SALA · opacidades adicionales del accent ─────────
+ *
+ * El módulo Roomtech (inventario / préstamos / incidencias) usa varias
+ * opacidades del accent `#ffeb66` que no entraban en los bloques 3/4 de
+ * arriba (focus rings, halos del onboarding, hovers de cards). Aquí los
+ * mapeamos al accent del tema para que la UX se sienta nativa en cada
+ * tributo en lugar de inyectar amarillo CCMGC en una paleta de Sith / Stranger.
+ *
+ * Las opacidades cubiertas son: 5, 8, 15, 20, 25, 50.
+ * ───────────────────────────────────────────────────────────────────────── */
+
+html[data-theme="sith"] .bg-\[\#ffeb66\]\/5,
+html[data-theme="stranger"] .bg-\[\#ffeb66\]\/5,
+html[data-theme="ghibli"] .bg-\[\#ffeb66\]\/5,
+html[data-theme="itachi"] .bg-\[\#ffeb66\]\/5,
+html[data-theme="amegakure"] .bg-\[\#ffeb66\]\/5,
+html[data-theme="sololeveling"] .bg-\[\#ffeb66\]\/5,
+html[data-theme="sith"] .bg-\[\#ffeb66\]\/8,
+html[data-theme="stranger"] .bg-\[\#ffeb66\]\/8,
+html[data-theme="ghibli"] .bg-\[\#ffeb66\]\/8,
+html[data-theme="itachi"] .bg-\[\#ffeb66\]\/8,
+html[data-theme="amegakure"] .bg-\[\#ffeb66\]\/8,
+html[data-theme="sololeveling"] .bg-\[\#ffeb66\]\/8 {
+  background-color: var(--tribute-cta-soft-bg) !important;
+}
+
+html[data-theme="sith"] .bg-\[\#ffeb66\]\/15,
+html[data-theme="stranger"] .bg-\[\#ffeb66\]\/15,
+html[data-theme="ghibli"] .bg-\[\#ffeb66\]\/15,
+html[data-theme="itachi"] .bg-\[\#ffeb66\]\/15,
+html[data-theme="amegakure"] .bg-\[\#ffeb66\]\/15,
+html[data-theme="sololeveling"] .bg-\[\#ffeb66\]\/15,
+html[data-theme="sith"] .bg-\[\#ffeb66\]\/20,
+html[data-theme="stranger"] .bg-\[\#ffeb66\]\/20,
+html[data-theme="ghibli"] .bg-\[\#ffeb66\]\/20,
+html[data-theme="itachi"] .bg-\[\#ffeb66\]\/20,
+html[data-theme="amegakure"] .bg-\[\#ffeb66\]\/20,
+html[data-theme="sololeveling"] .bg-\[\#ffeb66\]\/20,
+html[data-theme="sith"] .bg-\[\#ffeb66\]\/25,
+html[data-theme="stranger"] .bg-\[\#ffeb66\]\/25,
+html[data-theme="ghibli"] .bg-\[\#ffeb66\]\/25,
+html[data-theme="itachi"] .bg-\[\#ffeb66\]\/25,
+html[data-theme="amegakure"] .bg-\[\#ffeb66\]\/25,
+html[data-theme="sololeveling"] .bg-\[\#ffeb66\]\/25,
+html[data-theme="sith"] .bg-\[\#ffeb66\]\/30,
+html[data-theme="stranger"] .bg-\[\#ffeb66\]\/30,
+html[data-theme="ghibli"] .bg-\[\#ffeb66\]\/30,
+html[data-theme="itachi"] .bg-\[\#ffeb66\]\/30,
+html[data-theme="amegakure"] .bg-\[\#ffeb66\]\/30,
+html[data-theme="sololeveling"] .bg-\[\#ffeb66\]\/30 {
+  background-color: var(--tribute-cta-soft-bg-strong) !important;
+}
+
+html[data-theme="sith"] .hover\:bg-\[\#ffeb66\]\/15:hover,
+html[data-theme="stranger"] .hover\:bg-\[\#ffeb66\]\/15:hover,
+html[data-theme="ghibli"] .hover\:bg-\[\#ffeb66\]\/15:hover,
+html[data-theme="itachi"] .hover\:bg-\[\#ffeb66\]\/15:hover,
+html[data-theme="amegakure"] .hover\:bg-\[\#ffeb66\]\/15:hover,
+html[data-theme="sololeveling"] .hover\:bg-\[\#ffeb66\]\/15:hover {
+  background-color: var(--tribute-cta-soft-bg-strong) !important;
+}
+
+/* Bordes / rings con opacidades extra usadas por focus rings e ilustraciones
+   del onboarding y modales del módulo. */
+html[data-theme="sith"] .border-\[\#ffeb66\]\/15,
+html[data-theme="stranger"] .border-\[\#ffeb66\]\/15,
+html[data-theme="ghibli"] .border-\[\#ffeb66\]\/15,
+html[data-theme="itachi"] .border-\[\#ffeb66\]\/15,
+html[data-theme="amegakure"] .border-\[\#ffeb66\]\/15,
+html[data-theme="sololeveling"] .border-\[\#ffeb66\]\/15,
+html[data-theme="sith"] .border-\[\#ffeb66\]\/20,
+html[data-theme="stranger"] .border-\[\#ffeb66\]\/20,
+html[data-theme="ghibli"] .border-\[\#ffeb66\]\/20,
+html[data-theme="itachi"] .border-\[\#ffeb66\]\/20,
+html[data-theme="amegakure"] .border-\[\#ffeb66\]\/20,
+html[data-theme="sololeveling"] .border-\[\#ffeb66\]\/20,
+html[data-theme="sith"] .border-\[\#ffeb66\]\/25,
+html[data-theme="stranger"] .border-\[\#ffeb66\]\/25,
+html[data-theme="ghibli"] .border-\[\#ffeb66\]\/25,
+html[data-theme="itachi"] .border-\[\#ffeb66\]\/25,
+html[data-theme="amegakure"] .border-\[\#ffeb66\]\/25,
+html[data-theme="sololeveling"] .border-\[\#ffeb66\]\/25 {
+  border-color: var(--tribute-cta-border-soft) !important;
+}
+
+html[data-theme="sith"] .border-\[\#ffeb66\]\/50,
+html[data-theme="stranger"] .border-\[\#ffeb66\]\/50,
+html[data-theme="ghibli"] .border-\[\#ffeb66\]\/50,
+html[data-theme="itachi"] .border-\[\#ffeb66\]\/50,
+html[data-theme="amegakure"] .border-\[\#ffeb66\]\/50,
+html[data-theme="sololeveling"] .border-\[\#ffeb66\]\/50 {
+  border-color: var(--tribute-cta-border) !important;
+}
+
+html[data-theme="sith"] .ring-\[\#ffeb66\]\/15,
+html[data-theme="stranger"] .ring-\[\#ffeb66\]\/15,
+html[data-theme="ghibli"] .ring-\[\#ffeb66\]\/15,
+html[data-theme="itachi"] .ring-\[\#ffeb66\]\/15,
+html[data-theme="amegakure"] .ring-\[\#ffeb66\]\/15,
+html[data-theme="sololeveling"] .ring-\[\#ffeb66\]\/15,
+html[data-theme="sith"] .ring-\[\#ffeb66\]\/20,
+html[data-theme="stranger"] .ring-\[\#ffeb66\]\/20,
+html[data-theme="ghibli"] .ring-\[\#ffeb66\]\/20,
+html[data-theme="itachi"] .ring-\[\#ffeb66\]\/20,
+html[data-theme="amegakure"] .ring-\[\#ffeb66\]\/20,
+html[data-theme="sololeveling"] .ring-\[\#ffeb66\]\/20 {
+  --tw-ring-color: var(--tribute-cta-border-soft) !important;
+}
+
+html[data-theme="sith"] .ring-\[\#ffeb66\]\/25,
+html[data-theme="stranger"] .ring-\[\#ffeb66\]\/25,
+html[data-theme="ghibli"] .ring-\[\#ffeb66\]\/25,
+html[data-theme="itachi"] .ring-\[\#ffeb66\]\/25,
+html[data-theme="amegakure"] .ring-\[\#ffeb66\]\/25,
+html[data-theme="sololeveling"] .ring-\[\#ffeb66\]\/25,
+html[data-theme="sith"] .ring-\[\#ffeb66\]\/30,
+html[data-theme="stranger"] .ring-\[\#ffeb66\]\/30,
+html[data-theme="ghibli"] .ring-\[\#ffeb66\]\/30,
+html[data-theme="itachi"] .ring-\[\#ffeb66\]\/30,
+html[data-theme="amegakure"] .ring-\[\#ffeb66\]\/30,
+html[data-theme="sololeveling"] .ring-\[\#ffeb66\]\/30,
+html[data-theme="sith"] .ring-\[\#ffeb66\]\/40,
+html[data-theme="stranger"] .ring-\[\#ffeb66\]\/40,
+html[data-theme="ghibli"] .ring-\[\#ffeb66\]\/40,
+html[data-theme="itachi"] .ring-\[\#ffeb66\]\/40,
+html[data-theme="amegakure"] .ring-\[\#ffeb66\]\/40,
+html[data-theme="sololeveling"] .ring-\[\#ffeb66\]\/40 {
+  --tw-ring-color: var(--tribute-cta-border) !important;
+}
+
+/* Anillos de focus de inputs del módulo (Tailwind compone con la utilidad
+   `focus:ring-N` y la variable `--tw-ring-color`). El estado focus visible
+   queda con el accent del tema. */
+html[data-theme="sith"] .focus\:ring-\[\#ffeb66\]\/20:focus,
+html[data-theme="stranger"] .focus\:ring-\[\#ffeb66\]\/20:focus,
+html[data-theme="ghibli"] .focus\:ring-\[\#ffeb66\]\/20:focus,
+html[data-theme="itachi"] .focus\:ring-\[\#ffeb66\]\/20:focus,
+html[data-theme="amegakure"] .focus\:ring-\[\#ffeb66\]\/20:focus,
+html[data-theme="sololeveling"] .focus\:ring-\[\#ffeb66\]\/20:focus,
+html[data-theme="sith"] .focus\:ring-\[\#ffeb66\]\/25:focus,
+html[data-theme="stranger"] .focus\:ring-\[\#ffeb66\]\/25:focus,
+html[data-theme="ghibli"] .focus\:ring-\[\#ffeb66\]\/25:focus,
+html[data-theme="itachi"] .focus\:ring-\[\#ffeb66\]\/25:focus,
+html[data-theme="amegakure"] .focus\:ring-\[\#ffeb66\]\/25:focus,
+html[data-theme="sololeveling"] .focus\:ring-\[\#ffeb66\]\/25:focus,
+html[data-theme="sith"] .focus\:ring-\[\#ffeb66\]\/30:focus,
+html[data-theme="stranger"] .focus\:ring-\[\#ffeb66\]\/30:focus,
+html[data-theme="ghibli"] .focus\:ring-\[\#ffeb66\]\/30:focus,
+html[data-theme="itachi"] .focus\:ring-\[\#ffeb66\]\/30:focus,
+html[data-theme="amegakure"] .focus\:ring-\[\#ffeb66\]\/30:focus,
+html[data-theme="sololeveling"] .focus\:ring-\[\#ffeb66\]\/30:focus {
+  --tw-ring-color: var(--tribute-cta-border-soft) !important;
+}
+
+html[data-theme="sith"] .focus\:border-\[\#ffeb66\]\/50:focus,
+html[data-theme="stranger"] .focus\:border-\[\#ffeb66\]\/50:focus,
+html[data-theme="ghibli"] .focus\:border-\[\#ffeb66\]\/50:focus,
+html[data-theme="itachi"] .focus\:border-\[\#ffeb66\]\/50:focus,
+html[data-theme="amegakure"] .focus\:border-\[\#ffeb66\]\/50:focus,
+html[data-theme="sololeveling"] .focus\:border-\[\#ffeb66\]\/50:focus {
+  border-color: var(--tribute-cta-border) !important;
+}
+
+/* Texto con opacidad del accent (eyebrow del shell + tip de onboarding). */
+html[data-theme="sith"] .text-\[\#ffeb66\]\/80,
+html[data-theme="stranger"] .text-\[\#ffeb66\]\/80,
+html[data-theme="ghibli"] .text-\[\#ffeb66\]\/80,
+html[data-theme="itachi"] .text-\[\#ffeb66\]\/80,
+html[data-theme="amegakure"] .text-\[\#ffeb66\]\/80,
+html[data-theme="sololeveling"] .text-\[\#ffeb66\]\/80 {
+  color: var(--tribute-cta-text) !important;
+  opacity: 0.85;
+}
+
+/* Superficies neutras adicionales (`bg-white/10`, `/12`, `/14`, `/15`) que
+   usa el módulo Roomtech en sliders/segmented controls. Los mapeamos a la
+   `surface-5` del tema para que sigan teniendo cuerpo sobre la imagen 4K. */
+html[data-theme="sith"] .bg-white\/10,
+html[data-theme="stranger"] .bg-white\/10,
+html[data-theme="ghibli"] .bg-white\/10,
+html[data-theme="itachi"] .bg-white\/10,
+html[data-theme="amegakure"] .bg-white\/10,
+html[data-theme="sololeveling"] .bg-white\/10,
+html[data-theme="sith"] .bg-white\/12,
+html[data-theme="stranger"] .bg-white\/12,
+html[data-theme="ghibli"] .bg-white\/12,
+html[data-theme="itachi"] .bg-white\/12,
+html[data-theme="amegakure"] .bg-white\/12,
+html[data-theme="sololeveling"] .bg-white\/12,
+html[data-theme="sith"] .bg-white\/14,
+html[data-theme="stranger"] .bg-white\/14,
+html[data-theme="ghibli"] .bg-white\/14,
+html[data-theme="itachi"] .bg-white\/14,
+html[data-theme="amegakure"] .bg-white\/14,
+html[data-theme="sololeveling"] .bg-white\/14,
+html[data-theme="sith"] .bg-white\/15,
+html[data-theme="stranger"] .bg-white\/15,
+html[data-theme="ghibli"] .bg-white\/15,
+html[data-theme="itachi"] .bg-white\/15,
+html[data-theme="amegakure"] .bg-white\/15,
+html[data-theme="sololeveling"] .bg-white\/15 {
+  background-color: var(--tribute-surface-5) !important;
+}
+
+html[data-theme="sith"] .hover\:bg-white\/10:hover,
+html[data-theme="stranger"] .hover\:bg-white\/10:hover,
+html[data-theme="ghibli"] .hover\:bg-white\/10:hover,
+html[data-theme="itachi"] .hover\:bg-white\/10:hover,
+html[data-theme="amegakure"] .hover\:bg-white\/10:hover,
+html[data-theme="sololeveling"] .hover\:bg-white\/10:hover,
+html[data-theme="sith"] .hover\:bg-white\/15:hover,
+html[data-theme="stranger"] .hover\:bg-white\/15:hover,
+html[data-theme="ghibli"] .hover\:bg-white\/15:hover,
+html[data-theme="itachi"] .hover\:bg-white\/15:hover,
+html[data-theme="amegakure"] .hover\:bg-white\/15:hover,
+html[data-theme="sololeveling"] .hover\:bg-white\/15:hover {
+  background-color: var(--tribute-surface-hover) !important;
+}

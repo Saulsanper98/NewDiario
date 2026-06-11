@@ -1,5 +1,7 @@
 "use client";
 
+
+import { isLightTheme } from "@/lib/theme";
 import { Modal } from "@/components/ui/Modal";
 import { useTheme } from "@/components/layout/ThemeProvider";
 import { cn } from "@/lib/utils";
@@ -19,7 +21,7 @@ export function AvatarImagePreview({
   onClose,
 }: AvatarImagePreviewProps) {
   const { theme } = useTheme();
-  const L = theme === "light";
+  const L = isLightTheme(theme);
 
   return (
     <Modal

@@ -1,5 +1,7 @@
 "use client";
 
+
+import { isLightTheme } from "@/lib/theme";
 /**
  * BitacoraFeed
  *
@@ -163,7 +165,7 @@ export function BitacoraFeed({
 }: BitacoraFeedProps) {
   const router = useRouter();
   const { theme } = useTheme();
-  const L = theme === "light";
+  const L = isLightTheme(theme);
   const [isPending, startTransition] = useTransition();
   const [search,        setSearch]        = useState(initialFilters.search ?? "");
   const [typeFilter,    setTypeFilter]    = useState(initialFilters.type ?? "");
@@ -1292,7 +1294,7 @@ function LogCard({
     .trim()
     .slice(0, 160);
 
-  const srcDeptColor = sharedFrom ? log.department.accentColor : null;
+  const srcDeptColor = sharedFrom ? log.department?.accentColor ?? null : null;
   const reactionSummary = Object.entries(
     log.reactions.reduce<Record<string, number>>((acc, r) => {
       acc[r.emoji] = (acc[r.emoji] ?? 0) + 1;
@@ -1431,7 +1433,7 @@ function LogCard({
                       {log.followupDone ? "Atendido" : "Seguimiento"}
                     </Badge>
                   )}
-                  {sharedFrom && (
+                  {sharedFrom && log.department && (
                     <span
                       className="text-[10px] font-medium px-1.5 py-0.5 rounded-full border shrink-0"
                       style={{

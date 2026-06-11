@@ -1,5 +1,7 @@
 "use client";
 
+
+import { isLightTheme } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 import { forwardRef, useRef, useCallback } from "react";
 import type { ButtonHTMLAttributes } from "react";
@@ -42,7 +44,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     );
 
     const { theme } = useTheme();
-    const L = theme === "light";
+    const L = isLightTheme(theme);
 
     const base =
       "inline-flex items-center justify-center gap-2 font-medium rounded-lg transition-all focus-visible:outline-none disabled:opacity-50 disabled:cursor-not-allowed select-none";

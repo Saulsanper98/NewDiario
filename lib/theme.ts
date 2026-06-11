@@ -101,6 +101,30 @@ export function isThemeAvailable(mode: ThemeMode): boolean {
 }
 
 /**
+ * Temas que se comportan como "modo claro" desde el punto de vista de los
+ * componentes (texto oscuro sobre fondo claro). Hasta ahora los componentes
+ * comparaban literal `theme === "light"`, pero los tributos con
+ * `color-scheme: light` (Ghibli) deben tratarse igual: si seguimos pintando
+ * `text-white/X` y `bg-white/X` sobre el fondo crema de Ghibli, el contenido
+ * desaparece.
+ *
+ * Resto de tributos (Stranger, Sith, Itachi, Amegakure, Solo Leveling) son
+ * temas oscuros: el patrón existente (`text-white/X`) sigue siendo correcto.
+ *
+ * Esta función es la fuente de verdad para "¿pinto con paleta clara o
+ * oscura?". Se debe usar en cualquier componente que decida estilos en JS
+ * en función del modo. Reemplaza al patrón antiguo `theme === "light"`.
+ */
+const LIGHT_THEMES: ReadonlySet<ThemeMode> = new Set<ThemeMode>([
+  "light",
+  "ghibli",
+]);
+
+export function isLightTheme(mode: ThemeMode): boolean {
+  return LIGHT_THEMES.has(mode);
+}
+
+/**
  * Temas que SOLO se muestran/aplican en desktop.
  *
  *  Diseñados para usar vídeo o efectos pesados que en móvil/tablet no

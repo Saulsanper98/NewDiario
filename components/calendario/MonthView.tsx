@@ -1,5 +1,7 @@
 "use client";
 
+
+import { isLightTheme } from "@/lib/theme";
 import { useMemo } from "react";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/components/layout/ThemeProvider";
@@ -54,7 +56,7 @@ export function MonthView({
   onPickEvent,
 }: Props) {
   const { theme } = useTheme();
-  const L = theme === "light";
+  const L = isLightTheme(theme);
 
   const grid = useMemo(() => buildGrid(cursor), [cursor]);
   const today = useMemo(() => {

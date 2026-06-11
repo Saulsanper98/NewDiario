@@ -1,5 +1,7 @@
 "use client";
 
+
+import { isLightTheme } from "@/lib/theme";
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { AlertTriangle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
@@ -45,7 +47,7 @@ export function ConfirmModal({
   onCancel,
 }: ConfirmModalProps) {
   const { theme } = useTheme();
-  const L = theme === "light";
+  const L = isLightTheme(theme);
 
   const [typed, setTyped] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);

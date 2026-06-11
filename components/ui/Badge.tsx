@@ -1,5 +1,7 @@
 "use client";
 
+
+import { isLightTheme } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 import type { HTMLAttributes } from "react";
 import { useTheme } from "@/components/layout/ThemeProvider";
@@ -40,7 +42,7 @@ export function Badge({
   ...props
 }: BadgeProps) {
   const { theme } = useTheme();
-  const L = theme === "light";
+  const L = isLightTheme(theme);
   return (
     <span
       className={cn(

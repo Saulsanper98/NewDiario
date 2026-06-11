@@ -1,5 +1,7 @@
 "use client";
 
+
+import { isLightTheme } from "@/lib/theme";
 import { useEffect, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import {
@@ -38,7 +40,7 @@ export function ReleaseNoteEditor({
   canAutodraft = false,
 }: ReleaseNoteEditorProps) {
   const { theme } = useTheme();
-  const isLight = theme === "light";
+  const isLight = isLightTheme(theme);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const inlineFileInputRef = useRef<HTMLInputElement>(null);
   const bodyTextareaRef = useRef<HTMLTextAreaElement>(null);

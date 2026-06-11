@@ -53,6 +53,70 @@ html[data-theme="sololeveling"] {
   --card-isolation: auto;
 
   color-scheme: dark;
+
+  /* ── Tokens de armonización tributo (consumidos por
+   *    `theme-tributes-armonization.css`). Paleta Solo Leveling: azul noche
+   *    profundo + rojo Monarca Bestia + azul Dragón Sombra. Mañana = oro
+   *    de mana (warrior gold), Tarde = aura coral, Noche = azul espectro. */
+  --tribute-surface-1:        rgba(12, 22, 50, 0.58);
+  --tribute-surface-2:        rgba(14, 24, 56, 0.64);
+  --tribute-surface-3:        rgba(16, 28, 62, 0.68);
+  --tribute-surface-4:        rgba(18, 32, 70, 0.72);
+  --tribute-surface-5:        rgba(26, 44, 90, 0.76);
+  --tribute-surface-hover:    rgba(22, 38, 80, 0.80);
+  --tribute-surface-hover-strong: rgba(34, 56, 108, 0.86);
+
+  --tribute-card-solid: linear-gradient(160deg,
+    rgba(18, 32, 68, 0.94) 0%,
+    rgba(10, 18, 44, 0.96) 55%,
+    rgba(5, 10, 24, 0.97) 100%);
+  --tribute-card-border: rgba(74, 143, 255, 0.20);
+  --tribute-card-shadow:
+    0 1px 0 rgba(74, 143, 255, 0.05) inset,
+    0 10px 28px rgba(0, 0, 0, 0.60),
+    0 18px 60px rgba(255, 70, 80, 0.05);
+
+  /* CTA: azul eléctrico Dragón Sombra (accent del tema). */
+  --tribute-cta-text:           #7fb5ff;
+  --tribute-cta-border-soft:    rgba(74, 143, 255, 0.32);
+  --tribute-cta-border:         rgba(74, 143, 255, 0.45);
+  --tribute-cta-soft-bg:        rgba(74, 143, 255, 0.10);
+  --tribute-cta-soft-bg-strong: rgba(74, 143, 255, 0.18);
+
+  /* Mañana = oro de mana (warrior gold). */
+  --tribute-shift-m-text:           #ddb866;
+  --tribute-shift-m-text-soft:      #f5e0b3;
+  --tribute-shift-m-bg:             rgba(221, 184, 102, 0.10);
+  --tribute-shift-m-bg-strong:      rgba(221, 184, 102, 0.22);
+  --tribute-shift-m-border:         rgba(221, 184, 102, 0.32);
+  --tribute-shift-m-border-strong:  rgba(221, 184, 102, 0.55);
+
+  /* Tarde = aura coral (Beast Monarch suave). */
+  --tribute-shift-t-text:           #ff9272;
+  --tribute-shift-t-text-soft:      #ffd5c5;
+  --tribute-shift-t-bg:             rgba(255, 146, 114, 0.10);
+  --tribute-shift-t-bg-strong:      rgba(255, 146, 114, 0.22);
+  --tribute-shift-t-border:         rgba(255, 146, 114, 0.32);
+  --tribute-shift-t-border-strong:  rgba(255, 146, 114, 0.55);
+
+  /* Noche = azul espectro (sombras del Monarca). */
+  --tribute-shift-n-text:           #8aa6ff;
+  --tribute-shift-n-text-soft:      #c8d2ff;
+  --tribute-shift-n-bg:             rgba(138, 166, 255, 0.10);
+  --tribute-shift-n-bg-strong:      rgba(138, 166, 255, 0.22);
+  --tribute-shift-n-border:         rgba(138, 166, 255, 0.32);
+  --tribute-shift-n-border-strong:  rgba(138, 166, 255, 0.55);
+
+  /* "Vencidos" en rojo Monarca pero desaturado para que no compita con el
+   * accent azul (el rojo del Beast Monarch es secundario en el tema). */
+  --tribute-danger-text:        #e16a78;
+  --tribute-danger-bg:          rgba(225, 106, 120, 0.14);
+  --tribute-danger-bg-strong:   rgba(225, 106, 120, 0.24);
+  --tribute-danger-border:      rgba(225, 106, 120, 0.45);
+
+  --tribute-divider:        rgba(74, 143, 255, 0.18);
+  --tribute-divider-soft:   rgba(74, 143, 255, 0.10);
+  --tribute-chip-neutral:   rgba(74, 143, 255, 0.10);
 }
 
 html[data-theme="sololeveling"] body {

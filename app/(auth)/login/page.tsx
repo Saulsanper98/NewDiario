@@ -1,5 +1,7 @@
 "use client";
 
+
+import { isLightTheme } from "@/lib/theme";
 import { useState, useEffect, useRef, startTransition, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { signIn } from "next-auth/react";
@@ -838,7 +840,7 @@ type LoginPhase = "idle" | "checking" | "redirecting";
 
 export default function LoginPage() {
   const { theme } = useTheme();
-  const uiLight = theme === "light";
+  const uiLight = isLightTheme(theme);
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
 
@@ -937,8 +939,14 @@ export default function LoginPage() {
   /* L14 — session expired message via URL param */
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    if (params.get("reason") === "session_expired") {
+    const reason = params.get("reason");
+    if (reason === "session_expired") {
       setSessionMessage("Tu sesión ha expirado. Inicia sesión de nuevo.");
+      window.history.replaceState({}, "", window.location.pathname);
+    } else if (reason === "password_changed") {
+      setSessionMessage(
+        "Contraseña actualizada. Inicia sesión con la nueva."
+      );
       window.history.replaceState({}, "", window.location.pathname);
     }
   }, []);

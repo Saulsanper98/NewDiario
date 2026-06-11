@@ -1,5 +1,7 @@
 "use client";
 
+
+import { isLightTheme } from "@/lib/theme";
 import { useState, useCallback } from "react";
 import {
   Activity, ArrowRightLeft, Copy, Trash2, Camera, Settings,
@@ -92,7 +94,7 @@ function getActionColor(action: string | null, L: boolean) {
 
 export function ProjectActivity({ activities: initial, projectId }: ProjectActivityProps) {
   const { theme } = useTheme();
-  const L = theme === "light";
+  const L = isLightTheme(theme);
   const [items, setItems] = useState<(ActivityItem | ApiActivityItem)[]>(initial);
   const [total, setTotal] = useState(initial.length);
   const [loading, setLoading] = useState(false);

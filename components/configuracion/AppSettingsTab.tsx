@@ -1,5 +1,7 @@
 "use client";
 
+
+import { isLightTheme } from "@/lib/theme";
 import { useEffect, useRef, useState } from "react";
 import {
   Sun,
@@ -28,7 +30,7 @@ const LOGO_MAX_BYTES = 280_000;
 
 export function AppSettingsTab() {
   const { theme } = useTheme();
-  const L = theme === "light";
+  const L = isLightTheme(theme);
   const fileRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(true);
   const { compact, toggle: toggleDensity } = useDensity();

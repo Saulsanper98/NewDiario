@@ -1,5 +1,7 @@
 "use client";
 
+
+import { isLightTheme } from "@/lib/theme";
 import { useState, useEffect, useCallback, useRef } from "react";
 import {
   BookOpen, CheckSquare, AlertTriangle, Zap,
@@ -292,7 +294,7 @@ export function DashboardContent({
   stats,
 }: DashboardContentProps) {
   const { theme } = useTheme();
-  const L = theme === "light";
+  const L = isLightTheme(theme);
 
   const currentShift = getCurrentShift();
   const now = new Date();

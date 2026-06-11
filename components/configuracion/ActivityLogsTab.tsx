@@ -1,5 +1,7 @@
 "use client";
 
+
+import { isLightTheme } from "@/lib/theme";
 import { useState, useMemo } from "react";
 import {
   X,
@@ -76,7 +78,7 @@ function getActionTone(action: string, L: boolean) {
 
 export function ActivityLogsTab({ logs }: ActivityLogsTabProps) {
   const { theme } = useTheme();
-  const L = theme === "light";
+  const L = isLightTheme(theme);
   const [search, setSearch] = useState("");
 
   const filtered = useMemo(() => {

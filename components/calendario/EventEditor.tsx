@@ -1,5 +1,7 @@
 "use client";
 
+
+import { isLightTheme } from "@/lib/theme";
 import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import {
@@ -231,7 +233,7 @@ function buildPayload(s: FormState) {
 
 export function EventEditor(props: Props) {
   const { theme } = useTheme();
-  const L = theme === "light";
+  const L = isLightTheme(theme);
   const [form, setForm] = useState<FormState>(() => buildInitial(props));
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);

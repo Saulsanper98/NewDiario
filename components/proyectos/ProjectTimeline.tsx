@@ -1,5 +1,7 @@
 "use client";
 
+
+import { isLightTheme } from "@/lib/theme";
 import { format, differenceInDays, startOfDay, addDays, isToday } from "date-fns";
 import { es } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -18,7 +20,7 @@ interface ProjectTimelineProps {
 
 export function ProjectTimeline({ columns }: ProjectTimelineProps) {
   const { theme } = useTheme();
-  const L = theme === "light";
+  const L = isLightTheme(theme);
 
   const allTasks: TimelineTask[] = columns
     .flatMap((col) =>
